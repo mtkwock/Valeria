@@ -1,0 +1,13 @@
+
+dist
+bazel-out
+node_modules
+templates/
+bin/
+!bin/injector.js
+!bin/background.js
+.DS_Store
+.bazelrc
+experimental/
+*.js.map
+.bazelignore
