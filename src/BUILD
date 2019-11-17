@@ -11,4 +11,4 @@ ts_library(
   name = "common",
   srcs = ["common.ts"],
   deps = [],
-  )
+)

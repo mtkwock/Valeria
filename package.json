@@ -1,21 +1,21 @@
 {
-    "name": "valeria",
-    "version": "0.1.0",
-    "private": true,
-    "devDependencies": {
-        "@bazel/bazel": "latest",
-        "@bazel/buildifier": "latest",
-        "@bazel/ibazel": "latest",
-        "@bazel/typescript": "latest",
-        "typescript": "~3.4.0"
-    },
-    "scripts": {
-        "build": "bazel build //...",
-        "test": "bazel test //...",
-        "scss": "node-sass --watch scss -o bin/css/"
-    },
-    "dependencies": {
-        "handlebars": "^4.5.2",
-        "node-sass": "^4.13.0"
-    }
+  "name": "valeria",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "@bazel/bazel": "latest",
+    "@bazel/buildifier": "latest",
+    "@bazel/ibazel": "latest",
+    "@bazel/typescript": "latest",
+    "typescript": "~3.4.0"
+  },
+  "scripts": {
+    "build": "bazel build //...",
+    "test": "bazel test //...",
+    "scss": "node-sass --watch scss -o bin/css/"
+  },
+  "dependencies": {
+    "handlebars": "^4.5.2",
+    "node-sass": "^4.13.0"
+  }
 }

@@ -9,52 +9,52 @@ let prioritizedEnemySearch: Card[] = [];
 let prioritizedMonsterSearch: Card[] = [];
 let prioritizedInheritSearch: Card[] = [];
 function SearchInit() {
-	const ids: number[] = Object.keys(vm.model.cards).map((id) => Number(id));
+  const ids: number[] = Object.keys(vm.model.cards).map((id) => Number(id));
 
-	prioritizedEnemySearch = ids.map((id: number) => vm.model.cards[id]).reverse();
-	prioritizedMonsterSearch = ids.map((id: number) => vm.model.cards[id]).filter((card: Card) => {
-	  return card.id < 100000;
-	}).sort((card1, card2) => {
-	  if (card2.awakenings[0] == Awakening.AWOKEN_ASSIST) {
-	    return -1;
-	  }
-	  if (card1.awakenings[0] == Awakening.AWOKEN_ASSIST) {
-	    return 1;
-	  }
-	  return card2.id - card1.id;
-	});
+  prioritizedEnemySearch = ids.map((id: number) => vm.model.cards[id]).reverse();
+  prioritizedMonsterSearch = ids.map((id: number) => vm.model.cards[id]).filter((card: Card) => {
+    return card.id < 100000;
+  }).sort((card1, card2) => {
+    if (card2.awakenings[0] == Awakening.AWOKEN_ASSIST) {
+      return -1;
+    }
+    if (card1.awakenings[0] == Awakening.AWOKEN_ASSIST) {
+      return 1;
+    }
+    return card2.id - card1.id;
+  });
 
-	prioritizedInheritSearch = prioritizedMonsterSearch.filter((card) => {
-	  // No idea why, but inheritanceType 3 and 7 are assistables.
-	  // 1, 4, and 5 are unknown
-	  // 0 is none
-	  // 2 and 6 are unassistable.
-	  // return card.inheritanceType == 3 || card.inheritanceType == 7;
-	  return Boolean(card);
-	}).sort((card1, card2) => {
-	  if (card1.awakenings[0] != card2.awakenings[0]) {
-	    if (card1.awakenings[0] == Awakening.AWOKEN_ASSIST) {
-	      return -1;
-	    }
-	    if (card2.awakenings[0] == Awakening.AWOKEN_ASSIST) {
-	      return 1;
-	    }
-	  }
-	  // if (card2.monsterPoints != card1.monsterPoints) {
-	  //   return card2.monsterPoints - card1.monsterPoints;
-	  // }
-	  return card2.id - card1.id;
-	});
+  prioritizedInheritSearch = prioritizedMonsterSearch.filter((card) => {
+    // No idea why, but inheritanceType 3 and 7 are assistables.
+    // 1, 4, and 5 are unknown
+    // 0 is none
+    // 2 and 6 are unassistable.
+    // return card.inheritanceType == 3 || card.inheritanceType == 7;
+    return Boolean(card);
+  }).sort((card1, card2) => {
+    if (card1.awakenings[0] != card2.awakenings[0]) {
+      if (card1.awakenings[0] == Awakening.AWOKEN_ASSIST) {
+        return -1;
+      }
+      if (card2.awakenings[0] == Awakening.AWOKEN_ASSIST) {
+        return 1;
+      }
+    }
+    // if (card2.monsterPoints != card1.monsterPoints) {
+    //   return card2.monsterPoints - card1.monsterPoints;
+    // }
+    return card2.id - card1.id;
+  });
 
-	for (const group of vm.model.cardGroups) {
-	  for (const alias of group.aliases.filter(
-	      (alias) => alias.indexOf(' ') == -1 && alias == alias.toLowerCase())) {
-	    prefixToCardIds[alias] = group.cards;
-	    if (alias == 'halloween') {
-	      prefixToCardIds['h'] = group.cards;
-	    }
-	  }
-	}
+  for (const group of vm.model.cardGroups) {
+    for (const alias of group.aliases.filter(
+        (alias) => alias.indexOf(' ') == -1 && alias == alias.toLowerCase())) {
+      prefixToCardIds[alias] = group.cards;
+      if (alias == 'halloween') {
+        prefixToCardIds['h'] = group.cards;
+      }
+    }
+  }
 }
 
 /**
@@ -169,7 +169,7 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
   }
 
   lowerPriority.length = 0;
-	let scoredPriority: number[][] = [];
+  let scoredPriority: number[][] = [];
   // Fuzzy match with the name.
   // This prioritizes values with consecutive letters.
   for (const card of searchArray) {
@@ -240,10 +240,10 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
 }
 
 export {
-	SearchInit, // Must be called to have any reasonable values.
+  SearchInit, // Must be called to have any reasonable values.
 
-	fuzzyMonsterSearch,
-	prioritizedMonsterSearch,
-	prioritizedInheritSearch,
-	prioritizedEnemySearch,
+  fuzzyMonsterSearch,
+  prioritizedMonsterSearch,
+  prioritizedInheritSearch,
+  prioritizedEnemySearch,
 }

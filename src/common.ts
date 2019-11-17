@@ -12,36 +12,36 @@ import {Card} from '../typings/ilmina';
 // 256 mortal poison
 // const COLOR_ORDER = 'rbgldhjpmou';
 const COLORS = [
-	'r',
-	'b',
-	'g',
-	'l',
-	'd',
-	'h',
-	'j',
-	'p',
-	'm',
-	'o',
-	'u',
+  'r',
+  'b',
+  'g',
+  'l',
+  'd',
+  'h',
+  'j',
+  'p',
+  'm',
+  'o',
+  'u',
 ];
 
 function idxsFromBits(bits: number): number[] {
-	const idxs = [];
-	for (let idx = 0; bits >> idx; idx++) {
-		if (bits >> idx & 1) {
-			idxs.push(idx);
-		}
-	}
-	return idxs;
+  const idxs = [];
+  for (let idx = 0; bits >> idx; idx++) {
+    if (bits >> idx & 1) {
+      idxs.push(idx);
+    }
+  }
+  return idxs;
 }
 
 enum Attribute {
-	FIRE  = 0,
-	WATER = 1,
-	WOOD  = 2,
-	LIGHT = 3,
-	DARK  = 4,
-	NONE  = -1,
+  FIRE  = 0,
+  WATER = 1,
+  WOOD  = 2,
+  LIGHT = 3,
+  DARK  = 4,
+  NONE  = -1,
 }
 
 const AttributeToName = new Map<Attribute, string>();
@@ -53,24 +53,24 @@ AttributeToName.set(Attribute.DARK, 'Dark');
 AttributeToName.set(Attribute.NONE, 'None');
 
 enum MonsterType {
-	NONE = -1,
-	EVO = 0,
-	BALANCED = 1,
-	PHYSICAL = 2,
-	HEALER = 3,
-	DRAGON = 4,
-	GOD = 5,
-	ATTACKER = 6,
-	DEVIL = 7,
-	MACHINE = 8,
-	AWAKENING = 12,
-	ENHANCED = 14,
-	REDEEMABLE = 15,
+  NONE = -1,
+  EVO = 0,
+  BALANCED = 1,
+  PHYSICAL = 2,
+  HEALER = 3,
+  DRAGON = 4,
+  GOD = 5,
+  ATTACKER = 6,
+  DEVIL = 7,
+  MACHINE = 8,
+  AWAKENING = 12,
+  ENHANCED = 14,
+  REDEEMABLE = 15,
 
-	UNKNOWN_1 = 9,
-	UNKNOWN_2 = 10,
-	UNKNOWN_3 = 11,
-	UNKNOWN_4 = 13,
+  UNKNOWN_1 = 9,
+  UNKNOWN_2 = 10,
+  UNKNOWN_3 = 11,
+  UNKNOWN_4 = 13,
 }
 
 const TypeToName = new Map<MonsterType, string>();
@@ -150,11 +150,11 @@ enum Awakening {
 };
 
 const AwakeningToPlusAwakening = new Map<Awakening, Awakening>([
-	[Awakening.SKILL_BOOST, Awakening.SKILL_BOOST_PLUS],
-	[Awakening.TIME, Awakening.TIME_PLUS],
-	[Awakening.RESIST_BIND, Awakening.RESIST_BIND_PLUS],
-	[Awakening.RESIST_BLIND, Awakening.RESIST_BLIND_PLUS],
-	[Awakening.RESIST_POISON, Awakening.RESIST_POISON_PLUS],
+  [Awakening.SKILL_BOOST, Awakening.SKILL_BOOST_PLUS],
+  [Awakening.TIME, Awakening.TIME_PLUS],
+  [Awakening.RESIST_BIND, Awakening.RESIST_BIND_PLUS],
+  [Awakening.RESIST_BLIND, Awakening.RESIST_BLIND_PLUS],
+  [Awakening.RESIST_POISON, Awakening.RESIST_POISON_PLUS],
 ]);
 
 const PlusAwakeningMultiplier = new Map<Awakening, number>();
@@ -188,46 +188,46 @@ const AwakeningToName = [
 ];
 
 const Round = {
-	UP: Math.ceil,
-	DOWN: Math.floor,
-	NEAREST: Math.round,
-	NONE: (a: number) => a,
+  UP: Math.ceil,
+  DOWN: Math.floor,
+  NEAREST: Math.round,
+  NONE: (a: number) => a,
 };
 
 function numberWithCommas(x: number): string {
-	return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 const DEFAULT_CARD: Card = {
-	id: 0,
-	name: 'sdr',
-	maxLevel: 1,
-	awakenings: [],
-	attribute: -1,
-	subattribute: -1,
-	superAwakenings: [],
-	latentKillers: [],
-	minHp: 0,
-	maxHp: 0,
-	hpGrowth: 1,
-	minAtk: 0,
-	maxAtk: 0,
-	atkGrowth: 1,
-	minRcv: 0,
-	maxRcv: 0,
-	rcvGrowth: 1,
-	isLimitBreakable: false,
-	limitBreakStatGain: 0,
-	types: [],
-	unknownData: [0,0,0,0,0,0,0],
-	evoTreeBaseId: 0,
-	collab: 0,
-	leaderSkillId: 0,
-	activeSkillId: 0,
+  id: 0,
+  name: 'sdr',
+  maxLevel: 1,
+  awakenings: [],
+  attribute: -1,
+  subattribute: -1,
+  superAwakenings: [],
+  latentKillers: [],
+  minHp: 0,
+  maxHp: 0,
+  hpGrowth: 1,
+  minAtk: 0,
+  maxAtk: 0,
+  atkGrowth: 1,
+  minRcv: 0,
+  maxRcv: 0,
+  rcvGrowth: 1,
+  isLimitBreakable: false,
+  limitBreakStatGain: 0,
+  types: [],
+  unknownData: [0,0,0,0,0,0,0],
+  evoTreeBaseId: 0,
+  collab: 0,
+  leaderSkillId: 0,
+  activeSkillId: 0,
 };
 
 const LatentSuper = new Set<Latent>([
-	Latent.EVO, Latent.AWOKEN, Latent.ENHANCED, Latent.REDEEMABLE,
+  Latent.EVO, Latent.AWOKEN, Latent.ENHANCED, Latent.REDEEMABLE,
   Latent.GOD, Latent.DRAGON, Latent.DEVIL, Latent.MACHINE,
   Latent.BALANCED, Latent.ATTACKER, Latent.PHYSICAL, Latent.HEALER,
 
@@ -265,22 +265,22 @@ const ShapeToLetter: Record<Shape, string> = {
 };
 
 export {
-	Attribute,
-	AttributeToName,
-	MonsterType,
-	TypeToName,
-	Latent,
-	LatentSuper,
-	Awakening,
-	AwakeningToPlusAwakening,
-	PlusAwakeningMultiplier,
-	AwakeningToName,
-	Shape,
-	LetterToShape,
-	ShapeToLetter,
-	COLORS,
-	DEFAULT_CARD,
-	idxsFromBits,
-	numberWithCommas,
-	Round,
+  Attribute,
+  AttributeToName,
+  MonsterType,
+  TypeToName,
+  Latent,
+  LatentSuper,
+  Awakening,
+  AwakeningToPlusAwakening,
+  PlusAwakeningMultiplier,
+  AwakeningToName,
+  Shape,
+  LetterToShape,
+  ShapeToLetter,
+  COLORS,
+  DEFAULT_CARD,
+  idxsFromBits,
+  numberWithCommas,
+  Round,
 };

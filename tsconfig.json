@@ -1,32 +1,32 @@
 {
-	"compilerOptions": {
-		"allowJs": true,
-		"module": "es6",
-		"noImplicitAny": true,
-  	"preserveConstEnums": true,
-		"sourceMap": true,
-		"lib": [
-			"DOM",
-			"ES6",
-			"DOM.Iterable",
-			"ScriptHost",
-			"ES2018.Promise",
-			"ES2018.RegExp",
-			"ES2015.Iterable",
-			"ESNext.Array"
-		],
-		"outDir": "bin/",
-		"pretty": true,
-		"strict": true,
-		"strictFunctionTypes": true,
-		"strictPropertyInitialization": true,
-		"strictNullChecks": true,
-		"target": "ESNext",
-		"typeRoots": ["./typings"],
-		"types": [],
-		"watch": true
+  "compilerOptions": {
+    "allowJs": true,
+    "module": "es6",
+    "noImplicitAny": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "lib": [
+      "DOM",
+      "ES6",
+      "DOM.Iterable",
+      "ScriptHost",
+      "ES2018.Promise",
+      "ES2018.RegExp",
+      "ES2015.Iterable",
+      "ESNext.Array"
+    ],
+    "outDir": "bin/",
+    "pretty": true,
+    "strict": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "strictNullChecks": true,
+    "target": "ESNext",
+    "typeRoots": ["./typings"],
+    "types": [],
+    "watch": true
     },
-	"include": [
-		"src/*.ts"
+  "include": [
+    "src/*.ts"
   ]
 }

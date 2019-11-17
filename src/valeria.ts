@@ -65,10 +65,10 @@ function testRoche(): MonsterInstance {
   if (roche.getRcv() != 916) {
     throw 'Roche\'s rcv is wrong.';
   }
-	// document.body.appendChild(roche.getElement());
-	roche.update();
-	// console.log('Roche is good!');
-	return roche;
+  // document.body.appendChild(roche.getElement());
+  roche.update();
+  // console.log('Roche is good!');
+  return roche;
 }
 
 function testAnother() {
@@ -92,56 +92,56 @@ function testAnother() {
   if (another.getRcv(false) != 363) {
     throw 'Athena\'s rcv is wrong.';
   }
-	console.log('Athena Another is okay!');
+  console.log('Athena Another is okay!');
 }
 
 class Valeria {
-	display: ValeriaDisplay;
-	comboContainer: ComboContainer;
-	monsterEditor: MonsterEditor;
-	team: Team;
-	_testRocheDeleteLater: MonsterInstance;
-	constructor() {
-		this.comboContainer = new ComboContainer();
+  display: ValeriaDisplay;
+  comboContainer: ComboContainer;
+  monsterEditor: MonsterEditor;
+  team: Team;
+  _testRocheDeleteLater: MonsterInstance;
+  constructor() {
+    this.comboContainer = new ComboContainer();
 
-		this.display = new ValeriaDisplay();
+    this.display = new ValeriaDisplay();
 
-		this._testRocheDeleteLater = testRoche();
-		this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
+    this._testRocheDeleteLater = testRoche();
+    this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
 
-		this.monsterEditor = new MonsterEditor();
-		this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
+    this.monsterEditor = new MonsterEditor();
+    this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
 
-		this.team = new Team();
-		this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 / 5209 (5190) | lv110 sa2');
-		console.log(this.team.getHp());
-		console.log(this.team.getRcv());
-		this.display.panes[1].appendChild(this.team.teamPane.getElement());
+    this.team = new Team();
+    this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 / 5209 (5190) | lv110 sa2');
+    console.log(this.team.getHp());
+    console.log(this.team.getRcv());
+    this.display.panes[1].appendChild(this.team.teamPane.getElement());
 
-		this.display.panes[2].appendChild(this._testRocheDeleteLater.getElement())
-	}
+    this.display.panes[2].appendChild(this._testRocheDeleteLater.getElement())
+  }
 
-	getElement(): HTMLElement {
-		return this.display.getElement();
-	}
+  getElement(): HTMLElement {
+    return this.display.getElement();
+  }
 }
 
 async function init() {
-	if (window.location.hash != '#/Valeria') {
-		return;
-	}
-	await waitFor(() => vm.page() != 0);
+  if (window.location.hash != '#/Valeria') {
+    return;
+  }
+  await waitFor(() => vm.page() != 0);
 
-	annotateMonsterScaling();
-	SearchInit();
-	// testRoche();
-	testAnother();
-	const valeria = new Valeria();
+  annotateMonsterScaling();
+  SearchInit();
+  // testRoche();
+  testAnother();
+  const valeria = new Valeria();
 
-	document.body.appendChild(valeria.getElement());
-	for (const el of document.getElementsByClassName('main-site-div')) {
-		(el as HTMLElement).style.display = 'none';
-	}
+  document.body.appendChild(valeria.getElement());
+  for (const el of document.getElementsByClassName('main-site-div')) {
+    (el as HTMLElement).style.display = 'none';
+  }
 }
 
 init();
