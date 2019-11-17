@@ -3,7 +3,7 @@ dist
 bazel-out
 node_modules
 templates/
-bin/
+bin/*
 !bin/injector.js
 !bin/background.js
 .DS_Store
