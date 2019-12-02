@@ -258,6 +258,9 @@ class MonsterInstance {
         json.inheritLevel = this.inheritLevel;
         json.inheritPlussed = this.inheritPlussed;
       }
+      if (this.superAwakeningIdx >= 0) {
+        json.superAwakeningIdx = this.superAwakeningIdx;
+      }
     }
     return json;
   }

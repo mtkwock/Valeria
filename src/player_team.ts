@@ -130,6 +130,7 @@ class Team {
   storage: StoredTeams;
   state: TeamState;
   teamPane: TeamPane;
+  updateIdxCb: (idx: number) => any;
 
   constructor() {
     /**
@@ -143,11 +144,30 @@ class Team {
     this.state = Object.assign({}, DEFAULT_STATE);
 
     this.storage = new StoredTeams(this);
-    this.teamPane = new TeamPane(this.storage.getElement());
+    this.teamPane = new TeamPane(
+      this.storage.getElement(),
+      this.monsters.map((monster) => monster.getElement()),
+      (idx: number) => this.setActiveMonsterIdx(idx),
+    );
+
+    this.updateIdxCb = () => null;
 
     // TODO: Team Form
     // TODO: Monster Editor - Different Class?
     // TODO: Battle Display - Different Class?
+  }
+
+  setActiveMonsterIdx(idx: number) {
+    if (this.playerMode == 2) {
+      if (idx == 5) {
+        idx = 6;
+      }
+      if (idx == 11) {
+        idx = 0;
+      }
+    }
+    this.activeMonster = idx;
+    this.updateIdxCb(idx);
   }
 
   resetState(partial: boolean = false): void {
@@ -265,6 +285,7 @@ class Team {
         this.monsters[i].setId(-1);
       }
     }
+    this.update();
   }
 
   setPlayerMode(newMode: number): void {
@@ -456,6 +477,17 @@ class Team {
     }
     // All teams have bigBoard.
     return 7;
+  }
+
+  update(): void {
+    if (this.playerMode == 2) {
+      this.monsters[5].copyFrom(this.monsters[6]);
+      this.monsters[11].copyFrom(this.monsters[0]);
+    }
+    this.teamPane.update(this.playerMode, this.teamName, this.description);
+    for (const monster of this.monsters) {
+      monster.update(this.isMultiplayer());
+    }
   }
 }
 
