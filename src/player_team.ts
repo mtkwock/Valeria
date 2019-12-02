@@ -251,6 +251,8 @@ class Team {
         team[j].fromPdchu(monsterStrings[j]);
       }
     }
+
+    this.update();
   }
 
   getTeamAt(teamIdx: number): MonsterInstance[] {

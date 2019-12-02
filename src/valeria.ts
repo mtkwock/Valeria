@@ -155,6 +155,12 @@ class Valeria {
       this.updateMonsterEditor();
       console.log(ctx);
     });
+    this.monsterEditor.pdchu.importButton.onclick = () => {
+      this.team.fromPdchu(this.monsterEditor.pdchu.io.value);
+    };
+    this.monsterEditor.pdchu.exportButton.onclick = () => {
+      this.monsterEditor.pdchu.io.value = this.team.toPdchu();
+    }
     this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
 
     this.team = new Team();
