@@ -27,6 +27,16 @@ export interface Card {
   collab: number;
   leaderSkillId: number;
   activeSkillId: number;
+  inheritanceType: number;
+  enemyAtkAtLv1: number;
+  enemyDefAtLv1: number;
+  enemyHpAtLv1: number;
+  enemyAtkAtLv10: number;
+  enemyDefAtLv10: number;
+  enemyHpAtLv10: number;
+  enemyAtkCurve: number;
+  enemyDefCurve: number;
+  enemyHpCurve: number;
 }
 
 export interface CardGroup {
@@ -39,6 +49,7 @@ export interface CardGroup {
 export interface PlayerSkill {
   internalEffectId: number;
   internalEffectArguments: number[];
+  maxCooldown: number;
 }
 
 export interface EvolutionTreeDetails {

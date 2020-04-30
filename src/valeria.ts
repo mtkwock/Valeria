@@ -170,6 +170,7 @@ class Valeria {
     this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 / 5209 (5190) | lv110 sa2');
     console.log(this.team.getHp());
     console.log(this.team.getRcv());
+    console.log(this.team.getStats());
     this.display.panes[1].appendChild(this.team.teamPane.getElement());
 
     this.display.panes[2].appendChild(this._testRocheDeleteLater.getElement())

@@ -1,9 +1,8 @@
-import {Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits} from './common';
+import {Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits, vm} from './common';
 import {Card, CardAssetInterface, KnockoutVM} from '../typings/ilmina';
 import {create, MonsterIcon, MonsterInherit, MonsterLatent} from './templates';
 import {fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch} from './fuzzy_search';
 
-declare var vm: KnockoutVM;
 declare var CardAssets:CardAssetInterface;
 
 const AWAKENING_BONUS = new Map<Awakening, number>([
@@ -553,12 +552,14 @@ class MonsterInstance {
     if (!c.latentKillers.length) {
       return;
     }
+    const maxSlots = c.inheritanceType & 32 ? 8 : 6;
+    console.log(maxSlots);
     let totalSlots = 0;
     for (const l of this.latents) {
       totalSlots += LatentSuper.has(l) ? 2 : 1;
     }
     totalSlots += LatentSuper.has(latent) ? 2 : 1;
-    if (totalSlots > 6) return;
+    if (totalSlots > maxSlots) return;
     if (latent >= 16 && latent <= 23 && !c.latentKillers.some((killer) => killer == (latent - 11))) {
       return;
     }

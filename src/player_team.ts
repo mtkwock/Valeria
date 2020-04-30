@@ -1,6 +1,6 @@
-import {Attribute, MonsterType, Awakening, Latent} from './common';
+import {Attribute, MonsterType, Awakening, Latent, vm} from './common';
 import {MonsterInstance, MonsterJson} from './monster_instance';
-import {StoredTeamDisplay, TeamPane} from './templates';
+import {StoredTeamDisplay, TeamPane, Stats} from './templates';
 import * as leaders from './leaders';
 
 interface Burst {
@@ -118,6 +118,20 @@ class StoredTeams {
   }
 }
 
+const SHARED_AWAKENINGS = new Set([
+  Awakening.SKILL_BOOST,
+  Awakening.SKILL_BOOST_PLUS,
+  Awakening.RESIST_POISON,
+  Awakening.RESIST_POISON_PLUS,
+  Awakening.RESIST_BLIND,
+  Awakening.RESIST_BLIND_PLUS,
+  Awakening.RESIST_JAMMER,
+  Awakening.RESIST_JAMMER_PLUS,
+  Awakening.SBR,
+  Awakening.RESIST_CLOUD,
+  Awakening.RESIST_TAPE,
+]);
+
 class Team {
   teamName: string = '';
   description: string = '';
@@ -152,8 +166,6 @@ class Team {
 
     this.updateIdxCb = () => null;
 
-    // TODO: Team Form
-    // TODO: Monster Editor - Different Class?
     // TODO: Battle Display - Different Class?
   }
 
@@ -353,10 +365,7 @@ class Team {
     return idx;
   }
 
-  getHp(): number {
-    if (this.state.fixedHp) {
-      return this.state.fixedHp;
-    }
+  getIndividualHp(includeLeaderSkill: boolean = false, includeP2: boolean = false): number[] {
     const monsters = this.getActiveTeam();
     const partialLead = (monster: MonsterInstance): number => {
       return leaders.hp(monsters[0].getCard().leaderSkillId, {
@@ -372,28 +381,43 @@ class Team {
         isMultiplayer: this.isMultiplayer(),
       });
     };
-    if (this.playerMode == 2) {
+    if (includeP2) {
       const p2Monsters = this.getTeamAt(this.activeTeamIdx ^ 1);
       for (let i = 1; i < 5; i++) {
         monsters.push(p2Monsters[i]);
       }
     }
-    let totalHp = 0;
+    if (!includeLeaderSkill) {
+      return monsters.map((monster) => monster.getHp(this.isMultiplayer(), this.state.awakenings));
+    }
+    let hps = [];
     const teamHpAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(Awakening.TEAM_HP), 0) * 0.05) : 0);
     for (const monster of monsters) {
       if (!monster.id || monster.id <= 0) {
+        hps.push(0);
         continue;
       }
       const hpMult = partialLead(monster) * partialHelper(monster);
       const hpBase = monster.getHp(this.isMultiplayer(), this.state.awakenings);
-      totalHp += Math.round(hpBase * hpMult * teamHpAwakeningsMult);
+      hps.push(Math.round(hpBase * hpMult * teamHpAwakeningsMult));
     }
-    return totalHp;
+    return hps;
   }
 
-  // Base recovery before matching.
-  getRcv(): number {
+  getHp(): number {
+    if (this.state.fixedHp) {
+      return this.state.fixedHp;
+    }
+    const individualHps = this.getIndividualHp(true, this.playerMode == 2);
+    return individualHps.reduce((total, next) => total + next, 0);
+  }
+
+  getIndividualRcv(includeLeaderSkill: boolean = false): number[] {
+    let rcvs = [];
     const monsters = this.getActiveTeam();
+    if (!includeLeaderSkill) {
+      return monsters.map((monster) => monster.getRcv(this.isMultiplayer(), this.state.awakenings));
+    }
     const partialLead = (monster: MonsterInstance): number => {
       return leaders.rcv(monsters[0].getCard().leaderSkillId, {
         monster: monster,
@@ -408,17 +432,24 @@ class Team {
         isMultiplayer: this.isMultiplayer(),
       });
     };
-    let totalRcv = 0;
     const teamRcvAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(Awakening.TEAM_RCV), 0) * 0.1) : 0);
     for (const monster of monsters) {
       if (!monster.id || monster.id <= 0) {
+        rcvs.push(0);
         continue;
       }
       const rcvMult = partialLead(monster) * partialHelper(monster);
       const rcvBase = monster.getRcv(this.isMultiplayer(), this.state.awakenings);
-      totalRcv += Math.round(rcvBase * rcvMult * teamRcvAwakeningsMult);
+      rcvs.push(Math.round(rcvBase * rcvMult * teamRcvAwakeningsMult));
     }
-    return totalRcv;
+    return rcvs;
+  }
+
+  // Base recovery before matching.
+  getRcv(): number {
+    const rcvs = this.getIndividualRcv(true);
+    const totalRcv = rcvs.reduce((total, next) => total + next, 0);
+    return totalRcv > 0 ? totalRcv : 0;
   }
 
   // TODO
@@ -462,7 +493,7 @@ class Team {
         monsterGroupsToCheck[0].push(this.monsters[6]);
         break;
       case 3:
-         monsterGroupsToCheck[0].push(this.monsters[5]);
+        monsterGroupsToCheck[0].push(this.monsters[5]);
         monsterGroupsToCheck.push([this.monsters[6], this.monsters[11]]);
         monsterGroupsToCheck.push([this.monsters[12], this.monsters[17]]);
     }
@@ -489,6 +520,89 @@ class Team {
     this.teamPane.update(this.playerMode, this.teamName, this.description);
     for (const monster of this.monsters) {
       monster.update(this.isMultiplayer());
+    }
+    this.teamPane.updateStats(this.getStats());
+  }
+
+  countAwakening(awakening: Awakening): number {
+    const monsters = this.getActiveTeam();
+    if (this.playerMode == 2 && SHARED_AWAKENINGS.has(awakening)) {
+      const p2Monsters = this.getTeamAt(this.activeTeamIdx ^ 1);
+      for (let i = 1; i < 5; i++) {
+        monsters.push(p2Monsters[i]);
+      }
+    }
+
+    return monsters.reduce(
+      (total, monster) => total + monster.countAwakening(awakening, this.isMultiplayer()),
+      0);
+  }
+
+  getStats(): Stats {
+    const team = this.getActiveTeam();
+    const cds = [];
+    for (const monster of team) {
+      const card = monster.getCard();
+      let baseCd = 0;
+      if (card.activeSkillId > 0) {
+        baseCd = vm.model.playerSkills[card.activeSkillId].maxCooldown;
+      }
+
+      let inheritCd = 0;
+
+      const inheritCard = monster.getInheritCard();
+      if (inheritCard && inheritCard.activeSkillId > 0) {
+        inheritCd = vm.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
+      }
+
+      if (baseCd && inheritCd) {
+        cds.push(`${baseCd}(${baseCd + inheritCd})`);
+      } else if (baseCd && !inheritCd) {
+        cds.push(`${baseCd}`);
+      } else if (!baseCd && inheritCd) {
+        cds.push(`?(? + ${inheritCd})`);
+      } else {
+        cds.push('');
+      }
+    }
+
+    const counts: Map<Awakening, number> = new Map();
+    counts.set(Awakening.SKILL_BOOST,
+      this.countAwakening(Awakening.SKILL_BOOST) +
+      2 * this.countAwakening(Awakening.SKILL_BOOST_PLUS));
+    counts.set(Awakening.TIME, this.countAwakening(Awakening.TIME) +
+        2 * this.countAwakening(Awakening.TIME_PLUS));
+    counts.set(Awakening.SOLOBOOST, this.countAwakening(Awakening.SOLOBOOST));
+    counts.set(Awakening.BONUS_ATTACK, this.countAwakening(Awakening.BONUS_ATTACK));
+    counts.set(Awakening.BONUS_ATTACK_SUPER, this.countAwakening(Awakening.BONUS_ATTACK_SUPER));
+    counts.set(Awakening.SBR, this.countAwakening(Awakening.SBR));
+    counts.set(Awakening.RESIST_POISON,
+      this.countAwakening(Awakening.RESIST_POISON) +
+      5 * this.countAwakening(Awakening.RESIST_POISON_PLUS));
+    counts.set(Awakening.RESIST_BLIND,
+      this.countAwakening(Awakening.RESIST_BLIND) +
+      5 * this.countAwakening(Awakening.RESIST_BLIND_PLUS));
+    counts.set(Awakening.RESIST_JAMMER,
+      this.countAwakening(Awakening.RESIST_JAMMER) +
+      5 * this.countAwakening(Awakening.RESIST_JAMMER_PLUS));
+    counts.set(Awakening.RESIST_CLOUD, this.countAwakening(Awakening.RESIST_CLOUD));
+    counts.set(Awakening.RESIST_TAPE, this.countAwakening(Awakening.RESIST_TAPE));
+    counts.set(Awakening.OE_FIRE, this.countAwakening(Awakening.OE_FIRE));
+    counts.set(Awakening.OE_WATER, this.countAwakening(Awakening.OE_WATER));
+    counts.set(Awakening.OE_WOOD, this.countAwakening(Awakening.OE_WOOD));
+    counts.set(Awakening.OE_LIGHT, this.countAwakening(Awakening.OE_LIGHT));
+    counts.set(Awakening.OE_DARK, this.countAwakening(Awakening.OE_DARK));
+    counts.set(Awakening.OE_HEART, this.countAwakening(Awakening.OE_HEART));
+
+    return {
+      hps: this.getIndividualHp(),
+      atks: [],
+      rcvs: this.getIndividualRcv(),
+      cds: cds,
+      totalHp: this.getHp(),
+      totalRcv: this.getRcv(),
+      totalTime: this.getTime(),
+      counts: counts,
     }
   }
 }

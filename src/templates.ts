@@ -56,6 +56,10 @@ enum ClassNames {
   TEAM_STORAGE_LOAD_ACTIVE = 'valeria-team-load-active',
   TEAM_STORAGE_LOAD_INACTIVE = 'valeria-team-load-inactive',
 
+  STAT_TABLE = 'valeria-team-stat-table',
+  STAT_LABEL = 'valeria-team-stat-label',
+  STAT_VALUE = 'valeria-team-stat-value',
+
   TEAM_CONTAINER = 'valeria-team-container',
   MONSTER_CONTAINER = 'valeria-monster-container',
   TEAM_TITLE = 'valeria-team-title',
@@ -75,6 +79,13 @@ enum ClassNames {
   PLUS_EDITOR = 'valeria-plus-editor',
   AWAKENING = 'valeria-monster-awakening',
   AWAKENING_SUPER = 'valeria-monster-awakening-super',
+
+  FLOOR_NAME = 'valeria-floor-name',
+  FLOOR_DELETE = 'valeria-floor-delete',
+  FLOOR_ENEMIES = 'valeria-floor-enemies',
+  FLOOR_ENEMY = 'valeria-floor-enemy',
+  FLOOR_ENEMY_ADD = 'valeria-floor-enemy-add',
+  FLOOR_ENEMY_DELETE = 'valeria-floor-delete',
 
   VALERIA = 'valeria',
 }
@@ -109,7 +120,7 @@ function getAwakeningOffsets(awakeningNumber: number): number[] {
 function updateAwakening(el: HTMLElement, awakening: number, scale: number, available: boolean = true): void {
   const [x, y] = getAwakeningOffsets(awakening);
   el.style.backgroundPosition = `${x * scale}px ${y * scale}px`;
-  el.style.opacity = `${available ? 1 : 0}`;
+  el.style.opacity = `${available ? 1 : 0}`;create('div') as HTMLDivElement
 }
 
 class MonsterIcon {
@@ -1010,7 +1021,7 @@ class LatentEditor {
     this.latentRemovers = [];
     this.currentLatents = [];
     const removerArea = create('div');
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const remover = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       remover.style.backgroundPosition = '0px 0px';
       remover.onclick = () => {
@@ -1053,7 +1064,7 @@ class LatentEditor {
     return this.el_;
   }
 
-  update(activeLatents: Latent[], latentKillers: Latent[]) {
+  update(activeLatents: Latent[], latentKillers: Latent[], maxLatents: number = 6) {
     if (!latentKillers.length) {
       this.el_.style.display = 'none';
       return;
@@ -1061,9 +1072,9 @@ class LatentEditor {
     this.el_.style.display = '';
 
     let totalLatents = 0;
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const remover = this.latentRemovers[i];
-      if (totalLatents >= 6) {
+      if (totalLatents >= maxLatents) {
         remover.style.display = 'none'
         continue;
       } else if (i >= activeLatents.length) {
@@ -1197,6 +1208,7 @@ class MonsterEditor {
     this.latentEditor.update(
       ctx.latents,
       latentKillers,
+      vm.model.cards[ctx.id].inheritanceType & 32 ? 8 : 6,
     );
   }
 
@@ -1254,25 +1266,37 @@ class StoredTeamDisplay {
   }
 }
 
+// Information needed to populate Stat box.
+interface Stats {
+  hps: number[],
+  atks: number[],
+  rcvs: number[],
+  cds: string[],
+  totalHp: number,
+  totalRcv: number,
+  totalTime: number,
+  counts: Map<Awakening, number>,
+}
+
 class TeamPane {
-  element_: HTMLElement;
-  teamDivs: HTMLDivElement[];
-  monsterDivs: HTMLElement[];
-  titleEl: HTMLInputElement;
-  descriptionEl: HTMLTextAreaElement;
-  metaTabs_: TabbedComponent;
-  detailTabs_: TabbedComponent;
+  element_: HTMLElement = create('div');
+  teamDivs: HTMLDivElement[] = [];
+  monsterDivs: HTMLElement[] =  [];
+  titleEl: HTMLInputElement = create('input', ClassNames.TEAM_TITLE) as HTMLInputElement;
+  descriptionEl: HTMLTextAreaElement = create('textarea', ClassNames.TEAM_DESCRIPTION) as HTMLTextAreaElement;
+  statsEl: HTMLDivElement = create('div') as HTMLDivElement;
+  statsByIdxByIdx: HTMLTableCellElement[][] = [];
+  private totalHpValue: HTMLSpanElement = create('span') as HTMLSpanElement;
+  private totalRcvValue: HTMLSpanElement = create('span') as HTMLSpanElement;
+  private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
+  private metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load']);
+  private detailTabs: TabbedComponent = new TabbedComponent(['Description', 'Stats', 'Battle']);
 
   constructor(storageDisplay: HTMLElement, monsterDivs: HTMLElement[], onSelectIdx: (idx: number) => any) {
-    this.element_ = create('div');
-    this.metaTabs_ = new TabbedComponent(['Team', 'Save/Load']);
-    const teamTab = this.metaTabs_.getTab('Team');
+    const teamTab = this.metaTabs.getTab('Team');
 
-    this.titleEl = create('input', ClassNames.TEAM_TITLE) as HTMLInputElement;
     teamTab.appendChild(this.titleEl);
 
-    this.teamDivs = [];
-    this.monsterDivs = [];
     for (let i = 0; i < 3; i++) {
       this.teamDivs.push(create('div', ClassNames.TEAM_CONTAINER) as HTMLDivElement);
       for (let j = 0; j < 6; j++) {
@@ -1285,16 +1309,109 @@ class TeamPane {
       teamTab.appendChild(this.teamDivs[i]);
     }
 
-    this.detailTabs_ = new TabbedComponent(['Description', 'Stats', 'Battle']);
-    const descriptionTab = this.detailTabs_.getTab('Description');
-    this.descriptionEl = create('textarea', ClassNames.TEAM_DESCRIPTION) as HTMLTextAreaElement;
+    const descriptionTab = this.detailTabs.getTab('Description');
     descriptionTab.appendChild(this.descriptionEl);
 
-    teamTab.appendChild(this.detailTabs_.getElement());
+    const statsTab = this.detailTabs.getTab('Stats');
+    this.populateStats();
+    statsTab.appendChild(this.statsEl);
 
-    this.metaTabs_.getTab('Save/Load').appendChild(storageDisplay);
+    teamTab.appendChild(this.detailTabs.getElement());
 
-    this.element_.appendChild(this.metaTabs_.getElement());
+    this.metaTabs.getTab('Save/Load').appendChild(storageDisplay);
+
+    this.element_.appendChild(this.metaTabs.getElement());
+  }
+
+  private populateStats() {
+    const statsTable = create('table', ClassNames.STAT_TABLE) as HTMLTableElement;
+    const baseStatRow = create('tr') as HTMLTableRowElement;
+    for (let i = 0; i < 6; i++) {
+      const statCell = create('td') as HTMLTableCellElement;
+      const statContainer = create('div') as HTMLDivElement;
+      const miniStatTable = create('table') as HTMLTableElement;
+      const hpRow = create('tr') as HTMLTableRowElement;
+      const atkRow = create('tr') as HTMLTableRowElement;
+      const rcvRow = create('tr') as HTMLTableRowElement;
+      const cdRow = create('tr') as HTMLTableRowElement;
+      if (i == 0) {
+        const hpLabel = create('td', ClassNames.STAT_LABEL) as HTMLTableCellElement;
+        const atkLabel = create('td', ClassNames.STAT_LABEL) as HTMLTableCellElement;
+        const rcvLabel = create('td', ClassNames.STAT_LABEL) as HTMLTableCellElement;
+        const cdLabel = create('td', ClassNames.STAT_LABEL) as HTMLTableCellElement;
+        hpLabel.innerText = 'HP:';
+        atkLabel.innerText = 'ATK:';
+        rcvLabel.innerText = 'RCV:';
+        cdLabel.innerText = 'CD:';
+        hpRow.appendChild(hpLabel);
+        atkRow.appendChild(atkLabel);
+        rcvRow.appendChild(rcvLabel);
+        cdRow.appendChild(cdLabel);
+      }
+      const hpValue = create('td', ClassNames.STAT_VALUE) as HTMLTableCellElement;
+      const atkValue = create('td', ClassNames.STAT_VALUE) as HTMLTableCellElement;
+      const rcvValue = create('td', ClassNames.STAT_VALUE) as HTMLTableCellElement;
+      const cdValue = create('td', ClassNames.STAT_VALUE) as HTMLTableCellElement;
+      this.statsByIdxByIdx.push([hpValue, atkValue, rcvValue, cdValue]);
+      hpRow.appendChild(hpValue);
+      atkRow.appendChild(atkValue);
+      rcvRow.appendChild(rcvValue);
+      cdRow.appendChild(cdValue);
+      miniStatTable.appendChild(hpRow);
+      miniStatTable.appendChild(atkRow);
+      miniStatTable.appendChild(rcvRow);
+      miniStatTable.appendChild(cdRow);
+
+      statContainer.appendChild(miniStatTable);
+      statCell.appendChild(statContainer);
+      baseStatRow.appendChild(statCell);
+    }
+    statsTable.appendChild(baseStatRow);
+    this.statsEl.appendChild(statsTable);
+
+    const totalBaseStatEl = create('div') as HTMLDivElement;
+    const totalHpLabel = create('span') as HTMLSpanElement;
+    totalHpLabel.innerText = 'Total HP:';
+    const totalRcvLabel = create('span') as HTMLSpanElement;
+    totalRcvLabel.innerText = 'Total RCV:';
+    totalBaseStatEl.appendChild(totalHpLabel);
+    totalBaseStatEl.appendChild(this.totalHpValue);
+    totalBaseStatEl.appendChild(totalRcvLabel);
+    totalBaseStatEl.appendChild(this.totalRcvValue);
+    this.statsEl.appendChild(totalBaseStatEl);
+
+    const awakeningsToDisplay = [
+      Awakening.SKILL_BOOST,
+      Awakening.TIME,
+      Awakening.SOLOBOOST,
+      Awakening.BONUS_ATTACK,
+      Awakening.BONUS_ATTACK_SUPER,
+      Awakening.SBR,
+      Awakening.RESIST_POISON,
+      Awakening.RESIST_BLIND,
+      Awakening.RESIST_JAMMER,
+      Awakening.RESIST_CLOUD,
+      Awakening.RESIST_TAPE,
+      Awakening.OE_FIRE,
+      Awakening.OE_WOOD,
+      Awakening.OE_WOOD,
+      Awakening.OE_LIGHT,
+      Awakening.OE_DARK,
+      Awakening.OE_HEART,
+    ];
+    for (const awakening of awakeningsToDisplay) {
+      const container = create('span') as HTMLSpanElement;
+      const awakeningIcon = create('span', ClassNames.AWAKENING) as HTMLSpanElement;
+      const [x, y] = getAwakeningOffsets(awakening);
+      awakeningIcon.style.backgroundPosition = `${AwakeningEditor.SCALE * x}px ${AwakeningEditor.SCALE * y}px`;
+
+      container.appendChild(awakeningIcon);
+      const aggregatedAwakeningCount = create('span') as HTMLSpanElement;
+      aggregatedAwakeningCount.innerText = 'x0';
+      this.aggregatedAwakeningCounts.set(awakening, aggregatedAwakeningCount);
+      container.appendChild(aggregatedAwakeningCount);
+      this.statsEl.appendChild(container);
+    }
   }
 
   // TODO
@@ -1313,7 +1430,26 @@ class TeamPane {
   getElement(): HTMLElement {
     return this.element_;
   }
+
+  updateStats(stats: Stats) {
+    for (let i = 0; i < 6; i++) {
+      const statsByIdx = this.statsByIdxByIdx[i];
+      statsByIdx[0].innerText = stats.hps[i] ? String(stats.hps[i]) : '';
+      statsByIdx[1].innerText = String(0);
+      statsByIdx[2].innerText = String(stats.rcvs[i]);
+      statsByIdx[3].innerText = stats.cds[i];
+    }
+    this.totalHpValue.innerText = String(stats.totalHp);
+    this.totalRcvValue.innerText = String(stats.totalRcv);
+    for (const awakening of this.aggregatedAwakeningCounts.keys()) {
+      const val = this.aggregatedAwakeningCounts.get(awakening)
+      if (val) {
+        val.innerText = `x${stats.counts.get(awakening) || 0}`;        
+      }
+    }
+  }
 }
+
 
 interface DungeonFloorUpdate {
   addEnemy?: boolean;
@@ -1362,7 +1498,7 @@ class DungeonFloorRow {
     this.el.appendChild(floorCell);
 
     const enemies = create('td') as HTMLTableCellElement;
-    this.enemiesTable = document.createElement('table', ClassNames.FLOOR_ENEMIES);
+    this.enemiesTable = create('table', ClassNames.FLOOR_ENEMIES) as HTMLTableElement;
     enemies.appendChild(this.enemiesTable);
     const firstRow = this.createEnemyRow(0);
     this.enemyRows = [firstRow];
@@ -1431,6 +1567,9 @@ class DungeonFloorRow {
   }
 }
 
+class DungeonEditor {
+}
+
 class ValeriaDisplay {
   element_: HTMLElement;
   panes: HTMLTableCellElement[];
@@ -1472,7 +1611,7 @@ export {
   TabbedComponent,
   StoredTeamDisplay,
   MonsterEditor,
-  TeamPane,
+  Stats, TeamPane,
   DungeonEditor,
   ValeriaDisplay,
   create,

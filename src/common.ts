@@ -1,4 +1,7 @@
-import {Card} from '../typings/ilmina';
+import {Card, KnockoutVM} from '../typings/ilmina';
+declare var vm: KnockoutVM;
+
+vm = vm;
 
 // 3 is red and blue
 // 1 red
@@ -224,6 +227,16 @@ const DEFAULT_CARD: Card = {
   collab: 0,
   leaderSkillId: 0,
   activeSkillId: 0,
+  inheritanceType: 0,
+  enemyAtkAtLv1: 1,
+  enemyAtkAtLv10: 1,
+  enemyAtkCurve: 1,
+  enemyHpAtLv1: 1,
+  enemyHpAtLv10: 1,
+  enemyHpCurve: 1,
+  enemyDefAtLv1: 1,
+  enemyDefAtLv10: 1,
+  enemyDefCurve: 1,
 };
 
 const LatentSuper = new Set<Latent>([
@@ -283,4 +296,5 @@ export {
   idxsFromBits,
   numberWithCommas,
   Round,
+  vm,
 };
