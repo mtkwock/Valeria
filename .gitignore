@@ -6,6 +6,7 @@ templates/
 bin/*
 !bin/injector.js
 !bin/background.js
+!bin/manifest.json
 .DS_Store
 .bazelrc
 experimental/

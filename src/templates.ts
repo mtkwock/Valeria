@@ -1315,6 +1315,122 @@ class TeamPane {
   }
 }
 
+interface DungeonFloorUpdate {
+  addEnemy?: boolean;
+  deleteEnemy?: number;
+  activeEnemy?: number;
+  deleteFloor?: number;
+}
+
+class DungeonFloorRow {
+  private readonly el: HTMLTableRowElement;
+  floorNumber: number;
+  onUpdate: (ctx: DungeonFloorUpdate) => any;
+  enemiesTable: HTMLTableElement;
+  floorNameContainer: HTMLDivElement;
+  enemyRows: HTMLTableRowElement[];
+  activeEnemy: number = 0;
+
+  constructor(floorNumber: number, onUpdate: (ctx: DungeonFloorUpdate) => any) {
+    this.floorNumber = floorNumber;
+    this.el = create('tr') as HTMLTableRowElement;
+    this.onUpdate = onUpdate;
+    const floorCell = create('td');
+    this.floorNameContainer = create('div', ClassNames.FLOOR_NAME) as HTMLDivElement;
+    //   floorName.style.minWidth = '25px';
+    this.floorNameContainer.innerText = `F${floorNumber}`;
+    floorCell.appendChild(this.floorNameContainer);
+    const addMonsterDiv = create('div', ClassNames.FLOOR_ENEMY_ADD);
+    //   addMonster.className = 'idc-dungeon-floor-add-enemy';
+    //   addMonster.style.cursor = 'pointer';
+    //   addMonster.onmouseover = () => {
+    //     addMonster.style.border = BORDER_COLOR;
+    //   };
+    //   addMonster.onmouseleave = () => {
+    //     addMonster.style.border = '';
+    //   };
+    addMonsterDiv.innerText = '[+]';
+    addMonsterDiv.onclick = () => {
+      this.onUpdate({addEnemy: true});
+      //   addMonster.onclick = () => {
+      //     this.enemies.length += 1;
+      //     this.activeEnemy = this.enemies.length - 1;
+      //     this.enemies[this.activeEnemy] = new EnemyInstance();
+      //   }
+    };
+    floorCell.appendChild(addMonsterDiv);
+    this.el.appendChild(floorCell);
+
+    const enemies = create('td') as HTMLTableCellElement;
+    this.enemiesTable = document.createElement('table', ClassNames.FLOOR_ENEMIES);
+    enemies.appendChild(this.enemiesTable);
+    const firstRow = this.createEnemyRow(0);
+    this.enemyRows = [firstRow];
+    this.enemiesTable.appendChild(firstRow);
+    this.el.appendChild(enemies);
+    // enemiesTable.className = 'idc-dungeon-floor-enemies';
+    //   enemiesTable.style.fontSize = 'x-small';
+
+    const deleteEl = create('td', ClassNames.FLOOR_DELETE);
+    //     deleteEl.className = 'idc-dungeon-floor-delete';
+    //     deleteEl.style.cursor = 'pointer';
+    if (floorNumber != 0) {
+      deleteEl.innerText = '[-]';
+    }
+    deleteEl.onclick = () => {
+      this.onUpdate({deleteFloor: this.floorNumber});
+    }
+    this.el.appendChild(deleteEl);
+  }
+
+  createEnemyRow(idx: number, name: string = 'UNSET'): HTMLTableRowElement {
+    const row = create('tr', ClassNames.FLOOR_ENEMY) as HTMLTableRowElement;
+    //     enemyRow.className = 'idc-dungeon-floor-enemy';
+    const deleteCell = create('td', ClassNames.FLOOR_ENEMY_DELETE) as HTMLTableCellElement;
+    //       deleteCell.style.cursor = 'pointer';
+    deleteCell.innerText = '[-]';
+    deleteCell.onclick = () => {
+      this.onUpdate({deleteEnemy: idx});
+    };
+    row.appendChild(deleteCell);
+    const enemyCell = create('td') as HTMLTableCellElement;
+    enemyCell.innerText = name;
+    enemyCell.onclick = () => {
+      this.onUpdate({activeEnemy: idx});
+    }
+    row.appendChild(enemyCell);
+    return row;
+  }
+
+  update(floorNumber: number, enemyNames: string[], activeEnemy: number) {
+    this.floorNumber = floorNumber;
+    this.activeEnemy = activeEnemy;
+    this.floorNameContainer.innerText = `F${floorNumber}`;
+
+    for (let i = 0; i < enemyNames.length; i++) {
+      if (i >= this.enemyRows.length) {
+        this.enemyRows.push(this.createEnemyRow(i, enemyNames[i]));
+        this.enemiesTable.appendChild(this.enemyRows[i]);
+      } else {
+        this.enemyRows[i].cells[1].innerText = enemyNames[i];
+        this.enemyRows[i].style.display = '';
+      }
+      if (i == activeEnemy) {
+        // TODO: Cleanup?
+        this.enemyRows[i].style.border = '1px solid white';
+      }
+    }
+    // Hide extraneous ones.
+    for (let i = enemyNames.length; i < this.enemyRows.length; i++) {
+      this.enemyRows[i].style.display = 'none';
+    }
+  }
+
+  getElement(): HTMLTableRowElement {
+    return this.el;
+  }
+}
+
 class ValeriaDisplay {
   element_: HTMLElement;
   panes: HTMLTableCellElement[];
@@ -1357,6 +1473,7 @@ export {
   StoredTeamDisplay,
   MonsterEditor,
   TeamPane,
+  DungeonEditor,
   ValeriaDisplay,
   create,
   MonsterUpdate, OnMonsterUpdate,
