@@ -23,7 +23,5 @@ screenShotter.onclick = () => {
     }, (_response) => { });
 };
 document.body.appendChild(screenShotter);
+loadScript('require.min.js');
 loadScript('bundle.js');
-// loadScript('src/templates.js');
-// loadScript('src/damage_ping.js');
-// loadScript('src/monster_instance.js');

@@ -6,6 +6,7 @@ import {Latent} from './common';
 import {MonsterInstance} from './monster_instance';
 import {KnockoutVM} from '../typings/ilmina';
 import {ComboContainer} from './combo_container';
+import {DungeonInstance} from './dungeon';
 import {SearchInit} from './fuzzy_search';
 import {Team} from './player_team';
 import {MonsterEditor, ValeriaDisplay, MonsterUpdate} from './templates';
@@ -41,75 +42,17 @@ function annotateMonsterScaling() {
   }
 }
 
-function testRoche(): MonsterInstance {
-  const roche = new MonsterInstance(4799);
-  roche.setLevel(110);
-  roche.addLatent(Latent.ATK_PLUS);
-  roche.addLatent(Latent.ATK_PLUS);
-  roche.addLatent(Latent.ATK_PLUS);
-  roche.inheritId = 4204;
-  roche.inheritLevel = 110;
-  roche.inheritPlussed = true;
-  roche.setHpPlus(99);
-  roche.setAtkPlus(99);
-  roche.setRcvPlus(99);
-  roche.awakenings = 7;
-  roche.superAwakeningIdx = 2;
-  console.log(roche);
-  if (roche.getHp() != 6698) {
-    throw 'Roche\'s hp is wrong.';
-  }
-  if (roche.getAtk() != 5165) {
-    throw 'Roche\'s atk is wrong.';
-  }
-  if (roche.getRcv() != 916) {
-    throw 'Roche\'s rcv is wrong.';
-  }
-  // document.body.appendChild(roche.getElement());
-  roche.update();
-  // console.log('Roche is good!');
-  return roche;
-}
-
-function testAnother() {
-  const another = new MonsterInstance(2568);
-  another.setLevel(110);
-  another.inheritId = 4723;
-  another.inheritPlussed = true;
-  another.awakenings = 9;
-  another.addLatent(Latent.TIME_PLUS); another.addLatent(Latent.DEVIL);
-  another.addLatent(Latent.DEVIL);
-  another.setHpPlus(99);
-  another.setAtkPlus(99);
-  another.setRcvPlus(99);
-  console.log(another);
-  if (another.getHp(false) != 6259) {
-    throw 'Athena\'s hp is wrong.';
-  }
-  if (another.getAtk(false) != 4926) {
-    throw 'Athena\'s atk is wrong.';
-  }
-  if (another.getRcv(false) != 363) {
-    throw 'Athena\'s rcv is wrong.';
-  }
-  console.log('Athena Another is okay!');
-}
-
 class Valeria {
-  display: ValeriaDisplay;
-  comboContainer: ComboContainer;
+  display: ValeriaDisplay = new ValeriaDisplay();
+  comboContainer: ComboContainer = new ComboContainer();
   monsterEditor: MonsterEditor;
   team: Team;
-  _testRocheDeleteLater: MonsterInstance;
+  dungeon: DungeonInstance;
   constructor() {
-    this.comboContainer = new ComboContainer();
 
-    this.display = new ValeriaDisplay();
-
-    this._testRocheDeleteLater = testRoche();
+    // this._testRocheDeleteLater = testRoche();
     this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
 
-    // TODO: Latents
     this.monsterEditor = new MonsterEditor((ctx: MonsterUpdate) => {
       const monster = this.team.monsters[this.team.activeMonster];
 
@@ -168,12 +111,11 @@ class Valeria {
       this.updateMonsterEditor();
     }
     this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 / 5209 (5190) | lv110 sa2');
-    console.log(this.team.getHp());
-    console.log(this.team.getRcv());
-    console.log(this.team.getStats());
+
     this.display.panes[1].appendChild(this.team.teamPane.getElement());
 
-    this.display.panes[2].appendChild(this._testRocheDeleteLater.getElement())
+    this.dungeon = new DungeonInstance();
+    this.display.panes[2].appendChild(this.dungeon.getPane());
   }
 
   updateMonsterEditor() {
@@ -199,6 +141,7 @@ class Valeria {
 }
 
 async function init() {
+  console.log("here");
   if (window.location.hash != '#/Valeria') {
     return;
   }
@@ -207,7 +150,7 @@ async function init() {
   annotateMonsterScaling();
   SearchInit();
   // testRoche();
-  testAnother();
+  // testAnother();
   const valeria = new Valeria();
 
   document.body.appendChild(valeria.getElement());

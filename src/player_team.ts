@@ -142,7 +142,7 @@ class Team {
   lastMaxHp: number = 0;
 
   storage: StoredTeams;
-  state: TeamState;
+  state: TeamState = Object.assign({}, DEFAULT_STATE);
   teamPane: TeamPane;
   updateIdxCb: (idx: number) => any;
 
@@ -155,13 +155,13 @@ class Team {
     for (let i = 0; i < 18; i++) {
       this.monsters.push(new MonsterInstance());
     }
-    this.state = Object.assign({}, DEFAULT_STATE);
 
     this.storage = new StoredTeams(this);
     this.teamPane = new TeamPane(
       this.storage.getElement(),
       this.monsters.map((monster) => monster.getElement()),
       (idx: number) => this.setActiveMonsterIdx(idx),
+      (idx: number) => this.setActiveTeamIdx(idx),
     );
 
     this.updateIdxCb = () => null;
@@ -348,10 +348,14 @@ class Team {
     if (idx >= this.playerMode || idx < 0) {
       throw `Index should be [0, ${this.playerMode}]`;
     }
+    if (this.activeTeamIdx == idx) {
+      return;
+    }
     this.activeTeamIdx = idx;
     if (this.playerMode != 2) {
       this.state.currentHp = this.getHp();
     }
+    this.update();
     // this.reloadStatDisplay();
     // TODO: Update visuals and calculations when this happens.
   }
@@ -452,7 +456,6 @@ class Team {
     return totalRcv > 0 ? totalRcv : 0;
   }
 
-  // TODO
   getTime(): number {
     const monsters = this.getActiveTeam();
     const leadId = monsters[0].getCard().leaderSkillId;
@@ -566,6 +569,8 @@ class Team {
       }
     }
 
+    const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.isMultiplayer(), this.state.awakenings));
+
     const counts: Map<Awakening, number> = new Map();
     counts.set(Awakening.SKILL_BOOST,
       this.countAwakening(Awakening.SKILL_BOOST) +
@@ -596,7 +601,7 @@ class Team {
 
     return {
       hps: this.getIndividualHp(),
-      atks: [],
+      atks: atks,
       rcvs: this.getIndividualRcv(),
       cds: cds,
       totalHp: this.getHp(),

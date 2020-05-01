@@ -85,6 +85,7 @@ export interface KnockoutVM {
 export interface CardAssetInterface {
   canPlus(card: Card): boolean;
   getIconImageData(card: Card): GraphicsDescription|null;
+  getCroppedPortrait(card: Card): string;
 }
 
 // Create an instance by:

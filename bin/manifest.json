@@ -20,6 +20,7 @@
     }
   ],
   "web_accessible_resources": [
+    "require.min.js",
     "bundle.js"
   ]
 }

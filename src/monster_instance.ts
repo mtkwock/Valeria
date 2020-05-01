@@ -577,9 +577,12 @@ class MonsterInstance {
   setLevel(v: number): void {
     v = Math.round(v);
     const c = this.getCard();
-    if (v < 0 || v > (c.isLimitBreakable ? 110 : c.maxLevel)) {
-      // Invalid value.
-      return;
+    if (v < 1) {
+      v = 1;
+    }
+    const maxLevel = c.isLimitBreakable ? 110 : c.maxLevel;
+    if (v > maxLevel) {
+      v = maxLevel;
     }
     this.level = v;
   }
