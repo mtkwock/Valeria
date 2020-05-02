@@ -43,6 +43,15 @@ $icon-font-size: $base-font-size * $team-scale
   background-repeat: no-repeat
   width: $icon-size
   height: $icon-size
+  cursor: pointer
+
+.valeria-monster-icon-selected
+  display: inline-block
+  background-repeat: no-repeat
+  width: $icon-size
+  height: $icon-size
+  cursor: pointer
+  background-color: gray
 
 .valeria-monster-icon-attribute
   display: inline-block
@@ -271,6 +280,11 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   // position: relative
   display: inline-block
 
+.valeria-monster-container-selected
+  // position: relative
+  display: inline-block
+  background: #333
+
 .valeria-team-stat-table
   width: 6 * (3px + $icon-size)
 
@@ -280,21 +294,6 @@ table.valeria-monster-icon-info > tr:nth-child(3)
 .valeria-team-stat-value
   text-align: right
   font-size: small
-// .valeria-team-container > div:nth-child(2)
-//   left: 1 * 100 / 6 * 1%
-//
-// .valeria-team-container > div:nth-child(3)
-//   left: 2 * 100 / 6 * 1%
-//
-// .valeria-team-container > div:nth-child(4)
-//   left: 3 * 100 / 6 * 1%
-//
-// .valeria-team-container > div:nth-child(5)
-//   left: 4 * 100 / 6 * 1%
-//
-// .valeria-team-container > div:nth-child(6)
-//   left: 5 * 100 / 6 * 1%
-
 
 .valeria-monster-editor
   padding: 5px
@@ -365,6 +364,10 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   // Defaults to question mark.
   background-position: 0px -324 * $awakening-editor-scale * 1px
 
+.valeria-floor-container
+  max-height: 300px
+  overflow-y: scroll
+
 .valeria-enemy-picture-container
   width: 100%
   min-height: 320px
@@ -375,6 +378,17 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   display: block
   margin-left: auto
   margin-right: auto
+
+// .valeria-floor-add
+
+// valeria-floor-delete
+// valeria-floor-enemies
+// valeria-floor-enemy
+
+.valeria-floor-enemy-add
+  vertical-align: super
+
+// valeria-floor-delete
 
 .valeria > table
   width: 100%

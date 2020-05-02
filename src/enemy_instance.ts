@@ -27,6 +27,14 @@ enum EnemySkillEffect {
   // AWAKENING_BIND: 'awakening-bind',
 };
 
+
+function calcScaleStat(max: number, min: number, level: number, growth: number): number {
+  const diff = max - min;
+  const frac = (level - 1) / 9;
+  const added = Math.round(Math.pow(frac, growth) * diff);
+  return min + added;
+}
+
 interface EnemySkillJson {
   name?: string;
   damagePercent?: number;
@@ -163,7 +171,8 @@ class EnemySkillset {
 
 interface EnemyInstanceJson {
   id?: number,
-  maxHp?: number,
+  lv?: number,
+  hp?: number,
   attack?: number,
   defense?: number,
   resolvePercent?: number,
@@ -175,10 +184,11 @@ interface EnemyInstanceJson {
 }
 
 class EnemyInstance {
-  id: number = -1;
-  maxHp: number = 1;
-  attack: number = 1;
-  defense: number = 0;
+  id: number = 4014;
+  lv: number = 10;
+  hp: number = -1;
+  attack: number = -1;
+  defense: number = -1;
   resolvePercent: number = 0;
   attributesResisted: Attribute[];
   typesResisted: MonsterType[];
@@ -211,6 +221,49 @@ class EnemyInstance {
     this.preemptiveSkillset = new EnemySkillset(); // Used when loading the monster.
     this.skillsets = [];
     this.attributeAbsorb = [];
+  }
+
+  setLevel(lv: number) {
+    this.lv = lv;
+  }
+
+  getHp(): number {
+    // if (this.hp > 0) {
+    //   return this.hp;
+    // }
+    const c = this.getCard();
+    return calcScaleStat(
+      c.enemyHpAtLv10,
+      c.enemyHpAtLv1,
+      this.lv,
+      c.enemyHpCurve,
+    );
+  }
+
+  getAtk(): number {
+    // if (this.atk > 0) {
+    //   return this.atk;
+    // }
+    const c = this.getCard();
+    return calcScaleStat(
+      c.enemyAtkAtLv10,
+      c.enemyAtkAtLv1,
+      this.lv,
+      c.enemyAtkCurve,
+    );
+  }
+
+  getDef(): number {
+    // if (this.def > 0) {
+    //   return this.def;
+    // }
+    const c = this.getCard();
+    return calcScaleStat(
+      c.enemyDefAtLv10,
+      c.enemyDefAtLv1,
+      this.lv,
+      c.enemyDefCurve,
+    );
   }
 
   getCard(): Card {
@@ -310,7 +363,7 @@ class EnemyInstance {
   }
 
   reset(/** idc */) {
-    this.currentHp = this.maxHp;
+    this.currentHp = this.getHp();
     this.currentAttribute = -1;
     this.statusShield = false;
     this.shieldPercent = 0;
@@ -345,13 +398,16 @@ class EnemyInstance {
       obj.id = this.id;
       card = vm.model.cards[this.id];
     }
-    if (this.maxHp > 1 && this.maxHp != card.unknownData[7]) {
-      obj.maxHp = this.maxHp;
+    if (this.lv != 10) {
+      obj.lv = this.lv;
     }
-    if (this.attack > 1 && this.attack != card.unknownData[10]) {
+    if (this.hp > 0) {
+      obj.hp = this.hp;
+    }
+    if (this.attack > 0) {
       obj.attack = this.attack;
     }
-    if (this.defense && this.defense != card.unknownData[13]) {
+    if (this.defense >= 0) {
       obj.defense = this.defense;
     }
     if (this.resolvePercent > 0) {
@@ -381,14 +437,15 @@ class EnemyInstance {
   static fromJson(json: EnemyInstanceJson): EnemyInstance {
     const enemy = new EnemyInstance();
     enemy.id = Number(json.id) || -1;
+    enemy.lv = Number(json.lv) || 10;
     if (enemy.id in vm.model.cards) {
       const card = vm.model.cards[enemy.id];
       // TODO: Preload Card with this information.
-      enemy.maxHp = Number(json.maxHp) || card.unknownData[7];
-      enemy.attack = Number(json.attack) || card.unknownData[10];
-      enemy.defense = Number(json.defense) || card.unknownData[13];
+      enemy.hp = Number(json.hp) || -1;
+      enemy.attack = Number(json.attack) || -1;
+      enemy.defense = Number(json.defense) || -1;
     } else {
-      enemy.maxHp = Number(json.maxHp) || 1;
+      enemy.hp = Number(json.hp) || 1;
       enemy.attack = Number(json.attack) || 1;
       enemy.defense = Number(json.defense) || 0;
     }

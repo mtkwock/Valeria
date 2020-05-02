@@ -56,6 +56,10 @@ class DungeonFloor {
     this.activeEnemy = 0;
   }
 
+  addEnemy(): void {
+    this.enemies.push(new EnemyInstance());
+  }
+
   deleteEnemy(idx: number): void {
     if (this.enemies.length <= 1 || !(idx in this.enemies)) {
       console.log('Unable to delete enemy from floor.');
@@ -66,6 +70,10 @@ class DungeonFloor {
 
   getActiveEnemy(): EnemyInstance {
     return this.enemies[this.activeEnemy];
+  }
+
+  getEnemyIds(): number[] {
+    return this.enemies.map((enemy: EnemyInstance) => enemy.id);
   }
 
   toJson(): DungeonFloorJson {
@@ -86,6 +94,76 @@ interface DungeonInstanceJson {
   floors: DungeonFloorJson[];
 }
 
+class Rational {
+  numerator: number = 0;
+  denominator: number = 1;
+  static matcher: RegExp = /\s*(\d+)\s*\/\s*(\d+)\s*/;
+
+  constructor(numerator: number = 0, denominator: number = 1) {
+    this.numerator = numerator;
+    this.denominator = denominator;
+  }
+
+  multiply(n: number): number {
+    return n * this.numerator / this.denominator;
+  }
+
+  reduce() {
+    // Cannot reduce if denominator already 1
+    if (this.denominator == 1) {
+      return;
+    }
+    // Can only reduce integral pairs.
+    if (!Number.isInteger(this.numerator) || !Number.isInteger(this.denominator)) {
+      return;
+    }
+
+    function divides(num: number, den: number): boolean {
+      return Number.isInteger(num / den);
+    }
+
+    function gcd(a: number, b: number): number {
+      while(!divides(a, b) && !divides(b, a)) {
+        if (a > b) {
+          a -= b;
+        } else {
+          b -= a;
+        }
+      }
+
+      return Math.min(a, b);
+    }
+
+    const divisor = gcd(this.numerator, this.denominator);
+    if (divisor == 1) {
+      return;
+    }
+    this.numerator /= divisor;
+    this.denominator /= divisor;
+  }
+
+  toString(): string {
+    this.reduce();
+
+    if (this.denominator == 1) {
+      return String(this.numerator);
+    }
+    return `${this.numerator} / ${this.denominator}`;
+  }
+
+  static from(s: string): Rational {
+    if (!s.includes('/')) {
+      return new Rational(Number(s));
+    }
+
+    let match = s.match(Rational.matcher);
+    if (match && match[0] == s) {
+      return new Rational(Number(match[1]), Number(match[2]));
+    }
+    return new Rational(NaN)
+  }
+}
+
 class DungeonInstance {
   title: string = '';
   boardWidth: number = 6;
@@ -94,7 +172,11 @@ class DungeonInstance {
   allAttributesRequired: boolean = false;
   noDupes: boolean = false;
   floors: DungeonFloor[];
+  hpMultiplier: Rational = new Rational(1);
+  atkMultiplier: Rational = new Rational(1);
+  defMultiplier: Rational = new Rational(1);
   activeFloor: number = 0;
+  activeEnemy: number = 0;
 
   pane: DungeonPane;
 
@@ -104,9 +186,53 @@ class DungeonInstance {
     this.floors = [new DungeonFloor()];
     // this.editorElement = this.createEditorElement();
     this.pane = new DungeonPane((ctx: DungeonUpdate) => {
-      console.log('Updating Dungeon Instance');
       console.log(ctx);
+      if (ctx.activeFloor != undefined) {
+        this.activeFloor = ctx.activeFloor;
+        this.setActiveEnemy(0);
+      }
+      if (ctx.activeEnemy != undefined) {
+        // TODO: Centralize definition of activeEnemy into either DungeonInstace or DungeonFloor.
+        this.setActiveEnemy(ctx.activeEnemy);
+      }
+      if (ctx.addFloor) {
+        this.addFloor();
+        this.setActiveEnemy(0);
+      }
+      if (ctx.removeFloor != undefined) {
+        if (ctx.removeFloor == 0) {
+          // Do nothing for now?
+        } else {
+          this.deleteFloor(ctx.removeFloor);
+        }
+      }
+      if (ctx.dungeonHpMultiplier != undefined) {
+        this.hpMultiplier = Rational.from(ctx.dungeonHpMultiplier);
+      }
+      if (ctx.dungeonAtkMultiplier != undefined) {
+        this.atkMultiplier = Rational.from(ctx.dungeonAtkMultiplier);
+      }
+      if (ctx.dungeonDefMultiplier != undefined) {
+        this.defMultiplier = Rational.from(ctx.dungeonDefMultiplier);
+      }
+      if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
+        // Update other dungeon info about dungeon editor.
+      }
+      if (ctx.addEnemy) {
+        const floor = this.floors[this.activeFloor];
+        floor.addEnemy();
+        this.setActiveEnemy(floor.enemies.length - 1);
+      }
+      if (ctx.enemyLevel) {
+        this.getActiveEnemy().setLevel(ctx.enemyLevel);
+      }
+      if (ctx.activeEnemyId != undefined) {
+        this.getActiveEnemy().id = ctx.activeEnemyId;
+      }
+      this.update();
     });
+    // this.pane.dungeonEditor.setEnemies([[1, 2, 3], [4, 5]]);
+    // this.pane.dungeonEditor.setActiveMonster(0, 0);
   }
 
   getPane(): HTMLElement {
@@ -114,7 +240,18 @@ class DungeonInstance {
   }
 
   update() {
-
+    this.pane.dungeonEditor.setEnemies(this.floors.map((floor) => floor.getEnemyIds()));
+    this.pane.dungeonEditor.setActiveEnemy(this.activeFloor, this.activeEnemy);
+    const enemy = this.getActiveEnemy();
+    this.pane.dungeonEditor.setDungeonMultipliers(
+      this.hpMultiplier.toString(),
+      this.atkMultiplier.toString(),
+      this.defMultiplier.toString());
+    this.pane.dungeonEditor.setEnemyStats(
+      enemy.lv,
+      Math.round(this.hpMultiplier.multiply(enemy.getHp())),
+      Math.round(this.atkMultiplier.multiply(enemy.getAtk())),
+      Math.round(this.defMultiplier.multiply(enemy.getDef())));
   }
 
   addFloor(): void {
@@ -132,8 +269,11 @@ class DungeonInstance {
     if (this.activeFloor >= idx) {
       this.activeFloor = idx - 1;
     }
-    // this.reloadEditorElement();
-    // this.reloadBattleElement();
+  }
+
+  setActiveEnemy(idx: number) {
+    this.activeEnemy = idx;
+    this.floors[this.activeFloor].activeEnemy = idx;
   }
 
   getActiveEnemy(): EnemyInstance {

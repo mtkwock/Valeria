@@ -21,6 +21,7 @@ function create(tag: string, cls: string = ''): HTMLElement {
 
 enum ClassNames {
   ICON = 'valeria-monster-icon',
+  ICON_SELECTED = 'valeria-monster-icon-selected',
   ICON_ATTR = 'valeria-monster-icon-attribute',
   ICON_SUB = 'valeria-monster-icon-subattribute',
   ICON_INFO = 'valeria-monster-icon-info',
@@ -62,6 +63,7 @@ enum ClassNames {
 
   TEAM_CONTAINER = 'valeria-team-container',
   MONSTER_CONTAINER = 'valeria-monster-container',
+  MONSTER_CONTAINER_SELECTED = 'valeria-monster-container-selected',
   TEAM_TITLE = 'valeria-team-title',
   TEAM_DESCRIPTION = 'valeria-team-description',
 
@@ -84,6 +86,8 @@ enum ClassNames {
   DUNGEON_EDITOR_FLOORS = 'valeria-dungeon-edit-floors',
 
   FLOOR_NAME = 'valeria-floor-name',
+  FLOOR_CONTAINER = 'valeria-floor-container',
+  FLOOR_ADD = 'valeria-floor-add',
   FLOOR_DELETE = 'valeria-floor-delete',
   FLOOR_ENEMIES = 'valeria-floor-enemies',
   FLOOR_ENEMY = 'valeria-floor-enemy',
@@ -109,6 +113,16 @@ function hide(el: HTMLElement) {
   el.style.visibility = 'hidden';
 }
 
+function superShow(el: HTMLElement): void {
+  el.style.display = '';
+  show(el);
+}
+
+function superHide(el: HTMLElement): void {
+  el.style.display = 'none';
+  hide(el);
+}
+
 function getAwakeningOffsets(awakeningNumber: number): number[] {
   const result = [0, -324];
   if (awakeningNumber < 0 || awakeningNumber > 81) {
@@ -132,6 +146,7 @@ class MonsterIcon {
   subattributeEl: HTMLElement = create('a', ClassNames.ICON_SUB);
   infoTable: HTMLElement = create('table', ClassNames.ICON_INFO);
   hideInfoTable: boolean = false;
+  id: number = -1;
 
   constructor(hideInfoTable: boolean = false) {
     this.hideInfoTable = hideInfoTable;
@@ -171,6 +186,7 @@ class MonsterIcon {
 
   update(id: number, plusses: number, awakening: number,
       superAwakeningIdx: number, saAvailable: boolean, level: number) {
+    this.id = id;
     if (id == -1) {
       hide(this.element);
       hide(this.attributeEl);
@@ -1345,6 +1361,7 @@ class TeamPane {
         d.onclick = () => {
           onSelectIdx(i * 6 + j);
           onSelectTeamIdx(i);
+          this.selectMonster(i * 6 + j);
         };
         this.monsterDivs.push(d);
         this.teamDivs[i].appendChild(d);
@@ -1365,6 +1382,17 @@ class TeamPane {
     this.metaTabs.getTab('Save/Load').appendChild(storageDisplay);
 
     this.element_.appendChild(this.metaTabs.getElement());
+  }
+
+  selectMonster(position: number) {
+    for (let i = 0; i < this.monsterDivs.length; i++) {
+      // TODO: Enable double highlighting of 2P leads.
+      if (i != position || this.monsterDivs[i].className == ClassNames.MONSTER_CONTAINER_SELECTED) {
+        this.monsterDivs[i].className = ClassNames.MONSTER_CONTAINER;
+      } else {
+        this.monsterDivs[i].className = ClassNames.MONSTER_CONTAINER_SELECTED;
+      }
+    }
   }
 
   private populateStats() {
@@ -1499,122 +1527,122 @@ class TeamPane {
   }
 }
 
-
-interface DungeonFloorUpdate {
-  addEnemy?: boolean;
-  deleteEnemy?: number;
-  activeEnemy?: number;
-  deleteFloor?: number;
-}
-
-class DungeonFloorRow {
-  private readonly el: HTMLTableRowElement;
-  floorNumber: number;
-  onUpdate: (ctx: DungeonFloorUpdate) => any;
-  enemiesTable: HTMLTableElement;
-  floorNameContainer: HTMLDivElement;
-  enemyRows: HTMLTableRowElement[];
-  activeEnemy: number = 0;
-
-  constructor(floorNumber: number, onUpdate: (ctx: DungeonFloorUpdate) => any) {
-    this.floorNumber = floorNumber;
-    this.el = create('tr') as HTMLTableRowElement;
-    this.onUpdate = onUpdate;
-    const floorCell = create('td');
-    this.floorNameContainer = create('div', ClassNames.FLOOR_NAME) as HTMLDivElement;
-    //   floorName.style.minWidth = '25px';
-    this.floorNameContainer.innerText = `F${floorNumber}`;
-    floorCell.appendChild(this.floorNameContainer);
-    const addMonsterDiv = create('div', ClassNames.FLOOR_ENEMY_ADD);
-    //   addMonster.className = 'idc-dungeon-floor-add-enemy';
-    //   addMonster.style.cursor = 'pointer';
-    //   addMonster.onmouseover = () => {
-    //     addMonster.style.border = BORDER_COLOR;
-    //   };
-    //   addMonster.onmouseleave = () => {
-    //     addMonster.style.border = '';
-    //   };
-    addMonsterDiv.innerText = '[+]';
-    addMonsterDiv.onclick = () => {
-      this.onUpdate({addEnemy: true});
-      //   addMonster.onclick = () => {
-      //     this.enemies.length += 1;
-      //     this.activeEnemy = this.enemies.length - 1;
-      //     this.enemies[this.activeEnemy] = new EnemyInstance();
-      //   }
-    };
-    floorCell.appendChild(addMonsterDiv);
-    this.el.appendChild(floorCell);
-
-    const enemies = create('td') as HTMLTableCellElement;
-    this.enemiesTable = create('table', ClassNames.FLOOR_ENEMIES) as HTMLTableElement;
-    enemies.appendChild(this.enemiesTable);
-    const firstRow = this.createEnemyRow(0);
-    this.enemyRows = [firstRow];
-    this.enemiesTable.appendChild(firstRow);
-    this.el.appendChild(enemies);
-    // enemiesTable.className = 'idc-dungeon-floor-enemies';
-    //   enemiesTable.style.fontSize = 'x-small';
-
-    const deleteEl = create('td', ClassNames.FLOOR_DELETE);
-    //     deleteEl.className = 'idc-dungeon-floor-delete';
-    //     deleteEl.style.cursor = 'pointer';
-    if (floorNumber != 0) {
-      deleteEl.innerText = '[-]';
-    }
-    deleteEl.onclick = () => {
-      this.onUpdate({deleteFloor: this.floorNumber});
-    }
-    this.el.appendChild(deleteEl);
-  }
-
-  createEnemyRow(idx: number, name: string = 'UNSET'): HTMLTableRowElement {
-    const row = create('tr', ClassNames.FLOOR_ENEMY) as HTMLTableRowElement;
-    //     enemyRow.className = 'idc-dungeon-floor-enemy';
-    const deleteCell = create('td', ClassNames.FLOOR_ENEMY_DELETE) as HTMLTableCellElement;
-    //       deleteCell.style.cursor = 'pointer';
-    deleteCell.innerText = '[-]';
-    deleteCell.onclick = () => {
-      this.onUpdate({deleteEnemy: idx});
-    };
-    row.appendChild(deleteCell);
-    const enemyCell = create('td') as HTMLTableCellElement;
-    enemyCell.innerText = name;
-    enemyCell.onclick = () => {
-      this.onUpdate({activeEnemy: idx});
-    }
-    row.appendChild(enemyCell);
-    return row;
-  }
-
-  update(floorNumber: number, enemyNames: string[], activeEnemy: number) {
-    this.floorNumber = floorNumber;
-    this.activeEnemy = activeEnemy;
-    this.floorNameContainer.innerText = `F${floorNumber}`;
-
-    for (let i = 0; i < enemyNames.length; i++) {
-      if (i >= this.enemyRows.length) {
-        this.enemyRows.push(this.createEnemyRow(i, enemyNames[i]));
-        this.enemiesTable.appendChild(this.enemyRows[i]);
-      } else {
-        this.enemyRows[i].cells[1].innerText = enemyNames[i];
-        this.enemyRows[i].style.display = '';
-      }
-      if (i == activeEnemy) {
-        // TODO: Cleanup?
-        this.enemyRows[i].style.border = '1px solid white';
-      }
-    }
-    // Hide extraneous ones.
-    for (let i = enemyNames.length; i < this.enemyRows.length; i++) {
-      this.enemyRows[i].style.display = 'none';
-    }
-  }
-
-  getElement(): HTMLTableRowElement {
-    return this.el;
-  }
-}
+/**
+// interface DungeonFloorUpdate {
+//   addEnemy?: boolean;
+//   deleteEnemy?: number;
+//   activeEnemy?: number;
+//   deleteFloor?: number;
+// }
+//
+// class DungeonFloorRow {
+//   private readonly el: HTMLTableRowElement;
+//   floorNumber: number;
+//   onUpdate: (ctx: DungeonFloorUpdate) => any;
+//   enemiesTable: HTMLTableElement;
+//   floorNameContainer: HTMLDivElement;
+//   enemyRows: HTMLTableRowElement[];
+//   activeEnemy: number = 0;
+//
+//   constructor(floorNumber: number, onUpdate: (ctx: DungeonFloorUpdate) => any) {
+//     this.floorNumber = floorNumber;
+//     this.el = create('tr') as HTMLTableRowElement;
+//     this.onUpdate = onUpdate;
+//     const floorCell = create('td');
+//     this.floorNameContainer = create('div', ClassNames.FLOOR_NAME) as HTMLDivElement;
+//     //   floorName.style.minWidth = '25px';
+//     this.floorNameContainer.innerText = `F${floorNumber}`;
+//     floorCell.appendChild(this.floorNameContainer);
+//     const addMonsterDiv = create('div', ClassNames.FLOOR_ENEMY_ADD);
+//     //   addMonster.className = 'idc-dungeon-floor-add-enemy';
+//     //   addMonster.style.cursor = 'pointer';
+//     //   addMonster.onmouseover = () => {
+//     //     addMonster.style.border = BORDER_COLOR;
+//     //   };
+//     //   addMonster.onmouseleave = () => {
+//     //     addMonster.style.border = '';
+//     //   };
+//     addMonsterDiv.innerText = '[+]';
+//     addMonsterDiv.onclick = () => {
+//       this.onUpdate({addEnemy: true});
+//       //   addMonster.onclick = () => {
+//       //     this.enemies.length += 1;
+//       //     this.activeEnemy = this.enemies.length - 1;
+//       //     this.enemies[this.activeEnemy] = new EnemyInstance();
+//       //   }
+//     };
+//     floorCell.appendChild(addMonsterDiv);
+//     this.el.appendChild(floorCell);
+//
+//     const enemies = create('td') as HTMLTableCellElement;
+//     this.enemiesTable = create('table', ClassNames.FLOOR_ENEMIES) as HTMLTableElement;
+//     enemies.appendChild(this.enemiesTable);
+//     const firstRow = this.createEnemyRow(0);
+//     this.enemyRows = [firstRow];
+//     this.enemiesTable.appendChild(firstRow);
+//     this.el.appendChild(enemies);
+//     // enemiesTable.className = 'idc-dungeon-floor-enemies';
+//     //   enemiesTable.style.fontSize = 'x-small';
+//
+//     const deleteEl = create('td', ClassNames.FLOOR_DELETE);
+//     //     deleteEl.className = 'idc-dungeon-floor-delete';
+//     //     deleteEl.style.cursor = 'pointer';
+//     if (floorNumber != 0) {
+//       deleteEl.innerText = '[-]';
+//     }
+//     deleteEl.onclick = () => {
+//       this.onUpdate({deleteFloor: this.floorNumber});
+//     }
+//     this.el.appendChild(deleteEl);
+//   }
+//
+//   createEnemyRow(idx: number, name: string = 'UNSET'): HTMLTableRowElement {
+//     const row = create('tr', ClassNames.FLOOR_ENEMY) as HTMLTableRowElement;
+//     //     enemyRow.className = 'idc-dungeon-floor-enemy';
+//     const deleteCell = create('td', ClassNames.FLOOR_ENEMY_DELETE) as HTMLTableCellElement;
+//     //       deleteCell.style.cursor = 'pointer';
+//     deleteCell.innerText = '[-]';
+//     deleteCell.onclick = () => {
+//       this.onUpdate({deleteEnemy: idx});
+//     };
+//     row.appendChild(deleteCell);
+//     const enemyCell = create('td') as HTMLTableCellElement;
+//     enemyCell.innerText = name;
+//     enemyCell.onclick = () => {
+//       this.onUpdate({activeEnemy: idx});
+//     }
+//     row.appendChild(enemyCell);
+//     return row;
+//   }
+//
+//   update(floorNumber: number, enemyNames: string[], activeEnemy: number) {
+//     this.floorNumber = floorNumber;
+//     this.activeEnemy = activeEnemy;
+//     this.floorNameContainer.innerText = `F${floorNumber}`;
+//
+//     for (let i = 0; i < enemyNames.length; i++) {
+//       if (i >= this.enemyRows.length) {
+//         this.enemyRows.push(this.createEnemyRow(i, enemyNames[i]));
+//         this.enemiesTable.appendChild(this.enemyRows[i]);
+//       } else {
+//         this.enemyRows[i].cells[1].innerText = enemyNames[i];
+//         this.enemyRows[i].style.display = '';
+//       }
+//       if (i == activeEnemy) {
+//         // TODO: Cleanup?
+//         this.enemyRows[i].style.border = '1px solid white';
+//       }
+//     }
+//     // Hide extraneous ones.
+//     for (let i = enemyNames.length; i < this.enemyRows.length; i++) {
+//       this.enemyRows[i].style.display = 'none';
+//     }
+//   }
+//
+//   getElement(): HTMLTableRowElement {
+//     return this.el;
+//   }
+// }
 
 // createEnemySelector() {
 //   const maxResults = 15;
@@ -2715,6 +2743,7 @@ class DungeonFloorRow {
 //   effectiveDamageTotal.innerText = `${numberWithCommas(enemy.currentHp - currentHp)}`;
 //   effectiveDamagePercent.innerText = `(${String((enemy.currentHp - currentHp) * 100 / enemy.maxHp).substring(0, 5)}%)`;
 // }
+**/
 
 interface DungeonUpdate {
   // Dungeon Editor updates
@@ -2730,6 +2759,14 @@ interface DungeonUpdate {
   addPreemptiveSkill?: boolean,
   removePreemptiveSkill?: number,
 
+  dungeonHpMultiplier?: string,
+  dungeonAtkMultiplier?: string,
+  dungeonDefMultiplier?: string,
+
+  enemyLevel?: number,
+  enemyHp?: number,
+  enemyAtk?: number,
+  enemyDef?: number,
   resolve?: number,
   superResolve?: number,
   attributeResists?: number[],
@@ -2742,41 +2779,41 @@ class DungeonEditor {
   element: HTMLElement = create('div');
   dungeonFloorTable: HTMLTableElement = create('table', ClassNames.DUNGEON_EDITOR_FLOORS) as HTMLTableElement;
   dungeonFloorEls: HTMLTableRowElement[] = [];
+  addEnemyBtns: HTMLButtonElement[] = [];
   dungeonEnemies: MonsterIcon[][] = [];
+  addFloorBtn: HTMLButtonElement = create('button', ClassNames.FLOOR_ADD) as HTMLButtonElement
   importer: HTMLTextAreaElement = create('textarea') as HTMLTextAreaElement;
   onUpdate: OnDungeonUpdate;
   monsterSelector: MonsterSelector;
   enemyPictureContainer: HTMLDivElement = create('div', ClassNames.ENEMY_PICTURE) as HTMLDivElement;
   enemyPicture: HTMLImageElement = create('img') as HTMLImageElement;
-
-  addFloor(): void {
-    const floor = create('tr') as HTMLTableRowElement;
-    this.dungeonFloorEls.push(floor);
-    const label = create('td') as HTMLTableCellElement;
-    const floorName = create('span') as HTMLDivElement;
-    floorName.innerText = `F${this.dungeonFloorEls.length}`;
-    label.appendChild(floorName);
-    floor.appendChild(label);
-
-    const firstEnemy = new MonsterIcon(true);
-    firstEnemy.update(4014, 0, 0, -1, false, 0);
-
-    this.dungeonEnemies.push([firstEnemy]);
-
-    const enemies = create('td') as HTMLTableCellElement;
-    enemies.appendChild(firstEnemy.getElement());
-
-    floor.appendChild(enemies);
-    this.dungeonFloorTable.appendChild(floor);
-  }
+  enemyLevelInput: HTMLInputElement = create('input') as HTMLInputElement;
+  dungeonHpInput: HTMLInputElement = create('input') as HTMLInputElement;
+  dungeonAtkInput: HTMLInputElement = create('input') as HTMLInputElement;
+  dungeonDefInput: HTMLInputElement = create('input') as HTMLInputElement;
+  enemyHpInput: HTMLInputElement = create('input') as HTMLInputElement;
+  enemyAtkInput: HTMLInputElement = create('input') as HTMLInputElement;
+  enemyDefInput: HTMLInputElement = create('input') as HTMLInputElement;
+  activeFloorIdx: number = 0;
+  activeEnemyIdx: number = 0;
 
   constructor(onUpdate: OnDungeonUpdate) {
     this.element.appendChild(document.createTextNode('Dungeon Editor Area Placeholder'));
     this.onUpdate = onUpdate;
 
-    this.element.appendChild(this.dungeonFloorTable)
+    const dungeonFloorContainer = create('div', ClassNames.FLOOR_CONTAINER) as HTMLDivElement;
+    dungeonFloorContainer.appendChild(this.dungeonFloorTable);
+    this.element.appendChild(dungeonFloorContainer);
+    this.element.appendChild(create('br'));
+    this.addFloorBtn.innerText = 'Add Floor';
+    this.addFloorBtn.onclick = () => {
+      this.onUpdate({addFloor: true});
+    };
+    this.element.appendChild(this.addFloorBtn);
 
     this.addFloor();
+
+    this.setupDungeonMultiplierTable();
 
     this.monsterSelector = new MonsterSelector(prioritizedEnemySearch, ({id}: MonsterUpdate) => {
       if (!id) {
@@ -2785,9 +2822,214 @@ class DungeonEditor {
       this.onUpdate({activeEnemyId: id});
       this.enemyPicture.src = CardAssets.getCroppedPortrait(vm.model.cards[id]);
     });
+
     this.element.appendChild(this.monsterSelector.getElement());
     this.enemyPictureContainer.appendChild(this.enemyPicture);
     this.element.appendChild(this.enemyPictureContainer);
+
+    this.setupEnemyStatTable();
+  }
+
+  private setupDungeonMultiplierTable() {
+    const multiplierTable = create('table') as HTMLTableElement;
+    const hpRow = create('tr') as HTMLTableRowElement;
+    const atkRow = create('tr') as HTMLTableRowElement;
+    const defRow = create('tr') as HTMLTableRowElement;
+
+    const hpLabel = create('td') as HTMLTableCellElement;
+    const atkLabel = create('td') as HTMLTableCellElement;
+    const defLabel = create('td') as HTMLTableCellElement;
+
+    hpLabel.innerText = 'HP multiplier';
+    atkLabel.innerText = 'Attack multiplier';
+    defLabel.innerText = 'Defense multiplier';
+
+    hpRow.appendChild(hpLabel);
+    atkRow.appendChild(atkLabel);
+    defRow.appendChild(defLabel);
+
+    hpRow.appendChild(this.dungeonHpInput);
+    atkRow.appendChild(this.dungeonAtkInput);
+    defRow.appendChild(this.dungeonDefInput);
+
+    this.dungeonHpInput.onchange = () => {
+      this.onUpdate({dungeonHpMultiplier: this.dungeonHpInput.value});
+    };
+    this.dungeonAtkInput.onchange = () => {
+      this.onUpdate({dungeonAtkMultiplier: this.dungeonAtkInput.value});
+    };
+    this.dungeonDefInput.onchange = () => {
+      this.onUpdate({dungeonDefMultiplier: this.dungeonDefInput.value});
+    };
+
+    multiplierTable.appendChild(hpRow);
+    multiplierTable.appendChild(atkRow);
+    multiplierTable.appendChild(defRow);
+
+    this.element.appendChild(multiplierTable);
+  }
+
+  setDungeonMultipliers(hpMultText: string, atkMultText: string, defMultText: string) {
+    this.dungeonHpInput.value = hpMultText;
+    this.dungeonAtkInput.value = atkMultText;
+    this.dungeonDefInput.value = defMultText;
+  }
+
+  private setupEnemyStatTable() {
+    const statTable = create('table') as HTMLTableElement;
+    const lvRow = create('tr') as HTMLTableRowElement;
+    const hpRow = create('tr') as HTMLTableRowElement;
+    const atkRow = create('tr') as HTMLTableRowElement;
+    const defRow = create('tr') as HTMLTableRowElement;
+
+    this.enemyLevelInput.type = 'number';
+    this.enemyHpInput.type = 'number';
+    this.enemyAtkInput.type = 'number';
+    this.enemyDefInput.type = 'number';
+
+    this.enemyHpInput.disabled = true;
+    this.enemyAtkInput.disabled = true;
+    this.enemyDefInput.disabled = true;
+
+    const lvLabel = create('td') as HTMLTableCellElement;
+    const hpLabel = create('td') as HTMLTableCellElement;
+    const atkLabel = create('td') as HTMLTableCellElement;
+    const defLabel = create('td') as HTMLTableCellElement;
+
+    lvLabel.innerText = 'Level';
+    hpLabel.innerText = 'HP';
+    atkLabel.innerText = 'Attack';
+    defLabel.innerText = 'Defense';
+
+    lvRow.appendChild(lvLabel);
+    hpRow.appendChild(hpLabel);
+    atkRow.appendChild(atkLabel);
+    defRow.appendChild(defLabel);
+
+    lvRow.appendChild(this.enemyLevelInput);
+    hpRow.appendChild(this.enemyHpInput);
+    atkRow.appendChild(this.enemyAtkInput);
+    defRow.appendChild(this.enemyDefInput);
+
+    this.enemyLevelInput.onchange = () => {
+      let v = Number(this.enemyLevelInput.value);
+      if (isNaN(v)) {
+        v = 10;
+      }
+      v = Math.round(v);
+      if (v < 1) {
+        v = 1;
+      }
+      if (v > 10) {
+        v = 10;
+      }
+      this.onUpdate({enemyLevel: v});
+    };
+
+    statTable.appendChild(lvRow);
+    statTable.appendChild(hpRow);
+    statTable.appendChild(atkRow);
+    statTable.appendChild(defRow);
+
+    this.element.appendChild(statTable);
+  }
+
+  private addFloor(): void {
+    const floorIdx = this.dungeonFloorEls.length;
+    const floor = create('tr') as HTMLTableRowElement;
+    const label = create('td') as HTMLTableCellElement;
+    const floorName = create('div') as HTMLDivElement;
+    floorName.innerText = `F${this.dungeonFloorEls.length + 1}`;
+    label.appendChild(floorName);
+    const deleteFloorBtn = create('button', ClassNames.FLOOR_DELETE) as HTMLButtonElement;
+    deleteFloorBtn.innerText = '[-]';
+    deleteFloorBtn.onclick = () => {
+      this.onUpdate({removeFloor: floorIdx});
+    };
+    floor.appendChild(label);
+    label.appendChild(deleteFloorBtn);
+
+    const enemies = create('td') as HTMLTableCellElement;
+    const addEnemyBtn = create('button', ClassNames.FLOOR_ENEMY_ADD) as HTMLButtonElement;
+    addEnemyBtn.innerText = '+';
+    addEnemyBtn.onclick = () => {
+      this.onUpdate({activeFloor: floorIdx, addEnemy: true});
+    }
+    this.addEnemyBtns.push(addEnemyBtn);
+    floor.appendChild(addEnemyBtn);
+    this.addEnemy(this.dungeonFloorEls.length);
+    this.dungeonFloorTable.appendChild(floor);
+    this.dungeonFloorEls.push(floor);
+  }
+
+  private addEnemy(floorIdx: number) {
+    const enemy = new MonsterIcon(true);
+    enemy.update(4014, 0, 0, -1, false, 0);
+    if (floorIdx >= this.dungeonEnemies.length) {
+      this.dungeonEnemies.push([]);
+    }
+    this.dungeonEnemies[floorIdx].push(enemy);
+    const enemyIdx = this.dungeonEnemies[floorIdx].length - 1;
+    enemy.getElement().onclick = () => {
+      this.onUpdate({activeFloor: floorIdx, activeEnemy: enemyIdx});
+    }
+    const node = this.addEnemyBtns[floorIdx].parentNode;
+    if (node) {
+      node.insertBefore(enemy.getElement(), this.addEnemyBtns[floorIdx]);
+    }
+  }
+
+  setActiveEnemy(floor: number, monster: number) {
+    for (let i = 0; i < this.dungeonEnemies.length; i++) {
+      for (let j = 0; j < this.dungeonEnemies[i].length; j++) {
+        let el = this.dungeonEnemies[i][j].getElement();
+        if (i == floor && j == monster) {
+          el.className = ClassNames.ICON_SELECTED;
+          el.scrollIntoView({block: 'nearest'});
+          const id = this.dungeonEnemies[i][j].id;
+          this.enemyPicture.src = CardAssets.getCroppedPortrait(vm.model.cards[id]);
+          this.monsterSelector.setId(id);
+        } else {
+          el.className = ClassNames.ICON;
+        }
+      }
+    }
+  }
+
+  setEnemies(enemyIdsByFloor: number[][]) {
+    console.log(enemyIdsByFloor);
+    while (this.dungeonFloorEls.length < enemyIdsByFloor.length) {
+      this.addFloor();
+    }
+    for (let i = 0; i < Math.max(enemyIdsByFloor.length, this.dungeonFloorEls.length); i++) {
+      if (i >= enemyIdsByFloor.length) {
+        superHide(this.dungeonFloorEls[i]);
+        continue;
+      }
+      superShow(this.dungeonFloorEls[i]);
+      let enemyIds = enemyIdsByFloor[i];
+      let floorEnemies = this.dungeonEnemies[i];
+      while (floorEnemies.length < enemyIds.length) {
+        this.addEnemy(i);
+      }
+      for (let j = 0; j < Math.max(enemyIds.length, floorEnemies.length); j++) {
+        if (j >= enemyIds.length) {
+          superHide(floorEnemies[j].getElement());
+          continue;
+        }
+        superShow(floorEnemies[j].getElement());
+        floorEnemies[j].update(enemyIds[j], 0, 0, -1, false, 0);
+        // this.onUpdate({activeEnemyId: enemyIds[j]});
+        console.log('Now setting to id: ' + String(enemyIds[j]));
+      }
+    }
+  }
+
+  setEnemyStats(lv: number, hp: number, atk: number, def: number) {
+    this.enemyLevelInput.value = String(lv);
+    this.enemyHpInput.value = String(hp);
+    this.enemyAtkInput.value = String(atk);
+    this.enemyDefInput.value = String(def);
   }
 
   getElement(): HTMLElement {
