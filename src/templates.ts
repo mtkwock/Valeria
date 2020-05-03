@@ -1190,7 +1190,7 @@ class LatentEditor {
       }
       remover.style.display = ''
       const latent = activeLatents[i];
-      const isSuper = latent > 11;
+      const isSuper = latent >= 11;
       totalLatents += isSuper ? 2 : 1;
       let offsetWidth, offsetHeight;
       const x = isSuper ? (latent - 11) % 5 : latent;
@@ -1522,7 +1522,7 @@ class TeamPane {
       Awakening.RESIST_CLOUD,
       Awakening.RESIST_TAPE,
       Awakening.OE_FIRE,
-      Awakening.OE_WOOD,
+      Awakening.OE_WATER,
       Awakening.OE_WOOD,
       Awakening.OE_LIGHT,
       Awakening.OE_DARK,

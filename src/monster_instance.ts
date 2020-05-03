@@ -28,7 +28,7 @@ const LatentAtk = new Map<Latent, number>([
 
 const LatentRcv = new Map<Latent, number>([
   [Latent.RCV, 0.1],
-  [Latent.HP_PLUS, 0.3],
+  [Latent.RCV_PLUS, 0.3],
   [Latent.ALL_STATS, 0.2],
 ]);
 
