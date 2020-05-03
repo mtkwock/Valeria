@@ -1469,7 +1469,7 @@ class TeamPane {
       Awakening.RESIST_CLOUD,
       Awakening.RESIST_TAPE,
       Awakening.OE_FIRE,
-      Awakening.OE_WOOD,
+      Awakening.OE_WATER,
       Awakening.OE_WOOD,
       Awakening.OE_LIGHT,
       Awakening.OE_DARK,
