@@ -1137,7 +1137,7 @@ class LatentEditor {
       }
       remover.style.display = ''
       const latent = activeLatents[i];
-      const isSuper = latent > 11;
+      const isSuper = latent >= 11;
       totalLatents += isSuper ? 2 : 1;
       let offsetWidth, offsetHeight;
       const x = isSuper ? (latent - 11) % 5 : latent;
