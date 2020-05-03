@@ -8,6 +8,7 @@
     "lib": [
       "DOM",
       "ES6",
+      "es2017",
       "DOM.Iterable",
       "ScriptHost",
       "ES2018.Promise",

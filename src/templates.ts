@@ -3,9 +3,9 @@
  * These take relatively pure data and update that way.
  */
 
-import {COLORS, DEFAULT_CARD, Awakening, Latent} from './common';
+import {BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType} from './common';
 import {CardAssetInterface, CardUiAssetInterface, KnockoutVM, Card} from '../typings/ilmina';
-import {fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch} from './fuzzy_search';
+import {fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch} from './fuzzy_search';
 
 declare var vm: KnockoutVM;
 declare var CardAssets:CardAssetInterface;
@@ -20,6 +20,10 @@ function create(tag: string, cls: string = ''): HTMLElement {
 }
 
 enum ClassNames {
+  HALF_OPACITY = 'valeria-half-opacity',
+  MONSTER_TYPE = 'valeria-monster-type',
+  LAYERED_ASSET = 'valeria-layered-asset',
+
   ICON = 'valeria-monster-icon',
   ICON_SELECTED = 'valeria-monster-icon-selected',
   ICON_ATTR = 'valeria-monster-icon-attribute',
@@ -47,7 +51,7 @@ enum ClassNames {
 
   TABBED = 'valeria-tabbed',
   TABBED_LABEL = 'valeria-tabbed-label',
-  TABBED_LABEL_SELECTED = 'valeria-tabbed-label-selected',
+  TABBED_LABelSELECTED = 'valeria-tabbed-label-selected',
   TABBED_TAB = 'valeria-tabbed-tab',
   TABBED_TAB_SELECTED = 'valeria-tabbed-tab-selected',
 
@@ -76,8 +80,8 @@ enum ClassNames {
 
   MONSTER_EDITOR = 'valeria-monster-editor',
   PDCHU_IO = 'valeria-pdchu-io',
-  LEVEL_EDITOR = 'valeria-level-editor',
-  LEVEL_INPUT = 'valeria-level-input',
+  LEVelEDITOR = 'valeria-level-editor',
+  LEVelINPUT = 'valeria-level-input',
   PLUS_EDITOR = 'valeria-plus-editor',
   AWAKENING = 'valeria-monster-awakening',
   AWAKENING_SUPER = 'valeria-monster-awakening-super',
@@ -502,7 +506,7 @@ class TabbedComponent {
     this.tabs_ = {};
 
     for (const tabName of tabNames) {
-      const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABEL_SELECTED : ClassNames.TABBED_LABEL;
+      const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABelSELECTED : ClassNames.TABBED_LABEL;
       const label = create('td', labelClassName) as HTMLTableColElement;
       label.innerText = tabName;
       label.onclick = () => this.setActiveTab(tabName);
@@ -523,7 +527,7 @@ class TabbedComponent {
   setActiveTab(activeTabName: string): void {
     for (const tabName of this.tabNames_) {
       if (tabName == activeTabName) {
-        this.labels_[tabName].className = ClassNames.TABBED_LABEL_SELECTED;
+        this.labels_[tabName].className = ClassNames.TABBED_LABelSELECTED;
         this.tabs_[tabName].className = ClassNames.TABBED_TAB_SELECTED;
       } else {
         this.labels_[tabName].className = ClassNames.TABBED_LABEL;
@@ -575,132 +579,181 @@ interface MonsterUpdateAll {
 
 type OnMonsterUpdate = (ctx: MonsterUpdate) => any;
 
-class MonsterSelector {
+class GenericSelector<T> {
   static MAX_OPTIONS: number = 15;
-  el_: HTMLElement;
-  selector: HTMLInputElement;
-  optionsContainer_: HTMLElement;
-  options_: HTMLElement[];
-  selectedOption_: number = 0;
-  activeOptions_: number = 0;
-  updateCb: OnMonsterUpdate;
+  protected el: HTMLDivElement = create('div') as HTMLDivElement;
+  public selector: HTMLInputElement = create('input', ClassNames.MONSTER_SELECTOR) as HTMLInputElement;
+  protected optionsContainer: HTMLElement = create('div', ClassNames.SELECTOR_OPTIONS_INACTIVE);
+  protected options: HTMLElement[] = [];
+  protected selectedOption: number = 0;
+  protected activeOptions: number = 0;
+  protected updateCb: (value: number) => any;
+  protected searchArray: {s: string, value: T}[];
 
-  constructor(cards: Card[], updateCb: OnMonsterUpdate, isInherit: boolean = false) {
-    this.el_ = create('div');
-    this.updateCb = updateCb;
-
-    const selector = create('input', ClassNames.MONSTER_SELECTOR) as HTMLInputElement;
-    selector.placeholder = 'Monster Search';
-    selector.onkeydown = (e) => {
-      this.options_[this.selectedOption_].style.border = '';
+  onKeyDown(): (e: KeyboardEvent) => any {
+    return (e: KeyboardEvent) => {
+      this.options[this.selectedOption].style.border = '';
       switch (e.keyCode) {
         case 27: // Escape key
-          this.selectedOption_ = 0;
-          this.optionsContainer_.className = ClassNames.SELECTOR_OPTIONS_INACTIVE;
+          this.selectedOption = 0;
+          this.optionsContainer.className = ClassNames.SELECTOR_OPTIONS_INACTIVE;
           return;
         case 13: // Enter
-          this.options_[this.selectedOption_].click();
+          this.options[this.selectedOption].click();
           return;
         case 38: // Up Arrow
-          if (this.selectedOption_ > 0) {
-            this.selectedOption_--;
+          if (this.selectedOption > 0) {
+            this.selectedOption--;
           }
-          this.options_[this.selectedOption_].style.border = '1px solid white';
-          // this.options_[this.selectedOption_].style.border = '1px solid white';
+          this.options[this.selectedOption].style.border = '1px solid white';
+          // this.options[this.selectedOption].style.border = '1px solid white';
           e.preventDefault();
           return;
         case 40: // Down Arrow
-          if (this.selectedOption_ < this.activeOptions_ - 1) {
-            this.selectedOption_++;
+          if (this.selectedOption < this.activeOptions - 1) {
+            this.selectedOption++;
           }
-          this.options_[this.selectedOption_].style.border = '1px solid white';
+          this.options[this.selectedOption].style.border = '1px solid white';
           e.preventDefault();
           return;
       }
       // Left and right arrows.
       if (e.keyCode != 37 && e.keyCode != 39) {
-        this.selectedOption_ = 0;
+        this.selectedOption = 0;
       }
-      this.options_[this.selectedOption_].style.border = '1px solid white';
+      this.options[this.selectedOption].style.border = '1px solid white';
     };
-    selector.onkeyup = (e) => {
-      this.options_[this.selectedOption_].style.border = '1px solid white';
+  }
+
+  postFilter(matches: T[]): T[] {
+    return matches;
+  }
+
+  getFuzzyMatches(text: string): any[] {
+    return fuzzySearch(text, GenericSelector.MAX_OPTIONS * 3, this.searchArray);
+  }
+
+  onKeyUp(): (e: KeyboardEvent) => any {
+    return (e: KeyboardEvent) => {
+      this.options[this.selectedOption].style.border = '1px solid white';
       if ([27, 13, 38, 40].indexOf(e.keyCode) >= 0) {
         return;
       }
-      this.optionsContainer_.className = ClassNames.SELECTOR_OPTIONS_ACTIVE;
-      const currentText = selector.value.trim();
+      this.optionsContainer.className = ClassNames.SELECTOR_OPTIONS_ACTIVE;
+      const currentText = this.selector.value.trim();
       if (currentText == '') {
-        this.options_[0].setAttribute('value', '-1');
-        this.optionsContainer_.style.display = 'none';
+        this.options[0].setAttribute('value', '-1');
+        this.optionsContainer.style.display = 'none';
         return;
       }
-      this.optionsContainer_.style.display = '';
-      let fuzzyMatches = fuzzyMonsterSearch(currentText, MonsterSelector.MAX_OPTIONS * 3, cards);
-      if (isInherit) {
-        fuzzyMatches = fuzzyMatches.filter((match) => vm.model.cards[match].inheritanceType & 1);
-      }
-      for (let i = 0; i < this.options_.length; i++) {
+      this.optionsContainer.style.display = '';
+      let fuzzyMatches = this.getFuzzyMatches(currentText);
+      fuzzyMatches = this.postFilter(fuzzyMatches);
+      for (let i = 0; i < this.options.length; i++) {
         if (i >= fuzzyMatches.length) {
-          this.options_[i].className = ClassNames.SELECTOR_OPTION_INACTIVE;
+          this.options[i].className = ClassNames.SELECTOR_OPTION_INACTIVE;
           continue;
         }
-        this.options_[i].className = ClassNames.SELECTOR_OPTION_ACTIVE;
-        if (fuzzyMatches[i] == -1) {
-          this.options_[i].innerText = 'None';
-        } else {
-          this.options_[i].innerText = `${fuzzyMatches[i]} - ${vm.model.cards[fuzzyMatches[i]].name}`;
-        }
-        this.options_[i].setAttribute('value', String(fuzzyMatches[i]));
+        this.options[i].className = ClassNames.SELECTOR_OPTION_ACTIVE;
+        this.options[i].innerText = `${fuzzyMatches[i]} - ${this.getName(fuzzyMatches[i])}`;
+        this.options[i].setAttribute('value', String(fuzzyMatches[i]));
       }
-      this.activeOptions_ = Math.min(fuzzyMatches.length, this.options_.length);
-    }
-    this.selector = selector;
-
-    this.el_.appendChild(selector);
-
-    const container = create('div', ClassNames.SELECTOR_OPTIONS_CONTAINER);
-    this.optionsContainer_ = create('div', ClassNames.SELECTOR_OPTIONS_INACTIVE);
-    container.appendChild(this.optionsContainer_);
-    this.options_ = [];
-    for (let i = 0; i < MonsterSelector.MAX_OPTIONS; i++) {
-      const option = create('div', ClassNames.SELECTOR_OPTION_INACTIVE);
-      option.setAttribute('value', '-1');
-      option.onclick = () => {
-        const id = Number(option.getAttribute('value'));
-        if (!isInherit) {
-          this.updateCb({id});
-        } else {
-          this.updateCb({inheritId: id});
-        }
-        selector.value = (vm.model.cards[id] || DEFAULT_CARD).name;
-        this.optionsContainer_.className = ClassNames.SELECTOR_OPTIONS_INACTIVE;
-      };
-      this.optionsContainer_.appendChild(option);
-      this.options_.push(option);
-    }
-    this.el_.appendChild(container);
+      this.activeOptions = Math.min(fuzzyMatches.length, this.options.length);
+    };
   }
 
-  setId(id: number) {
-    this.optionsContainer_.style.display = 'none';
-    if (id == -1) {
-      this.selector.value = '';
-    } else {
-      this.selector.value = vm.model.cards[id].name;
+  optionOnClick(option: HTMLElement): () => any {
+    return () => {
+      const id = Number(option.getAttribute('value'));
+      this.updateCb(id);
+      // TODO: Clean this up.
+      this.selector.value = this.getName(id);
+      this.optionsContainer.className = ClassNames.SELECTOR_OPTIONS_INACTIVE;
+    };
+  }
+
+  constructor(searchArray: {s: string, value: T}[], updateCb: (value: number) => any) {
+    this.searchArray = searchArray;
+    this.updateCb = updateCb;
+
+    this.selector.placeholder = 'Search';
+    this.selector.onkeydown = this.onKeyDown();
+    this.selector.onkeyup = this.onKeyUp();
+    this.el.appendChild(this.selector);
+    const container = create('div', ClassNames.SELECTOR_OPTIONS_CONTAINER);
+    container.appendChild(this.optionsContainer);
+    for (let i = 0; i < GenericSelector.MAX_OPTIONS; i++) {
+      const option = create('div', ClassNames.SELECTOR_OPTION_INACTIVE);
+      option.setAttribute('value', '-1');
+      option.onclick = this.optionOnClick(option);
+      this.optionsContainer.appendChild(option);
+      this.options.push(option);
     }
+    this.el.appendChild(container);
+  }
+
+  getName(value: number): string {
+    for (const entry of this.searchArray) {
+      if (Number(entry.value) == value) {
+        return entry.s;
+      }
+    }
+    return 'None';
   }
 
   getElement(): HTMLElement {
-    return this.el_;
+    return this.el;
+  }
+}
+
+class MonsterSelector extends GenericSelector<number> {
+  private isInherit: boolean = false;
+  protected cardArray: Card[];
+
+  getName(id: number): string {
+    if (id == -1) {
+      return 'None';
+    } else {
+      return vm.model.cards[id].name;
+    }
+  }
+
+  getFuzzyMatches(text: string): any[] {
+    return fuzzyMonsterSearch(text, GenericSelector.MAX_OPTIONS * 3, this.cardArray);
+  }
+
+  postFilter(matches: number[]): number[] {
+    if (this.isInherit) {
+      return matches.filter((match) => vm.model.cards[match].inheritanceType & 1);
+    }
+    return matches;
+  }
+
+  constructor(cards: Card[], updateCb: OnMonsterUpdate, isInherit: boolean = false) {
+    super([], (id: number) => {
+      if (isInherit) {
+        updateCb({inheritId: id});
+      } else {
+        updateCb({id: id});
+      }
+    });
+
+    this.cardArray = cards;
+
+    this.selector.placeholder = 'Monster Search';
+  }
+
+  setId(id: number) {
+    this.optionsContainer.style.display = 'none';
+    this.selector.value = this.getName(id);
   }
 }
 
 class LevelEditor {
-  el_: HTMLElement = create('div', ClassNames.LEVEL_EDITOR);
+  el: HTMLElement = create('div', ClassNames.LEVelEDITOR);
   inheritRow: HTMLTableRowElement = create('tr') as HTMLTableRowElement;
-  levelInput: HTMLInputElement = create('input', ClassNames.LEVEL_INPUT) as HTMLInputElement;
-  inheritInput: HTMLInputElement = create('input', ClassNames.LEVEL_INPUT) as HTMLInputElement;
+  levelInput: HTMLInputElement = create('input', ClassNames.LEVelINPUT) as HTMLInputElement;
+  inheritInput: HTMLInputElement = create('input', ClassNames.LEVelINPUT) as HTMLInputElement;
   maxLevel: number = 1;
   inheritMaxLevel: number = 1;
   maxLevelEl: Text = document.createTextNode('/ 1');
@@ -803,11 +856,11 @@ class LevelEditor {
     table.appendChild(this.inheritRow);
     this.inheritRow.style.display = 'none';
 
-    this.el_.appendChild(table);
+    this.el.appendChild(table);
   }
 
   getElement() {
-    return this.el_;
+    return this.el;
   }
 
   update({level, inheritLevel, maxLevel, inheritMaxLevel}: {
@@ -828,7 +881,7 @@ class LevelEditor {
 }
 
 class PlusEditor {
-  el_: HTMLElement;
+  el: HTMLElement;
   onUpdate: OnMonsterUpdate;
   hpEl: HTMLInputElement;
   atkEl: HTMLInputElement;
@@ -836,7 +889,7 @@ class PlusEditor {
   inheritEl: HTMLInputElement;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el_ = create('div');
+    this.el = create('div');
     this.onUpdate = onUpdate;
 
     const maxPlusButton = create('button') as HTMLButtonElement;
@@ -853,7 +906,7 @@ class PlusEditor {
       this.atkEl.value = '99';
       this.rcvEl.value = '99';
     };
-    this.el_.appendChild(maxPlusButton);
+    this.el.appendChild(maxPlusButton);
 
     const minPlusButton = create('button') as HTMLButtonElement;
     // minPlusButton.id = 'idc-0-plus-monster';
@@ -869,33 +922,33 @@ class PlusEditor {
       this.atkEl.value = '0';
       this.rcvEl.value = '0';
     };
-    this.el_.appendChild(minPlusButton);
+    this.el.appendChild(minPlusButton);
 
-    this.el_.appendChild(create('br'));
+    this.el.appendChild(create('br'));
 
     this.hpEl = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
     this.hpEl.type = 'number';
     this.hpEl.onchange = () => {
       this.onUpdate({hpPlus: Number(this.hpEl.value)});
     };
-    this.el_.appendChild(document.createTextNode('HP+ '));
-    this.el_.appendChild(this.hpEl);
+    this.el.appendChild(document.createTextNode('HP+ '));
+    this.el.appendChild(this.hpEl);
 
     this.atkEl = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
     this.atkEl.type = 'number';
     this.atkEl.onchange = () => {
       this.onUpdate({atkPlus: Number(this.atkEl.value)});
     };
-    this.el_.appendChild(document.createTextNode('ATK+ '));
-    this.el_.appendChild(this.atkEl);
+    this.el.appendChild(document.createTextNode('ATK+ '));
+    this.el.appendChild(this.atkEl);
 
     this.rcvEl = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
     this.rcvEl.type = 'number';
     this.rcvEl.onchange = () => {
       this.onUpdate({rcvPlus: Number(this.rcvEl.value)});
     };
-    this.el_.appendChild(document.createTextNode('RCV+ '));
-    this.el_.appendChild(this.rcvEl);
+    this.el.appendChild(document.createTextNode('RCV+ '));
+    this.el.appendChild(this.rcvEl);
 
     this.inheritEl = create('input') as HTMLInputElement;
     this.inheritEl.type = 'checkbox';
@@ -912,14 +965,14 @@ class PlusEditor {
   }
 
   getElement(): HTMLElement {
-    return this.el_;
+    return this.el;
   }
 }
 
 class AwakeningEditor {
   static MAX_AWAKENINGS = 10;
   static SCALE = 0.7;
-  el_: HTMLElement = create('div');
+  el: HTMLElement = create('div');
 
   awakeningArea: HTMLDivElement = create('div') as HTMLDivElement;
   inheritAwakeningArea: HTMLDivElement;
@@ -931,7 +984,7 @@ class AwakeningEditor {
   onUpdate: OnMonsterUpdate;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el_.style.fontSize = 'small';
+    this.el.style.fontSize = 'small';
     this.onUpdate = onUpdate;
 
     this.awakeningArea.appendChild(document.createTextNode('Awakenings'));
@@ -948,7 +1001,7 @@ class AwakeningEditor {
       this.awakeningSelectors.push(el);
       this.awakeningArea.appendChild(el);
     }
-    this.el_.appendChild(this.awakeningArea);
+    this.el.appendChild(this.awakeningArea);
 
     this.inheritDisplays = [];
     this.inheritAwakeningArea = create('div') as HTMLDivElement;
@@ -961,7 +1014,7 @@ class AwakeningEditor {
       }
       this.inheritAwakeningArea.appendChild(el);
     }
-    this.el_.appendChild(this.inheritAwakeningArea);
+    this.el.appendChild(this.inheritAwakeningArea);
 
     this.superAwakeningSelectors = [];
     this.superAwakeningArea = create('div') as HTMLDivElement;
@@ -978,11 +1031,11 @@ class AwakeningEditor {
       this.superAwakeningSelectors.push(el);
       this.superAwakeningArea.appendChild(el);
     }
-    this.el_.appendChild(this.superAwakeningArea);
+    this.el.appendChild(this.superAwakeningArea);
   }
 
   getElement() {
-    return this.el_;
+    return this.el;
   }
 
   // TODO
@@ -1056,7 +1109,7 @@ class AwakeningEditor {
 }
 
 class LatentEditor {
-  el_: HTMLDivElement;
+  el: HTMLDivElement;
   latentRemovers: HTMLAnchorElement[];
   latentSelectors: HTMLAnchorElement[];
   onUpdate: OnMonsterUpdate;
@@ -1064,10 +1117,10 @@ class LatentEditor {
   static PER_ROW = 11;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el_ = create('div') as HTMLDivElement;
+    this.el = create('div') as HTMLDivElement;
     this.onUpdate = onUpdate;
-    this.el_.appendChild(document.createTextNode('Latents'));
-    this.el_.appendChild(create('br'));
+    this.el.appendChild(document.createTextNode('Latents'));
+    this.el.appendChild(create('br'));
 
     this.latentRemovers = [];
     this.currentLatents = [];
@@ -1081,7 +1134,7 @@ class LatentEditor {
       this.latentRemovers.push(remover);
       removerArea.appendChild(remover);
     }
-    this.el_.appendChild(removerArea);
+    this.el.appendChild(removerArea);
 
     this.latentSelectors = [];
     const selectorArea = create('div');
@@ -1108,19 +1161,19 @@ class LatentEditor {
       this.latentSelectors.push(selector);
       selectorArea.appendChild(selector);
     }
-    this.el_.appendChild(selectorArea);
+    this.el.appendChild(selectorArea);
   }
 
   getElement() {
-    return this.el_;
+    return this.el;
   }
 
   update(activeLatents: Latent[], latentKillers: Latent[], maxLatents: number = 6) {
     if (!latentKillers.length) {
-      this.el_.style.display = 'none';
+      this.el.style.display = 'none';
       return;
     }
-    this.el_.style.display = '';
+    this.el.style.display = '';
 
     let totalLatents = 0;
     for (let i = 0; i < 8; i++) {
@@ -1165,7 +1218,7 @@ class LatentEditor {
 }
 
 class MonsterEditor {
-  el_: HTMLElement;
+  el: HTMLElement;
   pdchu: {
     io: HTMLTextAreaElement;
     importButton: HTMLElement;
@@ -1179,7 +1232,7 @@ class MonsterEditor {
   latentEditor: LatentEditor;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el_ = create('div', ClassNames.MONSTER_EDITOR);
+    this.el = create('div', ClassNames.MONSTER_EDITOR);
     const pdchuArea = create('div');
     this.pdchu = {
       io: create('textarea', ClassNames.PDCHU_IO) as HTMLTextAreaElement,
@@ -1192,26 +1245,26 @@ class MonsterEditor {
     pdchuArea.appendChild(this.pdchu.io);
     pdchuArea.appendChild(this.pdchu.importButton);
     pdchuArea.appendChild(this.pdchu.exportButton);
-    this.el_.appendChild(pdchuArea);
+    this.el.appendChild(pdchuArea);
 
     this.monsterSelector = new MonsterSelector(prioritizedMonsterSearch, onUpdate);
     this.inheritSelector = new MonsterSelector(prioritizedInheritSearch, onUpdate, true);
     this.inheritSelector.selector.placeholder = 'Inherit Search';
 
-    this.el_.appendChild(this.monsterSelector.getElement());
-    this.el_.appendChild(this.inheritSelector.getElement());
+    this.el.appendChild(this.monsterSelector.getElement());
+    this.el.appendChild(this.inheritSelector.getElement());
 
     this.levelEditor = new LevelEditor(onUpdate);
-    this.el_.appendChild(this.levelEditor.getElement());
+    this.el.appendChild(this.levelEditor.getElement());
 
     this.plusEditor = new PlusEditor(onUpdate);
-    this.el_.appendChild(this.plusEditor.getElement());
+    this.el.appendChild(this.plusEditor.getElement());
 
     this.awakeningEditor = new AwakeningEditor(onUpdate);
-    this.el_.appendChild(this.awakeningEditor.getElement());
+    this.el.appendChild(this.awakeningEditor.getElement());
 
     this.latentEditor = new LatentEditor(onUpdate);
-    this.el_.appendChild(this.latentEditor.getElement());
+    this.el.appendChild(this.latentEditor.getElement());
   }
 
   update(ctx: MonsterUpdateAll) {
@@ -1264,7 +1317,7 @@ class MonsterEditor {
   }
 
   getElement(): HTMLElement {
-    return this.el_;
+    return this.el;
   }
 }
 
@@ -2746,6 +2799,8 @@ class TeamPane {
 **/
 
 interface DungeonUpdate {
+  loadDungeon?: number,
+
   // Dungeon Editor updates
   activeFloor?: number, // Set active floor index.
   addFloor?: boolean,
@@ -2769,11 +2824,239 @@ interface DungeonUpdate {
   enemyDef?: number,
   resolve?: number,
   superResolve?: number,
-  attributeResists?: number[],
+  addAttrResist?: Attribute,
+  removeAttrResist?: Attribute,
+  addTypeResist?: MonsterType,
+  removeTypeResist?: MonsterType,
   resistPercent?: number,
 }
 
 type OnDungeonUpdate = (ctx: DungeonUpdate) => any;
+
+class ToggleableImage {
+  element: HTMLImageElement;
+  active: boolean = true;
+  onToggle: (active: boolean) => any;
+
+  constructor(
+      image: HTMLImageElement,
+      onToggle: (active: boolean) => any,
+      active: boolean = true) {
+    this.element = image;
+    this.onToggle = onToggle;
+    this.setActive(active);
+    const oldOnClick = image.onclick;
+    image.onclick = (ev) => {
+      if (oldOnClick) {
+        oldOnClick.apply(image, [ev]);
+      }
+      this.onToggle(!this.active);
+    }
+  }
+
+  getActive(): boolean {
+    return this.active;
+  }
+
+  setActive(active: boolean) {
+    this.active = active;
+    if (this.active) {
+      this.element.classList.remove(ClassNames.HALF_OPACITY);
+    } else {
+      this.element.classList.add(ClassNames.HALF_OPACITY);
+    }
+  }
+}
+
+type AssetInfoRecord = {offsetX: number, offsetY: number, width: number, height: number};
+enum AssetEnum {
+  NUMBER_0 = 0,
+  NUMBER_1,
+  NUMBER_2,
+  NUMBER_3,
+  NUMBER_4,
+  NUMBER_5,
+  NUMBER_6,
+  NUMBER_7,
+  NUMBER_8,
+  NUMBER_9,
+
+  GUARD_BREAK,
+  TIME,
+  POISON,
+  ENRAGE,
+  STATUS_SHIELD,
+  TIME_BUFF,
+  TIME_DEBUFF,
+  RESOLVE,
+  BURST,
+  DEF_OVERLAY,
+  FIXED_HP,
+  AWOKEN_BIND,
+  SKILL_BIND,
+
+  SHIELD_BASE,
+
+  PLAYER_HP_LEFT,
+  PLAYER_HP_MIDDLE,
+  PLAYER_HP_RIGHT,
+
+  ENEMY_HP_LEFT,
+  ENEMY_HP_MIDDLE,
+  ENEMY_HP_RIGHT,
+
+  // Overlays SHIELD_BASE for attribute resists.
+  FIRE_TRANSPARENT,
+  WATER_TRANSPARENT,
+  WOOD_TRANSPARENT,
+  LIGHT_TRANSPARENT,
+  DARK_TRANSPARENT,
+
+  // Overlays [attr]_TRANSPARENT for attribute absorb.
+  TWINKLE,
+  // Overlays SHIELD_BASE for Damage Void.
+  VOID_OVERLAY,
+  // Overlays SHIELD_BASES for Damage Absorb.
+  ABSORB_OVERLAY,
+  // DAMAGE_NULL,
+}
+
+const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
+  [AssetEnum.NUMBER_0, {offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.NUMBER_1, {offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.NUMBER_2, {offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.NUMBER_3, {offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.NUMBER_4, {offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.NUMBER_5, {offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.NUMBER_6, {offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.NUMBER_7, {offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.NUMBER_8, {offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.NUMBER_9, {offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26}],
+  [AssetEnum.GUARD_BREAK, {offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36}],
+  [AssetEnum.TIME,        {offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36}],
+  [AssetEnum.POISON,      {offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36}],
+  [AssetEnum.ENRAGE,        {offsetY: 0, offsetX: 114, width: 36, height: 36}],
+  [AssetEnum.STATUS_SHIELD, {offsetY: 0, offsetX: 154, width: 36, height: 36}],
+  [AssetEnum.SKILL_BIND,  {offsetY: 40, offsetX: 141, width: 32, height: 32}],
+  [AssetEnum.AWOKEN_BIND, {offsetY: 73, offsetX: 140, width: 32, height: 32}],
+  [AssetEnum.RESOLVE, {offsetY: 144, offsetX: 132, width: 32, height: 32}],
+  [AssetEnum.BURST, {offsetY: 208, offsetX: 132, width: 32, height: 32}],
+  [AssetEnum.SHIELD_BASE, {offsetY: 55, offsetX: 326, width: 36, height: 36}],
+  [AssetEnum.FIRE_TRANSPARENT,  {offsetY: 288, offsetX: -2 + 32 * 0, width: 32, height: 32}],
+  [AssetEnum.WATER_TRANSPARENT, {offsetY: 288, offsetX: -2 + 32 * 1, width: 32, height: 32}],
+  [AssetEnum.WOOD_TRANSPARENT,  {offsetY: 288, offsetX: -2 + 32 * 2, width: 32, height: 32}],
+  [AssetEnum.LIGHT_TRANSPARENT, {offsetY: 288, offsetX: -2 + 32 * 3, width: 32, height: 32}],
+  [AssetEnum.DARK_TRANSPARENT,  {offsetY: 288, offsetX: -2 + 32 * 4, width: 32, height: 32}],
+  [AssetEnum.TWINKLE, {offsetY: 248, offsetX: 85, width: 36, height: 36}],
+  [AssetEnum.VOID_OVERLAY,   {offsetY: 49, offsetX: 372, width: 32, height: 32}],
+  [AssetEnum.ABSORB_OVERLAY, {offsetY: 49, offsetX: 452, width: 32, height: 32}],
+  [AssetEnum.FIXED_HP, {offsetY: 256, offsetX: 131, width: 32, height: 32}],
+  // [AssetEnum., {offsetY: , offsetX: , width: , height: }],
+]);
+
+const UI_ASSET_SRC: string = `url(${BASE_URL}assets/UIPAT1.PNG)`;
+
+class LayeredAsset {
+  assets: AssetEnum[];
+  element: HTMLDivElement = create('div', ClassNames.LAYERED_ASSET) as HTMLDivElement;
+  private elements: HTMLAnchorElement[];
+  active: boolean = true;
+  onClick: (active: boolean) => any;
+
+  constructor(assets: AssetEnum[], onClick: (active: boolean) => any, active = true) {
+    this.assets = assets;
+
+    const maxSizes = {
+      width: 0,
+      height: 0,
+    };
+
+    this.elements = assets
+        .filter((asset) => ASSET_INFO.has(asset))
+        .map((asset) => {
+          const assetInfo = ASSET_INFO.get(asset);
+          const el = create('a') as HTMLAnchorElement;
+          if (assetInfo) {
+            el.style.width = String(assetInfo.width);
+            el.style.height = String(assetInfo.height);
+            if (assetInfo.width > maxSizes.width) {
+              maxSizes.width = assetInfo.width;
+            }
+            if (assetInfo.height > maxSizes.height) {
+              maxSizes.height = assetInfo.height;
+            }
+            el.style.backgroundImage = UI_ASSET_SRC;
+            el.style.backgroundPosition = `${-1 * assetInfo.offsetX} ${-1 * assetInfo.offsetY}`;
+          }
+          return el;
+      });
+    // Manually center each of these.
+    for (const el of this.elements) {
+      const elHeight = Number(el.style.height);
+      const elWidth = Number(el.style.width);
+      if (elHeight < maxSizes.height) {
+        el.style.marginTop = String((maxSizes.height - elHeight) / 2);
+      }
+      if (elWidth < maxSizes.width) {
+        el.style.marginLeft = String((maxSizes.width - elWidth) / 2);
+      }
+    }
+    for (const el of this.elements) {
+      this.element.appendChild(el);
+    }
+    this.element.style.width = String(maxSizes.width);
+    this.element.style.height = String(maxSizes.height);
+
+    this.onClick = onClick;
+
+    this.element.onclick = () => {
+      this.onClick(!this.active);
+    };
+
+    this.setActive(active)
+  }
+
+  getElement(): HTMLDivElement {
+    return this.element;
+  }
+
+  setActive(active: boolean) {
+    this.active = active;
+    if (active) {
+      for (const element of this.elements) {
+        element.classList.remove(ClassNames.HALF_OPACITY);
+      }
+    } else {
+      for (const element of this.elements) {
+        element.classList.add(ClassNames.HALF_OPACITY);
+      }
+    }
+  }
+}
+
+class MonsterTypeEl {
+  element: HTMLImageElement = create('img', ClassNames.MONSTER_TYPE) as HTMLImageElement;
+  type: MonsterType = MonsterType.NONE;
+
+  constructor(monsterType: MonsterType) {
+    this.setType(monsterType);
+  }
+
+  private getTypeOffsets(): {offsetX: number, offsetY: number} {
+    const {offsetX, offsetY} = CardAssets.getTypeImageData(Number(this.type), vm);
+    return {offsetX, offsetY};
+  }
+
+  setType(type: MonsterType) {
+    this.type = type;
+    const {offsetX, offsetY} = this.getTypeOffsets();
+    this.element.style.backgroundPosition = `-${offsetX} -${offsetY}`;
+  }
+
+  getElement(): HTMLImageElement {
+    return this.element;
+  }
+}
 
 class DungeonEditor {
   element: HTMLElement = create('div');
@@ -2785,8 +3068,8 @@ class DungeonEditor {
   importer: HTMLTextAreaElement = create('textarea') as HTMLTextAreaElement;
   onUpdate: OnDungeonUpdate;
   monsterSelector: MonsterSelector;
-  enemyPictureContainer: HTMLDivElement = create('div', ClassNames.ENEMY_PICTURE) as HTMLDivElement;
-  enemyPicture: HTMLImageElement = create('img') as HTMLImageElement;
+  // enemyPictureContainer: HTMLDivElement = create('div', ClassNames.ENEMY_PICTURE) as HTMLDivElement;
+  enemyPicture: MonsterIcon = new MonsterIcon(true);
   enemyLevelInput: HTMLInputElement = create('input') as HTMLInputElement;
   dungeonHpInput: HTMLInputElement = create('input') as HTMLInputElement;
   dungeonAtkInput: HTMLInputElement = create('input') as HTMLInputElement;
@@ -2794,12 +3077,20 @@ class DungeonEditor {
   enemyHpInput: HTMLInputElement = create('input') as HTMLInputElement;
   enemyAtkInput: HTMLInputElement = create('input') as HTMLInputElement;
   enemyDefInput: HTMLInputElement = create('input') as HTMLInputElement;
+  enemyResolveInput: HTMLInputElement = create('input') as HTMLInputElement;
+  enemyResistTypesInputs: Map<MonsterType, ToggleableImage> = new Map();
+  enemyResistAttrInputs: Map<Attribute, LayeredAsset> = new Map();
   activeFloorIdx: number = 0;
   activeEnemyIdx: number = 0;
+  dungeonSelector: GenericSelector<number>;
 
-  constructor(onUpdate: OnDungeonUpdate) {
-    this.element.appendChild(document.createTextNode('Dungeon Editor Area Placeholder'));
+  constructor(dungeonNames: {s: string, value: number}[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
+    this.element.appendChild(document.createTextNode('Dungeon Editor Area Placeholder'));
+    this.dungeonSelector = new GenericSelector<number>(dungeonNames, (id: number) => {
+      this.onUpdate({loadDungeon: id});
+    });
+    this.element.appendChild(this.dungeonSelector.getElement());
 
     const dungeonFloorContainer = create('div', ClassNames.FLOOR_CONTAINER) as HTMLDivElement;
     dungeonFloorContainer.appendChild(this.dungeonFloorTable);
@@ -2820,12 +3111,12 @@ class DungeonEditor {
         return;
       }
       this.onUpdate({activeEnemyId: id});
-      this.enemyPicture.src = CardAssets.getCroppedPortrait(vm.model.cards[id]);
+      // this.enemyPicture.src = CardAssets.getCroppedPortrait(vm.model.cards[id]);
     });
 
-    this.element.appendChild(this.monsterSelector.getElement());
-    this.enemyPictureContainer.appendChild(this.enemyPicture);
-    this.element.appendChild(this.enemyPictureContainer);
+    this.element.appendChild(this.enemyPicture.getElement());
+    // this.enemyPictureContainer.appendChild(this.enemyPicture);
+    // this.element.appendChild(this.enemyPictureContainer);
 
     this.setupEnemyStatTable();
   }
@@ -2881,35 +3172,132 @@ class DungeonEditor {
     const hpRow = create('tr') as HTMLTableRowElement;
     const atkRow = create('tr') as HTMLTableRowElement;
     const defRow = create('tr') as HTMLTableRowElement;
+    const resolveRow = create('tr') as HTMLTableRowElement;
+    const resistTypesRow = create('tr') as HTMLTableRowElement;
+    const resistAttrRow = create('tr') as HTMLTableRowElement;
 
     this.enemyLevelInput.type = 'number';
     this.enemyHpInput.type = 'number';
     this.enemyAtkInput.type = 'number';
     this.enemyDefInput.type = 'number';
+    this.enemyResolveInput.type = 'number';
 
     this.enemyHpInput.disabled = true;
     this.enemyAtkInput.disabled = true;
     this.enemyDefInput.disabled = true;
+    this.enemyResolveInput.disabled = true;
 
     const lvLabel = create('td') as HTMLTableCellElement;
     const hpLabel = create('td') as HTMLTableCellElement;
     const atkLabel = create('td') as HTMLTableCellElement;
     const defLabel = create('td') as HTMLTableCellElement;
+    const resolveLabel = create('td') as HTMLTableCellElement;
+    const resistTypesLabel = create('td') as HTMLTableCellElement;
+    const resistAttrLabel = create('td') as HTMLTableCellElement;
 
     lvLabel.innerText = 'Level';
-    hpLabel.innerText = 'HP';
+    hpLabel.innerText = 'Health';
     atkLabel.innerText = 'Attack';
     defLabel.innerText = 'Defense';
+    resolveLabel.innerText = 'Resolve';
+    resistTypesLabel.innerText = 'Resist Type';
+    resistAttrLabel.innerText = 'Resist Attr';
 
     lvRow.appendChild(lvLabel);
     hpRow.appendChild(hpLabel);
     atkRow.appendChild(atkLabel);
     defRow.appendChild(defLabel);
+    resolveRow.appendChild(resolveLabel);
+    resistTypesRow.appendChild(resistTypesLabel);
+    resistAttrRow.appendChild(resistAttrLabel);
 
-    lvRow.appendChild(this.enemyLevelInput);
-    hpRow.appendChild(this.enemyHpInput);
-    atkRow.appendChild(this.enemyAtkInput);
-    defRow.appendChild(this.enemyDefInput);
+    const lvCell = create('td') as HTMLTableCellElement;
+    const hpCell = create('td') as HTMLTableCellElement;
+    const atkCell = create('td') as HTMLTableCellElement;
+    const defCell = create('td') as HTMLTableCellElement;
+    const resolveCell = create('td') as HTMLTableCellElement;
+    const resistTypesCell = create('td') as HTMLTableCellElement;
+    const resistAttrCell = create('td') as HTMLTableCellElement;
+
+    lvCell.appendChild(this.enemyLevelInput);
+    hpCell.appendChild(this.enemyHpInput);
+    atkCell.appendChild(this.enemyAtkInput);
+    defCell.appendChild(this.enemyDefInput);
+    resolveCell.appendChild(this.enemyResolveInput);
+
+    for (let i = 0; i < 16; i++) {
+      if (i == 9 || i == 10 || i == 11 || i == 13) {
+        continue;
+      }
+      const t = (i as unknown) as MonsterType;
+      const typeImage = new MonsterTypeEl(t as MonsterType);
+      const typeToggle = new ToggleableImage(
+          typeImage.getElement(),
+          (active: boolean) => {
+            if (active) {
+              this.onUpdate({addTypeResist: t});
+            } else {
+              this.onUpdate({removeTypeResist: t});
+            }
+          },
+          false);
+      this.enemyResistTypesInputs.set(t, typeToggle);
+      resistTypesCell.appendChild(typeImage.getElement());
+    }
+
+    const fire = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.FIRE_TRANSPARENT], (active) => {
+      if (active) {
+        this.onUpdate({addAttrResist: Attribute.FIRE});
+      } else {
+        this.onUpdate({removeAttrResist: Attribute.FIRE});
+      }
+    }, false);
+    this.enemyResistAttrInputs.set(Attribute.FIRE, fire);
+    resistAttrCell.appendChild(fire.getElement());
+    const water = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WATER_TRANSPARENT], (active) => {
+      if (active) {
+        this.onUpdate({addAttrResist: Attribute.WATER});
+      } else {
+        this.onUpdate({removeAttrResist: Attribute.WATER});
+      }
+    }, false);
+    this.enemyResistAttrInputs.set(Attribute.WATER, water);
+    resistAttrCell.appendChild(water.getElement());
+    const wood = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WOOD_TRANSPARENT], (active) => {
+      if (active) {
+        this.onUpdate({addAttrResist: Attribute.WOOD});
+      } else {
+        this.onUpdate({removeAttrResist: Attribute.WOOD});
+      }
+    }, false);
+    this.enemyResistAttrInputs.set(Attribute.WOOD, wood);
+    resistAttrCell.appendChild(wood.getElement());
+    const light = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.LIGHT_TRANSPARENT], (active) => {
+      if (active) {
+        this.onUpdate({addAttrResist: Attribute.LIGHT});
+      } else {
+        this.onUpdate({removeAttrResist: Attribute.LIGHT});
+      }
+    }, false);
+    this.enemyResistAttrInputs.set(Attribute.LIGHT, light);
+    resistAttrCell.appendChild(light.getElement());
+    const dark = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.DARK_TRANSPARENT], (active) => {
+      if (active) {
+        this.onUpdate({addAttrResist: Attribute.DARK});
+      } else {
+        this.onUpdate({removeAttrResist: Attribute.DARK});
+      }
+    }, false);
+    this.enemyResistAttrInputs.set(Attribute.DARK, dark);
+    resistAttrCell.appendChild(dark.getElement());
+
+    lvRow.appendChild(lvCell);
+    hpRow.appendChild(hpCell);
+    atkRow.appendChild(atkCell);
+    defRow.appendChild(defCell);
+    resolveRow.appendChild(resolveCell);
+    resistTypesRow.appendChild(resistTypesCell);
+    resistAttrRow.appendChild(resistAttrCell);
 
     this.enemyLevelInput.onchange = () => {
       let v = Number(this.enemyLevelInput.value);
@@ -2920,8 +3308,8 @@ class DungeonEditor {
       if (v < 1) {
         v = 1;
       }
-      if (v > 10) {
-        v = 10;
+      if (v > 100) {
+        v = 100;
       }
       this.onUpdate({enemyLevel: v});
     };
@@ -2930,6 +3318,9 @@ class DungeonEditor {
     statTable.appendChild(hpRow);
     statTable.appendChild(atkRow);
     statTable.appendChild(defRow);
+    statTable.appendChild(resolveRow);
+    statTable.appendChild(resistTypesRow);
+    statTable.appendChild(resistAttrRow);
 
     this.element.appendChild(statTable);
   }
@@ -2987,7 +3378,7 @@ class DungeonEditor {
           el.className = ClassNames.ICON_SELECTED;
           el.scrollIntoView({block: 'nearest'});
           const id = this.dungeonEnemies[i][j].id;
-          this.enemyPicture.src = CardAssets.getCroppedPortrait(vm.model.cards[id]);
+          this.enemyPicture.update(id, 0, 0, -1, false, 0);
           this.monsterSelector.setId(id);
         } else {
           el.className = ClassNames.ICON;
@@ -3025,11 +3416,26 @@ class DungeonEditor {
     }
   }
 
-  setEnemyStats(lv: number, hp: number, atk: number, def: number) {
+  setEnemyStats(
+      lv: number,
+      hp: number,
+      atk: number,
+      def: number,
+      resolve: number,
+      typeResists: {types: MonsterType[], percent: number},
+      attrResists: {attrs: Attribute[], percent: number},
+    ) {
     this.enemyLevelInput.value = String(lv);
     this.enemyHpInput.value = String(hp);
     this.enemyAtkInput.value = String(atk);
     this.enemyDefInput.value = String(def);
+    this.enemyResolveInput.value = String(resolve);
+    for (const [key, toggle] of [...this.enemyResistTypesInputs.entries()]) {
+      toggle.setActive(typeResists.types.includes(key));
+    }
+    for (const [key, asset] of [...this.enemyResistAttrInputs.entries()]) {
+      asset.setActive(attrResists.attrs.includes(key));
+    }
   }
 
   getElement(): HTMLElement {
@@ -3052,10 +3458,10 @@ class DungeonPane {
   tabs: TabbedComponent = new TabbedComponent(['Dungeon', 'Editor', 'Save/Load']);
   onUpdate: OnDungeonUpdate;
 
-  constructor(onUpdate: OnDungeonUpdate) {
+  constructor(dungeonNames: {s: string, value: number}[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
 
-    this.dungeonEditor = new DungeonEditor(onUpdate);
+    this.dungeonEditor = new DungeonEditor(dungeonNames, onUpdate);
 
     this.tabs.getTab('Editor').appendChild(this.dungeonEditor.getElement());
   }

@@ -239,10 +239,74 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
   return result;
 }
 
+function fuzzySearch<T>(text: string, maxResults: number = 15, searchArray: {s: string, value: T}[]): T[] {
+  if (!text) {
+    return [];
+  }
+  text = text.toLowerCase();
+  const result: T[] = [];
+
+  for (const {s, value} of searchArray) {
+    if (s == text) {
+      result.push(value);
+    }
+  }
+
+  for (const {s, value} of searchArray) {
+    if (text.includes(s) && !result.includes(value)) {
+      result.push(value);
+    }
+  }
+
+  let scoredPriority: {score: number, value: T}[] = [];
+  // Fuzzy match with the name.
+  // This prioritizes values with consecutive letters.
+  for (const {s, value} of searchArray) {
+    if (result.length >= maxResults) {
+      break;
+    }
+    if (result.includes(value)) {
+      continue;
+    }
+    const name = s.toLowerCase();
+    let currentStringIdx = -1;
+    let score = 0;
+    let scoreDelta = 1;
+    for (const c of text) {
+      const nextIdx = name.indexOf(c, currentStringIdx + 1);
+      if (nextIdx == currentStringIdx + 1) {
+        scoreDelta *= 2;
+      } else {
+        scoreDelta = 1;
+      }
+      score += scoreDelta;
+      currentStringIdx = nextIdx;
+      if (currentStringIdx < 0) {
+        break;
+      }
+    }
+    if (currentStringIdx >= 0) {
+      scoredPriority.push({value, score});
+      continue;
+    }
+  }
+  scoredPriority.sort((a, b) => b.score - a.score);
+  for (const match of scoredPriority) {
+    if (result.length > maxResults) {
+      break;
+    }
+    if (!result.includes(match.value)) {
+      result.push(match.value);
+    }
+  }
+  return result;
+}
+
 export {
   SearchInit, // Must be called to have any reasonable values.
 
   fuzzyMonsterSearch,
+  fuzzySearch,
   prioritizedMonsterSearch,
   prioritizedInheritSearch,
   prioritizedEnemySearch,

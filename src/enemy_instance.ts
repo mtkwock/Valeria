@@ -1,4 +1,4 @@
-import {Attribute, MonsterType, DEFAULT_CARD} from './common';
+import {Attribute, MonsterType, DEFAULT_CARD, idxsFromBits} from './common';
 import {KnockoutVM, Card} from '../typings/ilmina';
 
 declare var vm: KnockoutVM;
@@ -177,7 +177,7 @@ interface EnemyInstanceJson {
   defense?: number,
   resolvePercent?: number,
   attributesResisted?: Attribute[],
-  typesResisted?: MonsterType[],
+  typeResists?: MonsterType[],
   preemptiveSkillset?: SkillsetJson,
   skillsets?: SkillsetJson[],
   turnCounter?: number,
@@ -191,7 +191,7 @@ class EnemyInstance {
   defense: number = -1;
   resolvePercent: number = 0;
   attributesResisted: Attribute[];
-  typesResisted: MonsterType[];
+  typeResists: MonsterType[];
   preemptiveSkillset: EnemySkillset;
   skillsets: EnemySkillset[];
   turnCounter: number = 1; // Currently unused.
@@ -217,7 +217,7 @@ class EnemyInstance {
   constructor() {
     // Passives that are always applied
     this.attributesResisted = [];
-    this.typesResisted = [];
+    this.typeResists = [];
     this.preemptiveSkillset = new EnemySkillset(); // Used when loading the monster.
     this.skillsets = [];
     this.attributeAbsorb = [];
@@ -266,7 +266,63 @@ class EnemyInstance {
     );
   }
 
+  getResolve(): number {
+    const c = this.getCard();
+    const resolveSkills = c.enemySkills
+        .map((skill) => skill.enemySkillId)
+        .map((id) => vm.model.enemySkills[id])
+        .filter((skill) => skill.internalEffectId == 73);
+    if (!resolveSkills.length) {
+      return 0;
+    }
+    if (resolveSkills.length > 1) {
+      console.warn('Multiple resolve skills detected. Only using first');
+    }
+    return resolveSkills[0].skillArgs[0];
+  }
+
+  getTypeResists(): {types: MonsterType[], percent: number} {
+    const c = this.getCard();
+    const resistTypeSkills = c.enemySkills
+      .map((skill) => skill.enemySkillId)
+      .map((id) => vm.model.enemySkills[id])
+      .filter((skill) => skill.internalEffectId == 118);
+    if (!resistTypeSkills.length) {
+      return {types: [], percent: 0};
+    }
+    if (resistTypeSkills.length > 1) {
+      console.warn('Multiple Type Resist skills detected. Only using first');
+    }
+    const [typeBits, percent] = resistTypeSkills[0].skillArgs;
+    return {
+      types: idxsFromBits(typeBits) as MonsterType[],
+      percent: percent,
+    };
+  }
+
+  getAttrResists(): {attrs: Attribute[], percent: number} {
+    const c = this.getCard();
+    const resistAttrSkills = c.enemySkills
+      .map((skill) => skill.enemySkillId)
+      .map((id) => vm.model.enemySkills[id])
+      .filter((skill) => skill.internalEffectId == 72);
+    if (!resistAttrSkills.length) {
+      return {attrs: [], percent: 0};
+    }
+    if (resistAttrSkills.length > 1) {
+      console.warn('Multiple Type Resist skills detected. Only using first');
+    }
+    const [attrBits, percent] = resistAttrSkills[0].skillArgs;
+    return {
+      attrs: idxsFromBits(attrBits) as Attribute[],
+      percent: percent,
+    };
+  }
+
   getCard(): Card {
+    if (!vm.model.cards[this.id]) {
+      return DEFAULT_CARD
+    }
     return vm.model.cards[this.id];
   }
 
@@ -308,7 +364,7 @@ class EnemyInstance {
   //       currentDamage *= 0.5;
   //       currentDamage = Math.ceil(currentDamage);
   //     }
-  //     if (this.typesResisted.some((type) => ping.source.getCard().types.includes(type))) {
+  //     if (this.typeResists.some((type) => ping.source.getCard().types.includes(type))) {
   //       currentDamage *= 0.5;
   //       currentDamage = Math.ceil(currentDamage);
   //     }
@@ -416,8 +472,8 @@ class EnemyInstance {
     if (this.attributesResisted.length) {
       obj.attributesResisted = [...this.attributesResisted];
     }
-    if (this.typesResisted.length) {
-      obj.typesResisted = [...this.typesResisted];
+    if (this.typeResists.length) {
+      obj.typeResists = [...this.typeResists];
     }
     if (this.preemptiveSkillset) {
       const preemptiveJson = this.preemptiveSkillset.toJson();
@@ -451,7 +507,7 @@ class EnemyInstance {
     }
     enemy.resolvePercent = Number(json.resolvePercent) || 0;
     enemy.attributesResisted = (json.attributesResisted || []).map((a) => Number(a));
-    enemy.typesResisted = (json.typesResisted || []).map((a) => Number(a));
+    enemy.typeResists = (json.typeResists || []).map((a) => Number(a));
     enemy.preemptiveSkillset = json.preemptiveSkillset ?
         EnemySkillset.fromJson(json.preemptiveSkillset) : new EnemySkillset();
     enemy.skillsets = (json.skillsets || []).map(

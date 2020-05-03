@@ -1,6 +1,12 @@
 // Type definitions for Ilmina's interface.
 // Definitions by: Scarlet
 
+export interface CardEnemySkill {
+  ai: number,
+  enemySkillId: number,
+  rnd: number,
+}
+
 export interface Card {
   id: number;
   name: string;
@@ -37,6 +43,8 @@ export interface Card {
   enemyAtkCurve: number;
   enemyDefCurve: number;
   enemyHpCurve: number;
+
+  enemySkills: CardEnemySkill[];
 }
 
 export interface CardGroup {
@@ -66,11 +74,22 @@ export interface GraphicsDescription {
   offsetY: number;
 }
 
+export interface EnemySkill {
+  aiArgs: number[];
+  id: number;
+  internalEffectId: number;
+  name: string;
+  ratio: number;
+  skillArgs: number[];
+  usageText: string;
+}
+
 export interface Model {
   cards: Record<number, Card>;
   playerSkills: PlayerSkill[];
   evoTrees: Record<number, EvolutionTreeDetails>;
   cardGroups: CardGroup[];
+  enemySkills: EnemySkill[];
 }
 
 // Create an instance by:
@@ -86,6 +105,7 @@ export interface CardAssetInterface {
   canPlus(card: Card): boolean;
   getIconImageData(card: Card): GraphicsDescription|null;
   getCroppedPortrait(card: Card): string;
+  getTypeImageData(type: number, vm: KnockoutVM): GraphicsDescription;
 }
 
 // Create an instance by:

@@ -237,6 +237,8 @@ const DEFAULT_CARD: Card = {
   enemyDefAtLv1: 1,
   enemyDefAtLv10: 1,
   enemyDefCurve: 1,
+
+  enemySkills: [],
 };
 
 const LatentSuper = new Set<Latent>([
@@ -277,6 +279,8 @@ const ShapeToLetter: Record<Shape, string> = {
   5: 'R',
 };
 
+const BASE_URL = (document.getElementById('valeria-referenceable-img') as HTMLImageElement).src.replace('assets/UIPAT1.PNG', '');
+
 export {
   Attribute,
   AttributeToName,
@@ -291,6 +295,7 @@ export {
   Shape,
   LetterToShape,
   ShapeToLetter,
+  BASE_URL,
   COLORS,
   DEFAULT_CARD,
   idxsFromBits,

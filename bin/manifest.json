@@ -21,6 +21,7 @@
   ],
   "web_accessible_resources": [
     "require.min.js",
-    "bundle.js"
+    "bundle.js",
+    "assets/UIPAT1.PNG"
   ]
 }
