@@ -8,8 +8,7 @@ bin/*
 !bin/background.js
 !bin/manifest.json
 !bin/require.min.js
-!bin/assets/DungeonsAndEncounters.json
-!bin/assets/UIPAT1.PNG
+!bin/assets/
 .DS_Store
 .bazelrc
 experimental/
