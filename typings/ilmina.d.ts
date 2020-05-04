@@ -44,6 +44,7 @@ export interface Card {
   enemyDefCurve: number;
   enemyHpCurve: number;
 
+  monsterPoints: number;
   enemySkills: CardEnemySkill[];
 }
 

@@ -3068,7 +3068,6 @@ class DungeonEditor {
   importer: HTMLTextAreaElement = create('textarea') as HTMLTextAreaElement;
   onUpdate: OnDungeonUpdate;
   monsterSelector: MonsterSelector;
-  // enemyPictureContainer: HTMLDivElement = create('div', ClassNames.ENEMY_PICTURE) as HTMLDivElement;
   enemyPicture: MonsterIcon = new MonsterIcon(true);
   enemyLevelInput: HTMLInputElement = create('input') as HTMLInputElement;
   dungeonHpInput: HTMLInputElement = create('input') as HTMLInputElement;
@@ -3111,12 +3110,10 @@ class DungeonEditor {
         return;
       }
       this.onUpdate({activeEnemyId: id});
-      // this.enemyPicture.src = CardAssets.getCroppedPortrait(vm.model.cards[id]);
     });
 
     this.element.appendChild(this.enemyPicture.getElement());
-    // this.enemyPictureContainer.appendChild(this.enemyPicture);
-    // this.element.appendChild(this.enemyPictureContainer);
+    this.element.appendChild(this.monsterSelector.getElement());
 
     this.setupEnemyStatTable();
   }
