@@ -12,11 +12,11 @@ Extension Written by Scarlet#1115 on Discord.
 
 ### Building from source
 1. Make sure you have npm installed
-2. Open at terminal and run `npm install` in this repo folder
+2. Open a terminal in this repo and run `npm install`
 3. Run `npm run build` to create an build in ./dist
 4. Navigate to https://ilmina.com/#/Valeria
 
-### Developemnt
+### Development
 Developers can run `npm run dev` to autocompile on each typescript and sass change. In chrome oopen the folder ./bin instead of ./dist
 
 ## Usage
