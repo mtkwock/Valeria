@@ -6,7 +6,7 @@
     "dev": "npm-run-all -p ts sass",
     "ts": "tsc-bundle ./tsconfig.json --watch",
     "sass": "sass --watch ./scss/valeria.sass bin/css/valeria.css",
-    "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css && crx pack ./bin -o ./dist/valeria.crx"
+    "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css"
   },
   "dependencies": {
     "sass": "^1.26.5",
@@ -14,7 +14,6 @@
     "typescript-bundle": "^1.0.16"
   },
   "devDependencies": {
-    "crx": "^5.0.1",
     "npm-run-all": "^4.1.5"
   }
 }

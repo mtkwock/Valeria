@@ -1,12 +1,6 @@
 bazel-out
 node_modules
 templates/
-bin/*
-!bin/injector.js
-!bin/background.js
-!bin/manifest.json
-!bin/require.min.js
-!bin/assets/
 .DS_Store
 .bazelrc
 experimental/

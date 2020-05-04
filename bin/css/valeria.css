@@ -1,0 +1,442 @@
+.valeria-half-opacity {
+  opacity: 0.5;
+}
+
+.valeria-monster-icon {
+  display: inline-block;
+  background-repeat: no-repeat;
+  width: 61.2;
+  height: 61.2;
+  cursor: pointer;
+}
+
+.valeria-monster-icon-selected {
+  display: inline-block;
+  background-repeat: no-repeat;
+  width: 61.2;
+  height: 61.2;
+  cursor: pointer;
+  background-color: gray;
+}
+
+.valeria-monster-icon-attribute {
+  display: inline-block;
+  background-repeat: no-repeat;
+  width: 61.2;
+  height: 61.2;
+  background-size: 307.2px 153.6px;
+}
+
+.valeria-monster-icon-subattribute {
+  display: inline-block;
+  background-repeat: no-repeat;
+  width: 61.2;
+  height: 61.2;
+  background-size: 307.2px 153.6px;
+}
+
+table.valeria-monster-icon-info {
+  position: relative;
+  top: -100%;
+  height: 100%;
+  left: 2.5%;
+  width: 95%;
+}
+
+table.valeria-monster-icon-info > tr {
+  height: 33.3%;
+}
+
+table.valeria-monster-icon-info > tr:nth-child(3) {
+  vertical-align: bottom;
+}
+
+.valeria-monster-icon-plus {
+  display: inline-block;
+  color: yellow;
+  font-size: 12;
+  text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
+  position: relative;
+  font-weight: 480;
+}
+
+.valeria-monster-icon-awakening {
+  display: inline-block;
+  position: relative;
+  text-align: right;
+  font-size: 12;
+  color: yellow;
+  font-weight: 480px;
+  width: 90%;
+  text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
+}
+
+.valeria-monster-icon-sa {
+  display: inline-block;
+  width: 18;
+  height: 18;
+  background-size: 200px 290px;
+  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  background-repeat: no-repeat;
+  position: relative;
+  float: right;
+}
+
+.valeria-monster-icon-sa-inactive {
+  opacity: 0.5;
+  display: inline-block;
+  width: 18;
+  height: 18;
+  background-size: 200px 290px;
+  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  background-repeat: no-repeat;
+  position: relative;
+  float: right;
+}
+
+.valeria-monster-type {
+  display: inline-block;
+  background-repeat: no-repeat;
+  width: 36px;
+  height: 36px;
+  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  background-size: 400 580;
+}
+
+.valeria-monster-icon-level {
+  display: inline-block;
+  color: white;
+  position: relative;
+  font-size: 7.2;
+  font-weight: 318;
+  text-align: right;
+  text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
+}
+
+.valeria-monster-inherit {
+  height: 30.6;
+}
+
+.valeria-monster-inherit-icon {
+  display: inline-block;
+  background-repeat: no-repeat;
+  position: relative;
+  width: 30.6;
+  height: 30.6;
+}
+
+.valeria-monster-inherit-attribute {
+  display: inline-block;
+  background-repeat: no-repeat;
+  width: 30.6;
+  height: 30.6;
+  background-size: 153.6px 76.8px;
+}
+
+.valeria-monster-inherit-subattribute {
+  display: inline-block;
+  background-repeat: no-repeat;
+  width: 30.6;
+  height: 30.6;
+  background-size: 153.6px 76.8px;
+}
+
+.valeria-monster-inherit-id {
+  display: inline-block;
+  font-size: 7.2;
+}
+
+.valeria-monster-inherit-level {
+  display: inline-block;
+  font-size: 7.2;
+}
+
+.valeria-monster-icon-id {
+  text-align: right;
+  font-size: 7.2;
+  text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
+}
+
+.valeria-monster-inherit-plus {
+  display: inline-block;
+  font-size: 7.2;
+}
+
+.valeria-monster-latents {
+  height: 9.288;
+  width: 61.2;
+  overflow: hidden;
+}
+
+.valeria-monster-latent {
+  height: 9.288;
+  width: 9.288;
+  display: inline-block;
+  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  background-size: 103.2px 149.64px;
+  background-repeat: no-repeat;
+}
+
+.valeria-monster-latent-super {
+  height: 9.288;
+  width: 20.124;
+  display: inline-block;
+  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  background-size: 103.2px 149.64px;
+  background-repeat: no-repeat;
+}
+
+.valeria-combo-editor {
+  padding: 5px;
+}
+
+.valeria-combo-command {
+  width: 100%;
+}
+
+.valeria-combo-table {
+  font-size: xx-small;
+}
+
+.valeria-combo-table > tr > td > input {
+  width: 20px;
+  height: 12px;
+}
+
+.valeria-tabbed > table {
+  width: 100%;
+}
+
+.valeria-tabbed-label {
+  border: 1px solid white;
+  cursor: pointer;
+  background-color: #222222;
+}
+
+.valeria-tabbed-label:hover {
+  background-color: #444444;
+}
+
+.valeria-tabbed-label-selected {
+  border-left: 1px solid white;
+  border-top: 1px solid white;
+  border-right: 1px solid white;
+}
+
+.valeria-tabbed-tab {
+  display: none;
+}
+
+.valeria-tabbed-tab-selected {
+  border-left: 1px solid white;
+  border-bottom: 1px solid white;
+  border-right: 1px solid white;
+}
+
+.valeria-team-storage {
+  cursor: auto;
+}
+
+.valeria-team-storage-save {
+  border: 1px solid white;
+}
+
+.valeria-team-storage-save:hover {
+  cursor: pointer;
+  background-color: #444444;
+}
+
+.valeria-team-load-area {
+  width: 100%;
+  max-height: 800px;
+  overflow-y: scroll;
+}
+
+.valeria-team-load-active > td:hover {
+  cursor: pointer;
+  background-color: #444444;
+}
+
+.valeria-team-load-active > td:nth-child(1) {
+  width: 95%;
+}
+
+.valeria-team-load-active > td:nth-child(2) {
+  text-align: center;
+}
+
+.valeria-team-load-inactive {
+  display: none;
+}
+
+.valeria-team-container {
+  width: 367.2px;
+}
+
+.valeria-team-container-disabled {
+  display: none;
+}
+
+.valeria-team-title {
+  border: none;
+  width: 100%;
+  background-color: black;
+  color: white;
+  font-size: medium;
+}
+
+.valeria-team-description {
+  border: none;
+  width: 100%;
+  background-color: black;
+  color: white;
+  font-size: small;
+  height: 300px;
+}
+
+.valeria-monster-container {
+  display: inline-block;
+}
+
+.valeria-monster-container-selected {
+  display: inline-block;
+  background: #333;
+}
+
+.valeria-team-stat-table {
+  width: 385.2px;
+}
+
+.valeria-team-stat-label {
+  font-size: xx-small;
+}
+
+.valeria-team-stat-value {
+  text-align: right;
+  font-size: small;
+}
+
+.valeria-monster-editor {
+  padding: 5px;
+}
+
+.valeria-monster-selector {
+  font-size: small;
+  width: 98%;
+}
+
+.valeria-monster-selector-options-container {
+  position: relative;
+  left: 0;
+  right: 0;
+}
+
+.valeria-monster-selector-options-inactive {
+  display: none;
+}
+
+.valeria-monster-selector-options-active {
+  position: absolute;
+  left: 0;
+  z-index: 1000;
+  background-color: black;
+  border: 1px solid white;
+}
+
+.valeria-monster-selector-option-inactive {
+  display: none;
+}
+
+.valeria-monster-selector-option-active {
+  font-size: x-small;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.valeria-monster-selector-option-active:hover {
+  background-color: #444444;
+}
+
+.valeria-pdchu-io {
+  width: 100%;
+}
+
+.valeria-level-editor > table > tr > td {
+  padding: 5px;
+}
+
+.valeria-level-input {
+  width: 45px;
+}
+
+.valeria-plus-editor {
+  width: 50px;
+  margin-right: 10px;
+  font-size: small;
+}
+
+.valeria-monster-awakening {
+  display: inline-block;
+  width: 25.2;
+  height: 25.2;
+  background-size: 280px 406px;
+  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  background-repeat: no-repeat;
+  cursor: pointer;
+  background-position: 0px -226.8px;
+}
+
+.valeria-monster-awakening-super {
+  display: inline-block;
+  width: 54.6;
+  height: 25.2;
+  background-size: 280px 406px;
+  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  background-repeat: no-repeat;
+  cursor: pointer;
+  background-position: 0px -226.8px;
+}
+
+.valeria-floor-container {
+  max-height: 300px;
+  overflow-y: scroll;
+}
+
+.valeria-enemy-picture-container {
+  width: 100%;
+  min-height: 320px;
+  position: relative;
+}
+
+.valeria-enemy-picture-container > img {
+  max-width: 100%;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.valeria-floor-enemy-add {
+  vertical-align: super;
+}
+
+.valeria-layered-asset {
+  display: inline-block;
+}
+
+.valeria-layered-asset > a {
+  background-size: 512px 512px;
+  background-repeat: no-repeat;
+  position: absolute;
+}
+
+.valeria > table {
+  width: 100%;
+  font-size: small;
+}
+
+.valeria > table > tr > td {
+  width: 33%;
+  vertical-align: top;
+}
+
+/*# sourceMappingURL=valeria.css.map */

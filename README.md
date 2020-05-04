@@ -3,24 +3,18 @@ Extension Written by Scarlet#1115 on Discord.
 **Please do not redistribute yet... This is stil in Beta.**
 
 ### Installation
-1. Install the chrome extionsion located at `/dist/valeria.crx` or wait until someone puts it into github releases
+1. Download/ clone this repo
+2. In Chrome, open <chrome://extensions>, ensure Developer Mode is on (top right toggle).
+3. In the top left, click "Load unpacked"
+4. Navigate to the ./bin of this repo
+5. Click "Select" when in the folder.
+6. Navigate to https://ilmina.com/#/Valeria
 
 ### Building from source
 1. Make sure you have npm installed
 2. Open at terminal and run `npm install` in this repo folder
-3. Run `npm run build` to create build a chrome extensions.
+3. Run `npm run build` to create build a chrome extensions. Developers can run `npm run dev` instead to autocompile on each typescript and sass change
 4. Navigate to https://ilmina.com/#/Valeria
-
-### Developer quick start
-0. Have npm installed
-1. Clone repo
-2. Run `npm install` 
-3. Run `npm run dev` to build typescript and sass files, it autocompiles on changes
-4. In Chrome, open <chrome://extensions>, ensure Developer Mode is on (top right toggle).
-5. In the top left, click "Load unpacked"
-6. Navigate to the ./bin of this repo
-7. Click "Select" when in the folder.
-8. Navigate to https://ilmina.com/#/Valeria
 
 ## Usage
 
