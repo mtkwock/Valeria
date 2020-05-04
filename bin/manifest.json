@@ -22,6 +22,7 @@
   "web_accessible_resources": [
     "require.min.js",
     "bundle.js",
-    "assets/UIPAT1.PNG"
+    "assets/UIPAT1.PNG",
+    "assets/DungeonsAndEncounters.json"
   ]
 }
