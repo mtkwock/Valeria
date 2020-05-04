@@ -4,7 +4,7 @@ Extension Written by Scarlet#1115 on Discord.
 
 ### Installation
 1. Download/ clone this repo
-2. In Chrome, open (chrome://extensions)[chrome://extensions], ensure Developer Mode is on (top right toggle).
+2. In Chrome, open [chrome://extensions](chrome://extensions), ensure Developer Mode is on (top right toggle).
 3. In the top left, click "Load unpacked"
 4. Navigate to the ./dist of this repo. 
 5. Click "Select" when in the folder.
