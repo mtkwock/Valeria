@@ -3,7 +3,7 @@ Extension Written by Scarlet#1115 on Discord.
 **Please do not redistribute yet... This is stil in Beta.**
 
 ### Installation
-1. Download/ clone this repo
+1. Download/clone this repo
 2. In Chrome, open [chrome://extensions](chrome://extensions), ensure Developer Mode is on (top right toggle).
 3. In the top left, click "Load unpacked"
 4. Navigate to the ./dist of this repo. 
