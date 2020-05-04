@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm-run-all -p ts sass",
+    "dev": "npm-run-all -p ts sass serve",
     "ts": "tsc-bundle ./tsconfig.json --watch",
     "sass": "sass --watch ./scss/valeria.sass bin/css/valeria.css",
+    "serve": "npx serve ./bin",
     "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css && ncp ./bin ./dist"
   },
   "dependencies": {
