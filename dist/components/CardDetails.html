@@ -1,0 +1,135 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252"></head><body><div class="card-details">
+    <div class="card-title">
+        <div class="card-title-line1">
+            <div class="card-title-no" data-bind="text: 'No. ' + card.id">
+                
+            </div>
+            <div class="card-title-stars" data-bind="foreach: new Array(card.starCount)">
+                <div style="display: inline-block; width: 25px; height: 25px;" data-bind="visible: $index() % 5 == 0"></div>
+                <div class="rarity-star"></div>
+            </div>
+        </div>
+        <div class="card-title-name" data-bind="text: card.name"></div>
+    </div>    
+    <div class="card-favorite-icon" style="position: absolute; right: 0; top: 0;" data-bind="click: toggleFavorite">
+        <div data-bind="asset: CardUiAssets.getFavoriteIcon(false), visible: !getIsFavorite()"></div>
+        <div data-bind="asset: CardUiAssets.getFavoriteIcon(true), visible: getIsFavorite()"></div>
+    </div>
+    <div class="card-picture-container">
+        <!-- ko if: portraitType == PortraitType.NORMAL -->
+        <div class="card-align-helper">
+            <img data-bind="attr: { src: portraitUrl }">
+        </div>
+        <!-- /ko -->
+        <!-- ko if: portraitType == PortraitType.PIXEL -->
+        <div class="card-align-helper">
+            <div class="pixel-portrait" style="left: -50%; position: relative;" data-bind="style: { width: card.imageMetadata[0].width + 'px', height: card.imageMetadata[0].width + 'px', background: 'url('+portraitUrl+')' }"></div>
+        </div>
+        <!-- /ko -->
+        <!-- ko if: portraitType == PortraitType.ANIMATED -->
+        <div class="card-align-helper-nobottom" data-bind="visible: !showAnimation()">
+            <img data-bind="attr: { src: portraitUrl }, click: function() { showAnimation(true); }">
+        </div>
+        <div style="position: absolute" data-bind="if: showAnimation()">
+            <video autoplay="autoplay" name="media" loop=""><source data-bind="attr: { src: portraitUrl.replace('.PNG','.WEBM') }" type="video/webm"></video>
+        </div>
+        <!-- /ko -->
+        <div class="card-type-container" data-bind="foreach: card.types">
+            <div class="card-type">
+                <div class="card-type-image" data-bind="asset: $parent.getTypeAsset($data)"></div>
+                <span data-bind="text: CardType[$data]"></span>
+            </div>
+        </div>
+        <div class="all-awakenings">
+            <div class="card-super-awakenings" data-bind="visible: card.superAwakenings.length &gt; 0">
+                <a style="display: block" class="card-awakening" data-bind="asset: getAwakeningAsset(Awakening.Super), attr: { 'href': getAwakeningPage(Awakening.Super), 'title': getAwakeningTitle(Awakening.Super) }"></a>
+                <!-- ko foreach: card.superAwakenings -->
+                <a style="display: block" class="card-awakening" data-bind="asset: $parent.getAwakeningAsset($data), attr: { 'href': $parent.getAwakeningPage($data), 'title': $parent.getAwakeningTitle($data) }"></a>
+                <!-- /ko -->
+            </div>
+            <div class="card-awakenings" data-bind="foreach: card.awakenings">
+                <!-- ko ifnot: $data==Awakening.Voice-->
+                <a style="display: block" class="card-awakening" data-bind="asset: $parent.getAwakeningAsset($data), attr: { 'href': $parent.getAwakeningPage($data), 'title': $parent.getAwakeningTitle($data) }"></a>
+                <!-- /ko -->
+                <!-- ko if: $data==Awakening.Voice-->
+                <div style="display: block" class="card-awakening" data-bind="asset: $parent.getAwakeningAsset($data), attr: { 'title': $parent.getAwakeningTitle($data) }, click: function() { $parent.playVoice(); }"></div>
+                <!-- /ko -->
+            </div>
+        </div>
+        <div class="card-latent-awakenings" data-bind="foreach: card.latentKillers"><a class="card-latent-awakening" data-bind="asset: $parent.getLatentAwakeningAsset($data), attr: { 'href': $parent.getLatentAwakeningPage($data), 'title': $parent.getLatentAwakeningTitle($data) }"></a></div>
+    </div>
+    <div class="card-details-details" style="position: relative; color: #000; font-weight: 900;">
+        <div style="position: absolute">
+            <card-icon style="position: absolute; top: 10px; left: 10px;" params="{ card: card, model: model }"></card-icon>
+        </div>
+        <!-- ko if: card.extraSlottable -->
+        <div style="position: absolute; top: -37px; left:20px; z-index:1;">
+            <div data-bind="asset: CardUiAssets.getExpandIcon();"></div>
+        </div>
+        <!-- /ko -->
+        <!-- ko if: card.isInheritable -->
+        <div style="position: absolute; top: -37px; left:60px; z-index:1; cursor:pointer;" data-bind="click: toggleAssist">
+            <div data-bind="asset: CardUiAssets.getAssistIcon();"></div>
+        </div>
+        <!-- ko if: UserSettings.assisting() -->
+        <div style="position: absolute; top: 45px; left: 21px" data-bind="asset: CardUiAssets.getAssistanceText();"></div>
+        <!-- /ko -->
+        <!-- /ko -->
+        <table style="position: absolute; top: -37px; left: 115px; z-index: 1;" class="table-stat table-stat-font">
+            <tbody><tr>
+                <td class="table-stat-label">WT:</td>
+                <td class="table-stat-value" data-bind="text: helper.getHumanReadableNumber(getWeightedStats())">?</td>
+                <td class="table-stat-plusses"><span data-bind="visible: card.isLimitBreakable &amp;&amp; UserSettings.displayLevel()==DisplayedLevel.LevelMaxLimitBroken, text:'+'+card.limitBreakStatGain+'%'"></span></td>
+                <td class="table-stat-misc">MP: <span data-bind="text: helper.getHumanReadableNumber(card.monsterPoints)"></span></td>
+            </tr>
+            <tr>
+                <td class="table-stat-label">HP:</td>
+                <td class="table-stat-value" data-bind="text: helper.getHumanReadableNumber(getHp())">?</td>
+                <td class="table-stat-plusses"><span data-bind="visible: UserSettings.enablePlusses() &amp;&amp; CardAssets.canPlus(card)">(+99)</span></td>
+                <td class="table-stat-misc" data-bind="css: { 'limit-break-color': card.isLimitBreakable }">Lv. <span data-bind="text: getLevel()"></span></td></tr>
+            <tr>
+                <td class="table-stat-label">ATK:</td>
+                <td class="table-stat-value" data-bind="text: helper.getHumanReadableNumber(getAtk())">?</td>
+                <td class="table-stat-plusses"><span data-bind="visible: UserSettings.enablePlusses() &amp;&amp; CardAssets.canPlus(card)">(+99)</span></td>
+                <td class="table-stat-misc" data-bind="css: { 'limit-break-color': card.isLimitBreakable }">Max Lv. <span data-bind="text: getMaxLevel()"></span></td></tr>
+            <tr>
+                <td class="table-stat-label">RCV:</td>
+                <td class="table-stat-value" data-bind="text: helper.getHumanReadableNumber(getRcv())">?</td>
+                <td class="table-stat-plusses"><span data-bind="visible: UserSettings.enablePlusses() &amp;&amp; CardAssets.canPlus(card)">(+99)</span></td>
+                <td style="width: 295px" class="table-stat-misc"><span data-bind="if: getExp() == 0">Feed </span>Exp: <span data-bind="text: helper.getHumanReadableNumber(getExp() == 0 ? getFeedExp() : getExp())"></span></td>
+            </tr>
+        </tbody></table>
+
+        <div style="position: absolute;  top: 8px; left: 472px;" data-bind="asset: CardUiAssets.getCostFrame()">
+            <div style="color: #fff; font-size: 20px; width: 100%; height: 100%; display: table; padding-left: 12px; padding-right: 15px;">
+                <div style="display: table-cell; vertical-align: middle; text-align: left;">Cost:</div>
+                <div style="display: table-cell; vertical-align: middle; text-align: right;" data-bind="text: card.cost">?</div>
+            </div>
+        </div>
+
+        <div style="position: absolute; top: 4px; left: 257px; height: 112px; width: 77px; cursor: pointer; z-index: 2;" data-bind="click: togglePlusses"></div>
+        <div style="position: absolute; top: 4px; left: 340px; height: 112px; width: 130px; cursor: pointer; z-index: 2;" data-bind="click: toggleMaxLevel"></div>
+        <div style="position: absolute; top: 122px; left: 15px; height: 37px; width: 84px; cursor: pointer; z-index: 2;" data-bind="click: toggleSkills"></div>
+        <div style="position: absolute; top: 236px; left: 15px; height: 37px; width: 177px; cursor: pointer; z-index: 2;" data-bind="click: toggleSkills"></div>
+
+        <div style="position: absolute; top: 128px; left: 445px; width: 170px; text-align:right; color:white" class="card-cooldowntext" data-bind="html: cooldownText()"></div>
+
+        <div style="position: absolute; top: 123px; left: 13px;" data-bind="asset: CardUiAssets.getSkillAsset()"></div>
+        <div style="position: absolute; top: 126px; left: 107px; width: 334px;" class="card-playerskill">
+            <a href="" data-bind="text: cardActiveSkill.name, attr: { 'title': cardActiveSkill.name, 'href': KoPageUrl.getPlayerSkillUrl(cardActiveSkill) }"></a>
+        </div>
+        <div style="position: absolute; top: 160px; left: 20px; width: 597px;" data-bind="html: getActiveSkillDescription()"></div>
+
+        <div style="position: absolute; top: 237px; left: 13px;" data-bind="asset: CardUiAssets.getLeaderSkillAsset()"></div>
+        <div style="position: absolute; top: 240px; left: 198px; width: 425px; color: #80FF80" class="card-playerskill">
+            <a style="color: #80FF80" href="" data-bind="text: cardLeaderSkill.name, attr: { 'title': cardLeaderSkill.name, 'href': KoPageUrl.getPlayerSkillUrl(cardLeaderSkill) }"></a>
+        </div>
+        <div style="position: absolute; top: 275px; left: 20px; width: 597px;" data-bind="html: getLeaderSkillDescription()"></div>
+    </div>
+    <div data-bind="visible:getLeaderSkillDescription().indexOf('Unknown effect')&gt;-1 || getActiveSkillDescription().indexOf('Unknown effect')&gt;-1">
+        <span>Warning: Card contains skills not yet supported by the 
+parser. Click on the leader/active skill label to toggle to official 
+in-game text </span>
+    </div>
+</div></body></html>

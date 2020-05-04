@@ -1,0 +1,47 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252"></head><body><div id="pulls-main">
+    <div style="height: 650px; font-size: 24px;">
+        <div class="card-title">
+            <span class="card-title-linecenter">Queue</span>
+        </div>
+        <ol id="queue-list" data-bind="foreach: queueMember">
+            <li>
+                <a data-bind="click: function() { $parent.popQueueWon($data) }, text: $data + ' (' + $parent.getVictoryCount($data) + ')'"></a>
+            </li>
+        </ol>
+        <div data-bind="visible: queueMember().length == 0">
+            Nobody is in the queue
+        </div>
+    </div>
+    <div style="font-size: 36px; padding-top: 10px">
+        * Join the Queue by typing "!queue join"
+        <br>
+        * People who haven't won get priority
+        <br>
+        * Time Left: <span data-bind="text: timeRemaining"></span>
+    </div>
+    <div style="padding: 10px">
+        <a data-bind="click: popQueue">Pop Queue</a>
+    </div>
+    <div class="card-title mx-auto">
+        <span class="card-title-linecenter">Pulls</span>
+    </div>
+    <div>
+        <a data-bind="click: promptAddCard">Add</a>
+        <a data-bind="click: popCard">Pop</a>
+        
+        <div style="margin: 20px; font-size: 40px; text-align: center;" data-bind="foreach: labels">
+            <span style="padding: 15px; white-space: nowrap;"><span data-bind="text: label"></span>: <span data-bind="text: count()"></span></span>
+        </div>
+        <div data-bind="foreach: cards" style="min-height: 1840px;">
+            <div data-bind="style: { 'background-color': $parent.getBackgroundColor($data) }" style="display: inline-block; padding: 5px;">
+                <div style="position: relative">
+                    <div style="position: absolute; left: 5px; bottom: -10px; z-index: 100; width: 87px; text-align: center; font-size: 40px; font-weight: bold; color: black; -webkit-text-fill-color: white; -webkit-text-stroke-width: 2px; -webkit-text-stroke-color: black;">
+                        <span data-bind="text: $parent.calculateCardCount($data, $index()), click: function() { $parent.addCard($data.id) }"></span>
+                    </div>
+                    <card-icon style="display:inline-block" params="{ card: $data, model: $parent.model }"></card-icon>
+                </div>
+            </div>
+        </div>
+    </div>
+</div></body></html>

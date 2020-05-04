@@ -1,5 +1,7 @@
 node_modules
 bin/*
+!bin/components
+!bin/index.html
 !bin/injector.js
 !bin/background.js
 !bin/manifest.json

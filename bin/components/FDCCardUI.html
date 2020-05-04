@@ -1,0 +1,19 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252"></head><body><div>
+    <div data-bind="if: getPrimaryCard() != null">
+        <div>
+            <card-icon params="{ card: getPrimaryCard(), model: model }"></card-icon>
+            <div class="fdc-card-plusses" data-bind="text: getPlusText()">+297</div>
+            <div class="fdc-card-awakening" data-bind="if: card.awakenings() &gt; 0">
+                    <div class="green-circle" data-bind="visible: card.awakenings() &lt; 9">
+                        <div class="awakening-text" data-bind="text: card.awakenings()"></div>
+                    </div>
+                    <div class="max-awoken-symbol" data-bind="visible: card.awakenings() == 9"></div>
+            </div>
+        </div>
+        <div class="fdc-card-inherited" data-bind="if: getInheritedCard() != null">
+            <card-icon params="{ card: getInheritedCard(), model: model, scale: 0.5 }"></card-icon>
+            <div class="fdc-card-plusses" data-bind="visible: inheritedCardIs297()">+297</div>
+        </div>
+    </div>
+</div></body></html>

@@ -1,0 +1,49 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252"></head><body><div>
+    <div class="card-title mx-auto">
+        <span class="card-title-linecenter">Evolution Summary</span>
+    </div>
+    <div class="title-width mx-auto">
+        <div>
+            This page displays everything necessary to evolve <a href="" data-bind="attr: { 'href': KoPageUrl.getCardUrl(card) }, text: card.name"></a>. Click on each evolveable icon to expand it as desired. You can also <a href="" data-bind="click: expandAll">expand all</a> or <a href="" data-bind="click: collapseAll">collapse all</a>.
+        </div>
+        <br>
+        <div>
+            You may customize the tree by overriding the evo materials 
+required. This is most useful for replacing an evolution gem with 
+materials that you plan on exchanging for it. This feature isn't as 
+important anymore due to the Gem Temple dungeon, so please manually 
+enter the IDs you would like to replace. <a href="" data-bind="click: overwriteEvolutionMaterials">Click here to replace something.</a>
+        </div>
+    </div>
+    <div class="card-title mx-auto">
+        <span class="card-title-linecenter">Evolution Tree</span>
+    </div>
+    <menu type="context" id="evo-node-context-menu">
+        <menuitem label="Treat Exchange as an Evolution" onclick=""></menuitem>
+        <menuitem label="Custom Replacement" onclick=""></menuitem>
+        <menuitem label="Disable Replacement" onclick=""></menuitem>
+    </menu>
+    <div class="top-most-evo-container text-center">
+        <evo-summary-tree class="evo-recursive-container" params="node: rootNode, recalculate: recalculate"></evo-summary-tree>
+    </div>
+    <div class="card-title mx-auto" data-bind="visible: summaryMaterials().length == 0">
+        <span class="card-title-linecenter">Summary</span>
+    </div>
+    <div class="mx-auto title-width" data-bind="visible: summaryMaterials().length == 0">
+        You do not need any materials - everything is marked as already owned.
+    </div>
+    
+    <div data-bind="foreach: summaryMaterials()">
+        <div class="card-title mx-auto">
+            <span class="card-title-linecenter" data-bind="text: 'Summary - ' + name"></span>
+        </div>
+        <div style="text-align: center;" data-bind="foreach: entries">
+            <div style="display: inline-block; text-align: center;">
+                <card-icon params="{ card: card, model: $parents[1].model }"></card-icon>
+                <span data-bind="text: quantity"></span>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+</div></body></html>
