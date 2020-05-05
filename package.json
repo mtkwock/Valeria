@@ -8,8 +8,9 @@
     "sass": "sass --watch ./scss/valeria.sass bin/css/valeria.css",
     "serve-dev": "npx serve ./bin",
     "serve-dist": "npx serve ./dist",
-    "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css && del-cli ./dist &&ncp ./bin ./dist",
-    "gh-pages": "git subtree push --prefix dist origin gh-pages"
+    "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css && del-cli ./dist && ncp ./bin ./dist",
+    "gh-pages": "git subtree push --prefix dist origin gh-pages",
+    "build-and-deploy-gh-pages": "npm-run-all build gh-pages"
   },
   "dependencies": {
     "sass": "^1.26.5",
