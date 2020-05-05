@@ -807,11 +807,11 @@
             result[1] -= Math.floor(awakeningNumber / 11) * 36;
             return result;
         }
-        function updateAwakening(el, awakening, scale, available = true) {
+        function updateAwakening(el, awakening, scale, unavailableReason = '') {
             const [x, y] = getAwakeningOffsets(awakening);
             el.style.backgroundPosition = `${x * scale}px ${y * scale}px`;
-            el.style.opacity = `${available ? 1 : 0}`;
-            create('div');
+            el.style.opacity = `${unavailableReason ? 0.5 : 1}`;
+            el.title = unavailableReason;
         }
         class MonsterIcon {
             constructor(hideInfoTable = false) {
@@ -853,7 +853,7 @@
             getElement() {
                 return this.element;
             }
-            update(id, plusses, awakening, superAwakeningIdx, saAvailable, level) {
+            update(id, plusses, awakening, superAwakeningIdx, unavailableReason, level) {
                 this.id = id;
                 if (id == -1) {
                     hide(this.element);
@@ -863,6 +863,7 @@
                     return;
                 }
                 show(this.element);
+                show(this.infoTable);
                 const card = vm.model.cards[id] || common_2.DEFAULT_CARD;
                 const descriptor = CardAssets.getIconImageData(card);
                 if (descriptor) {
@@ -889,7 +890,13 @@
                     hide(this.subattributeEl);
                 }
                 const plusEl = this.element.getElementsByClassName(ClassNames.ICON_PLUS)[0];
-                plusEl.innerText = `+${plusses}`;
+                if (plusses) {
+                    show(plusEl);
+                    plusEl.innerText = `+${plusses}`;
+                }
+                else {
+                    hide(plusEl);
+                }
                 const awakeningEl = this.element.getElementsByClassName(ClassNames.ICON_AWAKE)[0];
                 if (awakening != 0) {
                     show(awakeningEl);
@@ -901,7 +908,7 @@
                 const superAwakeningEl = this.element.getElementsByClassName(ClassNames.ICON_SUPER)[0];
                 if (superAwakeningIdx >= 0) {
                     show(superAwakeningEl);
-                    updateAwakening(superAwakeningEl, card.superAwakenings[superAwakeningIdx], 0.5, saAvailable);
+                    updateAwakening(superAwakeningEl, card.superAwakenings[superAwakeningIdx], 0.5, unavailableReason);
                 }
                 else {
                     hide(superAwakeningEl);
@@ -1838,7 +1845,7 @@
         }
         exports.StoredTeamDisplay = StoredTeamDisplay;
         class TeamPane {
-            constructor(storageDisplay, monsterDivs, onSelectIdx, onSelectTeamIdx) {
+            constructor(storageDisplay, monsterDivs, onSelectIdx, onSelectTeamIdx, onNameChange) {
                 this.element_ = create('div');
                 this.teamDivs = [];
                 this.monsterDivs = [];
@@ -1854,6 +1861,9 @@
                 this.detailTabs = new TabbedComponent(['Description', 'Stats', 'Battle']);
                 const teamTab = this.metaTabs.getTab('Team');
                 teamTab.appendChild(this.titleEl);
+                this.titleEl.onchange = () => {
+                    onNameChange(this.titleEl.value);
+                };
                 for (let i = 0; i < 3; i++) {
                     this.teamDivs.push(create('div', ClassNames.TEAM_CONTAINER));
                     for (let j = 0; j < 6; j++) {
@@ -2467,7 +2477,7 @@
             }
             addEnemy(floorIdx) {
                 const enemy = new MonsterIcon(true);
-                enemy.update(4014, 0, 0, -1, false, 0);
+                enemy.update(4014, 0, 0, -1, '', 0);
                 if (floorIdx >= this.dungeonEnemies.length) {
                     this.dungeonEnemies.push([]);
                 }
@@ -2489,7 +2499,7 @@
                             el.className = ClassNames.ICON_SELECTED;
                             el.scrollIntoView({ block: 'nearest' });
                             const id = this.dungeonEnemies[i][j].id;
-                            this.enemyPicture.update(id, 0, 0, -1, false, 0);
+                            this.enemyPicture.update(id, 0, 0, -1, '', 0);
                             this.monsterSelector.setId(id);
                         }
                         else {
@@ -2520,7 +2530,7 @@
                             continue;
                         }
                         superShow(floorEnemies[j].getElement());
-                        floorEnemies[j].update(enemyIds[j], 0, 0, -1, false, 0);
+                        floorEnemies[j].update(enemyIds[j], 0, 0, -1, '', 0);
                         // this.onUpdate({activeEnemyId: enemyIds[j]});
                         console.log('Now setting to id: ' + String(enemyIds[j]));
                     }
@@ -3075,8 +3085,14 @@
             }
             update(isMultiplayer = false) {
                 const plusses = this.hpPlus + this.atkPlus + this.rcvPlus;
-                const saAvailable = !isMultiplayer && plusses == 297 && this.level > 99;
-                this.icon.update(this.id, plusses, this.awakenings, this.superAwakeningIdx, saAvailable, this.level);
+                // A monster must be above level 99, max plussed, and in solo play for
+                // SAs to be active.  This will change later when 3P allows SB.
+                const unavailableReason = [
+                    isMultiplayer ? 'Multiplayer' : '',
+                    plusses != 297 ? 'Unplussed' : '',
+                    this.level < 100 ? 'Not Limit Broken' : '',
+                ].filter(Boolean).join(', ');
+                this.icon.update(this.id, plusses, this.awakenings, this.superAwakeningIdx, unavailableReason, this.level);
                 this.inheritIcon.update(this.inheritId, this.inheritLevel, this.inheritPlussed);
                 this.latentIcon.update([...this.latents]);
             }
@@ -5518,7 +5534,9 @@
                     this.monsters.push(new monster_instance_1.MonsterInstance());
                 }
                 this.storage = new StoredTeams(this);
-                this.teamPane = new templates_4.TeamPane(this.storage.getElement(), this.monsters.map((monster) => monster.getElement()), (idx) => this.setActiveMonsterIdx(idx), (idx) => this.setActiveTeamIdx(idx));
+                this.teamPane = new templates_4.TeamPane(this.storage.getElement(), this.monsters.map((monster) => monster.getElement()), (idx) => this.setActiveMonsterIdx(idx), (idx) => this.setActiveTeamIdx(idx), (name) => {
+                    this.teamName = name;
+                });
                 this.updateIdxCb = () => null;
                 // TODO: Battle Display - Different Class?
             }
