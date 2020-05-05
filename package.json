@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm-run-all -p ts sass serve",
+    "dev": "npm-run-all -p ts sass serve-dev",
     "ts": "tsc-bundle ./tsconfig.json --watch",
     "sass": "sass --watch ./scss/valeria.sass bin/css/valeria.css",
-    "serve-dev": "npx serve ./bin",
-    "serve-dist": "npx serve ./dist",
+    "serve-dev": "npx serve ./bin -l 4800",
+    "serve-dist": "npx serve ./dist -l 4800",
     "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css && del-cli ./dist && ncp ./bin ./dist",
     "gh-pages": "git subtree push --prefix dist origin gh-pages",
     "build-and-deploy-gh-pages": "npm-run-all build gh-pages"
