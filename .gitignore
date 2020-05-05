@@ -9,5 +9,6 @@ bin/*
 !bin/require.min.js
 !bin/assets/DungeonsAndEncounters.json
 !bin/assets/UIPAT1.PNG
+!bin/tsc.js
 *.js.map
 .bazelignore
