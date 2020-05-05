@@ -1,5 +1,5 @@
 import {Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits, vm} from './common';
-import {Card, CardAssetInterface, KnockoutVM} from '../typings/ilmina';
+import {Card, CardAssetInterface} from '../typings/ilmina';
 import {create, MonsterIcon, MonsterInherit, MonsterLatent} from './templates';
 import {fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch} from './fuzzy_search';
 

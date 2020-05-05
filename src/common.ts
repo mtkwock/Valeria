@@ -239,6 +239,7 @@ const DEFAULT_CARD: Card = {
   enemyDefCurve: 1,
 
   enemySkills: [],
+  monsterPoints: 0,
 };
 
 const LatentSuper = new Set<Latent>([

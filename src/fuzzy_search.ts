@@ -8,6 +8,14 @@ const prefixToCardIds: Record<string, number[]> = {};
 let prioritizedEnemySearch: Card[] = [];
 let prioritizedMonsterSearch: Card[] = [];
 let prioritizedInheritSearch: Card[] = [];
+const LOW_PRIORITY_SUBSTRING = [
+  ' disguise', // Jiraiya disguises mucking up searches for Zela, Rex, and so on.
+];
+function isLowPriority(s: string): boolean {
+  return LOW_PRIORITY_SUBSTRING.some((badSubstring) => {
+    return s.toLowerCase().includes(badSubstring);
+  });
+}
 function SearchInit() {
   const ids: number[] = Object.keys(vm.model.cards).map((id) => Number(id));
 
@@ -15,21 +23,26 @@ function SearchInit() {
   prioritizedMonsterSearch = ids.map((id: number) => vm.model.cards[id]).filter((card: Card) => {
     return card.id < 100000;
   }).sort((card1, card2) => {
-    if (card2.awakenings[0] == Awakening.AWOKEN_ASSIST) {
-      return -1;
+    if (isLowPriority(card1.name) != isLowPriority(card2.name)) {
+      return isLowPriority(card2.name) ? -1 : 1;
     }
-    if (card1.awakenings[0] == Awakening.AWOKEN_ASSIST) {
-      return 1;
+    // First throw all equips towards the end.
+    if (card1.awakenings[0] != card2.awakenings[0]) {
+      if (card2.awakenings[0] == Awakening.AWOKEN_ASSIST) {
+        return -1;
+      }
+      if (card1.awakenings[0] == Awakening.AWOKEN_ASSIST) {
+        return 1;
+      }
+    }
+    if (card2.monsterPoints != card1.monsterPoints) {
+      return card2.monsterPoints - card1.monsterPoints;
     }
     return card2.id - card1.id;
   });
 
   prioritizedInheritSearch = prioritizedMonsterSearch.filter((card) => {
-    // No idea why, but inheritanceType 3 and 7 are assistables.
-    // 1, 4, and 5 are unknown
-    // 0 is none
-    // 2 and 6 are unassistable.
-    // return card.inheritanceType == 3 || card.inheritanceType == 7;
+    // inheritanceType is defined with the flag &1..
     return Boolean(card);
   }).sort((card1, card2) => {
     if (card1.awakenings[0] != card2.awakenings[0]) {
@@ -77,9 +90,17 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
   searchArray = searchArray || prioritizedMonsterSearch;
   text = text.toLowerCase();
   let toEquip = false;
+  let toBase = false;
   if (text.startsWith('equip')) {
     text = text.substring('equip'.length).trim();
     toEquip = true;
+  } else if (text.startsWith('base')) {
+    text = text.substring('base'.length).trim();
+    toBase = true;
+  } else if (text.startsWith('revo')) {
+    text = text.replace('revo', 'reincarnated');
+  } else if (text.startsWith('srevo')) {
+    text = text.replace('srevo', 'super reincarnated');
   }
   const result: number[] = [];
   // Test for exact match.
@@ -98,7 +119,7 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
       continue;
     }
     if (idx == 0 || card.name[idx - 1] == ' ')  {
-      if (idx + text.length == card.name.length || card.name[idx + text.length + 1] == ' ') {
+      if (idx + text.length == card.name.length || card.name[idx + text.length] == ' ') {
         result.push(card.id);
       } else {
         lowerPriority.push(card.id);
@@ -230,6 +251,19 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
     }
     result.length = 0;
     for (const id of equips) {
+      result.push(id);
+    }
+  }
+  if (toBase) {
+    let bases = result.map((id) => vm.model.cards[id].evoTreeBaseId);
+
+    const seen = new Set<number>();
+    result.length = 0;
+    for (const id of bases) {
+      if (seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
       result.push(id);
     }
   }

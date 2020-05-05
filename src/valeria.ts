@@ -3,7 +3,6 @@
  */
 
 import {Latent} from './common';
-import {MonsterInstance} from './monster_instance';
 import {KnockoutVM} from '../typings/ilmina';
 import {ComboContainer} from './combo_container';
 import {DungeonInstance} from './dungeon';
@@ -141,7 +140,6 @@ class Valeria {
 }
 
 async function init() {
-  console.log("here");
   await waitFor(() => vm.page() != 0);
 
   annotateMonsterScaling();
