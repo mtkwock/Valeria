@@ -1,7 +1,6 @@
 node_modules
 dist
 bin/*
-!bin/components
 !bin/index.html
 !bin/injector.js
 !bin/background.js

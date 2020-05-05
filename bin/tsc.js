@@ -1795,8 +1795,6 @@ var KnockoutVM = /** @class */ (function () {
             //dataSource.loadDungeonData(x => { modelBuilder.buildDungeonData(x); decrementCount(); }); countRemaining++;
             dataSource.loadEnemySkillData(function (x) { modelBuilder.buildEnemySkillsData(x); decrementCount(); });
             countRemaining++;
-            var templateLoader = new TemplateLoader(function () { return countRemaining++; }, decrementCount, self);
-            templateLoader.loadTemplates();
         });
     };
     KnockoutVM.prototype.parseCardData = function (data, builder) {
@@ -2129,27 +2127,6 @@ var TemplateLoader = /** @class */ (function () {
         this.onSuccess = onSuccess;
         this.errorReporter = errorReporter;
     }
-    TemplateLoader.prototype.loadTemplates = function () {
-        this.loadTemplate("card-details", "CardDetails");
-        this.loadTemplate("card-icon", "CardIcon");
-        this.loadTemplate("awakening-details", "AwakeningDetails");
-        this.loadTemplate("evo-tree", "EvoTree");
-        this.loadTemplate("skill-details", "SkillDetails");
-        this.loadTemplate("card-page", "CardPage");
-        this.loadTemplate("evolution-uses", "EvolutionUses");
-        this.loadTemplate("evolution-summary", "EvolutionSummary");
-        this.loadTemplate("evo-summary-tree", "EvoSummaryTree");
-        this.loadTemplate("advanced-search", "AdvancedSearch");
-        this.loadTemplate("stream-pulls", "StreamPulls");
-        this.loadTemplate("floof-damage-calc", "FDC");
-        this.loadTemplate("floof-damage-calc-card", "FDCCardUI");
-        this.loadTemplate("enemy-skill-details", "EnemySkillDetails");
-        this.loadTemplate("enemy-skill-tree", "EnemySkillTree");
-        this.loadTemplate("pull-simulator", "PullSimulator");
-        this.loadTemplate("guide", "Guide");
-        this.loadTemplate("icon", "Icon");
-        this.setGraphicAsset();
-    };
     TemplateLoader.prototype.setGraphicAsset = function () {
         var self = this;
         ko.bindingHandlers.asset = {
