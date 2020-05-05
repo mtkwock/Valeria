@@ -11,3 +11,4 @@ bin/*
 !bin/tsc.js
 *.js.map
 .bazelignore
+Valeria/

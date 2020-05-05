@@ -142,10 +142,11 @@ function getAwakeningOffsets(awakeningNumber: number): number[] {
   return result;
 }
 
-function updateAwakening(el: HTMLElement, awakening: number, scale: number, available: boolean = true): void {
+function updateAwakening(el: HTMLElement, awakening: number, scale: number, unavailableReason: string = ''): void {
   const [x, y] = getAwakeningOffsets(awakening);
   el.style.backgroundPosition = `${x * scale}px ${y * scale}px`;
-  el.style.opacity = `${available ? 1 : 0}`;create('div') as HTMLDivElement
+  el.style.opacity = `${unavailableReason ? 0.5 : 1}`;
+  el.title = unavailableReason;
 }
 
 class MonsterIcon {
@@ -193,7 +194,7 @@ class MonsterIcon {
   }
 
   update(id: number, plusses: number, awakening: number,
-      superAwakeningIdx: number, saAvailable: boolean, level: number) {
+      superAwakeningIdx: number, unavailableReason: string, level: number) {
     this.id = id;
     if (id == -1) {
       hide(this.element);
@@ -203,6 +204,7 @@ class MonsterIcon {
       return;
     }
     show(this.element);
+    show(this.infoTable);
 
     const card = vm.model.cards[id] || DEFAULT_CARD;
 
@@ -232,7 +234,12 @@ class MonsterIcon {
     }
 
     const plusEl = this.element.getElementsByClassName(ClassNames.ICON_PLUS)[0] as HTMLElement;
-    plusEl.innerText = `+${plusses}`;
+    if (plusses) {
+      show(plusEl);
+      plusEl.innerText = `+${plusses}`;
+    } else {
+      hide(plusEl);
+    }
 
     const awakeningEl = this.element.getElementsByClassName(ClassNames.ICON_AWAKE)[0] as HTMLElement;
     if (awakening != 0) {
@@ -245,7 +252,7 @@ class MonsterIcon {
     const superAwakeningEl = this.element.getElementsByClassName(ClassNames.ICON_SUPER)[0] as HTMLElement;
     if (superAwakeningIdx >= 0) {
       show(superAwakeningEl);
-      updateAwakening(superAwakeningEl, card.superAwakenings[superAwakeningIdx], 0.5, saAvailable);
+      updateAwakening(superAwakeningEl, card.superAwakenings[superAwakeningIdx], 0.5, unavailableReason);
     } else {
       hide(superAwakeningEl);
     }
@@ -1403,10 +1410,14 @@ class TeamPane {
       storageDisplay: HTMLElement,
       monsterDivs: HTMLElement[],
       onSelectIdx: (idx: number) => any,
-      onSelectTeamIdx: (idx: number) => any) {
+      onSelectTeamIdx: (idx: number) => any,
+      onNameChange: (name: string) => any) {
     const teamTab = this.metaTabs.getTab('Team');
 
     teamTab.appendChild(this.titleEl);
+    this.titleEl.onchange = () => {
+      onNameChange(this.titleEl.value);
+    };
 
     for (let i = 0; i < 3; i++) {
       this.teamDivs.push(create('div', ClassNames.TEAM_CONTAINER) as HTMLDivElement);
@@ -3158,7 +3169,7 @@ class DungeonEditor {
 
   private addEnemy(floorIdx: number) {
     const enemy = new MonsterIcon(true);
-    enemy.update(4014, 0, 0, -1, false, 0);
+    enemy.update(4014, 0, 0, -1, '', 0);
     if (floorIdx >= this.dungeonEnemies.length) {
       this.dungeonEnemies.push([]);
     }
@@ -3181,7 +3192,7 @@ class DungeonEditor {
           el.className = ClassNames.ICON_SELECTED;
           el.scrollIntoView({block: 'nearest'});
           const id = this.dungeonEnemies[i][j].id;
-          this.enemyPicture.update(id, 0, 0, -1, false, 0);
+          this.enemyPicture.update(id, 0, 0, -1, '', 0);
           this.monsterSelector.setId(id);
         } else {
           el.className = ClassNames.ICON;
@@ -3212,7 +3223,7 @@ class DungeonEditor {
           continue;
         }
         superShow(floorEnemies[j].getElement());
-        floorEnemies[j].update(enemyIds[j], 0, 0, -1, false, 0);
+        floorEnemies[j].update(enemyIds[j], 0, 0, -1, '', 0);
         // this.onUpdate({activeEnemyId: enemyIds[j]});
         console.log('Now setting to id: ' + String(enemyIds[j]));
       }

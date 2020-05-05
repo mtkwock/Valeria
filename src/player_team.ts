@@ -162,6 +162,9 @@ class Team {
       this.monsters.map((monster) => monster.getElement()),
       (idx: number) => this.setActiveMonsterIdx(idx),
       (idx: number) => this.setActiveTeamIdx(idx),
+      (name: string) => {
+        this.teamName = name;
+      },
     );
 
     this.updateIdxCb = () => null;

@@ -224,9 +224,15 @@ class MonsterInstance {
 
   update(isMultiplayer: boolean = false): void {
     const plusses = this.hpPlus + this.atkPlus + this.rcvPlus;
-    const saAvailable = !isMultiplayer && plusses == 297 && this.level > 99;
+    // A monster must be above level 99, max plussed, and in solo play for
+    // SAs to be active.  This will change later when 3P allows SB.
+    const unavailableReason: string = [
+      isMultiplayer ? 'Multiplayer' : '',
+      plusses != 297 ? 'Unplussed' : '',
+      this.level < 100 ? 'Not Limit Broken' : '',
+    ].filter(Boolean).join(', ');
     this.icon.update(this.id, plusses,
-      this.awakenings, this.superAwakeningIdx, saAvailable, this.level);
+      this.awakenings, this.superAwakeningIdx, unavailableReason, this.level);
     this.inheritIcon.update(this.inheritId, this.inheritLevel, this.inheritPlussed);
     this.latentIcon.update([...this.latents]);
   }
