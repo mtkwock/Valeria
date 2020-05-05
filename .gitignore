@@ -1,10 +1,13 @@
 node_modules
+dist
 bin/*
+!bin/index.html
 !bin/injector.js
 !bin/background.js
 !bin/manifest.json
 !bin/require.min.js
 !bin/assets/DungeonsAndEncounters.json
 !bin/assets/UIPAT1.PNG
+!bin/tsc.js
 *.js.map
 .bazelignore

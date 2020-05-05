@@ -140,9 +140,6 @@ class Valeria {
 }
 
 async function init() {
-  if (window.location.hash != '#/Valeria') {
-    return;
-  }
   await waitFor(() => vm.page() != 0);
 
   annotateMonsterScaling();
