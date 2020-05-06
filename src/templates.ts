@@ -55,7 +55,7 @@ enum ClassNames {
 
   TABBED = 'valeria-tabbed',
   TABBED_LABEL = 'valeria-tabbed-label',
-  TABBED_LABelSELECTED = 'valeria-tabbed-label-selected',
+  TABBED_LABEL_SELECTED = 'valeria-tabbed-label-selected',
   TABBED_TAB = 'valeria-tabbed-tab',
   TABBED_TAB_SELECTED = 'valeria-tabbed-tab-selected',
 
@@ -84,8 +84,8 @@ enum ClassNames {
 
   MONSTER_EDITOR = 'valeria-monster-editor',
   PDCHU_IO = 'valeria-pdchu-io',
-  LEVelEDITOR = 'valeria-level-editor',
-  LEVelINPUT = 'valeria-level-input',
+  LEVEL_EDITOR = 'valeria-level-editor',
+  LEVEL_INPUT = 'valeria-level-input',
   PLUS_EDITOR = 'valeria-plus-editor',
   AWAKENING = 'valeria-monster-awakening',
   AWAKENING_SUPER = 'valeria-monster-awakening-super',
@@ -266,35 +266,28 @@ class MonsterIcon {
 }
 
 class MonsterInherit {
-  element: HTMLElement;
-  icon: HTMLElement;
-  attr: HTMLElement;
-  sub: HTMLElement;
-  idEl: HTMLElement;
-  levelEl: HTMLElement;
-  plusEl: HTMLElement;
+  private element: HTMLElement = create('table', ClassNames.INHERIT);
+  icon: HTMLElement = create('a', ClassNames.INHERIT_ICON);
+  attr: HTMLElement = create('a', ClassNames.INHERIT_ATTR);
+  sub: HTMLElement = create('a', ClassNames.INHERIT_SUB);
+  idEl: HTMLElement = create('div', ClassNames.INHERIT_ID);
+  levelEl: HTMLElement = create('div', ClassNames.INHERIT_LEVEL);
+  plusEl: HTMLElement = create('div', ClassNames.INHERIT_PLUS);
 
   constructor() {
-    this.element = create('table', ClassNames.INHERIT);
     const row = create('tr');
 
     const iconCell = create('td');
-    this.icon = create('a', ClassNames.INHERIT_ICON);
-    this.attr = create('a', ClassNames.INHERIT_ATTR);
     this.icon.appendChild(this.attr);
-    this.sub = create('a', ClassNames.INHERIT_SUB);
     this.attr.appendChild(this.sub);
     iconCell.appendChild(this.icon);
     row.appendChild(iconCell);
 
     const detailCell = create('td');
-    this.idEl = create('div', ClassNames.INHERIT_ID);
     detailCell.appendChild(this.idEl);
     detailCell.appendChild(create('br'));
-    this.levelEl = create('div', ClassNames.INHERIT_LEVEL);
     detailCell.appendChild(this.levelEl);
     detailCell.appendChild(create('br'));
-    this.plusEl = create('div', ClassNames.INHERIT_PLUS);
     detailCell.appendChild(this.plusEl);
     row.appendChild(detailCell);
     this.element.appendChild(row);
@@ -353,12 +346,10 @@ class MonsterInherit {
 }
 
 class MonsterLatent {
-  el: HTMLElement;
-  latentEls: HTMLElement[];
+  private el: HTMLElement = create('div', ClassNames.MONSTER_LATENTS);
+  latentEls: HTMLElement[] = [];
 
   constructor() {
-    this.el = create('div', ClassNames.MONSTER_LATENTS);
-    this.latentEls = [];
     for (let i = 0; i < 6; i++) {
       const latentEl = create('a', ClassNames.MONSTER_LATENT);
       this.latentEls.push(latentEl);
@@ -396,19 +387,16 @@ class MonsterLatent {
 }
 
 class ComboEditor {
-  element: HTMLElement;
-  commandInput: HTMLInputElement;
-  colorTables: Record<string, HTMLTableElement>;
-  static maxVisibleCombos: number = 14;
+  public static maxVisibleCombos: number = 14;
+  public commandInput: HTMLInputElement = create('input', ClassNames.COMBO_COMMAND) as HTMLInputElement;
+
+  private element: HTMLElement = create('div', ClassNames.COMBO_EDITOR);
+  private colorTables: Record<string, HTMLTableElement> = {};
 
   constructor() {
-    this.element = create('div', ClassNames.COMBO_EDITOR);
-
-    this.commandInput = create('input', ClassNames.COMBO_COMMAND) as HTMLInputElement;
     this.commandInput.placeholder = 'Combo Commands';
     this.element.appendChild(this.commandInput);
 
-    this.colorTables = {};
     for (const c of COLORS) {
       const colorTable = create('table', ClassNames.COMBO_TABLE) as HTMLTableElement;
       colorTable.id = Ids.COMBO_TABLE_PREFIX + c;
@@ -515,7 +503,7 @@ class TabbedComponent {
     this.tabs_ = {};
 
     for (const tabName of tabNames) {
-      const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABelSELECTED : ClassNames.TABBED_LABEL;
+      const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABEL_SELECTED : ClassNames.TABBED_LABEL;
       const label = create('td', labelClassName) as HTMLTableColElement;
       label.innerText = tabName;
       label.onclick = () => this.setActiveTab(tabName);
@@ -536,7 +524,7 @@ class TabbedComponent {
   setActiveTab(activeTabName: string): void {
     for (const tabName of this.tabNames_) {
       if (tabName == activeTabName) {
-        this.labels_[tabName].className = ClassNames.TABBED_LABelSELECTED;
+        this.labels_[tabName].className = ClassNames.TABBED_LABEL_SELECTED;
         this.tabs_[tabName].className = ClassNames.TABBED_TAB_SELECTED;
       } else {
         this.labels_[tabName].className = ClassNames.TABBED_LABEL;
@@ -759,10 +747,10 @@ class MonsterSelector extends GenericSelector<number> {
 }
 
 class LevelEditor {
-  el: HTMLElement = create('div', ClassNames.LEVelEDITOR);
+  el: HTMLElement = create('div', ClassNames.LEVEL_EDITOR);
   inheritRow: HTMLTableRowElement = create('tr') as HTMLTableRowElement;
-  levelInput: HTMLInputElement = create('input', ClassNames.LEVelINPUT) as HTMLInputElement;
-  inheritInput: HTMLInputElement = create('input', ClassNames.LEVelINPUT) as HTMLInputElement;
+  levelInput: HTMLInputElement = create('input', ClassNames.LEVEL_INPUT) as HTMLInputElement;
+  inheritInput: HTMLInputElement = create('input', ClassNames.LEVEL_INPUT) as HTMLInputElement;
   maxLevel: number = 1;
   inheritMaxLevel: number = 1;
   maxLevelEl: Text = document.createTextNode('/ 1');
@@ -890,15 +878,14 @@ class LevelEditor {
 }
 
 class PlusEditor {
-  el: HTMLElement;
+  private el: HTMLElement = create('div');
   onUpdate: OnMonsterUpdate;
-  hpEl: HTMLInputElement;
-  atkEl: HTMLInputElement;
-  rcvEl: HTMLInputElement;
-  inheritEl: HTMLInputElement;
+  private hpEl: HTMLInputElement = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
+  private atkEl: HTMLInputElement = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
+  private rcvEl: HTMLInputElement = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
+  private inheritEl: HTMLInputElement = create('input') as HTMLInputElement;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el = create('div');
     this.onUpdate = onUpdate;
 
     const maxPlusButton = create('button') as HTMLButtonElement;
@@ -935,7 +922,6 @@ class PlusEditor {
 
     this.el.appendChild(create('br'));
 
-    this.hpEl = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
     this.hpEl.type = 'number';
     this.hpEl.onchange = () => {
       this.onUpdate({hpPlus: Number(this.hpEl.value)});
@@ -943,7 +929,6 @@ class PlusEditor {
     this.el.appendChild(document.createTextNode('HP+ '));
     this.el.appendChild(this.hpEl);
 
-    this.atkEl = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
     this.atkEl.type = 'number';
     this.atkEl.onchange = () => {
       this.onUpdate({atkPlus: Number(this.atkEl.value)});
@@ -951,7 +936,6 @@ class PlusEditor {
     this.el.appendChild(document.createTextNode('ATK+ '));
     this.el.appendChild(this.atkEl);
 
-    this.rcvEl = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
     this.rcvEl.type = 'number';
     this.rcvEl.onchange = () => {
       this.onUpdate({rcvPlus: Number(this.rcvEl.value)});
@@ -959,7 +943,6 @@ class PlusEditor {
     this.el.appendChild(document.createTextNode('RCV+ '));
     this.el.appendChild(this.rcvEl);
 
-    this.inheritEl = create('input') as HTMLInputElement;
     this.inheritEl.type = 'checkbox';
     this.inheritEl.onclick = () => {
       this.onUpdate({inheritPlussed: this.inheritEl.checked});
@@ -981,15 +964,15 @@ class PlusEditor {
 class AwakeningEditor {
   static MAX_AWAKENINGS = 10;
   static SCALE = 0.7;
-  el: HTMLElement = create('div');
+  private el: HTMLElement = create('div');
 
   awakeningArea: HTMLDivElement = create('div') as HTMLDivElement;
-  inheritAwakeningArea: HTMLDivElement;
-  superAwakeningArea: HTMLDivElement;
+  inheritAwakeningArea: HTMLDivElement = create('div') as HTMLDivElement;
+  superAwakeningArea: HTMLDivElement = create('div') as HTMLDivElement;
 
-  awakeningSelectors: HTMLAnchorElement[];
-  superAwakeningSelectors: HTMLAnchorElement[];
-  inheritDisplays: HTMLAnchorElement[];
+  awakeningSelectors: HTMLAnchorElement[] = [];
+  superAwakeningSelectors: HTMLAnchorElement[] = [];
+  inheritDisplays: HTMLAnchorElement[] = [];
   onUpdate: OnMonsterUpdate;
 
   constructor(onUpdate: OnMonsterUpdate) {
@@ -998,7 +981,6 @@ class AwakeningEditor {
 
     this.awakeningArea.appendChild(document.createTextNode('Awakenings'));
     this.awakeningArea.appendChild(create('br'));
-    this.awakeningSelectors = [];
     for (let i = 0; i < AwakeningEditor.MAX_AWAKENINGS; i++) {
       const el = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       el.onclick = () => {
@@ -1012,8 +994,6 @@ class AwakeningEditor {
     }
     this.el.appendChild(this.awakeningArea);
 
-    this.inheritDisplays = [];
-    this.inheritAwakeningArea = create('div') as HTMLDivElement;
     for (let i = 0; i < 10; i++) {
       const el = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       el.style.cursor = 'default';
@@ -1025,8 +1005,6 @@ class AwakeningEditor {
     }
     this.el.appendChild(this.inheritAwakeningArea);
 
-    this.superAwakeningSelectors = [];
-    this.superAwakeningArea = create('div') as HTMLDivElement;
     this.superAwakeningArea.appendChild(document.createTextNode('Super Awakening'));
     this.superAwakeningArea.appendChild(create('br'));
     for (let i = 0; i < AwakeningEditor.MAX_AWAKENINGS; i++) {
@@ -1118,21 +1096,18 @@ class AwakeningEditor {
 }
 
 class LatentEditor {
-  el: HTMLDivElement;
-  latentRemovers: HTMLAnchorElement[];
-  latentSelectors: HTMLAnchorElement[];
+  private el: HTMLDivElement = create('div') as HTMLDivElement;
+  latentRemovers: HTMLAnchorElement[] = [];
+  latentSelectors: HTMLAnchorElement[] = [];
   onUpdate: OnMonsterUpdate;
-  currentLatents: Latent[];
+  currentLatents: Latent[] = [];
   static PER_ROW = 11;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el = create('div') as HTMLDivElement;
     this.onUpdate = onUpdate;
     this.el.appendChild(document.createTextNode('Latents'));
     this.el.appendChild(create('br'));
 
-    this.latentRemovers = [];
-    this.currentLatents = [];
     const removerArea = create('div');
     for (let i = 0; i < 8; i++) {
       const remover = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
@@ -1145,7 +1120,6 @@ class LatentEditor {
     }
     this.el.appendChild(removerArea);
 
-    this.latentSelectors = [];
     const selectorArea = create('div');
     let currentWidth = 0;
     let j = 1;
@@ -1227,7 +1201,7 @@ class LatentEditor {
 }
 
 class MonsterEditor {
-  el: HTMLElement;
+  private el: HTMLElement = create('div', ClassNames.MONSTER_EDITOR);
   pdchu: {
     io: HTMLTextAreaElement;
     importButton: HTMLElement;
@@ -1241,7 +1215,6 @@ class MonsterEditor {
   latentEditor: LatentEditor;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el = create('div', ClassNames.MONSTER_EDITOR);
     const pdchuArea = create('div');
     this.pdchu = {
       io: create('textarea', ClassNames.PDCHU_IO) as HTMLTextAreaElement,
@@ -1331,36 +1304,32 @@ class MonsterEditor {
 }
 
 class StoredTeamDisplay {
-  element_: HTMLElement;
-  saveTeamEl: HTMLElement;
-  loadTable_: HTMLTableElement;
-  teamRows_: HTMLTableRowElement[];
+  private element: HTMLElement = create('div', ClassNames.TEAM_STORAGE);
+  saveTeamEl: HTMLElement = create('div', ClassNames.TEAM_STORAGE_SAVE);
+  private loadTable: HTMLTableElement = create('table', ClassNames.TEAM_STORAGE_LOAD_AREA) as HTMLTableElement;
+  private teamRows: HTMLTableRowElement[] = [];
   loadFn: (name: string) => any;
   deleteFn: (name: string) => any;
 
   constructor(saveFn: () => any, loadFn: (name: string) => any, deleteFn: (name: string) => any) {
-    this.element_ = create('div', ClassNames.TEAM_STORAGE);
-    this.saveTeamEl = create('div', ClassNames.TEAM_STORAGE_SAVE);
     this.saveTeamEl.innerText = 'Save Team';
     this.saveTeamEl.onclick = saveFn;
-    this.element_.appendChild(this.saveTeamEl);
-    this.loadTable_ = create('table', ClassNames.TEAM_STORAGE_LOAD_AREA) as HTMLTableElement;
-    this.element_.appendChild(this.loadTable_);
-    this.teamRows_ = [];
+    this.element.appendChild(this.saveTeamEl);
+    this.element.appendChild(this.loadTable);
     this.loadFn = loadFn;
     this.deleteFn = deleteFn;
   }
 
   getElement() {
-    return this.element_;
+    return this.element;
   }
 
   update(names: string[]): void {
-    for (let i = 0; i < Math.max(names.length, this.teamRows_.length); i++) {
+    for (let i = 0; i < Math.max(names.length, this.teamRows.length); i++) {
       if (i >= names.length) {
-        this.teamRows_[i].className = ClassNames.TEAM_STORAGE_LOAD_INACTIVE;
+        this.teamRows[i].className = ClassNames.TEAM_STORAGE_LOAD_INACTIVE;
         continue;
-      } else if (i >= this.teamRows_.length) {
+      } else if (i >= this.teamRows.length) {
         const newRow = create('tr', ClassNames.TEAM_STORAGE_LOAD_ACTIVE) as HTMLTableRowElement;
         const newLoad = create('td');
         newLoad.onclick = () => this.loadFn(newLoad.innerText);
@@ -1369,11 +1338,11 @@ class StoredTeamDisplay {
         newDelete.innerText = 'x';
         newDelete.onclick = () => this.deleteFn(newLoad.innerText);
         newRow.appendChild(newDelete);
-        this.loadTable_.appendChild(newRow);
-        this.teamRows_.push(newRow);
+        this.loadTable.appendChild(newRow);
+        this.teamRows.push(newRow);
       }
-      this.teamRows_[i].className = ClassNames.TEAM_STORAGE_LOAD_ACTIVE;
-      const loadCell = this.teamRows_[i].firstElementChild as HTMLTableCellElement;
+      this.teamRows[i].className = ClassNames.TEAM_STORAGE_LOAD_ACTIVE;
+      const loadCell = this.teamRows[i].firstElementChild as HTMLTableCellElement;
       loadCell.innerText = names[i];
     }
   }
@@ -1391,6 +1360,13 @@ interface Stats {
   counts: Map<Awakening, number>,
 }
 
+interface TeamUpdate {
+  teamIdx?: number,
+  monsterIdx?: number,
+  title?: string,
+  description?: string,
+}
+
 class TeamPane {
   element_: HTMLElement = create('div');
   teamDivs: HTMLDivElement[] = [];
@@ -1405,18 +1381,20 @@ class TeamPane {
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
   private metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load']);
   private detailTabs: TabbedComponent = new TabbedComponent(['Description', 'Stats', 'Battle']);
+  private onTeamUpdate: (ctx: TeamUpdate) => any;
 
   constructor(
       storageDisplay: HTMLElement,
       monsterDivs: HTMLElement[],
-      onSelectIdx: (idx: number) => any,
-      onSelectTeamIdx: (idx: number) => any,
-      onNameChange: (name: string) => any) {
+      onTeamUpdate: (ctx: TeamUpdate) => any,
+    ) {
+      this.onTeamUpdate = onTeamUpdate;
     const teamTab = this.metaTabs.getTab('Team');
 
+    this.titleEl.placeholder = 'Team Name';
     teamTab.appendChild(this.titleEl);
     this.titleEl.onchange = () => {
-      onNameChange(this.titleEl.value);
+      this.onTeamUpdate({title: this.titleEl.value});
     };
 
     for (let i = 0; i < 3; i++) {
@@ -1425,8 +1403,10 @@ class TeamPane {
         const d = create('div', ClassNames.MONSTER_CONTAINER);
         d.appendChild(monsterDivs[i * 6 + j]);
         d.onclick = () => {
-          onSelectIdx(i * 6 + j);
-          onSelectTeamIdx(i);
+          this.onTeamUpdate({
+            teamIdx: i,
+            monsterIdx: i * 6 + j,
+          });
           this.selectMonster(i * 6 + j);
         };
         this.monsterDivs.push(d);
@@ -1437,6 +1417,11 @@ class TeamPane {
 
     const descriptionTab = this.detailTabs.getTab('Description');
     this.descriptionEl.spellcheck = false;
+    this.descriptionEl.onchange = () => {
+      this.onTeamUpdate({
+        description: this.descriptionEl.value,
+      });
+    };
     descriptionTab.appendChild(this.descriptionEl);
 
     const statsTab = this.detailTabs.getTab('Stats');
@@ -1459,6 +1444,10 @@ class TeamPane {
         this.monsterDivs[i].className = ClassNames.MONSTER_CONTAINER_SELECTED;
       }
     }
+  }
+
+  goToTab(s: string) {
+    this.metaTabs.setActiveTab(s);
   }
 
   private populateStats() {
@@ -3328,7 +3317,7 @@ export {
   TabbedComponent,
   StoredTeamDisplay,
   MonsterEditor,
-  Stats, TeamPane,
+  Stats, TeamPane, TeamUpdate,
   DungeonEditor,
   DungeonPane,
   DungeonUpdate, OnDungeonUpdate,

@@ -1,6 +1,6 @@
 import {Attribute, MonsterType, Awakening, Latent, vm} from './common';
 import {MonsterInstance, MonsterJson} from './monster_instance';
-import {StoredTeamDisplay, TeamPane, Stats} from './templates';
+import {StoredTeamDisplay, TeamPane, TeamUpdate, Stats} from './templates';
 import * as leaders from './leaders';
 
 interface Burst {
@@ -63,11 +63,10 @@ interface TeamJson {
 }
 
 class StoredTeams {
-  teams: Record<string, TeamJson>;
+  teams: Record<string, TeamJson> = {};
   display: StoredTeamDisplay;
 
   constructor(team: Team) {
-    this.teams = {};
     if (window.localStorage.idcStoredTeams) {
       this.teams = JSON.parse(window.localStorage.idcStoredTeams);
     }
@@ -80,6 +79,7 @@ class StoredTeams {
       // On Load Click
       (name: string) => {
         team.fromJson(this.getTeam(name));
+        team.openTeamTab();
       },
       // On Delete Click
       (name: string) => {
@@ -160,16 +160,29 @@ class Team {
     this.teamPane = new TeamPane(
       this.storage.getElement(),
       this.monsters.map((monster) => monster.getElement()),
-      (idx: number) => this.setActiveMonsterIdx(idx),
-      (idx: number) => this.setActiveTeamIdx(idx),
-      (name: string) => {
-        this.teamName = name;
-      },
+      (ctx: TeamUpdate) => {
+        if (ctx.title) {
+          this.teamName = ctx.title;
+        }
+        if (ctx.teamIdx != undefined) {
+          this.setActiveTeamIdx(ctx.teamIdx);
+        }
+        if (ctx.monsterIdx != undefined) {
+          this.setActiveMonsterIdx(ctx.monsterIdx);
+        }
+        if (ctx.description) {
+          this.description = ctx.description;
+        }
+      }
     );
 
     this.updateIdxCb = () => null;
 
     // TODO: Battle Display - Different Class?
+  }
+
+  openTeamTab(): void {
+    this.teamPane.goToTab('Team');
   }
 
   setActiveMonsterIdx(idx: number) {
