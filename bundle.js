@@ -734,7 +734,7 @@
             ClassNames["COMBO_TABLE"] = "valeria-combo-table";
             ClassNames["TABBED"] = "valeria-tabbed";
             ClassNames["TABBED_LABEL"] = "valeria-tabbed-label";
-            ClassNames["TABBED_LABelSELECTED"] = "valeria-tabbed-label-selected";
+            ClassNames["TABBED_LABEL_SELECTED"] = "valeria-tabbed-label-selected";
             ClassNames["TABBED_TAB"] = "valeria-tabbed-tab";
             ClassNames["TABBED_TAB_SELECTED"] = "valeria-tabbed-tab-selected";
             ClassNames["TEAM_STORAGE"] = "valeria-team-storage";
@@ -758,8 +758,8 @@
             ClassNames["SELECTOR_OPTION_ACTIVE"] = "valeria-monster-selector-option-active";
             ClassNames["MONSTER_EDITOR"] = "valeria-monster-editor";
             ClassNames["PDCHU_IO"] = "valeria-pdchu-io";
-            ClassNames["LEVelEDITOR"] = "valeria-level-editor";
-            ClassNames["LEVelINPUT"] = "valeria-level-input";
+            ClassNames["LEVEL_EDITOR"] = "valeria-level-editor";
+            ClassNames["LEVEL_INPUT"] = "valeria-level-input";
             ClassNames["PLUS_EDITOR"] = "valeria-plus-editor";
             ClassNames["AWAKENING"] = "valeria-monster-awakening";
             ClassNames["AWAKENING_SUPER"] = "valeria-monster-awakening-super";
@@ -923,23 +923,23 @@
         class MonsterInherit {
             constructor() {
                 this.element = create('table', ClassNames.INHERIT);
-                const row = create('tr');
-                const iconCell = create('td');
                 this.icon = create('a', ClassNames.INHERIT_ICON);
                 this.attr = create('a', ClassNames.INHERIT_ATTR);
-                this.icon.appendChild(this.attr);
                 this.sub = create('a', ClassNames.INHERIT_SUB);
+                this.idEl = create('div', ClassNames.INHERIT_ID);
+                this.levelEl = create('div', ClassNames.INHERIT_LEVEL);
+                this.plusEl = create('div', ClassNames.INHERIT_PLUS);
+                const row = create('tr');
+                const iconCell = create('td');
+                this.icon.appendChild(this.attr);
                 this.attr.appendChild(this.sub);
                 iconCell.appendChild(this.icon);
                 row.appendChild(iconCell);
                 const detailCell = create('td');
-                this.idEl = create('div', ClassNames.INHERIT_ID);
                 detailCell.appendChild(this.idEl);
                 detailCell.appendChild(create('br'));
-                this.levelEl = create('div', ClassNames.INHERIT_LEVEL);
                 detailCell.appendChild(this.levelEl);
                 detailCell.appendChild(create('br'));
-                this.plusEl = create('div', ClassNames.INHERIT_PLUS);
                 detailCell.appendChild(this.plusEl);
                 row.appendChild(detailCell);
                 this.element.appendChild(row);
@@ -1037,11 +1037,11 @@
         exports.MonsterLatent = MonsterLatent;
         class ComboEditor {
             constructor() {
-                this.element = create('div', ClassNames.COMBO_EDITOR);
                 this.commandInput = create('input', ClassNames.COMBO_COMMAND);
+                this.element = create('div', ClassNames.COMBO_EDITOR);
+                this.colorTables = {};
                 this.commandInput.placeholder = 'Combo Commands';
                 this.element.appendChild(this.commandInput);
-                this.colorTables = {};
                 for (const c of common_2.COLORS) {
                     const colorTable = create('table', ClassNames.COMBO_TABLE);
                     colorTable.id = Ids.COMBO_TABLE_PREFIX + c;
@@ -1138,7 +1138,7 @@
                 this.labels_ = {};
                 this.tabs_ = {};
                 for (const tabName of tabNames) {
-                    const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABelSELECTED : ClassNames.TABBED_LABEL;
+                    const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABEL_SELECTED : ClassNames.TABBED_LABEL;
                     const label = create('td', labelClassName);
                     label.innerText = tabName;
                     label.onclick = () => this.setActiveTab(tabName);
@@ -1156,7 +1156,7 @@
             setActiveTab(activeTabName) {
                 for (const tabName of this.tabNames_) {
                     if (tabName == activeTabName) {
-                        this.labels_[tabName].className = ClassNames.TABBED_LABelSELECTED;
+                        this.labels_[tabName].className = ClassNames.TABBED_LABEL_SELECTED;
                         this.tabs_[tabName].className = ClassNames.TABBED_TAB_SELECTED;
                     }
                     else {
@@ -1326,10 +1326,10 @@
         }
         class LevelEditor {
             constructor(onUpdate) {
-                this.el = create('div', ClassNames.LEVelEDITOR);
+                this.el = create('div', ClassNames.LEVEL_EDITOR);
                 this.inheritRow = create('tr');
-                this.levelInput = create('input', ClassNames.LEVelINPUT);
-                this.inheritInput = create('input', ClassNames.LEVelINPUT);
+                this.levelInput = create('input', ClassNames.LEVEL_INPUT);
+                this.inheritInput = create('input', ClassNames.LEVEL_INPUT);
                 this.maxLevel = 1;
                 this.inheritMaxLevel = 1;
                 this.maxLevelEl = document.createTextNode('/ 1');
@@ -1441,6 +1441,10 @@
         class PlusEditor {
             constructor(onUpdate) {
                 this.el = create('div');
+                this.hpEl = create('input', ClassNames.PLUS_EDITOR);
+                this.atkEl = create('input', ClassNames.PLUS_EDITOR);
+                this.rcvEl = create('input', ClassNames.PLUS_EDITOR);
+                this.inheritEl = create('input');
                 this.onUpdate = onUpdate;
                 const maxPlusButton = create('button');
                 // maxPlusButton.id = 'idc-297-plus-monster';
@@ -1473,28 +1477,24 @@
                 };
                 this.el.appendChild(minPlusButton);
                 this.el.appendChild(create('br'));
-                this.hpEl = create('input', ClassNames.PLUS_EDITOR);
                 this.hpEl.type = 'number';
                 this.hpEl.onchange = () => {
                     this.onUpdate({ hpPlus: Number(this.hpEl.value) });
                 };
                 this.el.appendChild(document.createTextNode('HP+ '));
                 this.el.appendChild(this.hpEl);
-                this.atkEl = create('input', ClassNames.PLUS_EDITOR);
                 this.atkEl.type = 'number';
                 this.atkEl.onchange = () => {
                     this.onUpdate({ atkPlus: Number(this.atkEl.value) });
                 };
                 this.el.appendChild(document.createTextNode('ATK+ '));
                 this.el.appendChild(this.atkEl);
-                this.rcvEl = create('input', ClassNames.PLUS_EDITOR);
                 this.rcvEl.type = 'number';
                 this.rcvEl.onchange = () => {
                     this.onUpdate({ rcvPlus: Number(this.rcvEl.value) });
                 };
                 this.el.appendChild(document.createTextNode('RCV+ '));
                 this.el.appendChild(this.rcvEl);
-                this.inheritEl = create('input');
                 this.inheritEl.type = 'checkbox';
                 this.inheritEl.onclick = () => {
                     this.onUpdate({ inheritPlussed: this.inheritEl.checked });
@@ -1514,11 +1514,15 @@
             constructor(onUpdate) {
                 this.el = create('div');
                 this.awakeningArea = create('div');
+                this.inheritAwakeningArea = create('div');
+                this.superAwakeningArea = create('div');
+                this.awakeningSelectors = [];
+                this.superAwakeningSelectors = [];
+                this.inheritDisplays = [];
                 this.el.style.fontSize = 'small';
                 this.onUpdate = onUpdate;
                 this.awakeningArea.appendChild(document.createTextNode('Awakenings'));
                 this.awakeningArea.appendChild(create('br'));
-                this.awakeningSelectors = [];
                 for (let i = 0; i < AwakeningEditor.MAX_AWAKENINGS; i++) {
                     const el = create('a', ClassNames.AWAKENING);
                     el.onclick = () => {
@@ -1531,8 +1535,6 @@
                     this.awakeningArea.appendChild(el);
                 }
                 this.el.appendChild(this.awakeningArea);
-                this.inheritDisplays = [];
-                this.inheritAwakeningArea = create('div');
                 for (let i = 0; i < 10; i++) {
                     const el = create('a', ClassNames.AWAKENING);
                     el.style.cursor = 'default';
@@ -1543,8 +1545,6 @@
                     this.inheritAwakeningArea.appendChild(el);
                 }
                 this.el.appendChild(this.inheritAwakeningArea);
-                this.superAwakeningSelectors = [];
-                this.superAwakeningArea = create('div');
                 this.superAwakeningArea.appendChild(document.createTextNode('Super Awakening'));
                 this.superAwakeningArea.appendChild(create('br'));
                 for (let i = 0; i < AwakeningEditor.MAX_AWAKENINGS; i++) {
@@ -1639,11 +1639,12 @@
         class LatentEditor {
             constructor(onUpdate) {
                 this.el = create('div');
+                this.latentRemovers = [];
+                this.latentSelectors = [];
+                this.currentLatents = [];
                 this.onUpdate = onUpdate;
                 this.el.appendChild(document.createTextNode('Latents'));
                 this.el.appendChild(create('br'));
-                this.latentRemovers = [];
-                this.currentLatents = [];
                 const removerArea = create('div');
                 for (let i = 0; i < 8; i++) {
                     const remover = create('a', ClassNames.AWAKENING);
@@ -1655,7 +1656,6 @@
                     removerArea.appendChild(remover);
                 }
                 this.el.appendChild(removerArea);
-                this.latentSelectors = [];
                 const selectorArea = create('div');
                 let currentWidth = 0;
                 let j = 1;
@@ -1805,27 +1805,27 @@
         exports.MonsterEditor = MonsterEditor;
         class StoredTeamDisplay {
             constructor(saveFn, loadFn, deleteFn) {
-                this.element_ = create('div', ClassNames.TEAM_STORAGE);
+                this.element = create('div', ClassNames.TEAM_STORAGE);
                 this.saveTeamEl = create('div', ClassNames.TEAM_STORAGE_SAVE);
+                this.loadTable = create('table', ClassNames.TEAM_STORAGE_LOAD_AREA);
+                this.teamRows = [];
                 this.saveTeamEl.innerText = 'Save Team';
                 this.saveTeamEl.onclick = saveFn;
-                this.element_.appendChild(this.saveTeamEl);
-                this.loadTable_ = create('table', ClassNames.TEAM_STORAGE_LOAD_AREA);
-                this.element_.appendChild(this.loadTable_);
-                this.teamRows_ = [];
+                this.element.appendChild(this.saveTeamEl);
+                this.element.appendChild(this.loadTable);
                 this.loadFn = loadFn;
                 this.deleteFn = deleteFn;
             }
             getElement() {
-                return this.element_;
+                return this.element;
             }
             update(names) {
-                for (let i = 0; i < Math.max(names.length, this.teamRows_.length); i++) {
+                for (let i = 0; i < Math.max(names.length, this.teamRows.length); i++) {
                     if (i >= names.length) {
-                        this.teamRows_[i].className = ClassNames.TEAM_STORAGE_LOAD_INACTIVE;
+                        this.teamRows[i].className = ClassNames.TEAM_STORAGE_LOAD_INACTIVE;
                         continue;
                     }
-                    else if (i >= this.teamRows_.length) {
+                    else if (i >= this.teamRows.length) {
                         const newRow = create('tr', ClassNames.TEAM_STORAGE_LOAD_ACTIVE);
                         const newLoad = create('td');
                         newLoad.onclick = () => this.loadFn(newLoad.innerText);
@@ -1834,18 +1834,18 @@
                         newDelete.innerText = 'x';
                         newDelete.onclick = () => this.deleteFn(newLoad.innerText);
                         newRow.appendChild(newDelete);
-                        this.loadTable_.appendChild(newRow);
-                        this.teamRows_.push(newRow);
+                        this.loadTable.appendChild(newRow);
+                        this.teamRows.push(newRow);
                     }
-                    this.teamRows_[i].className = ClassNames.TEAM_STORAGE_LOAD_ACTIVE;
-                    const loadCell = this.teamRows_[i].firstElementChild;
+                    this.teamRows[i].className = ClassNames.TEAM_STORAGE_LOAD_ACTIVE;
+                    const loadCell = this.teamRows[i].firstElementChild;
                     loadCell.innerText = names[i];
                 }
             }
         }
         exports.StoredTeamDisplay = StoredTeamDisplay;
         class TeamPane {
-            constructor(storageDisplay, monsterDivs, onSelectIdx, onSelectTeamIdx, onNameChange) {
+            constructor(storageDisplay, monsterDivs, onTeamUpdate) {
                 this.element_ = create('div');
                 this.teamDivs = [];
                 this.monsterDivs = [];
@@ -1859,10 +1859,12 @@
                 this.aggregatedAwakeningCounts = new Map();
                 this.metaTabs = new TabbedComponent(['Team', 'Save/Load']);
                 this.detailTabs = new TabbedComponent(['Description', 'Stats', 'Battle']);
+                this.onTeamUpdate = onTeamUpdate;
                 const teamTab = this.metaTabs.getTab('Team');
+                this.titleEl.placeholder = 'Team Name';
                 teamTab.appendChild(this.titleEl);
                 this.titleEl.onchange = () => {
-                    onNameChange(this.titleEl.value);
+                    this.onTeamUpdate({ title: this.titleEl.value });
                 };
                 for (let i = 0; i < 3; i++) {
                     this.teamDivs.push(create('div', ClassNames.TEAM_CONTAINER));
@@ -1870,8 +1872,10 @@
                         const d = create('div', ClassNames.MONSTER_CONTAINER);
                         d.appendChild(monsterDivs[i * 6 + j]);
                         d.onclick = () => {
-                            onSelectIdx(i * 6 + j);
-                            onSelectTeamIdx(i);
+                            this.onTeamUpdate({
+                                teamIdx: i,
+                                monsterIdx: i * 6 + j,
+                            });
                             this.selectMonster(i * 6 + j);
                         };
                         this.monsterDivs.push(d);
@@ -1881,6 +1885,11 @@
                 }
                 const descriptionTab = this.detailTabs.getTab('Description');
                 this.descriptionEl.spellcheck = false;
+                this.descriptionEl.onchange = () => {
+                    this.onTeamUpdate({
+                        description: this.descriptionEl.value,
+                    });
+                };
                 descriptionTab.appendChild(this.descriptionEl);
                 const statsTab = this.detailTabs.getTab('Stats');
                 this.populateStats();
@@ -1899,6 +1908,9 @@
                         this.monsterDivs[i].className = ClassNames.MONSTER_CONTAINER_SELECTED;
                     }
                 }
+            }
+            goToTab(s) {
+                this.metaTabs.setActiveTab(s);
             }
             populateStats() {
                 const statsTable = create('table', ClassNames.STAT_TABLE);
@@ -5471,6 +5483,7 @@
                 // On Load Click
                 (name) => {
                     team.fromJson(this.getTeam(name));
+                    team.openTeamTab();
                 }, 
                 // On Delete Click
                 (name) => {
@@ -5534,11 +5547,25 @@
                     this.monsters.push(new monster_instance_1.MonsterInstance());
                 }
                 this.storage = new StoredTeams(this);
-                this.teamPane = new templates_4.TeamPane(this.storage.getElement(), this.monsters.map((monster) => monster.getElement()), (idx) => this.setActiveMonsterIdx(idx), (idx) => this.setActiveTeamIdx(idx), (name) => {
-                    this.teamName = name;
+                this.teamPane = new templates_4.TeamPane(this.storage.getElement(), this.monsters.map((monster) => monster.getElement()), (ctx) => {
+                    if (ctx.title) {
+                        this.teamName = ctx.title;
+                    }
+                    if (ctx.teamIdx != undefined) {
+                        this.setActiveTeamIdx(ctx.teamIdx);
+                    }
+                    if (ctx.monsterIdx != undefined) {
+                        this.setActiveMonsterIdx(ctx.monsterIdx);
+                    }
+                    if (ctx.description) {
+                        this.description = ctx.description;
+                    }
                 });
                 this.updateIdxCb = () => null;
                 // TODO: Battle Display - Different Class?
+            }
+            openTeamTab() {
+                this.teamPane.goToTab('Team');
             }
             setActiveMonsterIdx(idx) {
                 if (this.playerMode == 2) {
