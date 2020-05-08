@@ -321,7 +321,7 @@ class EnemyInstance {
 
   getCard(): Card {
     if (!vm.model.cards[this.id]) {
-      return DEFAULT_CARD
+      return DEFAULT_CARD;
     }
     return vm.model.cards[this.id];
   }
@@ -449,10 +449,8 @@ class EnemyInstance {
 
   toJson(): EnemyInstanceJson {
     const obj: EnemyInstanceJson = {};
-    // let card: Card = DEFAULT_CARD;
     if (this.id in vm.model.cards) {
       obj.id = this.id;
-      // card = vm.model.cards[this.id];
     }
     if (this.lv != 10) {
       obj.lv = this.lv;

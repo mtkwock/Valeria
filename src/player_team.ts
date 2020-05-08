@@ -1,7 +1,7 @@
 import {Attribute, MonsterType, Awakening, Latent} from './common';
 import {MonsterInstance, MonsterJson} from './monster_instance';
 import {StoredTeamDisplay, TeamPane, TeamUpdate, Stats} from './templates';
-import {vm} from './ilmina_stripped';
+import {vm, compress, decompress} from './ilmina_stripped';
 import * as leaders from './leaders';
 
 interface Burst {
@@ -69,7 +69,12 @@ class StoredTeams {
 
   constructor(team: Team) {
     if (window.localStorage.idcStoredTeams) {
-      this.teams = JSON.parse(window.localStorage.idcStoredTeams);
+      try {
+        this.teams = JSON.parse(decompress(window.localStorage.idcStoredTeams));
+      } catch (e) {
+        this.teams = JSON.parse(window.localStorage.idcStoredTeams);
+        window.localStorage.idcStoredTeams = compress(window.localStorage.idcStoredTeams);
+      }
     }
     this.display = new StoredTeamDisplay(
       // On Save Click
@@ -109,13 +114,13 @@ class StoredTeams {
   // TODO: Add confirmation if overriding.
   saveTeam(teamJson: TeamJson) {
     this.teams[teamJson.title] = teamJson;
-    window.localStorage.idcStoredTeams = JSON.stringify(this.teams);
+    window.localStorage.idcStoredTeams = compress(JSON.stringify(this.teams));
   }
 
   // TODO: Add confirmation.
   deleteTeam(title: string) {
     delete this.teams[title];
-    window.localStorage.idcStoredTeams = JSON.stringify(this.teams);
+    window.localStorage.idcStoredTeams = compress(JSON.stringify(this.teams));
   }
 }
 

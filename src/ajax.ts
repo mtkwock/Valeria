@@ -1,8 +1,10 @@
 /**
  * Simpler ajax function so that jQuery isn't necessary.  Only things required
  * are the url and optionally a done and fail function.
+ * Meant to replace $.ajax({url: string}).
  */
 
+// References: https://www.sitepoint.com/guide-vanilla-ajax-without-jquery/
 function ajax(url: string) {
   const xhr = new XMLHttpRequest();
   xhr.open('GET', url);
@@ -16,10 +18,8 @@ function ajax(url: string) {
     if (xhr.readyState === DONE) {
       if (xhr.status === OK) {
         doneFn(xhr.responseText);
-        // console.log(xhr.responseText); // 'This is the returned text.'
       } else {
         failFn('Error: ' + xhr.status);
-        // console.log('Error: ' + xhr.status); // An error occurred during the request.
       }
     }
   };

@@ -4,8 +4,19 @@
  * TODO: Update typing so that a large number of ANY types aren't used.
  */
 import {ajax} from './ajax';
+import {lzutf8Interface} from '../typings/lzutf8';
+
+declare var LZUTF8: lzutf8Interface;
 
 const USE_JP = false;
+
+function compress(s: string): string {
+  return LZUTF8.compress(s, {outputEncoding: 'StorageBinaryString'});
+}
+
+function decompress(s: string): string {
+  return LZUTF8.decompress(s, {inputEncoding: 'StorageBinaryString'});
+}
 
 class CardAssets {
   static baseUrl = "https://f000.backblazeb2.com/file/ilmina/";
@@ -159,12 +170,12 @@ class DataSource {
   }
   loadWithCache(label: string, url: string, callback: (data: any) => any) {
     try {
-      const json = localStorage.getItem("dataSourceCache" + label);
+      const json = decompress(localStorage.getItem("dataSourceCache" + label) || '');
       if (json) {
         const obj = JSON.parse(json);
         if (obj.version == DataSource.Version) {
-          setTimeout(function () {
-              callback(obj.value);
+          setTimeout(() => {
+            callback(obj.value);
           }, 0);
           return;
         }
@@ -180,7 +191,8 @@ class DataSource {
         data = JSON.parse(data);
       }
       try {
-        localStorage.setItem("dataSourceCache" + label, JSON.stringify({ version: DataSource.Version, value: data }));
+        const decompressed = JSON.stringify({ version: DataSource.Version, value: data });
+        localStorage.setItem("dataSourceCache" + label, compress(decompressed));
       }
       catch (e) {
         console.error(e);
@@ -270,7 +282,7 @@ class GraphicDescription {
     this.baseWidth = baseWidth;
     }
 }
-class KnockoutVM {
+class Ilmina {
   cards: Record<number, Card> = {};
   errorMessage: (s: string) => string = (s) => s;
   model: Model = new Model();
@@ -296,37 +308,40 @@ class KnockoutVM {
         countRemaining--;
         if (countRemaining == 0) {
           this.finishedLoadingData(modelBuilder);
-          // ko.applyBindings(self);
         }
       }
+
       countRemaining++; // Card groups
       dataSource.loadCardData((x) => {
         this.parseCardData(x, modelBuilder);
         decrementCount();
       });
+
       countRemaining++;
       dataSource.loadMonsMetadata((x) => { modelBuilder.buildMonsMetadata(x); decrementCount(); });
+
       countRemaining++;
       dataSource.loadApkMetadata((x) => { modelBuilder.buildApkMetadata(x); decrementCount(); });
+
       countRemaining++;
       dataSource.loadPlayerSkillData((x) => { this.parsePlayerSkillData(x, modelBuilder); decrementCount(); });
+
       countRemaining++;
       dataSource.loadEnemySkillData((x) => { modelBuilder.buildEnemySkillsData(x); decrementCount(); });
-      // countRemaining++;
     });
   }
-  parseCardData(data: {card: any[]}, builder: ModelBuilder) {
+  parseCardData(data: {card: string[]}, builder: ModelBuilder) {
     if (!data) {
-        return;
+      return;
     }
     console.log("Parsing card data...");
-    data.card.forEach((v) => {
-        builder.buildCard(v);
-  });
+    data.card.forEach((v: string) => {
+      builder.buildCard(v);
+    });
   }
-  parsePlayerSkillData(data: {skill: any}, builder: ModelBuilder) {
+  parsePlayerSkillData(data: {skill: string[]}, builder: ModelBuilder) {
     if (!data) {
-        return;
+      return;
     }
     builder.buildPlayerSkillData(data.skill);
   }
@@ -335,14 +350,14 @@ class KnockoutVM {
     this.model = model;
     this.finishedDataRender();
   }
-  finishedDataRender() {
+  finishedDataRender(): void {
     this.setClockTimer();
     this.ready = true;
-    // }
+    console.log('The FLOOF is READY');
   }
-  setClockTimer() {
+  setClockTimer(): void {
     setInterval(() => {
-        DateConverter.updateTime();
+      DateConverter.updateTime();
     }, 1000);
   }
 }
@@ -428,8 +443,17 @@ const Awakening: Record<string|number, string|number> = {
   "Unknown76": 76, '76': "Unknown76",
 };
 export class Card {
-  id = 0;
+  id = -1;
   monsterPoints: number = -1;
+  /**
+   * Bit flags
+   * &1: Can be inherited onto another monster.
+   * &2: Can be an inherit base.
+   * &4: ??? Has something to do with collabs.
+   * &8: Set if the monster is unstackable (Only occurs for evo, enhance, awakenings)
+   * &16: Set if this monster cannot be used on a team.
+   * &32: Set if the monster can take extra latent slots (e.g. Revos and SRevos)
+   */
   inheritanceType: number = 0;
   unknownData: any[] = [];
   imageMetadata: any;
@@ -456,6 +480,7 @@ export class Card {
   activeSkillId = 0;
   leaderSkillId = 0;
   turnTimer = 0;
+  technicalTurnTimer = 0; // If this is 0, default to turnTimer value.
   evoFromId = 0;
   evoMaterials: number[] = [];
   devoMaterials: number[] = [];
@@ -493,6 +518,17 @@ export class Card {
   atkGrowth: number = 1;
   hpGrowth: number = 1;
   rcvGrowth: number = 1;
+  /**
+   * Note that this is only a guess.
+   * Size of a monster in a dungeon.
+   * 5 is full-width (#1465 Awoken Thoth)
+   * 4 is half-width (#1464 Thoth)
+   * 3 and below are smaller.  Not sure what the exact percentage is.
+   */
+  monsterSize: number = 0;
+  groupingKey: number = 0; // How monsters are sorted in the Monster Book.
+  latentId: number = 0; // Latents for fusion.
+  transformsTo: number = -1;
 }
 class CardEnemySkill {
   enemySkillId: number = -1;
@@ -834,7 +870,7 @@ class ModelBuilder {
       throw "Failed to parse card data (" + JSON.stringify(cardData) + ") - " + e;
     }
   }
-  buildPlayerSkillData(playerSkillData: any): void {
+  buildPlayerSkillData(playerSkillData: string[]): void {
     const playerSkills = new Array(playerSkillData.length) as PlayerSkill[];
     for (let i = 0; i < playerSkillData.length; i++) {
       const reader = new RawDataReader(playerSkillData[i]);
@@ -886,34 +922,53 @@ class ModelBuilder {
     }
     c.starCount = reader.readNumber(); // 7
     c.cost = reader.readNumber(); // 8
-    unknownData.push(reader.readNumber()); // u0 ??? // 9
+    // These values are 0-5.
+    // Higher correlation seems to be higher valued, but unclear why.
+    // e.g. Cloud evolution is 5, 5, 5, 3, 4.
+    // This is probably an enum to the relative size of the monster.
+    c.monsterSize = reader.readNumber(); // 9
     c.maxLevel = reader.readNumber(); // 10
     c.feedExpPerLevel = reader.readNumber() / 4; // 11
-    unknownData.push(reader.readNumber()); // u1 12 // ??? Seems to always be 100
+    // 100: Far more common.
+    // 1 seems to be related to not being released in NA.
+    const usually100 = reader.readNumber();
+    if (usually100 != 100 && usually100 != 1) {
+      console.error(`Slot 12 is different!  Time to handle it.\nid: ${c.id} value: ${usually100}`);
+    }
+    // unknownData.push(reader.readNumber()); // u1 12 // ??? Seems to always be 100
     c.sellPricePerLevel = reader.readNumber() / 10; // 13
     c.minHp = reader.readNumber(); // 14
     c.maxHp = reader.readNumber(); // 15
-    unknownData.push(reader.readNumber()); // u2 16 // ??? May be HP multiplier related
+    c.hpGrowth = reader.readNumber(); // 16
     c.minAtk = reader.readNumber(); // 17
     c.maxAtk = reader.readNumber(); // 18
-    unknownData.push(reader.readNumber()); // u3 19 // ??? May be ATK multiplier related
+    c.atkGrowth = reader.readNumber(); // 19
     c.minRcv = reader.readNumber(); // 20
     c.maxRcv = reader.readNumber(); // 21
-    unknownData.push(reader.readNumber()); // u4 22 // ??? May be RCV multiplier related
+    c.rcvGrowth = reader.readNumber(); // 22
     c.expCurve = reader.readNumber(); // 23
-    unknownData.push(reader.readNumber()); // u5 24 // ??? Mostly 2.5
+    // 2.5: Far more common
+    // 1 happens at the exact same time that unknownData[1] is 1.
+    const usually25 = reader.readNumber();
+    if (usually25 != 2.5 && usually25 != 1) {
+      console.error(`Slot 24 is different!  Time to handle it.\nid: ${c.id} value: ${usually25}`);
+    }
+    // unknownData.push(reader.readNumber()); // u2 24 // ??? Mostly 2.5
+    if ((usually100 == 100) != (usually25 == 2.5)) {
+      console.error(`Anomaly detected in slot 12 and 24. ${usually100} - ${usually25}`);
+    }
     c.activeSkillId = reader.readNumber(); // 25
     c.leaderSkillId = reader.readNumber(); // 26
     c.turnTimer = reader.readNumber(); // 27
-    c.enemyHpAtLv1 = reader.readNumber(); // u6 28 // ??? Probably related to HP in dungeons
-    c.enemyHpAtLv10 = reader.readNumber(); // u7 29 // ???
-    c.enemyHpCurve = reader.readNumber(); // u8 30 // ???
-    c.enemyAtkAtLv1 = reader.readNumber(); // u9 31 // ??? Probably related to ATK in dungeons
-    c.enemyAtkAtLv10 = reader.readNumber(); // u10 32 // ???
-    c.enemyAtkCurve = reader.readNumber(); // u11 33 // ???
-    c.enemyDefAtLv1 = reader.readNumber(); // u12 34 // ??? Probably related to DEF in dungeons
-    c.enemyDefAtLv10 = reader.readNumber(); // u13 35 // ???
-    c.enemyDefCurve = reader.readNumber(); // u14 36 // ???
+    c.enemyHpAtLv1 = reader.readNumber(); // 28
+    c.enemyHpAtLv10 = reader.readNumber(); // 29
+    c.enemyHpCurve = reader.readNumber(); // 30
+    c.enemyAtkAtLv1 = reader.readNumber(); // 31
+    c.enemyAtkAtLv10 = reader.readNumber(); // 32
+    c.enemyAtkCurve = reader.readNumber(); // 33
+    c.enemyDefAtLv1 = reader.readNumber(); // 34
+    c.enemyDefAtLv10 = reader.readNumber(); // 35
+    c.enemyDefCurve = reader.readNumber(); // 36
     c.maxEnemyLevel = reader.readNumber(); // 37
     c.enemyCoinsAtLv2 = reader.readNumber(); // 38
     c.enemyExpAtLv2 = reader.readNumber(); // 39
@@ -928,12 +983,30 @@ class ModelBuilder {
     this.pushIfNotZero(c.devoMaterials, reader.readNumber()); // 48
     this.pushIfNotZero(c.devoMaterials, reader.readNumber()); // 49
     this.pushIfNotZero(c.devoMaterials, reader.readNumber()); // 50
-    unknownData.push(reader.readNumber()); // 51 // ??? u7
-    unknownData.push(reader.readNumber()); // 52 // ??? u8
+    // If it's not 0, then this is the Technical Dungeon turnTimer.
+    c.technicalTurnTimer = reader.readNumber(); // 51
+    // 0s and 1s, unclear. Obviously a flag, but for what?
+    unknownData.push(reader.readNumber()); // 52 // ??? u3
     c.charges = reader.readNumber(); // 53
     c.chargeGain = reader.readNumber(); // 54
-    unknownData.push(reader.readNumber()); // 55 // ??? u9
-    unknownData.push(reader.readNumber()); // 56 // ??? u10
+    // 0 for all monsters except:
+    //  *    1 - [#495] Love Deity, Feline Bastet
+    //  * 1000 - [#111] Vampire Lord
+    // For all purposes, we should ignore this.
+    const usuallyZero = reader.readNumber();
+    if (usuallyZero) {
+      if (!(usuallyZero == 1 && c.id == 495) && !(usuallyZero == 1000 && c.id == 111)) {
+        console.error(`Slot 55 is different, time to handle it!\nid: ${c.id} value: ${usuallyZero}`);
+      }
+    }
+    // unknownData.push(reader.readNumber()); // 55 // ??? u4
+    // Currently *always* 0.  Probably a reserved area for future changes/flags.
+    const alwaysZero = reader.readNumber();
+    if (alwaysZero) {
+      console.error(`Slot 56 is non-zero, time to handle it!\n id: ${c.id} value: ${alwaysZero}`);
+    }
+    // unknownData.push(alwaysZero); // 56 // ??? u5
+
     const skillCount = reader.readNumber(); // 57
     for (let i = 0; i < skillCount; i++) {
       const enemySkill = new CardEnemySkill();
@@ -955,13 +1028,13 @@ class ModelBuilder {
       }
     }
     c.evoTreeBaseId = reader.readNumber();
-    unknownData.push(reader.readNumber()); // ??? u24
+    c.groupingKey = reader.readNumber();
     const type3 = CardType[CardType[String(reader.readNumber())]] as number;
     if (type3 != CardType.None) {
         c.types.push(type3);
     }
     c.monsterPoints = reader.readNumber();
-    unknownData.push(reader.readNumber()); // ??? u25
+    c.latentId = reader.readNumber();
     c.collab = CollabGroup[CollabGroup[reader.readNumber()]] as number;
     c.inheritanceType = reader.readNumber();
     c.isInheritable = ((c.inheritanceType & 1) == 1);
@@ -971,7 +1044,10 @@ class ModelBuilder {
     c.isLimitBreakable = c.limitBreakStatGain > 0;
     c.voiceId = reader.readNumber();
     c.orbSkin = reader.readNumber();
-    unknownData.push(reader.read()); // ??? u26
+    const maybeTransform = reader.read();
+    if (maybeTransform.length) {
+      c.transformsTo = parseInt(maybeTransform.substring(5));
+    }
     c.unknownData = unknownData;
     if (!reader.isEmpty()) {
       //throw "Excess data detected";
@@ -996,28 +1072,28 @@ class ModelBuilder {
     // Set latent killers
     const isBalanced = c.types.indexOf(CardType.Balanced as number) >= 0;
     if (isBalanced || c.types.indexOf(CardType.Healer as number) >= 0) {
-        c.latentKillers.push(LatentAwakening.DragonKiller);
+      c.latentKillers.push(LatentAwakening.DragonKiller);
     }
     if (isBalanced || c.types.indexOf(CardType.God as number) >= 0 || c.types.indexOf(CardType.Attacker as number) >= 0) {
-        c.latentKillers.push(LatentAwakening.DevilKiller);
+      c.latentKillers.push(LatentAwakening.DevilKiller);
     }
     if (isBalanced || c.types.indexOf(CardType.Dragon as number) >= 0 || c.types.indexOf(CardType.Physical as number) >= 0) {
-        c.latentKillers.push(LatentAwakening.MachineKiller);
+      c.latentKillers.push(LatentAwakening.MachineKiller);
     }
     if (isBalanced || c.types.indexOf(CardType.Devil as number) >= 0 || c.types.indexOf(CardType.Machine as number) >= 0) {
-        c.latentKillers.push(LatentAwakening.GodKiller);
+      c.latentKillers.push(LatentAwakening.GodKiller);
     }
     if (isBalanced || c.types.indexOf(CardType.Machine as number) >= 0) {
-        c.latentKillers.push(LatentAwakening.BalancedKiller);
+      c.latentKillers.push(LatentAwakening.BalancedKiller);
     }
     if (isBalanced || c.types.indexOf(CardType.Healer as number) >= 0) {
-        c.latentKillers.push(LatentAwakening.AttackerKiller);
+      c.latentKillers.push(LatentAwakening.AttackerKiller);
     }
     if (isBalanced || c.types.indexOf(CardType.Attacker as number) >= 0) {
-        c.latentKillers.push(LatentAwakening.PhysicalKiller);
+      c.latentKillers.push(LatentAwakening.PhysicalKiller);
     }
     if (isBalanced || c.types.indexOf(CardType.Dragon as number) >= 0 || c.types.indexOf(CardType.Physical as number) >= 0) {
-        c.latentKillers.push(LatentAwakening.HealerKiller);
+      c.latentKillers.push(LatentAwakening.HealerKiller);
     }
     // All done
     return c;
@@ -1238,16 +1314,17 @@ class RawDataReader {
   }
 }
 
-const vm = new KnockoutVM();
+const vm = new Ilmina();
 
 declare global {
-  interface Window { vm: KnockoutVM; }
+  interface Window { vm: Ilmina; }
 }
 window.vm = vm;
 
 export {
   vm,
-  KnockoutVM,
   CardUiAssets,
   CardAssets,
+  compress,
+  decompress,
 };
