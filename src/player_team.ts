@@ -1,6 +1,7 @@
-import {Attribute, MonsterType, Awakening, Latent, vm} from './common';
+import {Attribute, MonsterType, Awakening, Latent} from './common';
 import {MonsterInstance, MonsterJson} from './monster_instance';
 import {StoredTeamDisplay, TeamPane, TeamUpdate, Stats} from './templates';
+import {vm} from './ilmina_stripped';
 import * as leaders from './leaders';
 
 interface Burst {

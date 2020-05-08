@@ -3,14 +3,12 @@
  */
 
 import {Latent} from './common';
-import {KnockoutVM} from '../typings/ilmina';
 import {ComboContainer} from './combo_container';
 import {DungeonInstance} from './dungeon';
 import {SearchInit} from './fuzzy_search';
 import {Team} from './player_team';
 import {MonsterEditor, ValeriaDisplay, MonsterUpdate} from './templates';
-
-declare var vm: KnockoutVM;
+import {vm} from './ilmina_stripped';
 
 async function waitFor(conditionFn: () => boolean, waitMs = 50) {
   while (!conditionFn()) {
@@ -139,19 +137,22 @@ class Valeria {
   }
 }
 
+declare global {
+  interface Window { valeria: Valeria; }
+}
+
 async function init() {
-  await waitFor(() => vm.page() != 0);
+  await waitFor(() => vm.ready);
 
   annotateMonsterScaling();
   SearchInit();
-  // testRoche();
-  // testAnother();
   const valeria = new Valeria();
 
   document.body.appendChild(valeria.getElement());
   for (const el of document.getElementsByClassName('main-site-div')) {
     (el as HTMLElement).style.display = 'none';
   }
+  window.valeria = valeria;
 }
 
 init();

@@ -8,12 +8,12 @@
  */
 
 import {BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType} from './common';
-import {CardAssetInterface, CardUiAssetInterface, KnockoutVM, Card} from '../typings/ilmina';
+import {CardAssets, CardUiAssets, vm, Card} from './ilmina_stripped';
 import {fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch} from './fuzzy_search';
 
-declare var vm: KnockoutVM;
-declare var CardAssets:CardAssetInterface;
-declare var CardUiAssets:CardUiAssetInterface;
+// declare var vm: KnockoutVM;
+// declare var CardAssets: CardAssetsInterface;
+// declare var CardUiAssets: CardUiAssetsInterface;
 
 function create(tag: string, cls: string = ''): HTMLElement {
   const el = document.createElement(tag);
@@ -215,7 +215,7 @@ class MonsterIcon {
       this.element.style.backgroundPosition = `-${descriptor.offsetX * TEAM_SCALING}px -${descriptor.offsetY * TEAM_SCALING}`;
     }
 
-    const attrDescriptor = CardUiAssets.getIconFrame(card.attribute, false, vm);
+    const attrDescriptor = CardUiAssets.getIconFrame(card.attribute, false, vm.model);
     if (attrDescriptor) {
       show(this.attributeEl);
       this.attributeEl.style.backgroundImage = `url(${attrDescriptor.url})`;
@@ -224,7 +224,7 @@ class MonsterIcon {
       hide(this.attributeEl);
     }
 
-    const subDescriptor = CardUiAssets.getIconFrame(card.subattribute, true, vm);
+    const subDescriptor = CardUiAssets.getIconFrame(card.subattribute, true, vm.model);
     if (subDescriptor) {
       show(this.subattributeEl);
       this.subattributeEl.style.backgroundImage = `url(${subDescriptor.url})`;
@@ -319,7 +319,7 @@ class MonsterInherit {
     } else {
       hide(this.icon);
     }
-    const desAttr = CardUiAssets.getIconFrame(card.attribute, false, vm);
+    const desAttr = CardUiAssets.getIconFrame(card.attribute, false, vm.model);
     if (desAttr) {
       show(this.attr);
       this.attr.style.backgroundImage = `url(${desAttr.url})`;
@@ -327,7 +327,7 @@ class MonsterInherit {
     } else {
       hide(this.attr);
     }
-    const desSub = CardUiAssets.getIconFrame(card.subattribute, true, vm);
+    const desSub = CardUiAssets.getIconFrame(card.subattribute, true, vm.model);
     if (desSub) {
       show(this.attr);
       this.sub.style.backgroundImage = `url(${desSub.url})`;
@@ -2850,7 +2850,7 @@ class MonsterTypeEl {
   }
 
   private getTypeOffsets(): {offsetX: number, offsetY: number} {
-    const {offsetX, offsetY} = CardAssets.getTypeImageData(Number(this.type), vm);
+    const {offsetX, offsetY} = CardAssets.getTypeImageData(Number(this.type));
     return {offsetX, offsetY};
   }
 
@@ -3214,7 +3214,6 @@ class DungeonEditor {
         superShow(floorEnemies[j].getElement());
         floorEnemies[j].update(enemyIds[j], 0, 0, -1, '', 0);
         // this.onUpdate({activeEnemyId: enemyIds[j]});
-        console.log('Now setting to id: ' + String(enemyIds[j]));
       }
     }
   }

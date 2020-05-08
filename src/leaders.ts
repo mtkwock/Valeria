@@ -2,9 +2,9 @@ import {COLORS, Attribute, Shape, idxsFromBits} from './common';
 import {DamagePing} from './damage_ping';
 import {MonsterInstance} from './monster_instance';
 import {ComboContainer} from './combo_container';
-import {KnockoutVM} from '../typings/ilmina';
+import {vm} from './ilmina_stripped';
 
-declare var vm: KnockoutVM;
+// declare var vm: KnockoutVM;
 
 // TODO: Figure out enemies.
 interface EnemyInstance {

@@ -1,6 +1,6 @@
 import {BASE_URL} from './common';
 import {EnemyInstance, EnemyInstanceJson} from './enemy_instance';
-import {DungeonPane, DungeonUpdate, OnDungeonUpdate} from './templates';
+import {DungeonPane, DungeonUpdate} from './templates';
 // import {DungeonEditor} from './templates';
 
 // function createHpEl() {

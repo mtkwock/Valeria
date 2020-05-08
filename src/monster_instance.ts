@@ -1,9 +1,7 @@
-import {Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits, vm} from './common';
-import {Card, CardAssetInterface} from '../typings/ilmina';
+import {Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits} from './common';
+import {Card, CardAssets, vm} from './ilmina_stripped';
 import {create, MonsterIcon, MonsterInherit, MonsterLatent} from './templates';
 import {fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch} from './fuzzy_search';
-
-declare var CardAssets:CardAssetInterface;
 
 const AWAKENING_BONUS = new Map<Awakening, number>([
   [Awakening.HP, 500],

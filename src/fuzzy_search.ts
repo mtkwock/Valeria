@@ -1,7 +1,5 @@
 import {Awakening} from './common';
-import {KnockoutVM, Card} from '../typings/ilmina';
-
-declare var vm: KnockoutVM;
+import {vm, Card} from './ilmina_stripped';
 
 const prefixToCardIds: Record<string, number[]> = {};
 

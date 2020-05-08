@@ -1,7 +1,7 @@
 import {Attribute, MonsterType, DEFAULT_CARD, idxsFromBits} from './common';
-import {KnockoutVM, Card} from '../typings/ilmina';
+import {vm, Card} from './ilmina_stripped';
 
-declare var vm: KnockoutVM;
+// declare var vm: KnockoutVM;
 
 enum EnemySkillEffect {
   NONE = 'None',
@@ -449,10 +449,10 @@ class EnemyInstance {
 
   toJson(): EnemyInstanceJson {
     const obj: EnemyInstanceJson = {};
-    let card: Card = DEFAULT_CARD;
+    // let card: Card = DEFAULT_CARD;
     if (this.id in vm.model.cards) {
       obj.id = this.id;
-      card = vm.model.cards[this.id];
+      // card = vm.model.cards[this.id];
     }
     if (this.lv != 10) {
       obj.lv = this.lv;
@@ -495,7 +495,6 @@ class EnemyInstance {
     enemy.id = Number(json.id) || -1;
     enemy.lv = Number(json.lv) || 10;
     if (enemy.id in vm.model.cards) {
-      const card = vm.model.cards[enemy.id];
       // TODO: Preload Card with this information.
       enemy.hp = Number(json.hp) || -1;
       enemy.attack = Number(json.attack) || -1;

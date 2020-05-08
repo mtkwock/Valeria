@@ -102,7 +102,7 @@ export interface KnockoutVM {
 
 // Create an instance by:
 // declare var CardAssets: CardAssetInterface;
-export interface CardAssetInterface {
+export interface CardAssetsInterface {
   canPlus(card: Card): boolean;
   getIconImageData(card: Card): GraphicsDescription|null;
   getCroppedPortrait(card: Card): string;
@@ -111,6 +111,6 @@ export interface CardAssetInterface {
 
 // Create an instance by:
 // declare var CardUiAssets: CardUiAssetInterface;
-export interface CardUiAssetInterface {
+export interface CardUiAssetsInterface {
   getIconFrame(attribute: number, isSubattribute: boolean, vm: KnockoutVM): GraphicsDescription|null;
 }
