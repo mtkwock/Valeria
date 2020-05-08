@@ -12,10 +12,12 @@
     /**
      * Simpler ajax function so that jQuery isn't necessary.  Only things required
      * are the url and optionally a done and fail function.
+     * Meant to replace $.ajax({url: string}).
      */
     define("ajax", ["require", "exports"], function (require, exports) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
+        // References: https://www.sitepoint.com/guide-vanilla-ajax-without-jquery/
         function ajax(url) {
             const xhr = new XMLHttpRequest();
             xhr.open('GET', url);
@@ -28,11 +30,9 @@
                 if (xhr.readyState === DONE) {
                     if (xhr.status === OK) {
                         doneFn(xhr.responseText);
-                        // console.log(xhr.responseText); // 'This is the returned text.'
                     }
                     else {
                         failFn('Error: ' + xhr.status);
-                        // console.log('Error: ' + xhr.status); // An error occurred during the request.
                     }
                 }
             };
@@ -51,6 +51,14 @@
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const USE_JP = false;
+        function compress(s) {
+            return LZUTF8.compress(s, { outputEncoding: 'StorageBinaryString' });
+        }
+        exports.compress = compress;
+        function decompress(s) {
+            return LZUTF8.decompress(s, { inputEncoding: 'StorageBinaryString' });
+        }
+        exports.decompress = decompress;
         class CardAssets {
             static isAlt(card) {
                 return card.id > 10000;
@@ -201,11 +209,11 @@
             }
             loadWithCache(label, url, callback) {
                 try {
-                    const json = localStorage.getItem("dataSourceCache" + label);
+                    const json = decompress(localStorage.getItem("dataSourceCache" + label) || '');
                     if (json) {
                         const obj = JSON.parse(json);
                         if (obj.version == DataSource.Version) {
-                            setTimeout(function () {
+                            setTimeout(() => {
                                 callback(obj.value);
                             }, 0);
                             return;
@@ -222,7 +230,8 @@
                         data = JSON.parse(data);
                     }
                     try {
-                        localStorage.setItem("dataSourceCache" + label, JSON.stringify({ version: DataSource.Version, value: data }));
+                        const decompressed = JSON.stringify({ version: DataSource.Version, value: data });
+                        localStorage.setItem("dataSourceCache" + label, compress(decompressed));
                     }
                     catch (e) {
                         console.error(e);
@@ -302,7 +311,7 @@
                 this.baseWidth = baseWidth;
             }
         }
-        class KnockoutVM {
+        class Ilmina {
             // Initialization
             constructor() {
                 this.cards = {};
@@ -328,7 +337,6 @@
                         countRemaining--;
                         if (countRemaining == 0) {
                             this.finishedLoadingData(modelBuilder);
-                            // ko.applyBindings(self);
                         }
                     };
                     countRemaining++; // Card groups
@@ -344,7 +352,6 @@
                     dataSource.loadPlayerSkillData((x) => { this.parsePlayerSkillData(x, modelBuilder); decrementCount(); });
                     countRemaining++;
                     dataSource.loadEnemySkillData((x) => { modelBuilder.buildEnemySkillsData(x); decrementCount(); });
-                    // countRemaining++;
                 });
             }
             parseCardData(data, builder) {
@@ -370,7 +377,7 @@
             finishedDataRender() {
                 this.setClockTimer();
                 this.ready = true;
-                // }
+                console.log('The FLOOF is READY');
             }
             setClockTimer() {
                 setInterval(() => {
@@ -378,7 +385,6 @@
                 }, 1000);
             }
         }
-        exports.KnockoutVM = KnockoutVM;
         const Awakening = {
             "Super": -1, '-1': "Super",
             "Unknown": 0, '0': "Unknown",
@@ -461,8 +467,17 @@
         };
         class Card {
             constructor() {
-                this.id = 0;
+                this.id = -1;
                 this.monsterPoints = -1;
+                /**
+                 * Bit flags
+                 * &1: Can be inherited onto another monster.
+                 * &2: Can be an inherit base.
+                 * &4: ??? Has something to do with collabs.
+                 * &8: Set if the monster is unstackable (Only occurs for evo, enhance, awakenings)
+                 * &16: Set if this monster cannot be used on a team.
+                 * &32: Set if the monster can take extra latent slots (e.g. Revos and SRevos)
+                 */
                 this.inheritanceType = 0;
                 this.unknownData = [];
                 this.name = "";
@@ -488,6 +503,7 @@
                 this.activeSkillId = 0;
                 this.leaderSkillId = 0;
                 this.turnTimer = 0;
+                this.technicalTurnTimer = 0; // If this is 0, default to turnTimer value.
                 this.evoFromId = 0;
                 this.evoMaterials = [];
                 this.devoMaterials = [];
@@ -525,6 +541,17 @@
                 this.atkGrowth = 1;
                 this.hpGrowth = 1;
                 this.rcvGrowth = 1;
+                /**
+                 * Note that this is only a guess.
+                 * Size of a monster in a dungeon.
+                 * 5 is full-width (#1465 Awoken Thoth)
+                 * 4 is half-width (#1464 Thoth)
+                 * 3 and below are smaller.  Not sure what the exact percentage is.
+                 */
+                this.monsterSize = 0;
+                this.groupingKey = 0; // How monsters are sorted in the Monster Book.
+                this.latentId = 0; // Latents for fusion.
+                this.transformsTo = -1;
             }
         }
         exports.Card = Card;
@@ -928,34 +955,53 @@
                 }
                 c.starCount = reader.readNumber(); // 7
                 c.cost = reader.readNumber(); // 8
-                unknownData.push(reader.readNumber()); // u0 ??? // 9
+                // These values are 0-5.
+                // Higher correlation seems to be higher valued, but unclear why.
+                // e.g. Cloud evolution is 5, 5, 5, 3, 4.
+                // This is probably an enum to the relative size of the monster.
+                c.monsterSize = reader.readNumber(); // 9
                 c.maxLevel = reader.readNumber(); // 10
                 c.feedExpPerLevel = reader.readNumber() / 4; // 11
-                unknownData.push(reader.readNumber()); // u1 12 // ??? Seems to always be 100
+                // 100: Far more common.
+                // 1 seems to be related to not being released in NA.
+                const usually100 = reader.readNumber();
+                if (usually100 != 100 && usually100 != 1) {
+                    console.error(`Slot 12 is different!  Time to handle it.\nid: ${c.id} value: ${usually100}`);
+                }
+                // unknownData.push(reader.readNumber()); // u1 12 // ??? Seems to always be 100
                 c.sellPricePerLevel = reader.readNumber() / 10; // 13
                 c.minHp = reader.readNumber(); // 14
                 c.maxHp = reader.readNumber(); // 15
-                unknownData.push(reader.readNumber()); // u2 16 // ??? May be HP multiplier related
+                c.hpGrowth = reader.readNumber(); // 16
                 c.minAtk = reader.readNumber(); // 17
                 c.maxAtk = reader.readNumber(); // 18
-                unknownData.push(reader.readNumber()); // u3 19 // ??? May be ATK multiplier related
+                c.atkGrowth = reader.readNumber(); // 19
                 c.minRcv = reader.readNumber(); // 20
                 c.maxRcv = reader.readNumber(); // 21
-                unknownData.push(reader.readNumber()); // u4 22 // ??? May be RCV multiplier related
+                c.rcvGrowth = reader.readNumber(); // 22
                 c.expCurve = reader.readNumber(); // 23
-                unknownData.push(reader.readNumber()); // u5 24 // ??? Mostly 2.5
+                // 2.5: Far more common
+                // 1 happens at the exact same time that unknownData[1] is 1.
+                const usually25 = reader.readNumber();
+                if (usually25 != 2.5 && usually25 != 1) {
+                    console.error(`Slot 24 is different!  Time to handle it.\nid: ${c.id} value: ${usually25}`);
+                }
+                // unknownData.push(reader.readNumber()); // u2 24 // ??? Mostly 2.5
+                if ((usually100 == 100) != (usually25 == 2.5)) {
+                    console.error(`Anomaly detected in slot 12 and 24. ${usually100} - ${usually25}`);
+                }
                 c.activeSkillId = reader.readNumber(); // 25
                 c.leaderSkillId = reader.readNumber(); // 26
                 c.turnTimer = reader.readNumber(); // 27
-                c.enemyHpAtLv1 = reader.readNumber(); // u6 28 // ??? Probably related to HP in dungeons
-                c.enemyHpAtLv10 = reader.readNumber(); // u7 29 // ???
-                c.enemyHpCurve = reader.readNumber(); // u8 30 // ???
-                c.enemyAtkAtLv1 = reader.readNumber(); // u9 31 // ??? Probably related to ATK in dungeons
-                c.enemyAtkAtLv10 = reader.readNumber(); // u10 32 // ???
-                c.enemyAtkCurve = reader.readNumber(); // u11 33 // ???
-                c.enemyDefAtLv1 = reader.readNumber(); // u12 34 // ??? Probably related to DEF in dungeons
-                c.enemyDefAtLv10 = reader.readNumber(); // u13 35 // ???
-                c.enemyDefCurve = reader.readNumber(); // u14 36 // ???
+                c.enemyHpAtLv1 = reader.readNumber(); // 28
+                c.enemyHpAtLv10 = reader.readNumber(); // 29
+                c.enemyHpCurve = reader.readNumber(); // 30
+                c.enemyAtkAtLv1 = reader.readNumber(); // 31
+                c.enemyAtkAtLv10 = reader.readNumber(); // 32
+                c.enemyAtkCurve = reader.readNumber(); // 33
+                c.enemyDefAtLv1 = reader.readNumber(); // 34
+                c.enemyDefAtLv10 = reader.readNumber(); // 35
+                c.enemyDefCurve = reader.readNumber(); // 36
                 c.maxEnemyLevel = reader.readNumber(); // 37
                 c.enemyCoinsAtLv2 = reader.readNumber(); // 38
                 c.enemyExpAtLv2 = reader.readNumber(); // 39
@@ -970,12 +1016,29 @@
                 this.pushIfNotZero(c.devoMaterials, reader.readNumber()); // 48
                 this.pushIfNotZero(c.devoMaterials, reader.readNumber()); // 49
                 this.pushIfNotZero(c.devoMaterials, reader.readNumber()); // 50
-                unknownData.push(reader.readNumber()); // 51 // ??? u7
-                unknownData.push(reader.readNumber()); // 52 // ??? u8
+                // If it's not 0, then this is the Technical Dungeon turnTimer.
+                c.technicalTurnTimer = reader.readNumber(); // 51
+                // 0s and 1s, unclear. Obviously a flag, but for what?
+                unknownData.push(reader.readNumber()); // 52 // ??? u3
                 c.charges = reader.readNumber(); // 53
                 c.chargeGain = reader.readNumber(); // 54
-                unknownData.push(reader.readNumber()); // 55 // ??? u9
-                unknownData.push(reader.readNumber()); // 56 // ??? u10
+                // 0 for all monsters except:
+                //  *    1 - [#495] Love Deity, Feline Bastet
+                //  * 1000 - [#111] Vampire Lord
+                // For all purposes, we should ignore this.
+                const usuallyZero = reader.readNumber();
+                if (usuallyZero) {
+                    if (!(usuallyZero == 1 && c.id == 495) && !(usuallyZero == 1000 && c.id == 111)) {
+                        console.error(`Slot 55 is different, time to handle it!\nid: ${c.id} value: ${usuallyZero}`);
+                    }
+                }
+                // unknownData.push(reader.readNumber()); // 55 // ??? u4
+                // Currently *always* 0.  Probably a reserved area for future changes/flags.
+                const alwaysZero = reader.readNumber();
+                if (alwaysZero) {
+                    console.error(`Slot 56 is non-zero, time to handle it!\n id: ${c.id} value: ${alwaysZero}`);
+                }
+                // unknownData.push(alwaysZero); // 56 // ??? u5
                 const skillCount = reader.readNumber(); // 57
                 for (let i = 0; i < skillCount; i++) {
                     const enemySkill = new CardEnemySkill();
@@ -997,13 +1060,13 @@
                     }
                 }
                 c.evoTreeBaseId = reader.readNumber();
-                unknownData.push(reader.readNumber()); // ??? u24
+                c.groupingKey = reader.readNumber();
                 const type3 = CardType[CardType[String(reader.readNumber())]];
                 if (type3 != CardType.None) {
                     c.types.push(type3);
                 }
                 c.monsterPoints = reader.readNumber();
-                unknownData.push(reader.readNumber()); // ??? u25
+                c.latentId = reader.readNumber();
                 c.collab = CollabGroup[CollabGroup[reader.readNumber()]];
                 c.inheritanceType = reader.readNumber();
                 c.isInheritable = ((c.inheritanceType & 1) == 1);
@@ -1013,7 +1076,10 @@
                 c.isLimitBreakable = c.limitBreakStatGain > 0;
                 c.voiceId = reader.readNumber();
                 c.orbSkin = reader.readNumber();
-                unknownData.push(reader.read()); // ??? u26
+                const maybeTransform = reader.read();
+                if (maybeTransform.length) {
+                    c.transformsTo = parseInt(maybeTransform.substring(5));
+                }
                 c.unknownData = unknownData;
                 if (!reader.isEmpty()) {
                     //throw "Excess data detected";
@@ -1277,7 +1343,7 @@
                 return this.index >= this.data.length;
             }
         }
-        const vm = new KnockoutVM();
+        const vm = new Ilmina();
         exports.vm = vm;
         window.vm = vm;
     });
@@ -5225,10 +5291,8 @@
             // }
             toJson() {
                 const obj = {};
-                // let card: Card = DEFAULT_CARD;
                 if (this.id in ilmina_stripped_5.vm.model.cards) {
                     obj.id = this.id;
-                    // card = vm.model.cards[this.id];
                 }
                 if (this.lv != 10) {
                     obj.lv = this.lv;
@@ -6709,7 +6773,13 @@
             constructor(team) {
                 this.teams = {};
                 if (window.localStorage.idcStoredTeams) {
-                    this.teams = JSON.parse(window.localStorage.idcStoredTeams);
+                    try {
+                        this.teams = JSON.parse(ilmina_stripped_7.decompress(window.localStorage.idcStoredTeams));
+                    }
+                    catch (e) {
+                        this.teams = JSON.parse(window.localStorage.idcStoredTeams);
+                        window.localStorage.idcStoredTeams = ilmina_stripped_7.compress(window.localStorage.idcStoredTeams);
+                    }
                 }
                 this.display = new templates_4.StoredTeamDisplay(
                 // On Save Click
@@ -6744,12 +6814,12 @@
             // TODO: Add confirmation if overriding.
             saveTeam(teamJson) {
                 this.teams[teamJson.title] = teamJson;
-                window.localStorage.idcStoredTeams = JSON.stringify(this.teams);
+                window.localStorage.idcStoredTeams = ilmina_stripped_7.compress(JSON.stringify(this.teams));
             }
             // TODO: Add confirmation.
             deleteTeam(title) {
                 delete this.teams[title];
-                window.localStorage.idcStoredTeams = JSON.stringify(this.teams);
+                window.localStorage.idcStoredTeams = ilmina_stripped_7.compress(JSON.stringify(this.teams));
             }
         }
         const SHARED_AWAKENINGS = new Set([
@@ -7223,31 +7293,28 @@
                 await new Promise((resolve) => setTimeout(resolve, waitMs));
             }
         }
-        function annotateMonsterScaling() {
-            const VALID_SCALES = new Set([0.7, 1.0, 1, 1.5]);
-            for (const id in ilmina_stripped_8.vm.model.cards) {
-                const c = ilmina_stripped_8.vm.model.cards[id];
-                const [hpGrowth, atkGrowth, rcvGrowth] = [c.unknownData[2], c.unknownData[3], c.unknownData[4]];
-                if (!VALID_SCALES.has(hpGrowth)) {
-                    console.log(`Invalid scaling found! ${hpGrowth} Monster: ${id}`);
-                }
-                else {
-                    c.hpGrowth = hpGrowth;
-                }
-                if (!VALID_SCALES.has(atkGrowth)) {
-                    console.log(`Invalid scaling found! ${atkGrowth} Monster: ${id}`);
-                }
-                else {
-                    c.atkGrowth = atkGrowth;
-                }
-                if (!VALID_SCALES.has(rcvGrowth)) {
-                    console.log(`Invalid scaling found! ${rcvGrowth} Monster: ${id}`);
-                }
-                else {
-                    c.rcvGrowth = rcvGrowth;
-                }
-            }
-        }
+        // function annotateMonsterScaling() {
+        //   const VALID_SCALES = new Set([0.7, 1.0, 1, 1.5]);
+        //   for (const id in vm.model.cards) {
+        //     const c = vm.model.cards[id];
+        //     const [hpGrowth, atkGrowth, rcvGrowth] = [c.unknownData[2], c.unknownData[3], c.unknownData[4]];
+        //     if (!VALID_SCALES.has(hpGrowth)) {
+        //       console.log(`Invalid scaling found! ${hpGrowth} Monster: ${id}`);
+        //     } else {
+        //       c.hpGrowth = hpGrowth;
+        //     }
+        //     if (!VALID_SCALES.has(atkGrowth)) {
+        //       console.log(`Invalid scaling found! ${atkGrowth} Monster: ${id}`);
+        //     } else {
+        //       c.atkGrowth = atkGrowth;
+        //     }
+        //     if (!VALID_SCALES.has(rcvGrowth)) {
+        //       console.log(`Invalid scaling found! ${rcvGrowth} Monster: ${id}`);
+        //     } else {
+        //       c.rcvGrowth = rcvGrowth;
+        //     }
+        //   }
+        // }
         class Valeria {
             constructor() {
                 this.display = new templates_5.ValeriaDisplay();
@@ -7336,7 +7403,8 @@
         }
         async function init() {
             await waitFor(() => ilmina_stripped_8.vm.ready);
-            annotateMonsterScaling();
+            console.log('Valeria taking over.');
+            // annotateMonsterScaling();
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
             document.body.appendChild(valeria.getElement());
