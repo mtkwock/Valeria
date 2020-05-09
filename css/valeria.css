@@ -305,6 +305,7 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 
 .valeria-team-stat-table {
   width: 385.2px;
+  font-size: small;
 }
 
 .valeria-team-stat-label {
@@ -427,6 +428,10 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   background-size: 512px 512px;
   background-repeat: no-repeat;
   position: absolute;
+}
+
+.valeria-enemy-stat-table {
+  font-size: small;
 }
 
 .valeria > table {

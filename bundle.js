@@ -552,6 +552,11 @@
                 this.groupingKey = 0; // How monsters are sorted in the Monster Book.
                 this.latentId = 0; // Latents for fusion.
                 this.transformsTo = -1;
+                /**
+                 * 0: Old AI: Does 100% basic attack when initial preempt is unreachable.
+                 * 1: Current AI: Moves to next skill if a preempt is unreachable.
+                 */
+                this.aiVersion = 0;
             }
         }
         exports.Card = Card;
@@ -942,7 +947,7 @@
             buildCardInternal(cardData) {
                 const c = new Card();
                 const reader = new RawDataReader(cardData);
-                const unknownData = [];
+                // const unknownData = [];
                 c.id = reader.readNumber(); // 0
                 c.name = reader.readString(); // 1
                 c.attribute = ColorAttribute[ColorAttribute[reader.readNumber()]]; // 2
@@ -1017,7 +1022,7 @@
                 // If it's not 0, then this is the Technical Dungeon turnTimer.
                 c.technicalTurnTimer = reader.readNumber(); // 51
                 // 0s and 1s, unclear. Obviously a flag, but for what?
-                unknownData.push(reader.readNumber()); // 52 // ??? u3
+                c.aiVersion = reader.readNumber(); // 52
                 c.charges = reader.readNumber(); // 53
                 c.chargeGain = reader.readNumber(); // 54
                 // 0 for all monsters except:
@@ -1078,7 +1083,7 @@
                 if (maybeTransform.length) {
                     c.transformsTo = parseInt(maybeTransform.substring(5));
                 }
-                c.unknownData = unknownData;
+                // c.unknownData = unknownData;
                 if (!reader.isEmpty()) {
                     //throw "Excess data detected";
                     console.log("excess data detected");
@@ -2070,6 +2075,7 @@
             ClassNames["FLOOR_ENEMY"] = "valeria-floor-enemy";
             ClassNames["FLOOR_ENEMY_ADD"] = "valeria-floor-enemy-add";
             ClassNames["FLOOR_ENEMY_DELETE"] = "valeria-floor-delete";
+            ClassNames["ENEMY_STAT_TABLE"] = "valeria-enemy-stat-table";
             ClassNames["VALERIA"] = "valeria";
         })(ClassNames || (ClassNames = {}));
         exports.ClassNames = ClassNames;
@@ -2111,7 +2117,7 @@
             el.title = unavailableReason;
         }
         class MonsterIcon {
-            constructor(hideInfoTable = false) {
+            constructor(hideInfoTable = false, showSwap = false) {
                 this.element = create('a', ClassNames.ICON);
                 this.attributeEl = create('a', ClassNames.ICON_ATTR);
                 this.subattributeEl = create('a', ClassNames.ICON_SUB);
@@ -2146,13 +2152,24 @@
                 this.element.appendChild(this.attributeEl);
                 this.attributeEl.appendChild(this.subattributeEl);
                 this.element.appendChild(this.infoTable);
+                this.swapIcon = new LayeredAsset([AssetEnum.SWAP], (active) => { console.log(active); }, true);
+                const swapElement = this.swapIcon.getElement();
+                swapElement.style.position = 'relative';
+                swapElement.style.bottom = '103px';
+                this.element.appendChild(this.swapIcon.getElement());
+                if (!showSwap) {
+                    swapElement.style.display = 'none';
+                }
             }
             getElement() {
                 return this.element;
             }
-            update(id, plusses, awakening, superAwakeningIdx, unavailableReason, level) {
-                this.id = id;
-                if (id == -1) {
+            updateId(id) {
+                this.update({ id, plusses: 0, awakening: 0, superAwakeningIdx: -1, unavailableReason: '', level: 0, showSwap: false });
+            }
+            update(d) {
+                this.id = d.id;
+                if (d.id == -1) {
                     hide(this.element);
                     hide(this.attributeEl);
                     hide(this.subattributeEl);
@@ -2161,7 +2178,7 @@
                 }
                 show(this.element);
                 show(this.infoTable);
-                const card = ilmina_stripped_3.floof.model.cards[id] || common_2.DEFAULT_CARD;
+                const card = ilmina_stripped_3.floof.model.cards[d.id] || common_2.DEFAULT_CARD;
                 const descriptor = ilmina_stripped_3.CardAssets.getIconImageData(card);
                 if (descriptor) {
                     this.element.style.backgroundSize = `${TEAM_SCALING * descriptor.baseWidth}px ${descriptor.baseHeight * TEAM_SCALING}px`;
@@ -2187,33 +2204,34 @@
                     hide(this.subattributeEl);
                 }
                 const plusEl = this.element.getElementsByClassName(ClassNames.ICON_PLUS)[0];
-                if (plusses) {
+                if (d.plusses) {
                     show(plusEl);
-                    plusEl.innerText = `+${plusses}`;
+                    plusEl.innerText = `+${d.plusses}`;
                 }
                 else {
                     hide(plusEl);
                 }
                 const awakeningEl = this.element.getElementsByClassName(ClassNames.ICON_AWAKE)[0];
-                if (awakening != 0) {
+                if (d.awakening != 0) {
                     show(awakeningEl);
-                    awakeningEl.innerText = `(${awakening})`;
+                    awakeningEl.innerText = `(${d.awakening})`;
                 }
                 else {
                     hide(awakeningEl);
                 }
                 const superAwakeningEl = this.element.getElementsByClassName(ClassNames.ICON_SUPER)[0];
-                if (superAwakeningIdx >= 0) {
+                if (d.superAwakeningIdx >= 0) {
                     show(superAwakeningEl);
-                    updateAwakening(superAwakeningEl, card.superAwakenings[superAwakeningIdx], 0.5, unavailableReason);
+                    updateAwakening(superAwakeningEl, card.superAwakenings[d.superAwakeningIdx], 0.5, d.unavailableReason);
                 }
                 else {
                     hide(superAwakeningEl);
                 }
                 const levelEl = this.element.getElementsByClassName(ClassNames.ICON_LEVEL)[0];
-                levelEl.innerText = `Lv${level}`;
+                levelEl.innerText = `Lv${d.level}`;
                 const idEl = this.element.getElementsByClassName(ClassNames.ICON_ID)[0];
-                idEl.innerText = `${id}`;
+                idEl.innerText = `${d.id}`;
+                this.swapIcon.getElement().style.display = d.showSwap ? '' : 'none';
             }
         }
         exports.MonsterIcon = MonsterIcon;
@@ -3144,6 +3162,7 @@
         }
         exports.StoredTeamDisplay = StoredTeamDisplay;
         class TeamPane {
+            // private leadSwaps: number[] = [0, 0, 0];
             constructor(storageDisplay, monsterDivs, onTeamUpdate) {
                 this.element_ = create('div');
                 this.teamDivs = [];
@@ -3338,15 +3357,15 @@
         }
         exports.TeamPane = TeamPane;
         class ToggleableImage {
-            constructor(image, onToggle, active = true) {
+            constructor(el, onToggle, active = true) {
                 this.active = true;
-                this.element = image;
+                this.element = el;
                 this.onToggle = onToggle;
                 this.setActive(active);
-                const oldOnClick = image.onclick;
-                image.onclick = (ev) => {
+                const oldOnClick = el.onclick;
+                el.onclick = (ev) => {
                     if (oldOnClick) {
-                        oldOnClick.apply(image, [ev]);
+                        oldOnClick.apply(el, [ev]);
                     }
                     this.onToggle(!this.active);
                 };
@@ -3409,7 +3428,9 @@
             // Overlays SHIELD_BASES for Damage Absorb.
             AssetEnum[AssetEnum["ABSORB_OVERLAY"] = 37] = "ABSORB_OVERLAY";
             // DAMAGE_NULL,
+            AssetEnum[AssetEnum["SWAP"] = 38] = "SWAP";
         })(AssetEnum || (AssetEnum = {}));
+        exports.AssetEnum = AssetEnum;
         const ASSET_INFO = new Map([
             [AssetEnum.NUMBER_0, { offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26 }],
             [AssetEnum.NUMBER_1, { offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26 }],
@@ -3440,6 +3461,7 @@
             [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
             [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
             [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
+            [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
         ]);
         const UI_ASSET_SRC = `url(${common_2.BASE_URL}assets/UIPAT1.PNG)`;
         class LayeredAsset {
@@ -3509,9 +3531,10 @@
                 }
             }
         }
+        exports.LayeredAsset = LayeredAsset;
         class MonsterTypeEl {
             constructor(monsterType) {
-                this.element = create('img', ClassNames.MONSTER_TYPE);
+                this.element = create('a', ClassNames.MONSTER_TYPE);
                 this.type = common_2.MonsterType.NONE;
                 this.setType(monsterType);
             }
@@ -3547,7 +3570,9 @@
                 this.enemyDefInput = create('input');
                 this.enemyResolveInput = create('input');
                 this.enemyResistTypesInputs = new Map();
+                this.enemyResistTypePercentInput = create('input');
                 this.enemyResistAttrInputs = new Map();
+                this.enemyResistAttrPercentInput = create('input');
                 this.activeFloorIdx = 0;
                 this.activeEnemyIdx = 0;
                 this.onUpdate = onUpdate;
@@ -3578,7 +3603,7 @@
                 this.setupEnemyStatTable();
             }
             setupDungeonMultiplierTable() {
-                const multiplierTable = create('table');
+                const multiplierTable = create('table', ClassNames.ENEMY_STAT_TABLE);
                 const hpRow = create('tr');
                 const atkRow = create('tr');
                 const defRow = create('tr');
@@ -3614,59 +3639,80 @@
                 this.dungeonDefInput.value = defMultText;
             }
             setupEnemyStatTable() {
-                const statTable = create('table');
+                const statTable = create('table', ClassNames.ENEMY_STAT_TABLE);
                 const lvRow = create('tr');
                 const hpRow = create('tr');
                 const atkRow = create('tr');
                 const defRow = create('tr');
                 const resolveRow = create('tr');
                 const resistTypesRow = create('tr');
+                const resistTypePercentRow = create('tr');
                 const resistAttrRow = create('tr');
+                const resistAttrPercentRow = create('tr');
                 this.enemyLevelInput.type = 'number';
                 this.enemyHpInput.type = 'number';
                 this.enemyAtkInput.type = 'number';
                 this.enemyDefInput.type = 'number';
                 this.enemyResolveInput.type = 'number';
+                this.enemyResistTypePercentInput.type = 'number';
+                this.enemyResistAttrPercentInput.type = 'number';
                 this.enemyHpInput.disabled = true;
                 this.enemyAtkInput.disabled = true;
                 this.enemyDefInput.disabled = true;
                 this.enemyResolveInput.disabled = true;
+                this.enemyResistTypePercentInput.disabled = true;
+                this.enemyResistAttrPercentInput.disabled = true;
                 const lvLabel = create('td');
                 const hpLabel = create('td');
                 const atkLabel = create('td');
                 const defLabel = create('td');
                 const resolveLabel = create('td');
                 const resistTypesLabel = create('td');
+                const resistTypePercentLabel = create('td');
                 const resistAttrLabel = create('td');
+                const resistAttrPercentLabel = create('td');
                 lvLabel.innerText = 'Level';
                 hpLabel.innerText = 'Health';
                 atkLabel.innerText = 'Attack';
                 defLabel.innerText = 'Defense';
-                resolveLabel.innerText = 'Resolve';
+                resolveLabel.innerText = 'Resolve %';
                 resistTypesLabel.innerText = 'Resist Type';
+                resistTypePercentLabel.innerText = '% Resist';
                 resistAttrLabel.innerText = 'Resist Attr';
+                resistAttrPercentLabel.innerText = '% Resist';
                 lvRow.appendChild(lvLabel);
                 hpRow.appendChild(hpLabel);
                 atkRow.appendChild(atkLabel);
                 defRow.appendChild(defLabel);
                 resolveRow.appendChild(resolveLabel);
                 resistTypesRow.appendChild(resistTypesLabel);
+                resistTypePercentRow.appendChild(resistTypePercentLabel);
                 resistAttrRow.appendChild(resistAttrLabel);
+                resistAttrPercentRow.appendChild(resistAttrPercentLabel);
                 const lvCell = create('td');
                 const hpCell = create('td');
                 const atkCell = create('td');
                 const defCell = create('td');
                 const resolveCell = create('td');
                 const resistTypesCell = create('td');
+                const resistTypePercentCell = create('td');
                 const resistAttrCell = create('td');
+                const resistAttrPercentCell = create('td');
                 lvCell.appendChild(this.enemyLevelInput);
                 hpCell.appendChild(this.enemyHpInput);
                 atkCell.appendChild(this.enemyAtkInput);
                 defCell.appendChild(this.enemyDefInput);
                 resolveCell.appendChild(this.enemyResolveInput);
+                resistTypePercentCell.appendChild(this.enemyResistTypePercentInput);
+                resistAttrPercentCell.appendChild(this.enemyResistAttrPercentInput);
+                let added = 0;
                 for (let i = 0; i < 16; i++) {
                     if (i == 9 || i == 10 || i == 11 || i == 13) {
                         continue;
+                    }
+                    added++;
+                    if (added == 7) {
+                        resistTypesCell.appendChild(create('br'));
                     }
                     const t = i;
                     const typeImage = new MonsterTypeEl(t);
@@ -3737,7 +3783,9 @@
                 defRow.appendChild(defCell);
                 resolveRow.appendChild(resolveCell);
                 resistTypesRow.appendChild(resistTypesCell);
+                resistTypePercentRow.appendChild(resistTypePercentCell);
                 resistAttrRow.appendChild(resistAttrCell);
+                resistAttrPercentRow.appendChild(resistAttrPercentCell);
                 this.enemyLevelInput.onchange = () => {
                     let v = Number(this.enemyLevelInput.value);
                     if (isNaN(v)) {
@@ -3758,7 +3806,9 @@
                 statTable.appendChild(defRow);
                 statTable.appendChild(resolveRow);
                 statTable.appendChild(resistTypesRow);
+                statTable.appendChild(resistTypePercentRow);
                 statTable.appendChild(resistAttrRow);
+                statTable.appendChild(resistAttrPercentRow);
                 this.element.appendChild(statTable);
             }
             addFloor() {
@@ -3788,7 +3838,7 @@
             }
             addEnemy(floorIdx) {
                 const enemy = new MonsterIcon(true);
-                enemy.update(4014, 0, 0, -1, '', 0);
+                enemy.updateId(4014);
                 if (floorIdx >= this.dungeonEnemies.length) {
                     this.dungeonEnemies.push([]);
                 }
@@ -3810,7 +3860,7 @@
                             el.className = ClassNames.ICON_SELECTED;
                             el.scrollIntoView({ block: 'nearest' });
                             const id = this.dungeonEnemies[i][j].id;
-                            this.enemyPicture.update(id, 0, 0, -1, '', 0);
+                            this.enemyPicture.updateId(id);
                             this.monsterSelector.setId(id);
                         }
                         else {
@@ -3841,8 +3891,7 @@
                             continue;
                         }
                         superShow(floorEnemies[j].getElement());
-                        floorEnemies[j].update(enemyIds[j], 0, 0, -1, '', 0);
-                        // this.onUpdate({activeEnemyId: enemyIds[j]});
+                        floorEnemies[j].updateId(enemyIds[j]);
                     }
                 }
             }
@@ -3855,9 +3904,11 @@
                 for (const [key, toggle] of [...this.enemyResistTypesInputs.entries()]) {
                     toggle.setActive(typeResists.types.includes(key));
                 }
+                this.enemyResistTypePercentInput.value = String(typeResists.percent);
                 for (const [key, asset] of [...this.enemyResistAttrInputs.entries()]) {
                     asset.setActive(attrResists.attrs.includes(key));
                 }
+                this.enemyResistAttrPercentInput.value = String(attrResists.percent);
             }
             getElement() {
                 return this.element;
@@ -4306,8 +4357,6 @@
         }
         class MonsterInstance {
             constructor(id = -1) {
-                this.id = id;
-                this.attribute = common_4.Attribute.NONE;
                 this.level = 1;
                 this.awakenings = 0;
                 this.latents = [];
@@ -4318,7 +4367,11 @@
                 this.inheritId = -1;
                 this.inheritLevel = 1;
                 this.inheritPlussed = false;
-                this.bound = false;
+                // Attributes set in dungeon.
+                this.bound = false; // Monster being bound and unusable.
+                this.attribute = common_4.Attribute.NONE; // Attribute override.
+                this.transformedTo = -1; // Monster transformation.
+                this.id = id;
                 this.el = templates_2.create('div');
                 this.inheritIcon = new templates_2.MonsterInherit();
                 this.icon = new templates_2.MonsterIcon();
@@ -4393,18 +4446,49 @@
                     this.setRcvPlus(99);
                 }
             }
-            update(isMultiplayer = false) {
+            getId() {
+                if (this.transformedTo > 0) {
+                    return this.transformedTo;
+                }
+                return this.id;
+            }
+            getRenderData(isMultiplayer, showSwap = false) {
                 const plusses = this.hpPlus + this.atkPlus + this.rcvPlus;
-                // A monster must be above level 99, max plussed, and in solo play for
-                // SAs to be active.  This will change later when 3P allows SB.
-                const unavailableReason = [
-                    isMultiplayer ? 'Multiplayer' : '',
-                    plusses != 297 ? 'Unplussed' : '',
-                    this.level < 100 ? 'Not Limit Broken' : '',
-                ].filter(Boolean).join(', ');
-                this.icon.update(this.id, plusses, this.awakenings, this.superAwakeningIdx, unavailableReason, this.level);
-                this.inheritIcon.update(this.inheritId, this.inheritLevel, this.inheritPlussed);
-                this.latentIcon.update([...this.latents]);
+                return {
+                    plusses,
+                    // A monster must be above level 99, max plussed, and in solo play for
+                    // SAs to be active.  This will change later when 3P allows SB.
+                    unavailableReason: [
+                        isMultiplayer ? 'Multiplayer' : '',
+                        plusses != 297 ? 'Unplussed' : '',
+                        this.level < 100 ? 'Not Limit Broken' : '',
+                    ].filter(Boolean).join(', '),
+                    id: this.getId(),
+                    awakenings: this.awakenings,
+                    superAwakeningIdx: this.superAwakeningIdx,
+                    level: this.level,
+                    inheritId: this.inheritId,
+                    inheritLevel: this.inheritLevel,
+                    inheritPlussed: this.inheritPlussed,
+                    latents: [...this.latents],
+                    showSwap: showSwap,
+                };
+            }
+            update(isMultiplayer = false, data = undefined) {
+                if (!data) {
+                    data = this.getRenderData(isMultiplayer);
+                }
+                this.icon.update({
+                    id: data.id,
+                    plusses: data.plusses,
+                    awakening: data.awakenings,
+                    superAwakeningIdx: data.superAwakeningIdx,
+                    unavailableReason: data.unavailableReason,
+                    level: data.level,
+                    showSwap: data.showSwap,
+                });
+                this.inheritIcon.update(data.inheritId, data.inheritLevel, data.inheritPlussed);
+                this.latentIcon.update([...data.latents]);
             }
             toJson() {
                 const json = {};
@@ -4438,8 +4522,12 @@
                 }
                 return json;
             }
-            getCard() {
-                let c = ilmina_stripped_4.floof.model.cards[this.id];
+            getCard(ignoreTransform = false) {
+                let id = this.id;
+                if (this.transformedTo > 0 && !ignoreTransform) {
+                    id = this.transformedTo;
+                }
+                let c = ilmina_stripped_4.floof.model.cards[id];
                 if (c) {
                     return c;
                 }
@@ -4675,7 +4763,11 @@
                     filterFn = (awakening) => filterSet.has(awakening);
                 }
                 const c = this.getCard();
-                const awakenings = c.awakenings.slice(0, this.awakenings);
+                let awakenings = c.awakenings.slice(0, this.awakenings);
+                // A transformed monster is always fully awoken.
+                if (this.transformedTo > 0) {
+                    awakenings = [...c.awakenings];
+                }
                 if (this.isSuperAwakeningActive(isMultiplayer) && this.superAwakeningIdx > -1) {
                     awakenings.push(c.superAwakenings[this.superAwakeningIdx]);
                 }
@@ -4701,7 +4793,7 @@
                 return calcScaleStat(this.getCard(), max, min, this.level, growth);
             }
             addLatent(latent) {
-                const c = this.getCard();
+                const c = this.getCard(true);
                 // Only monsters capable of taking latent killers can take latents.
                 if (!c.latentKillers.length) {
                     return;
@@ -5351,7 +5443,7 @@
         }
         exports.EnemyInstance = EnemyInstance;
     });
-    define("dungeon", ["require", "exports", "common", "enemy_instance", "templates"], function (require, exports, common_7, enemy_instance_1, templates_3) {
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates"], function (require, exports, common_7, ajax_2, enemy_instance_1, templates_3) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DungeonFloor {
@@ -5447,41 +5539,14 @@
                 return new Rational(NaN);
             }
         }
-        Rational.matcher = /\s*(\d+)\s*\/\s*(\d+)\s*/;
-        // type EncounterData = {
-        //   amount: number,
-        //   enemyId: number,
-        //   level: number,
-        //   floor: number, // Which floor to add it to.
-        //   orderIdx: number,
-        //
-        //   hp: number,
-        //   atk: number,
-        //   def: number,
-        //   turns: number,
-        // };
-        //
-        // type SubDungeonData = {
-        //   dungeonId: number, // Containing parent dungeon.
-        //   dungeonType: number,
-        //   name: string, // Combined.
-        //   floors: number,
-        //
-        //   atkMult: number,
-        //   defMult: number,
-        //   hpMult: number,
-        //   encounters: EncounterData[],
-        // };
-        let requestUrl = common_7.BASE_URL + 'assets/DungeonsAndEncounters.json';
-        let request = new XMLHttpRequest();
-        let DUNGEON_DATA = new Map();
+        Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
+        const requestUrl = common_7.BASE_URL + 'assets/DungeonsAndEncounters.json';
+        const DUNGEON_DATA = new Map();
         const dungeonSearchArray = [];
-        request.open('GET', requestUrl);
-        request.responseType = 'json';
-        request.send();
-        request.onload = () => {
-            console.log('JSON loaded, check request.response');
-            const rawData = request.response;
+        const request = ajax_2.ajax(requestUrl);
+        request.done((data) => {
+            console.log('Loading Dungeon JSON data...');
+            const rawData = JSON.parse(data);
             for (const datum of rawData) {
                 for (const subDatum of datum.sub_dungeons) {
                     const floorsJson = [];
@@ -5519,7 +5584,8 @@
                     dungeonSearchArray.push({ s: dungeonInstanceJson.title, value: subDatum.sub_dungeon_id });
                 }
             }
-        };
+            console.log('Dungeon Data loaded.');
+        });
         class DungeonInstance {
             constructor() {
                 this.title = '';
@@ -6445,6 +6511,7 @@
             },
         };
         const LEADER_SKILL_GENERATORS = {
+            0: {},
             11: atkFromAttr,
             12: bonusAttackScale,
             13: autoHealLead,
@@ -6762,6 +6829,7 @@
             timeIsMult: false,
             rcvMult: 0,
             fixedHp: 0,
+            leadSwaps: [0, 0, 0],
         };
         class StoredTeams {
             constructor(team) {
@@ -6865,6 +6933,17 @@
                 this.updateIdxCb = () => null;
                 // TODO: Battle Display - Different Class?
             }
+            updateState(ctx) {
+                if (ctx.leadSwap != undefined) {
+                    if (ctx.leadSwap >= 0 && ctx.leadSwap < 5) {
+                        this.state.leadSwaps[this.activeTeamIdx] = ctx.leadSwap;
+                    }
+                    else {
+                        console.error('Lead Swap index must be in range [0, 4]');
+                    }
+                }
+                this.update();
+            }
             openTeamTab() {
                 this.teamPane.goToTab('Team');
             }
@@ -6875,6 +6954,16 @@
                     }
                     if (idx == 11) {
                         idx = 0;
+                    }
+                }
+                // Determine which leadSwap we're talking about.
+                const leadSwap = this.state.leadSwaps[Math.floor(idx / 6)];
+                if (leadSwap) {
+                    if (idx % 6 == 0) {
+                        idx += leadSwap;
+                    }
+                    else if (idx % 6 == leadSwap) {
+                        idx -= leadSwap;
                     }
                 }
                 this.activeMonster = idx;
@@ -6888,6 +6977,9 @@
                     return;
                 }
                 Object.assign(this.state, DEFAULT_STATE);
+                for (let i = 0; i < 3; i++) {
+                    this.state.leadSwaps[i] = 0;
+                }
                 state.currentHp = this.getHp();
             }
             isMultiplayer() {
@@ -6910,6 +7002,7 @@
                 return '';
             }
             fromPdchu(s) {
+                this.resetState();
                 const teamStrings = s.split(';');
                 // We don't support >3P.
                 if (teamStrings.length > 3) {
@@ -7047,12 +7140,24 @@
                 // this.reloadStatDisplay();
                 // TODO: Update visuals and calculations when this happens.
             }
+            /**
+             * Obtain the monster at the requested position. This takes into account
+             * lead swapping.
+             */
             getMonsterIdx(teamIdx, localIdx) {
-                let idx = 6 * teamIdx + localIdx;
-                if (this.playerMode == 2 &&
-                    ((teamIdx == 0 && localIdx == 5) || (teamIdx == 1 && localIdx == 5))) {
-                    idx = (1 - teamIdx) * 6;
+                // Adjust for P2 lead.
+                if (this.playerMode == 2 && localIdx == 5 && teamIdx < 2) {
+                    teamIdx = 1 - teamIdx;
+                    localIdx = 0;
                 }
+                // Adjust for leadswaps.
+                if (localIdx == 0) {
+                    localIdx = this.state.leadSwaps[teamIdx];
+                }
+                else if (localIdx == this.state.leadSwaps[teamIdx]) {
+                    localIdx = 0;
+                }
+                const idx = teamIdx * 6 + localIdx;
                 return idx;
             }
             getIndividualHp(includeLeaderSkill = false, includeP2 = false) {
@@ -7192,13 +7297,21 @@
             }
             update() {
                 if (this.playerMode == 2) {
-                    this.monsters[5].copyFrom(this.monsters[6]);
-                    this.monsters[11].copyFrom(this.monsters[0]);
+                    // this.monsters[5].copyFrom(this.monsters[this.getMonsterIdx(1, 0)]);
+                    // this.monsters[11].copyFrom(this.monsters[this.getMonsterIdx(0, 0)]);
                 }
                 this.teamPane.update(this.playerMode, this.teamName, this.description);
-                for (const monster of this.monsters) {
-                    monster.update(this.isMultiplayer());
+                for (let teamIdx = 0; teamIdx < 3; teamIdx++) {
+                    for (let monsterIdx = 0; monsterIdx < 6; monsterIdx++) {
+                        const displayIndex = 6 * teamIdx + monsterIdx;
+                        const actualIndex = this.getMonsterIdx(teamIdx, monsterIdx);
+                        const showSwap = Boolean(displayIndex != actualIndex && monsterIdx && monsterIdx < 5);
+                        this.monsters[displayIndex].update(this.isMultiplayer(), this.monsters[actualIndex].getRenderData(this.isMultiplayer(), showSwap));
+                    }
                 }
+                // for (const monster of this.monsters) {
+                //   monster.update(this.isMultiplayer());
+                // }
                 this.teamPane.updateStats(this.getStats());
             }
             countAwakening(awakening) {
@@ -7347,7 +7460,7 @@
                 this.team.updateIdxCb = () => {
                     this.updateMonsterEditor();
                 };
-                this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 / 5209 (5190) | lv110 sa2');
+                this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 ; 5209 (5190) | lv110 sa2');
                 this.display.panes[1].appendChild(this.team.teamPane.getElement());
                 this.dungeon = new dungeon_1.DungeonInstance();
                 this.display.panes[2].appendChild(this.dungeon.getPane());
@@ -7355,13 +7468,13 @@
             updateMonsterEditor() {
                 const monster = this.team.monsters[this.team.activeMonster];
                 this.monsterEditor.update({
-                    id: monster.id,
+                    id: monster.getId(),
                     inheritId: monster.inheritId,
                     level: monster.level,
                     hpPlus: monster.hpPlus,
                     atkPlus: monster.atkPlus,
                     rcvPlus: monster.rcvPlus,
-                    awakeningLevel: monster.awakenings,
+                    awakeningLevel: monster.transformedTo > 0 ? 9 : monster.awakenings,
                     inheritLevel: monster.inheritLevel,
                     inheritPlussed: monster.inheritPlussed,
                     latents: monster.latents,
