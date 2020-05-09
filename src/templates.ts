@@ -11,10 +11,6 @@ import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterTy
 import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
 import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
 
-// declare var floof: KnockoutVM;
-// declare var CardAssets: CardAssetsInterface;
-// declare var CardUiAssets: CardUiAssetsInterface;
-
 function create(tag: string, cls: string = ''): HTMLElement {
   const el = document.createElement(tag);
   if (cls) {

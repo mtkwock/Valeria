@@ -442,7 +442,7 @@ const Awakening: Record<string | number, string | number> = {
   "Unknown75": 75, '75': "Unknown75",
   "Unknown76": 76, '76': "Unknown76",
 };
-export class Card {
+class Card {
   id = -1;
   monsterPoints: number = -1;
   /**
@@ -931,11 +931,10 @@ class ModelBuilder {
     c.feedExpPerLevel = reader.readNumber() / 4; // 11
     // 100: Far more common.
     // 1 seems to be related to not being released in NA.
-    const usually100 = reader.readNumber();
+    const usually100 = reader.readNumber(); // u1 12 // ??? Seems to always be 100
     if (usually100 != 100 && usually100 != 1) {
       console.error(`Slot 12 is different!  Time to handle it.\nid: ${c.id} value: ${usually100}`);
     }
-    // unknownData.push(reader.readNumber()); // u1 12 // ??? Seems to always be 100
     c.sellPricePerLevel = reader.readNumber() / 10; // 13
     c.minHp = reader.readNumber(); // 14
     c.maxHp = reader.readNumber(); // 15
@@ -949,11 +948,10 @@ class ModelBuilder {
     c.expCurve = reader.readNumber(); // 23
     // 2.5: Far more common
     // 1 happens at the exact same time that unknownData[1] is 1.
-    const usually25 = reader.readNumber();
+    const usually25 = reader.readNumber(); // u2 24 // ??? Mostly 2.
     if (usually25 != 2.5 && usually25 != 1) {
       console.error(`Slot 24 is different!  Time to handle it.\nid: ${c.id} value: ${usually25}`);
     }
-    // unknownData.push(reader.readNumber()); // u2 24 // ??? Mostly 2.5
     if ((usually100 == 100) != (usually25 == 2.5)) {
       console.error(`Anomaly detected in slot 12 and 24. ${usually100} - ${usually25}`);
     }
@@ -1323,6 +1321,7 @@ window.floof = floof;
 
 export {
   floof,
+  Card,
   CardUiAssets,
   CardAssets,
   compress,

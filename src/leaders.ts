@@ -4,8 +4,6 @@ import { MonsterInstance } from './monster_instance';
 import { ComboContainer } from './combo_container';
 import { floof } from './ilmina_stripped';
 
-// declare var floof: KnockoutVM;
-
 // TODO: Figure out enemies.
 interface EnemyInstance {
   getAttribute: () => Attribute,

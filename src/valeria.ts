@@ -23,8 +23,6 @@ class Valeria {
   team: Team;
   dungeon: DungeonInstance;
   constructor() {
-
-    // this._testRocheDeleteLater = testRoche();
     this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
 
     this.monsterEditor = new MonsterEditor((ctx: MonsterUpdate) => {
@@ -122,7 +120,6 @@ async function init() {
   await waitFor(() => floof.ready);
   console.log('Valeria taking over.');
 
-  // annotateMonsterScaling();
   SearchInit();
   const valeria = new Valeria();
 
