@@ -1,5 +1,5 @@
-import {Awakening} from './common';
-import {vm, Card} from './ilmina_stripped';
+import { Awakening } from './common';
+import { floof, Card } from './ilmina_stripped';
 
 const prefixToCardIds: Record<string, number[]> = {};
 
@@ -15,10 +15,10 @@ function isLowPriority(s: string): boolean {
   });
 }
 function SearchInit() {
-  const ids: number[] = Object.keys(vm.model.cards).map((id) => Number(id));
+  const ids: number[] = Object.keys(floof.model.cards).map((id) => Number(id));
 
-  prioritizedEnemySearch = ids.map((id: number) => vm.model.cards[id]).reverse();
-  prioritizedMonsterSearch = ids.map((id: number) => vm.model.cards[id]).filter((card: Card) => {
+  prioritizedEnemySearch = ids.map((id: number) => floof.model.cards[id]).reverse();
+  prioritizedMonsterSearch = ids.map((id: number) => floof.model.cards[id]).filter((card: Card) => {
     return card.id < 100000;
   }).sort((card1, card2) => {
     if (isLowPriority(card1.name) != isLowPriority(card2.name)) {
@@ -57,9 +57,9 @@ function SearchInit() {
     return card2.id - card1.id;
   });
 
-  for (const group of vm.model.cardGroups) {
+  for (const group of floof.model.cardGroups) {
     for (const alias of group.aliases.filter(
-        (alias) => alias.indexOf(' ') == -1 && alias == alias.toLowerCase())) {
+      (alias) => alias.indexOf(' ') == -1 && alias == alias.toLowerCase())) {
       prefixToCardIds[alias] = group.cards;
       if (alias == 'halloween') {
         prefixToCardIds['h'] = group.cards;
@@ -81,7 +81,7 @@ function SearchInit() {
  * @param searchArray
  * @param filtered
  */
-function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: Card[]|undefined = undefined, filtered = false): number[] {
+function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: Card[] | undefined = undefined, filtered = false): number[] {
   if (!text || text == '-1') {
     return [-1];
   }
@@ -102,7 +102,7 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
   }
   const result: number[] = [];
   // Test for exact match.
-  if (text in vm.model.cards) {
+  if (text in floof.model.cards) {
     result.push(Number(text));
   }
   let lowerPriority: number[] = [];
@@ -116,7 +116,7 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
     if (idx < 0) {
       continue;
     }
-    if (idx == 0 || card.name[idx - 1] == ' ')  {
+    if (idx == 0 || card.name[idx - 1] == ' ') {
       if (idx + text.length == card.name.length || card.name[idx + text.length] == ' ') {
         result.push(card.id);
       } else {
@@ -230,9 +230,9 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
   if (toEquip) {
     let equips: number[] = [];
     for (const id of result) {
-      const treeId = vm.model.cards[id].evoTreeBaseId;
-      if (treeId in vm.model.evoTrees) {
-        for (const card of vm.model.evoTrees[treeId].cards) {
+      const treeId = floof.model.cards[id].evoTreeBaseId;
+      if (treeId in floof.model.evoTrees) {
+        for (const card of floof.model.evoTrees[treeId].cards) {
           if (!equips.some((id) => id == card.id) && card.awakenings[0] == Awakening.AWOKEN_ASSIST) {
             equips.push(card.id);
           }
@@ -253,7 +253,7 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
     }
   }
   if (toBase) {
-    let bases = result.map((id) => vm.model.cards[id].evoTreeBaseId);
+    let bases = result.map((id) => floof.model.cards[id].evoTreeBaseId);
 
     const seen = new Set<number>();
     result.length = 0;
@@ -271,29 +271,29 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
   return result;
 }
 
-function fuzzySearch<T>(text: string, maxResults: number = 15, searchArray: {s: string, value: T}[]): T[] {
+function fuzzySearch<T>(text: string, maxResults: number = 15, searchArray: { s: string, value: T }[]): T[] {
   if (!text) {
     return [];
   }
   text = text.toLowerCase();
   const result: T[] = [];
 
-  for (const {s, value} of searchArray) {
+  for (const { s, value } of searchArray) {
     if (s == text) {
       result.push(value);
     }
   }
 
-  for (const {s, value} of searchArray) {
+  for (const { s, value } of searchArray) {
     if (text.includes(s) && !result.includes(value)) {
       result.push(value);
     }
   }
 
-  let scoredPriority: {score: number, value: T}[] = [];
+  let scoredPriority: { score: number, value: T }[] = [];
   // Fuzzy match with the name.
   // This prioritizes values with consecutive letters.
-  for (const {s, value} of searchArray) {
+  for (const { s, value } of searchArray) {
     if (result.length >= maxResults) {
       break;
     }
@@ -318,7 +318,7 @@ function fuzzySearch<T>(text: string, maxResults: number = 15, searchArray: {s: 
       }
     }
     if (currentStringIdx >= 0) {
-      scoredPriority.push({value, score});
+      scoredPriority.push({ value, score });
       continue;
     }
   }

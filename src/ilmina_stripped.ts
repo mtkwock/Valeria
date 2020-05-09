@@ -3,19 +3,19 @@
  * functions, and methods needed to process the data of cards.
  * TODO: Update typing so that a large number of ANY types aren't used.
  */
-import {ajax} from './ajax';
-import {lzutf8Interface} from '../typings/lzutf8';
+import { ajax } from './ajax';
+import { lzutf8Interface } from '../typings/lzutf8';
 
 declare var LZUTF8: lzutf8Interface;
 
 const USE_JP = false;
 
 function compress(s: string): string {
-  return LZUTF8.compress(s, {outputEncoding: 'StorageBinaryString'});
+  return LZUTF8.compress(s, { outputEncoding: 'StorageBinaryString' });
 }
 
 function decompress(s: string): string {
-  return LZUTF8.decompress(s, {inputEncoding: 'StorageBinaryString'});
+  return LZUTF8.decompress(s, { inputEncoding: 'StorageBinaryString' });
 }
 
 class CardAssets {
@@ -71,13 +71,13 @@ class CardAssets {
   }
   static canPlus(card: Card) {
     if (card.types.indexOf(CardType.Evo as number) > -1) {
-        return false;
+      return false;
     }
     if (card.types.indexOf(CardType.Awakening as number) > -1) {
-        return false;
+      return false;
     }
     if (card.types.indexOf(CardType.Enhance as number) > -1 && card.maxLevel == 1) {
-        return false;
+      return false;
     }
     return true;
   }
@@ -101,8 +101,8 @@ class CardUiAssets {
     }
     const expectedStart = CardAssets.baseUrl + "extract/" + CardAssets.apkVersion + "2/";
     if (fileName.indexOf(expectedStart) != 0) {
-        console.error("Url " + fileName + " does not support metadata");
-        return false;
+      console.error("Url " + fileName + " does not support metadata");
+      return false;
     }
     fileName = fileName.substr(expectedStart.length);
     const assetMetadata = apkMetadata[fileName];
@@ -119,7 +119,7 @@ class CardUiAssets {
     CardUiAssets.tryAddApkMetadata(ret, model);
     return ret;
   }
-  static getIconFrame(color: number, isSubAttribute: boolean, model: Model): GraphicDescription|null {
+  static getIconFrame(color: number, isSubAttribute: boolean, model: Model): GraphicDescription | null {
     const url = CardAssets.baseUrl + "extract/" + CardAssets.apkVersion + "2/CARDFRAME2.PNG";
     const ret = new GraphicDescription(url, 0, 0, 102, 102);
     let dx = -1;
@@ -152,9 +152,9 @@ class CardUiAssets {
 
 class DataSource {
   static Version = "";
-  errorReporter: {onError: (msg: string, fullMsg: string) => any};
+  errorReporter: { onError: (msg: string, fullMsg: string) => any };
 
-  constructor(errorReporter: {onError: (msg: string, fullMsg: string) => any}) {
+  constructor(errorReporter: { onError: (msg: string, fullMsg: string) => any }) {
     if (!errorReporter) {
       throw "Requires reporter";
     }
@@ -221,21 +221,21 @@ class DataSource {
   loadCardData(callback: (data: any) => any) {
     let url = CardAssets.baseUrl + "extract/api/download_card_data.json";
     if (USE_JP) {
-        url = CardAssets.baseUrl + "extract/api/jp/download_card_data.json";
+      url = CardAssets.baseUrl + "extract/api/jp/download_card_data.json";
     }
     this.loadWithCache("CardData", url, callback);
   }
   loadPlayerSkillData(callback: (data: any) => any) {
     let url = CardAssets.baseUrl + "extract/api/download_skill_data.json";
     if (USE_JP) {
-        url = CardAssets.baseUrl + "extract/api/jp/download_skill_data.json";
+      url = CardAssets.baseUrl + "extract/api/jp/download_skill_data.json";
     }
     this.loadWithCache("PlayerSkill", url, callback);
   }
   loadEnemySkillData(callback: (data: any) => any) {
     let url = CardAssets.baseUrl + "extract/api/download_enemy_skill_data.json";
     if (USE_JP) {
-        url = CardAssets.baseUrl + "extract/api/jp/download_enemy_skill_data.json";
+      url = CardAssets.baseUrl + "extract/api/jp/download_enemy_skill_data.json";
     }
     this.loadWithCache("EnemySkill", url, callback);
   }
@@ -268,8 +268,8 @@ class GraphicDescription {
     offsetY: number,
     width: number,
     height: number,
-    baseWidth: number|undefined = undefined,
-    baseHeight: number|undefined = undefined) {
+    baseWidth: number | undefined = undefined,
+    baseHeight: number | undefined = undefined) {
     if (baseWidth === void 0) { baseWidth = 0; }
     if (baseHeight === void 0) { baseHeight = 0; }
     this.scale = 1;
@@ -280,15 +280,15 @@ class GraphicDescription {
     this.height = height;
     this.baseHeight = baseHeight;
     this.baseWidth = baseWidth;
-    }
+  }
 }
 class Ilmina {
   cards: Record<number, Card> = {};
   errorMessage: (s: string) => string = (s) => s;
   model: Model = new Model();
-  apkMetadata: Record<string, {width: number, height: number}> = {};
+  apkMetadata: Record<string, { width: number, height: number }> = {};
   ready: boolean = false;
-    // Initialization
+  // Initialization
   constructor() {
     // Helpers
     this.init();
@@ -330,7 +330,7 @@ class Ilmina {
       dataSource.loadEnemySkillData((x) => { modelBuilder.buildEnemySkillsData(x); decrementCount(); });
     });
   }
-  parseCardData(data: {card: string[]}, builder: ModelBuilder) {
+  parseCardData(data: { card: string[] }, builder: ModelBuilder) {
     if (!data) {
       return;
     }
@@ -339,7 +339,7 @@ class Ilmina {
       builder.buildCard(v);
     });
   }
-  parsePlayerSkillData(data: {skill: string[]}, builder: ModelBuilder) {
+  parsePlayerSkillData(data: { skill: string[] }, builder: ModelBuilder) {
     if (!data) {
       return;
     }
@@ -362,7 +362,7 @@ class Ilmina {
   }
 }
 
-const Awakening: Record<string|number, string|number> = {
+const Awakening: Record<string | number, string | number> = {
   "Super": -1, '-1': "Super",
   "Unknown": 0, '0': "Unknown",
   "EnhancedHP": 1, '1': "EnhancedHP",
@@ -540,7 +540,7 @@ class ImageMetadata {
   width: number = -1;
   height: number = -1;
 }
-const CardType: Record<string|number, string|number> = {
+const CardType: Record<string | number, string | number> = {
   "None": -1, "-1": "None",
   "Evo": 0, "0": "Evo",
   "Balanced": 1, "1": "Balanced",
@@ -559,7 +559,7 @@ const CardType: Record<string|number, string|number> = {
   "Enhance": 14, "14": "Enhance",
   "Redeemable": 15, "15": "Redeemable",
 };
-const CollabGroup: Record<string, string|number> = {
+const CollabGroup: Record<string, string | number> = {
   "None": 0, "0": "None",
   "Ragnarok": 1, "1": "Ragnarok",
   "Taiko": 2, "2": "Taiko",
@@ -653,7 +653,7 @@ const CollabGroup: Record<string, string|number> = {
   "Alts": 999, "999": "Alts",
   "DragonboundsDragoncallers": 10001, "10001": "DragonboundsDragoncallers",
 };
-const ColorAttribute: Record<string, number|string> = {
+const ColorAttribute: Record<string, number | string> = {
   "None": -1,
   "Fire": 0,
   "Water": 1,
@@ -693,7 +693,7 @@ class EvolutionTreeDetails {
     this.baseId = baseId;
   }
 }
-const EvolutionType: Record<string, string|number> = {
+const EvolutionType: Record<string, string | number> = {
   "Normal": 0, "0": "Normal",
   "Ultimate": 1, "1": "Ultimate",
   "Reincarnated": 2, "2": "Reincarnated",
@@ -702,8 +702,8 @@ const EvolutionType: Record<string, string|number> = {
   "SuperReincarnated": 5, "5": "SuperReincarnated",
 };
 const LatentAwakening = {
-    // WARNING: There are official IDs that you can extract from player_info; however, I don't know what those are
-    // Do not rely on any of these IDs being correct without doing research. For now they're arbitrary.
+  // WARNING: There are official IDs that you can extract from player_info; however, I don't know what those are
+  // Do not rely on any of these IDs being correct without doing research. For now they're arbitrary.
   "None": -1, "-1": "None",
   "AllStats": 0, "0": "AllStats",
   "EvoKiller": 1, "1": "EvoKiller",
@@ -742,11 +742,11 @@ const LatentAwakening = {
 class Model {
   cards: Record<number, Card> = {};
   cardMetadata: Record<number, any> = {};
-  apkMetadata: Record<string, {width: number, height: number}> = {};
+  apkMetadata: Record<string, { width: number, height: number }> = {};
   evoTrees: Record<number, EvolutionTreeDetails> = {};
   enemySkills: Record<number, EnemySkill> = {};
   playerSkills: PlayerSkill[] = [];
-  cardGroups: {aliases: string[], cards: number[]}[] = [];
+  cardGroups: { aliases: string[], cards: number[] }[] = [];
   usedCollabs = [];
   allExchanges = [];
   dungeons = {};
@@ -755,7 +755,7 @@ class DateConverter {
   static date: number = new Date().getTime();
   static limit = (90 * 24 * 60 * 60 * 1000);
 
-  static now(dt: number|undefined = undefined): number {
+  static now(dt: number | undefined = undefined): number {
     if (dt) {
       DateConverter.date = dt;
     }
@@ -767,13 +767,13 @@ class DateConverter {
   }
   static isForever(time: Date): boolean {
     if (time.getUTCFullYear() > 2036) {
-        return true;
+      return true;
     }
     return false;
   }
-  static convertToDate(input: string): Date|null {
+  static convertToDate(input: string): Date | null {
     if (input == "") {
-        return null;
+      return null;
     }
     const year = "20" + input.substr(0, 2);
     const month = input.substr(2, 2);
@@ -801,7 +801,7 @@ class DateConverter {
     let time = end.getTime();
     time -= DateConverter.now();
     if (time < 0 || time > this.limit) {
-        return "--:--:--";
+      return "--:--:--";
     }
     let ret = "";
     const second = 1000;
@@ -885,7 +885,7 @@ class ModelBuilder {
       reader.readString(); // Seems always empty
       const data = new Array(reader.countRemaining());
       for (let j = 0; j < data.length; j++) {
-          data[j] = reader.readNumber();
+        data[j] = reader.readNumber();
       }
       skill.internalEffectArguments = data;
       playerSkills[i] = skill;
@@ -901,8 +901,8 @@ class ModelBuilder {
   buildEvoTree(card: Card) {
     let evoTree = this.model.evoTrees[card.evoTreeBaseId];
     if (evoTree == null) {
-        evoTree = new EvolutionTreeDetails(card.evoTreeBaseId);
-        this.model.evoTrees[card.evoTreeBaseId] = evoTree;
+      evoTree = new EvolutionTreeDetails(card.evoTreeBaseId);
+      this.model.evoTrees[card.evoTreeBaseId] = evoTree;
     }
     evoTree.cards.push(card);
   }
@@ -918,7 +918,7 @@ class ModelBuilder {
     c.types.push(CardType[CardType[String(reader.readNumber())]] as number); // 5
     const type2: number = CardType[CardType[String(reader.readNumber())]] as number; // 6
     if (type2 != CardType.None) {
-        c.types.push(type2);
+      c.types.push(type2);
     }
     c.starCount = reader.readNumber(); // 7
     c.cost = reader.readNumber(); // 8
@@ -1031,7 +1031,7 @@ class ModelBuilder {
     c.groupingKey = reader.readNumber();
     const type3 = CardType[CardType[String(reader.readNumber())]] as number;
     if (type3 != CardType.None) {
-        c.types.push(type3);
+      c.types.push(type3);
     }
     c.monsterPoints = reader.readNumber();
     c.latentId = reader.readNumber();
@@ -1111,12 +1111,12 @@ class ModelBuilder {
     if (data) {
       for (let key in data) {
         const dataArray = data[key].images;
-        dataArray.forEach((data: {filename: string, width: number, height: number}) => {
-            const metadata = new ImageMetadata();
-            metadata.filename = data.filename;
-            metadata.width = data.width;
-            metadata.height = data.height;
-            apkMetadata[metadata.filename] = metadata;
+        dataArray.forEach((data: { filename: string, width: number, height: number }) => {
+          const metadata = new ImageMetadata();
+          metadata.filename = data.filename;
+          metadata.width = data.width;
+          metadata.height = data.height;
+          apkMetadata[metadata.filename] = metadata;
         });
       }
     }
@@ -1128,9 +1128,9 @@ class ModelBuilder {
     }
     const rawData = data.enemy_skills;
     if (!rawData) {
-        console.error("Unexpected enemy skill data");
-        console.error(data);
-        return;
+      console.error("Unexpected enemy skill data");
+      console.error(data);
+      return;
     }
     //skill params are id, name, effectid, param identifier, params...
     //param identifier determines what params you'll get
@@ -1142,8 +1142,8 @@ class ModelBuilder {
     this.splitEvilRawData(rawData, (lineSplit) => {
       try {
         if (lineSplit[0] == "c") {
-            // Ignore the checksum
-            return;
+          // Ignore the checksum
+          return;
         }
         const currentSkill = new EnemySkill();
         currentSkill.id = parseInt(lineSplit[0]);
@@ -1154,17 +1154,17 @@ class ModelBuilder {
         //skillparamspresent will result in an array of numbers from 0-14
         //determining what is given in the rest of the line
         for (let i = 0; i < 16; i++) {
-            if (((dec >> i) & 1) == 1) {
-                skillParamsPresent.push(i);
-            }
+          if (((dec >> i) & 1) == 1) {
+            skillParamsPresent.push(i);
+          }
         }
         if (lineSplit.length != skillParamsPresent.length + 4) {
-            throw "Unexpected split";
+          throw "Unexpected split";
         }
         //default values for arguments 0-14
         const args = ['', 0, 0, 0, 0, 0, 0, 0, 0, 100, 100, 100, 10000, 0, 0];
         for (let i = 0; i < skillParamsPresent.length; i++) {
-            args[skillParamsPresent[i]] = lineSplit[i + 4];
+          args[skillParamsPresent[i]] = lineSplit[i + 4];
         }
         currentSkill.usageText = args[0] as string;
         for (let i = 1; i < 9; i++) {
@@ -1174,14 +1174,14 @@ class ModelBuilder {
         }
         currentSkill.ratio = parseInt(args[9] as string);
         for (let i = 10; i < 15; i++) {
-            currentSkill.aiArgs[i - 10] = parseInt(args[i] as string);
+          currentSkill.aiArgs[i - 10] = parseInt(args[i] as string);
         }
         this.model.enemySkills[currentSkill.id] = currentSkill;
       }
       catch (e) {
-          console.error("Failed to parse enemy skill line...");
-          console.error(lineSplit);
-          console.error(e);
+        console.error("Failed to parse enemy skill line...");
+        console.error(lineSplit);
+        console.error(e);
       }
     });
   }
@@ -1195,8 +1195,8 @@ class ModelBuilder {
         // You're allowed to have single quotes inside of the text :Nao:
         // Can only tell if you're done by looking ahead
         if (currentCharacter == "'" && i + 1 < rawData.length && (rawData[i + 1] == "," || rawData[i + 1] == "\n")) {
-            inQuote = false;
-            continue;
+          inQuote = false;
+          continue;
         }
         cellBuffer += currentCharacter;
         continue;
@@ -1314,15 +1314,15 @@ class RawDataReader {
   }
 }
 
-const vm = new Ilmina();
+const floof = new Ilmina();
 
 declare global {
-  interface Window { vm: Ilmina; }
+  interface Window { floof: Ilmina; }
 }
-window.vm = vm;
+window.floof = floof;
 
 export {
-  vm,
+  floof,
   CardUiAssets,
   CardAssets,
   compress,

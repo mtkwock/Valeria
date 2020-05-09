@@ -1,7 +1,7 @@
-import {Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits} from './common';
-import {Card, CardAssets, vm} from './ilmina_stripped';
-import {create, MonsterIcon, MonsterInherit, MonsterLatent} from './templates';
-import {fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch} from './fuzzy_search';
+import { Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
+import { Card, CardAssets, floof } from './ilmina_stripped';
+import { create, MonsterIcon, MonsterInherit, MonsterLatent } from './templates';
+import { fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch } from './fuzzy_search';
 
 const AWAKENING_BONUS = new Map<Awakening, number>([
   [Awakening.HP, 500],
@@ -93,16 +93,16 @@ function calcScaleStat(card: Card, max: number, min: number, level: number, grow
 
 interface MonsterJson {
   id?: number;
-  level?: number|undefined;
-  awakenings?: number|undefined;
-  latents?: Latent[]|undefined;
-  superAwakeningIdx?: number|undefined;
-  hpPlus?: number|undefined;
-  atkPlus?: number|undefined;
-  rcvPlus?: number|undefined;
-  inheritId?: number|undefined;
-  inheritLevel?: number|undefined;
-  inheritPlussed?: boolean|undefined;
+  level?: number | undefined;
+  awakenings?: number | undefined;
+  latents?: Latent[] | undefined;
+  superAwakeningIdx?: number | undefined;
+  hpPlus?: number | undefined;
+  atkPlus?: number | undefined;
+  rcvPlus?: number | undefined;
+  inheritId?: number | undefined;
+  inheritLevel?: number | undefined;
+  inheritPlussed?: boolean | undefined;
 }
 
 class MonsterInstance {
@@ -156,7 +156,7 @@ class MonsterInstance {
   }
 
   setId(id: number): void {
-    if (id >= 0 && !(id in vm.model.cards)) {
+    if (id >= 0 && !(id in floof.model.cards)) {
       console.warn('Invalid monster id: ' + String(id));
       return;
     }
@@ -169,7 +169,7 @@ class MonsterInstance {
       this.setHpPlus(0);
       this.setAtkPlus(0);
       this.setRcvPlus(0);
-      // this.card = vm.model.cards[4014];
+      // this.card = floof.model.cards[4014];
       return;
     }
     const c = this.getCard();
@@ -177,7 +177,7 @@ class MonsterInstance {
     // If the level is above the max level of the new card OR
     // the level is maxed out from previously, set the level to c's max level.
     if (this.level > c.maxLevel && !c.isLimitBreakable ||
-        !c || this.level == c.maxLevel && this.level < c.maxLevel) {
+      !c || this.level == c.maxLevel && this.level < c.maxLevel) {
       this.setLevel(c.maxLevel);
     }
 
@@ -185,7 +185,7 @@ class MonsterInstance {
     // the awakening level is maxed out from previously, set awakening level to
     // c's max awakening level.
     if (this.awakenings > c.awakenings.length ||
-        !c || this.awakenings == c.awakenings.length) {
+      !c || this.awakenings == c.awakenings.length) {
       this.awakenings = c.awakenings.length;
     }
 
@@ -269,23 +269,23 @@ class MonsterInstance {
   }
 
   getCard(): Card {
-    let c = vm.model.cards[this.id];
+    let c = floof.model.cards[this.id];
     if (c) {
       return c;
     }
     return DEFAULT_CARD;
   }
 
-  getInheritCard(): Card|void {
+  getInheritCard(): Card | void {
     if (this.inheritId == 0) {
       return DEFAULT_CARD;
     }
-    return vm.model.cards[this.inheritId];
+    return floof.model.cards[this.inheritId];
   }
 
   toPdchu(): string {
     let string = '';
-    if (this.id in vm.model.cards) {
+    if (this.id in floof.model.cards) {
       string += String(this.id);
     } else {
       string += 'sdr';
@@ -415,11 +415,11 @@ class MonsterInstance {
     let latentMatch = s.match(LATENT_REGEX);
     if (latentMatch) {
       const latentPieces = latentMatch[0]
-          .substring(1, latentMatch[0].length - 1)
-          .trim()
-          .split(',')
-          .map((piece) => piece.trim())
-          .filter((a) => a.length > 0);
+        .substring(1, latentMatch[0].length - 1)
+        .trim()
+        .split(',')
+        .map((piece) => piece.trim())
+        .filter((a) => a.length > 0);
       for (const piece of latentPieces) {
         const latentMatch = piece.match(/\w+\+?/);
         if (!latentMatch) {
@@ -492,7 +492,7 @@ class MonsterInstance {
     this.superAwakeningIdx = superAwakeningIdx;
     this.setLevel(level);
     for (const latent of latents) {
-      this.addLatent(/** @type {!Latent}*/ (latent));
+      this.addLatent(/** @type {!Latent}*/(latent));
     }
     this.setHpPlus(hpPlus);
     this.setAtkPlus(atkPlus);
@@ -512,7 +512,7 @@ class MonsterInstance {
 
   isSuperAwakeningActive(isMultiplayer: boolean): boolean {
     return (!isMultiplayer && this.level > 99 && this.hpPlus == 99
-        && this.atkPlus == 99 && this.hpPlus == 99);
+      && this.atkPlus == 99 && this.hpPlus == 99);
   }
 
   getAwakenings(isMultiplayer: boolean, filterSet: Set<Awakening>): Awakening[] {
@@ -538,7 +538,7 @@ class MonsterInstance {
     return this.getAwakenings(isMultiplayer, new Set([awakening])).length;
   }
 
-  getLatents(filterSet: Set<Latent>|null = null): Latent[] {
+  getLatents(filterSet: Set<Latent> | null = null): Latent[] {
     let filterFn = (_latent: Latent) => true;
     if (filterSet) {
       filterFn = (latent: Latent) => filterSet.has(latent);

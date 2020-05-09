@@ -2,42 +2,19 @@
  * Main File for Valeria.
  */
 
-import {Latent} from './common';
-import {ComboContainer} from './combo_container';
-import {DungeonInstance} from './dungeon';
-import {SearchInit} from './fuzzy_search';
-import {Team} from './player_team';
-import {MonsterEditor, ValeriaDisplay, MonsterUpdate} from './templates';
-import {vm} from './ilmina_stripped';
+import { Latent } from './common';
+import { ComboContainer } from './combo_container';
+import { DungeonInstance } from './dungeon';
+import { SearchInit } from './fuzzy_search';
+import { Team } from './player_team';
+import { MonsterEditor, ValeriaDisplay, MonsterUpdate } from './templates';
+import { floof } from './ilmina_stripped';
 
 async function waitFor(conditionFn: () => boolean, waitMs = 50) {
   while (!conditionFn()) {
     await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
 }
-
-// function annotateMonsterScaling() {
-//   const VALID_SCALES = new Set([0.7, 1.0, 1, 1.5]);
-//   for (const id in vm.model.cards) {
-//     const c = vm.model.cards[id];
-//     const [hpGrowth, atkGrowth, rcvGrowth] = [c.unknownData[2], c.unknownData[3], c.unknownData[4]];
-//     if (!VALID_SCALES.has(hpGrowth)) {
-//       console.log(`Invalid scaling found! ${hpGrowth} Monster: ${id}`);
-//     } else {
-//       c.hpGrowth = hpGrowth;
-//     }
-//     if (!VALID_SCALES.has(atkGrowth)) {
-//       console.log(`Invalid scaling found! ${atkGrowth} Monster: ${id}`);
-//     } else {
-//       c.atkGrowth = atkGrowth;
-//     }
-//     if (!VALID_SCALES.has(rcvGrowth)) {
-//       console.log(`Invalid scaling found! ${rcvGrowth} Monster: ${id}`);
-//     } else {
-//       c.rcvGrowth = rcvGrowth;
-//     }
-//   }
-// }
 
 class Valeria {
   display: ValeriaDisplay = new ValeriaDisplay();
@@ -142,7 +119,7 @@ declare global {
 }
 
 async function init() {
-  await waitFor(() => vm.ready);
+  await waitFor(() => floof.ready);
   console.log('Valeria taking over.');
 
   // annotateMonsterScaling();

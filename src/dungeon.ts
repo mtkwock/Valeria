@@ -1,6 +1,6 @@
-import {BASE_URL} from './common';
-import {EnemyInstance, EnemyInstanceJson} from './enemy_instance';
-import {DungeonPane, DungeonUpdate} from './templates';
+import { BASE_URL } from './common';
+import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
+import { DungeonPane, DungeonUpdate } from './templates';
 // import {DungeonEditor} from './templates';
 
 // function createHpEl() {
@@ -128,7 +128,7 @@ class Rational {
     }
 
     function gcd(a: number, b: number): number {
-      while(!divides(a, b) && !divides(b, a)) {
+      while (!divides(a, b) && !divides(b, a)) {
         if (a > b) {
           a -= b;
         } else {
@@ -230,7 +230,7 @@ type DungeonDataRaw = {
 let requestUrl = BASE_URL + 'assets/DungeonsAndEncounters.json';
 let request = new XMLHttpRequest();
 let DUNGEON_DATA: Map<number, DungeonInstanceJson> = new Map();
-const dungeonSearchArray: {s: string, value: number}[] = [];
+const dungeonSearchArray: { s: string, value: number }[] = [];
 request.open('GET', requestUrl);
 request.responseType = 'json';
 request.send();
@@ -272,7 +272,7 @@ request.onload = () => {
         def: String(subDatum.def_mult),
       };
       DUNGEON_DATA.set(subDatum.sub_dungeon_id, dungeonInstanceJson);
-      dungeonSearchArray.push({s: dungeonInstanceJson.title, value: subDatum.sub_dungeon_id});
+      dungeonSearchArray.push({ s: dungeonInstanceJson.title, value: subDatum.sub_dungeon_id });
     }
   }
 }

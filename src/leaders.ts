@@ -1,10 +1,10 @@
-import {COLORS, Attribute, Shape, idxsFromBits} from './common';
-import {DamagePing} from './damage_ping';
-import {MonsterInstance} from './monster_instance';
-import {ComboContainer} from './combo_container';
-import {vm} from './ilmina_stripped';
+import { COLORS, Attribute, Shape, idxsFromBits } from './common';
+import { DamagePing } from './damage_ping';
+import { MonsterInstance } from './monster_instance';
+import { ComboContainer } from './combo_container';
+import { floof } from './ilmina_stripped';
 
-// declare var vm: KnockoutVM;
+// declare var floof: KnockoutVM;
 
 // TODO: Figure out enemies.
 interface EnemyInstance {
@@ -87,12 +87,12 @@ interface LeaderSkill {
   autoHeal?: (params: number[]) => number;
   trueBonusAttack?: (params: number[], context: TrueBonusAttackContext) => number;
   bonusAttack?: (params: number[]) => number;
-  counter?: (params: number[]) => {multiplier: number, attribute: Attribute};
+  counter?: (params: number[]) => { multiplier: number, attribute: Attribute };
   awokenBindClear?: (params: number[], context: AwokenBindClearContext) => number;
 }
 
 const atkFromAttr: LeaderSkill = { // 11
-  atk: ([attr, atk100]: number[], {ping}: AttackContext): number => {
+  atk: ([attr, atk100]: number[], { ping }: AttackContext): number => {
     return ping.source.isAttribute(attr) ? atk100 / 100 : 1;
   },
 };
@@ -123,19 +123,19 @@ const shieldAgainstAll: LeaderSkill = { // 16
 };
 
 const shieldAgainstAttr: LeaderSkill = { // 17
-  damageMult: ([attr, shield100], {enemy}) => (enemy.getAttribute() == attr) ? 1 - shield100 / 100 : 1,
+  damageMult: ([attr, shield100], { enemy }) => (enemy.getAttribute() == attr) ? 1 - shield100 / 100 : 1,
 };
 
 const atkFromType: LeaderSkill = { // 22
-  atk: ([type, atk100], {ping}) => ping.source.isType(type) ? atk100 / 100 : 1,
+  atk: ([type, atk100], { ping }) => ping.source.isType(type) ? atk100 / 100 : 1,
 };
 
 const hpFromType: LeaderSkill = { // 23
-  hp: ([type, hp100], {monster}) => monster.isType(type) ? hp100 / 100 : 1,
+  hp: ([type, hp100], { monster }) => monster.isType(type) ? hp100 / 100 : 1,
 };
 
 const rcvFromType: LeaderSkill = { // 24
-  rcv: ([type, rcv100], {monster}) => monster.isType(type) ? rcv100 / 100 : 1,
+  rcv: ([type, rcv100], { monster }) => monster.isType(type) ? rcv100 / 100 : 1,
 };
 
 const atkUnconditional: LeaderSkill = { // 26
@@ -144,21 +144,21 @@ const atkUnconditional: LeaderSkill = { // 26
 
 const atkRcvFromAttr: LeaderSkill = { // 28
   atk: atkFromAttr.atk,
-  rcv: ([attr, rcv100], {monster}) => monster.isAttribute(attr) ? rcv100 / 100 : 1,
+  rcv: ([attr, rcv100], { monster }) => monster.isAttribute(attr) ? rcv100 / 100 : 1,
 };
 
 const baseStatFromAttr: LeaderSkill = { // 29
-  hp: ([attr, hp100], {monster}) => monster.isAttribute(attr) ? hp100 / 100 : 1,
+  hp: ([attr, hp100], { monster }) => monster.isAttribute(attr) ? hp100 / 100 : 1,
   atk: atkFromAttr.atk,
   rcv: atkRcvFromAttr.rcv,
 };
 
 const hpFromTwoTypes: LeaderSkill = { // 30
-  hp: ([type1, type2, hp100], {monster}) => monster.anyTypes([type1, type2]) ? hp100 / 100 : 1,
+  hp: ([type1, type2, hp100], { monster }) => monster.anyTypes([type1, type2]) ? hp100 / 100 : 1,
 };
 
 const atkFromTwoTypes: LeaderSkill = { // 31
-  atk: ([type1, type2, atk100], {ping}) => ping.source.anyTypes([type1, type2]) ? atk100 / 100 : 1,
+  atk: ([type1, type2, atk100], { ping }) => ping.source.anyTypes([type1, type2]) ? atk100 / 100 : 1,
 };
 
 const drumSounds: LeaderSkill = { // 33
@@ -166,11 +166,11 @@ const drumSounds: LeaderSkill = { // 33
 };
 
 const shieldAgainstTwoAttr: LeaderSkill = { // 36
-  damageMult: ([attr1, attr2, shield100], {enemy}) => (enemy.getAttribute() == attr1 || enemy.getAttribute() == attr2) ? 1 - shield100 / 100 : 1,
+  damageMult: ([attr1, attr2, shield100], { enemy }) => (enemy.getAttribute() == attr1 || enemy.getAttribute() == attr2) ? 1 - shield100 / 100 : 1,
 };
 
 const shieldFromHp: LeaderSkill = { // 38
-  damageMult: ([threshold, UNKNOWN, shield100], {percentHp}) => {
+  damageMult: ([threshold, UNKNOWN, shield100], { percentHp }) => {
     if (UNKNOWN) {
       console.warn(`Unhandled parameter of shieldFromHp: ${UNKNOWN}`);
     }
@@ -183,12 +183,12 @@ const shieldFromHp: LeaderSkill = { // 38
 };
 
 const atkRcvFromSubHp: LeaderSkill = { // 39
-  atk: ([thresh, atkFlag, _, mult100], {percentHp}) => atkFlag && (percentHp <= thresh) ? mult100 / 100 : 1,
-  rcvPost: ([thresh, _, rcvFlag, mult100], {percentHp}) => rcvFlag && (percentHp <= thresh) ? mult100 / 100 : 1,
+  atk: ([thresh, atkFlag, _, mult100], { percentHp }) => atkFlag && (percentHp <= thresh) ? mult100 / 100 : 1,
+  rcvPost: ([thresh, _, rcvFlag, mult100], { percentHp }) => rcvFlag && (percentHp <= thresh) ? mult100 / 100 : 1,
 };
 
 const atkFromTwoAttrs: LeaderSkill = { // 40
-  atk: ([attr1, attr2, atk100], {ping}) => ping.source.anyAttributes([attr1, attr2]) ? atk100 / 100 : 1,
+  atk: ([attr1, attr2, atk100], { ping }) => ping.source.anyAttributes([attr1, attr2]) ? atk100 / 100 : 1,
 };
 
 const counterattack: LeaderSkill = { // 41
@@ -196,12 +196,12 @@ const counterattack: LeaderSkill = { // 41
     if (chance != 100) {
       console.warn(`Chance of counterattacking: ${chance}%`);
     }
-    return {attribute: attr, multiplier: atk100 / 100};
+    return { attribute: attr, multiplier: atk100 / 100 };
   },
 };
 
 const shieldFromAboveHp: LeaderSkill = { // 43
-  damageMult: ([thresh, chance, shield100], {percentHp}) => {
+  damageMult: ([thresh, chance, shield100], { percentHp }) => {
     if (chance != 100) {
       console.warn(`Chance of shield happening is ${chance}%`);
     }
@@ -210,18 +210,18 @@ const shieldFromAboveHp: LeaderSkill = { // 43
 };
 
 const atkRcvFromAboveHp: LeaderSkill = { // 44
-  atk: ([thresh, atkFlag, _, mult100], {percentHp}) => (atkFlag && percentHp >= thresh) ? mult100 / 100 : 1,
-  rcvPost: ([thresh, _, rcvFlag, mult100], {percentHp}) => (rcvFlag && percentHp >= thresh) ? mult100 / 100 : 1,
+  atk: ([thresh, atkFlag, _, mult100], { percentHp }) => (atkFlag && percentHp >= thresh) ? mult100 / 100 : 1,
+  rcvPost: ([thresh, _, rcvFlag, mult100], { percentHp }) => (rcvFlag && percentHp >= thresh) ? mult100 / 100 : 1,
 };
 
 // 45 see 28
 
 const hpFromTwoAttrs: LeaderSkill = { // 46
-  hp: ([attr1, attr2, hp100], {monster}) => monster.anyAttributes([attr1, attr2]) ? hp100 / 100 : 1,
+  hp: ([attr1, attr2, hp100], { monster }) => monster.anyAttributes([attr1, attr2]) ? hp100 / 100 : 1,
 };
 
 const hpFromAttr: LeaderSkill = { // 48
-  hp: ([attr, hp100], {monster}) => monster.isAttribute(attr) ? hp100 / 100 : 1,
+  hp: ([attr, hp100], { monster }) => monster.isAttribute(attr) ? hp100 / 100 : 1,
 };
 
 const rcvFromAttr: LeaderSkill = { // 49
@@ -253,7 +253,7 @@ function countMatchedColors(attrBits: number, comboContainer: ComboContainer, te
 }
 
 const atkScalingFromUniqueColorMatches: LeaderSkill = { // 61
-  atk: ([attrBits, minColors, atk100base, atk100scale, maxColors], {team, comboContainer}) => {
+  atk: ([attrBits, minColors, atk100base, atk100scale, maxColors], { team, comboContainer }) => {
     let count = countMatchedColors(attrBits, comboContainer, team);
     atk100scale = atk100scale || 0;
     if (count < minColors) {
@@ -289,7 +289,7 @@ const baseStatFromType: LeaderSkill = { // 65
 };
 
 const atkFromCombos: LeaderSkill = { // 66
-  atk: ([minCombo, atk100], {comboContainer}) => (comboContainer.comboCount() >= minCombo) ? atk100 / 100 : 1,
+  atk: ([minCombo, atk100], { comboContainer }) => (comboContainer.comboCount() >= minCombo) ? atk100 / 100 : 1,
 };
 
 const hpRcvFromAttr: LeaderSkill = { // 67
@@ -298,17 +298,17 @@ const hpRcvFromAttr: LeaderSkill = { // 67
 };
 
 const atkFromAttrType: LeaderSkill = { // 69 lol
-  atk: ([attr, type, atk100], {ping}) => ping.source.isAttribute(attr) || ping.source.isType(type) ? atk100 / 100 : 1,
+  atk: ([attr, type, atk100], { ping }) => ping.source.isAttribute(attr) || ping.source.isType(type) ? atk100 / 100 : 1,
 };
 
 const atkHpFromAttrType: LeaderSkill = { // 73
-  hp: ([attr, type, mult100], {monster}) => monster.isAttribute(attr) || monster.isType(type) ? mult100 / 100 : 1,
+  hp: ([attr, type, mult100], { monster }) => monster.isAttribute(attr) || monster.isType(type) ? mult100 / 100 : 1,
   atk: atkFromAttr.atk,
 };
 
 const atkRcvFromAttrType: LeaderSkill = { // 75
   atk: atkFromAttrType.atk,
-  rcv: ([attr, type, rcv100], {monster}) => monster.isAttribute(attr) || monster.isType(type) ? rcv100 / 100 : 1,
+  rcv: ([attr, type, rcv100], { monster }) => monster.isAttribute(attr) || monster.isType(type) ? rcv100 / 100 : 1,
 };
 
 const baseStatFromAttrType: LeaderSkill = { // 76
@@ -321,47 +321,47 @@ const baseStatFromAttrType: LeaderSkill = { // 76
 
 const atkRcvFromTwoTypes: LeaderSkill = { // 79
   atk: atkFromTwoTypes.atk,
-  rcv: ([type1, type2, rcv100], {monster}) => monster.anyTypes([type1, type2]) ? rcv100 / 100 : 1,
+  rcv: ([type1, type2, rcv100], { monster }) => monster.anyTypes([type1, type2]) ? rcv100 / 100 : 1,
 };
 
 const atkRcvFromAttrAndSubHp: LeaderSkill = { // 94
-  atk: ([thresh, attr, atkFlag, _, atk100], {ping, percentHp}) => {
+  atk: ([thresh, attr, atkFlag, _, atk100], { ping, percentHp }) => {
     return atkFlag && thresh <= percentHp && ping.source.isAttribute(attr) ? atk100 / 100 : 1;
   },
-  rcvPost: ([thresh, attr, _, rcvFlag, rcv100], {monster, percentHp}) => {
+  rcvPost: ([thresh, attr, _, rcvFlag, rcv100], { monster, percentHp }) => {
     return rcvFlag && thresh <= percentHp && monster.isAttribute(attr) ? rcv100 / 100 : 1;
   },
 };
 
 const atkRcvFromTypeAndSubHp: LeaderSkill = { // 95
-  atk: ([thresh, type, atkFlag, _, atk100], {ping, percentHp}) => {
+  atk: ([thresh, type, atkFlag, _, atk100], { ping, percentHp }) => {
     return atkFlag && thresh <= percentHp && ping.source.isType(type) ? atk100 / 100 : 1;
   },
-  rcvPost: ([thresh, type, _, rcvFlag, rcv100], {monster, percentHp}) => {
+  rcvPost: ([thresh, type, _, rcvFlag, rcv100], { monster, percentHp }) => {
     return rcvFlag && thresh <= percentHp && monster.isType(type) ? rcv100 / 100 : 1;
   },
 };
 
 const atkRcvFromAttrAndAboveHp: LeaderSkill = { // 96
-  atk: ([thresh, attr, atkFlag, _, atk100], {ping, percentHp}) => {
+  atk: ([thresh, attr, atkFlag, _, atk100], { ping, percentHp }) => {
     return atkFlag && thresh >= percentHp && ping.source.isAttribute(attr) ? atk100 / 100 : 1;
   },
-  rcvPost: ([thresh, attr, _, rcvFlag, rcv100], {monster, percentHp}) => {
+  rcvPost: ([thresh, attr, _, rcvFlag, rcv100], { monster, percentHp }) => {
     return rcvFlag && thresh >= percentHp && monster.isAttribute(attr) ? rcv100 / 100 : 1;
   },
 };
 
 const atkRcvFromTypeAndAboveHp: LeaderSkill = { // 97
-  atk: ([thresh, type, atkFlag, _, atk100], {ping, percentHp}) => {
+  atk: ([thresh, type, atkFlag, _, atk100], { ping, percentHp }) => {
     return atkFlag && thresh >= percentHp && ping.source.isType(type) ? atk100 / 100 : 1;
   },
-  rcvPost: ([thresh, type, _, rcvFlag, rcv100], {monster, percentHp}) => {
+  rcvPost: ([thresh, type, _, rcvFlag, rcv100], { monster, percentHp }) => {
     return rcvFlag && thresh >= percentHp && monster.isType(type) ? rcv100 / 100 : 1;
   },
 };
 
 const atkScalingFromCombos: LeaderSkill = { // 98
-  atk: ([minCombo, atk100base, atk100scale, maxCombo], {comboContainer}) => {
+  atk: ([minCombo, atk100base, atk100scale, maxCombo], { comboContainer }) => {
     let count = comboContainer.comboCount();
     if (count < minCombo) {
       return 1;
@@ -374,17 +374,17 @@ const atkScalingFromCombos: LeaderSkill = { // 98
 };
 
 const atkRcvFromSkill: LeaderSkill = { // 100
-  atk: ([atkFlag, _, atk100], {skillUsed}) => atkFlag && skillUsed ? atk100 / 100 : 1,
-  rcvPost: ([_, rcvFlag, atk100], {skillUsed}) => rcvFlag && skillUsed ? atk100 / 100 : 1,
+  atk: ([atkFlag, _, atk100], { skillUsed }) => atkFlag && skillUsed ? atk100 / 100 : 1,
+  rcvPost: ([_, rcvFlag, atk100], { skillUsed }) => rcvFlag && skillUsed ? atk100 / 100 : 1,
 };
 
 const atkFromExactCombos: LeaderSkill = { // 101
-  atk: ([combos, atk100], {comboContainer}) => comboContainer.comboCount() == combos ? atk100 / 100 : 1,
+  atk: ([combos, atk100], { comboContainer }) => comboContainer.comboCount() == combos ? atk100 / 100 : 1,
 };
 
 const atkRcvFromCombos: LeaderSkill = { // 103
-  atk: ([minCombo, atkFlag, _, atk100], {comboContainer}) => atkFlag && comboContainer.comboCount() >= minCombo ? atk100 / 100 : 1,
-  rcvPost: ([minCombo, _, rcvFlag, rcv100], {comboContainer}) => rcvFlag && comboContainer.comboCount() >= minCombo ? rcv100 / 100 : 1,
+  atk: ([minCombo, atkFlag, _, atk100], { comboContainer }) => atkFlag && comboContainer.comboCount() >= minCombo ? atk100 / 100 : 1,
+  rcvPost: ([minCombo, _, rcvFlag, rcv100], { comboContainer }) => rcvFlag && comboContainer.comboCount() >= minCombo ? rcv100 / 100 : 1,
 };
 
 const atkRcvFromAttrCombos: LeaderSkill = { // 104
@@ -408,13 +408,13 @@ const hpDecrease: LeaderSkill = { // 107
 
 const atkFromTypeDecreasedHp: LeaderSkill = { // 108
   hp: ([hp100]) => hp100 / 100,
-  atk: ([_, type, atk100], {ping}) => ping.source.isType(type) ? atk100 / 100 : 1,
+  atk: ([_, type, atk100], { ping }) => ping.source.isType(type) ? atk100 / 100 : 1,
 };
 
 const atkFromLinkedOrbs: LeaderSkill = { // 109
-  atk: ([attrBits, minLinked, atk100], {comboContainer}) => idxsFromBits(attrBits).some(
-      (attr) => comboContainer.combos[COLORS[attr]].some(
-          (c) => c.count >= minLinked)) ? atk100 / 100 : 1,
+  atk: ([attrBits, minLinked, atk100], { comboContainer }) => idxsFromBits(attrBits).some(
+    (attr) => comboContainer.combos[COLORS[attr]].some(
+      (c) => c.count >= minLinked)) ? atk100 / 100 : 1,
 };
 
 const atkHpFromTwoAttrs: LeaderSkill = { // 111
@@ -425,7 +425,7 @@ const atkHpFromTwoAttrs: LeaderSkill = { // 111
 const baseStatFromTwoAttrs: LeaderSkill = { // 114
   hp: hpFromTwoAttrs.hp,
   atk: atkFromTwoAttrs.atk,
-  rcv: ([attr1, attr2, rcv100], {monster}) => monster.anyAttributes([attr1, attr2]) ? rcv100 / 100 : 1,
+  rcv: ([attr1, attr2, rcv100], { monster }) => monster.anyAttributes([attr1, attr2]) ? rcv100 / 100 : 1,
 };
 
 // This shouldn't be called.
@@ -433,7 +433,7 @@ const multipleLeaderSkills: LeaderSkill = { // 116 + 138
 }
 
 const atkScalingFromLinkedOrbs: LeaderSkill = { // 119
-  atk: ([attrBits, minLinked, atk100base, atk100scale, maxLinked], {comboContainer}) => {
+  atk: ([attrBits, minLinked, atk100base, atk100scale, maxLinked], { comboContainer }) => {
     atk100scale = atk100scale || 0;
     maxLinked = maxLinked || minLinked;
 
@@ -455,19 +455,19 @@ const atkScalingFromLinkedOrbs: LeaderSkill = { // 119
 };
 
 const baseStatFromAttrsTypes: LeaderSkill = { // 121
-  hp: ([attrBits, typeBits, hp100], {monster}) => hp100 && (monster.anyAttributes(idxsFromBits(attrBits)) || monster.anyTypes(idxsFromBits(typeBits))) ? hp100 / 100 : 1,
-  atk: ([attrBits, typeBits, _, atk100], {ping}) => atk100 && (ping.source.anyAttributes(idxsFromBits(attrBits)) || ping.source.anyTypes(idxsFromBits(typeBits))) ? atk100 / 100 : 1,
-  rcv: ([attrBits, typeBits, _, _a, rcv100], {monster}) => rcv100 && (monster.anyAttributes(idxsFromBits(attrBits)) || monster.anyTypes(idxsFromBits(typeBits))) ? rcv100 / 100 : 1,
+  hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && (monster.anyAttributes(idxsFromBits(attrBits)) || monster.anyTypes(idxsFromBits(typeBits))) ? hp100 / 100 : 1,
+  atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && (ping.source.anyAttributes(idxsFromBits(attrBits)) || ping.source.anyTypes(idxsFromBits(typeBits))) ? atk100 / 100 : 1,
+  rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && (monster.anyAttributes(idxsFromBits(attrBits)) || monster.anyTypes(idxsFromBits(typeBits))) ? rcv100 / 100 : 1,
 };
 
 const atkRcvFromAttrTypeSubHp: LeaderSkill = { // 122
-  atk: ([thresh, attrBits, typeBits, atk100], {ping, percentHp}) => {
+  atk: ([thresh, attrBits, typeBits, atk100], { ping, percentHp }) => {
     if (atk100 && percentHp <= thresh && (ping.source.anyAttributes(idxsFromBits(attrBits)) || ping.source.anyTypes(idxsFromBits(typeBits)))) {
       return atk100 / 100;
     }
     return 1;
   },
-  rcvPost: ([thresh, attrBits, typeBits, _, rcv100], {monster, percentHp}) => {
+  rcvPost: ([thresh, attrBits, typeBits, _, rcv100], { monster, percentHp }) => {
     if (rcv100 && percentHp <= thresh && (monster.anyAttributes(idxsFromBits(attrBits)) || monster.anyTypes(idxsFromBits(typeBits)))) {
       return rcv100 / 100;
     }
@@ -476,7 +476,7 @@ const atkRcvFromAttrTypeSubHp: LeaderSkill = { // 122
 };
 
 const atkFromAttrTypeAboveHp: LeaderSkill = { //123
-  atk: ([thresh, attrBits, typeBits, atk100], {ping, percentHp}) => {
+  atk: ([thresh, attrBits, typeBits, atk100], { ping, percentHp }) => {
     if (atk100 && percentHp >= thresh && (ping.source.anyAttributes(idxsFromBits(attrBits)) || ping.source.anyTypes(idxsFromBits(typeBits)))) {
       return atk100 / 100;
     }
@@ -485,7 +485,7 @@ const atkFromAttrTypeAboveHp: LeaderSkill = { //123
 }
 
 const atkScalingFromMatchedColors2: LeaderSkill = { // 124
-  atk: ([attr1bit, attr2bit, attr3bit, attr4bit, attr5bit, minMatch, atk100base, atk100scale], {comboContainer}) => {
+  atk: ([attr1bit, attr2bit, attr3bit, attr4bit, attr5bit, minMatch, atk100base, atk100scale], { comboContainer }) => {
     atk100scale = atk100scale || 0;
     const maxCounts: Record<number, number> = {
       0: 0, 1: 0, 2: 0, 3: 0, 4: 0, '-1': 0,
@@ -508,21 +508,21 @@ const atkScalingFromMatchedColors2: LeaderSkill = { // 124
 
 function hasAll(ids: number[], team: MonsterInstance[]): boolean {
   return ids
-      .filter((id) => id > 0)
-      .every((id) => team.some((monster) => monster.id == id));
+    .filter((id) => id > 0)
+    .every((id) => team.some((monster) => monster.id == id));
 }
 
 const baseStatFromRequiredSubs: LeaderSkill = { // 125
-  hp: ([a, b, c, d, e, hp100], {team}) => hp100 && hasAll([a, b, c, d, e], team) ? hp100 / 100 : 1,
-  atk: ([a, b, c, d, e, _, atk100], {team}) => atk100 && hasAll([a, b, c, d, e], team) ? atk100 / 100 : 1,
-  rcv: ([a, b, c, d, e, _, _a, rcv100], {team}) => rcv100 && hasAll([a, b, c, d, e], team) ? rcv100 / 100 : 1,
+  hp: ([a, b, c, d, e, hp100], { team }) => hp100 && hasAll([a, b, c, d, e], team) ? hp100 / 100 : 1,
+  atk: ([a, b, c, d, e, _, atk100], { team }) => atk100 && hasAll([a, b, c, d, e], team) ? atk100 / 100 : 1,
+  rcv: ([a, b, c, d, e, _, _a, rcv100], { team }) => rcv100 && hasAll([a, b, c, d, e], team) ? rcv100 / 100 : 1,
 };
 
 const baseStatShieldFromAttributeType: LeaderSkill = { // 129
-  hp: ([attrBits, typeBits, hp100], {monster}) => hp100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? hp100 / 100 : 1,
-  atk: ([attrBits, typeBits, _, atk100], {ping}) => atk100 && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
-  rcv: ([attrBits, typeBits, _, _a, rcv100], {monster}) => rcv100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
-  damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], {enemy}) => shield && idxsFromBits(attrBits).some((attr) => attr == enemy.getAttribute()) ? 1 - shield / 100 : 1,
+  hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? hp100 / 100 : 1,
+  atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
+  rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
+  damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], { enemy }) => shield && idxsFromBits(attrBits).some((attr) => attr == enemy.getAttribute()) ? 1 - shield / 100 : 1,
 };
 
 const atkRcvShieldFromSubHp: LeaderSkill = { // 130
@@ -538,44 +538,44 @@ const atkRcvShieldFromAboveHp: LeaderSkill = { // 131
 };
 
 const atkRcvFromAttrsTypesSkillUse: LeaderSkill = { // 133
-  atk: ([attrBits, typeBits, atk100], {ping, skillUsed}) => atk100 && skillUsed && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
-  rcvPost: ([attrBits, typeBits, _, rcv100], {monster, skillUsed}) => rcv100 && skillUsed && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
+  atk: ([attrBits, typeBits, atk100], { ping, skillUsed }) => atk100 && skillUsed && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
+  rcvPost: ([attrBits, typeBits, _, rcv100], { monster, skillUsed }) => rcv100 && skillUsed && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
 };
 
 const stackingBaseStatsFromAttrs: LeaderSkill = { // 136
-  hp: ([attr1bit, hp100a, _a, _b, attr2bit, hp100b], {monster}) => {
+  hp: ([attr1bit, hp100a, _a, _b, attr2bit, hp100b], { monster }) => {
     return (hp100a && monster.anyAttributeTypeBits(attr1bit, 0) ? hp100a / 100 : 1) * (
-           (hp100b && monster.anyAttributeTypeBits(attr2bit, 0) ? hp100b / 100 : 1));
+      (hp100b && monster.anyAttributeTypeBits(attr2bit, 0) ? hp100b / 100 : 1));
   },
-  atk: ([attr1bit, _a, atk100a, _b, attr2bit, _c, atk100b], {ping}) => {
+  atk: ([attr1bit, _a, atk100a, _b, attr2bit, _c, atk100b], { ping }) => {
     return (atk100a && ping.source.anyAttributeTypeBits(attr1bit, 0) ? atk100a / 100 : 1) * (
-           (atk100b && ping.source.anyAttributeTypeBits(attr2bit, 0) ? atk100b / 100 : 1));
+      (atk100b && ping.source.anyAttributeTypeBits(attr2bit, 0) ? atk100b / 100 : 1));
   },
-  rcv: ([attr1bit, _a, _b, rcv100a, attr2bit, _c, _d, rcv100b], {monster}) => {
+  rcv: ([attr1bit, _a, _b, rcv100a, attr2bit, _c, _d, rcv100b], { monster }) => {
     return (rcv100a && monster.anyAttributeTypeBits(attr1bit, 0) ? rcv100a / 100 : 1) * (
-           (rcv100b && monster.anyAttributeTypeBits(attr2bit, 0) ? rcv100b / 100 : 1));
+      (rcv100b && monster.anyAttributeTypeBits(attr2bit, 0) ? rcv100b / 100 : 1));
   },
 };
 
 const stackingBaseStatsFromTypes: LeaderSkill = { // 137
-  hp: ([type1bit, hp100a, _a, _b, type2bit, hp100b], {monster}) => {
+  hp: ([type1bit, hp100a, _a, _b, type2bit, hp100b], { monster }) => {
     return (hp100a && monster.anyAttributeTypeBits(0, type1bit) ? hp100a / 100 : 1) * (
-           (hp100b && monster.anyAttributeTypeBits(0, type2bit) ? hp100b / 100 : 1));
+      (hp100b && monster.anyAttributeTypeBits(0, type2bit) ? hp100b / 100 : 1));
   },
-  atk: ([type1bit, _a, atk100a, _b, type2bit, _c, atk100b], {ping}) => {
+  atk: ([type1bit, _a, atk100a, _b, type2bit, _c, atk100b], { ping }) => {
     return (atk100a && ping.source.anyAttributeTypeBits(0, type1bit) ? atk100a / 100 : 1) * (
-           (atk100b && ping.source.anyAttributeTypeBits(0, type2bit) ? atk100b / 100 : 1));
+      (atk100b && ping.source.anyAttributeTypeBits(0, type2bit) ? atk100b / 100 : 1));
   },
-  rcv: ([type1bit, _a, _b, rcv100a, type2bit, _c, _d, rcv100b], {monster}) => {
+  rcv: ([type1bit, _a, _b, rcv100a, type2bit, _c, _d, rcv100b], { monster }) => {
     return (rcv100a && monster.anyAttributeTypeBits(0, type1bit) ? rcv100a / 100 : 1) * (
-           (rcv100b && monster.anyAttributeTypeBits(0, type2bit) ? rcv100b / 100 : 1));
+      (rcv100b && monster.anyAttributeTypeBits(0, type2bit) ? rcv100b / 100 : 1));
   },
 };
 
 // 138 see 116
 
 const atkFromAttrTypeMultiThresh: LeaderSkill = { // 139
-  atk: ([attrBits, typeBits, threshA, isGreaterA, atk100a, threshB, isGreaterB, atk100b], {ping, percentHp}) => {
+  atk: ([attrBits, typeBits, threshA, isGreaterA, atk100a, threshB, isGreaterB, atk100b], { ping, percentHp }) => {
     if (!ping.source.anyAttributeTypeBits(attrBits, typeBits)) {
       return 1;
     }
@@ -595,17 +595,17 @@ const expBoost: LeaderSkill = { // 148
 };
 
 const rcvFromHpa: LeaderSkill = { // 149
-  rcvPost: ([rcv100], {comboContainer}) => comboContainer.combos['h'].some((combo) => combo.count == 4) ? rcv100 / 100 : 1,
+  rcvPost: ([rcv100], { comboContainer }) => comboContainer.combos['h'].some((combo) => combo.count == 4) ? rcv100 / 100 : 1,
 };
 
 const fiveOrbEnhance: LeaderSkill = { // 150
-  atk: ([_unknown, atk100], {ping, comboContainer}) => comboContainer.combos[COLORS[ping.attribute]].some((combo) => combo.count == 5 && combo.enhanced > 0) ? atk100 / 100 : 1,
+  atk: ([_unknown, atk100], { ping, comboContainer }) => comboContainer.combos[COLORS[ping.attribute]].some((combo) => combo.count == 5 && combo.enhanced > 0) ? atk100 / 100 : 1,
 };
 
 const atkRcvShieldFromHeartCross: LeaderSkill = { // 151
-  atk: ([atk100], {comboContainer}) => atk100 && comboContainer.combos['h'].some((c) => c.shape == Shape.CROSS) ? atk100 / 100 : 1,
-  rcvPost: ([_, rcv100], {comboContainer}) => rcv100 && comboContainer.combos['h'].some((c) => c.shape == Shape.CROSS) ? rcv100 / 100 : 1,
-  damageMult: ([_, _a, shield], {comboContainer}) => shield && comboContainer.combos['h'].some((c) => c.shape == Shape.CROSS) ? 1 - shield / 100 : 1,
+  atk: ([atk100], { comboContainer }) => atk100 && comboContainer.combos['h'].some((c) => c.shape == Shape.CROSS) ? atk100 / 100 : 1,
+  rcvPost: ([_, rcv100], { comboContainer }) => rcv100 && comboContainer.combos['h'].some((c) => c.shape == Shape.CROSS) ? rcv100 / 100 : 1,
+  damageMult: ([_, _a, shield], { comboContainer }) => shield && comboContainer.combos['h'].some((c) => c.shape == Shape.CROSS) ? 1 - shield / 100 : 1,
 };
 
 const baseStatFromAttrTypeMultiplayer: LeaderSkill = { // 155
@@ -615,7 +615,7 @@ const baseStatFromAttrTypeMultiplayer: LeaderSkill = { // 155
 };
 
 const atkScalingFromCross: LeaderSkill = { // 157
-  atk: (params, {comboContainer}) => {
+  atk: (params, { comboContainer }) => {
     let multiplier = 1;
     for (let i = 0; i + 1 < params.length; i += 2) {
       const count = comboContainer.combos[COLORS[params[i]]].filter((c) => c.shape == Shape.CROSS).length;
@@ -645,7 +645,7 @@ const baseStatFromAttrsTypesNoSkyfall: LeaderSkill = { // 163
 };
 
 const atkRcvScalingFromColorMatches: LeaderSkill = { // 164
-  atk: ([a, b, c, d, minMatch, atk100base, _, scale100], {comboContainer}) => {
+  atk: ([a, b, c, d, minMatch, atk100base, _, scale100], { comboContainer }) => {
     if (!atk100base) {
       return 1;
     }
@@ -664,7 +664,7 @@ const atkRcvScalingFromColorMatches: LeaderSkill = { // 164
     }
     return ((total - minMatch) * scale100 + atk100base) / 100;
   },
-  rcvPost: ([a, b, c, d, minMatch, _, rcv100base, scale100], {comboContainer}) => {
+  rcvPost: ([a, b, c, d, minMatch, _, rcv100base, scale100], { comboContainer }) => {
     if (!rcv100base) {
       return 1;
     }
@@ -687,7 +687,7 @@ const atkRcvScalingFromColorMatches: LeaderSkill = { // 164
 
 const atkRcvScalingFromUniqueColorMatches: LeaderSkill = { // 165
   atk: ([a, b, c, _, d, e], context) => (atkScalingFromUniqueColorMatches.atk || (() => 1))([a, b, c, d, e], context),
-  rcvPost: ([attrBits, minColors, _, rcv100base, scale100, maxColors], {team, comboContainer}) => {
+  rcvPost: ([attrBits, minColors, _, rcv100base, scale100, maxColors], { team, comboContainer }) => {
     maxColors = maxColors || minColors;
     scale100 = scale100 || 0;
     let count = countMatchedColors(attrBits, comboContainer, team);
@@ -703,7 +703,7 @@ const atkRcvScalingFromUniqueColorMatches: LeaderSkill = { // 165
 };
 
 const atkRcvScalingFromCombos: LeaderSkill = { // 166
-  atk: ([minCombo, atk100base, _, atk100scale, _a, maxCombo], {comboContainer}) => {
+  atk: ([minCombo, atk100base, _, atk100scale, _a, maxCombo], { comboContainer }) => {
     atk100scale = atk100scale || 0;
     maxCombo = maxCombo || minCombo;
 
@@ -716,7 +716,7 @@ const atkRcvScalingFromCombos: LeaderSkill = { // 166
     }
     return ((count - minCombo) * atk100scale + atk100base) / 100;
   },
-  rcvPost: ([minCombo, _, rcv100base, _a, rcv100scale, maxCombo], {comboContainer}) => {
+  rcvPost: ([minCombo, _, rcv100base, _a, rcv100scale, maxCombo], { comboContainer }) => {
     rcv100scale = rcv100scale || 0;
     maxCombo = maxCombo || minCombo;
 
@@ -732,7 +732,7 @@ const atkRcvScalingFromCombos: LeaderSkill = { // 166
 };
 
 const atkRcvScalingFromLinkedOrbs: LeaderSkill = { // 167
-  atk: ([attrBits, minLinked, atk100base, _, atk100scale, _a, maxLinked], {comboContainer}) => {
+  atk: ([attrBits, minLinked, atk100base, _, atk100scale, _a, maxLinked], { comboContainer }) => {
     if (!atk100base) {
       return 1;
     }
@@ -751,7 +751,7 @@ const atkRcvScalingFromLinkedOrbs: LeaderSkill = { // 167
     }
     return ((highest - minLinked) * atk100scale + atk100base) / 100;
   },
-  rcvPost: ([attrBits, minLinked, _, rcv100base, _a, rcv100scale, maxLinked], {comboContainer}) => {
+  rcvPost: ([attrBits, minLinked, _, rcv100base, _a, rcv100scale, maxLinked], { comboContainer }) => {
     if (!rcv100base) {
       return 1;
     }
@@ -773,17 +773,17 @@ const atkRcvScalingFromLinkedOrbs: LeaderSkill = { // 167
 };
 
 const atkShieldFromCombos: LeaderSkill = { // 169
-  atk: ([minCombos, atk100], {comboContainer}) => atk100 && comboContainer.comboCount() >= minCombos ? atk100 / 100 : 1,
-  damageMult: ([minCombos, _, shield], {comboContainer}) => shield && comboContainer.comboCount() >= minCombos ? 1 - shield / 100 : 1,
+  atk: ([minCombos, atk100], { comboContainer }) => atk100 && comboContainer.comboCount() >= minCombos ? atk100 / 100 : 1,
+  damageMult: ([minCombos, _, shield], { comboContainer }) => shield && comboContainer.comboCount() >= minCombos ? 1 - shield / 100 : 1,
 };
 
 const atkShieldFromColorMatches: LeaderSkill = { // 170
-  atk: ([attrBits, minMatch, atk100], {comboContainer, team}) => atk100 && countMatchedColors(attrBits, comboContainer, team) >= minMatch ? atk100 / 100 : 1,
-  damageMult: ([attrBits, minMatch, _, shield], {comboContainer, team}) => shield && countMatchedColors(attrBits, comboContainer, team) >= minMatch ? 1 - shield / 100 : 1,
+  atk: ([attrBits, minMatch, atk100], { comboContainer, team }) => atk100 && countMatchedColors(attrBits, comboContainer, team) >= minMatch ? atk100 / 100 : 1,
+  damageMult: ([attrBits, minMatch, _, shield], { comboContainer, team }) => shield && countMatchedColors(attrBits, comboContainer, team) >= minMatch ? 1 - shield / 100 : 1,
 };
 
 const atkShieldFromColorMatches2: LeaderSkill = { // 171
-  atk: ([a, b, c, d, minMatch, atk100], {comboContainer}) => {
+  atk: ([a, b, c, d, minMatch, atk100], { comboContainer }) => {
     if (!atk100) {
       return 1;
     }
@@ -797,7 +797,7 @@ const atkShieldFromColorMatches2: LeaderSkill = { // 171
     }
     return total >= minMatch ? atk100 : 1;
   },
-  damageMult: ([a, b, c, d, minMatch, _, shield], {comboContainer}) => {
+  damageMult: ([a, b, c, d, minMatch, _, shield], { comboContainer }) => {
     if (!shield) {
       return 1;
     }
@@ -814,13 +814,13 @@ const atkShieldFromColorMatches2: LeaderSkill = { // 171
 };
 
 const baseStatFromCollab: LeaderSkill = { // 175
-  hp: ([c1, c2, c3, hp100], {team}) => hp100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? hp100 / 100 : 1,
-  atk: ([c1, c2, c3, _, atk100], {team}) => atk100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? atk100 / 100 : 1,
-  rcv: ([c1, c2, c3, _, _a, rcv100], {team}) => rcv100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? rcv100 / 100 : 1,
+  hp: ([c1, c2, c3, hp100], { team }) => hp100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? hp100 / 100 : 1,
+  atk: ([c1, c2, c3, _, atk100], { team }) => atk100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? atk100 / 100 : 1,
+  rcv: ([c1, c2, c3, _, _a, rcv100], { team }) => rcv100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? rcv100 / 100 : 1,
 };
 
 const atkScalingFromOrbsRemaining: LeaderSkill = { // 177
-  atk: ([a, b, c, d, e, maxRemaining, atk100base, atk100scale], {comboContainer}) => {
+  atk: ([a, b, c, d, e, maxRemaining, atk100base, atk100scale], { comboContainer }) => {
     atk100scale = atk100scale || 0;
     const unknowns = [a, b, c, d, e].filter(Boolean);
     if (unknowns.length) {
@@ -854,7 +854,7 @@ const baseStatFromAttrsTypesFixedTime: LeaderSkill = { // 178
 };
 
 const atkShieldFromLinkedOrbs: LeaderSkill = { // 182
-  atk: ([attrBits, minMatched, atk100], {comboContainer}) => {
+  atk: ([attrBits, minMatched, atk100], { comboContainer }) => {
     if (!atk100) {
       return 1;
     }
@@ -866,7 +866,7 @@ const atkShieldFromLinkedOrbs: LeaderSkill = { // 182
     }
     return highest > minMatched ? atk100 / 100 : 1;
   },
-  damageMult: ([attrBits, minMatched, _, shield], {comboContainer}) => {
+  damageMult: ([attrBits, minMatched, _, shield], { comboContainer }) => {
     if (!shield) {
       return 1;
     }
@@ -881,8 +881,8 @@ const atkShieldFromLinkedOrbs: LeaderSkill = { // 182
 };
 
 const atkRcvShieldFromMultThresh: LeaderSkill = { // 183
-  atk: ([attrBits, typeBits, minThresh, aboveAtk100, _, maxThresh, belowAtk100], {ping, percentHp}) => {
-    if (!ping.source.anyAttributeTypeBits(attrBits, typeBits) || (!aboveAtk100 &&  !belowAtk100)) {
+  atk: ([attrBits, typeBits, minThresh, aboveAtk100, _, maxThresh, belowAtk100], { ping, percentHp }) => {
+    if (!ping.source.anyAttributeTypeBits(attrBits, typeBits) || (!aboveAtk100 && !belowAtk100)) {
       return 1;
     }
     maxThresh = maxThresh || 0;
@@ -896,13 +896,13 @@ const atkRcvShieldFromMultThresh: LeaderSkill = { // 183
     }
     return multiplier;
   },
-  rcvPost: ([attrBits, typeBits, _, _a, _b, maxThresh, _c, belowRcv100], {monster, percentHp}) => {
+  rcvPost: ([attrBits, typeBits, _, _a, _b, maxThresh, _c, belowRcv100], { monster, percentHp }) => {
     if (!maxThresh || !belowRcv100 || !monster.anyAttributeTypeBits(attrBits, typeBits)) {
       return 1;
     }
     return percentHp <= maxThresh ? belowRcv100 / 100 : 1;
   },
-  damageMult: ([_, _a, minThresh,_b, shield], {percentHp}) => {
+  damageMult: ([_, _a, minThresh, _b, shield], { percentHp }) => {
     return shield && percentHp <= minThresh ? 1 - shield / 100 : 1;
   },
 };
@@ -922,33 +922,33 @@ const baseStatFromAttrsTypesBigBoard: LeaderSkill = { // 186
 };
 
 const atkPlusCombosFromAllLinkedOrbs: LeaderSkill = { // 192
-  atk: ([attrBits, minLinked, atk100], {comboContainer}) => {
+  atk: ([attrBits, minLinked, atk100], { comboContainer }) => {
     if (!atk100) {
       return 1;
     }
     return idxsFromBits(attrBits)
-        .every((attr) => comboContainer.combos[COLORS[attr]]
-            .some((c) => c.count >= minLinked)) ? atk100 / 100 : 1;
+      .every((attr) => comboContainer.combos[COLORS[attr]]
+        .some((c) => c.count >= minLinked)) ? atk100 / 100 : 1;
   },
-  plusCombo: ([attrBits, minLinked, _, comboBonus], {comboContainer}) => {
+  plusCombo: ([attrBits, minLinked, _, comboBonus], { comboContainer }) => {
     if (!comboBonus) {
       return 1;
     }
     return idxsFromBits(attrBits)
-        .every((attr) => comboContainer.combos[COLORS[attr]]
-            .some((c) => c.count >= minLinked)) ? comboBonus : 0;
+      .every((attr) => comboContainer.combos[COLORS[attr]]
+        .some((c) => c.count >= minLinked)) ? comboBonus : 0;
   },
 };
 
 const atkRcvShieldFromLMatch: LeaderSkill = { // 193
-  atk: ([attrBits, atk100], {comboContainer}) => atk100 && idxsFromBits(attrBits).some((attr) => comboContainer.combos[COLORS[attr]].some((c) => c.shape == Shape.L)) ? atk100 / 100 : 1,
-  rcvPost: ([attrBits, _, rcv100], {comboContainer}) => rcv100 && idxsFromBits(attrBits).some((attr) => comboContainer.combos[COLORS[attr]].some((c) => c.shape == Shape.L)) ? rcv100 / 100 : 1,
-  damageMult: ([attrBits, _, _a, shield], {comboContainer}) => shield && idxsFromBits(attrBits).some((attr) => comboContainer.combos[COLORS[attr]].some((c) => c.shape == Shape.L)) ? 1 - shield / 100 : 1,
+  atk: ([attrBits, atk100], { comboContainer }) => atk100 && idxsFromBits(attrBits).some((attr) => comboContainer.combos[COLORS[attr]].some((c) => c.shape == Shape.L)) ? atk100 / 100 : 1,
+  rcvPost: ([attrBits, _, rcv100], { comboContainer }) => rcv100 && idxsFromBits(attrBits).some((attr) => comboContainer.combos[COLORS[attr]].some((c) => c.shape == Shape.L)) ? rcv100 / 100 : 1,
+  damageMult: ([attrBits, _, _a, shield], { comboContainer }) => shield && idxsFromBits(attrBits).some((attr) => comboContainer.combos[COLORS[attr]].some((c) => c.shape == Shape.L)) ? 1 - shield / 100 : 1,
 };
 
 const atkPlusCombosFromRainbow: LeaderSkill = { // 194
-  atk: ([attrBits, minColors, atk100], {comboContainer, team}) => atk100 && countMatchedColors(attrBits, comboContainer, team) > minColors ? atk100 / 100 : 1,
-  plusCombo: ([attrBits, minColors, _, comboBonus], {comboContainer, team}) => comboBonus && countMatchedColors(attrBits, comboContainer, team) > minColors ? comboBonus : 0,
+  atk: ([attrBits, minColors, atk100], { comboContainer, team }) => atk100 && countMatchedColors(attrBits, comboContainer, team) > minColors ? atk100 / 100 : 1,
+  plusCombo: ([attrBits, minColors, _, comboBonus], { comboContainer, team }) => comboBonus && countMatchedColors(attrBits, comboContainer, team) > minColors ? comboBonus : 0,
 };
 
 const disablePoisonDamage: LeaderSkill = { // 197
@@ -956,20 +956,20 @@ const disablePoisonDamage: LeaderSkill = { // 197
 };
 
 const atkShieldAwokenClearFromHealing: LeaderSkill = { // 198
-  atk: ([thresh, atk100], {healing}) => atk100 && healing >= thresh ? atk100 / 100 : 1,
-  damageMult: ([thresh, _, damageMult], {healing}) => damageMult && healing >= thresh ? damageMult / 100 : 1,
-  awokenBindClear: ([thresh, _, _a, awokenBindClear], {healing}) => awokenBindClear && healing >= thresh ? awokenBindClear : 0,
+  atk: ([thresh, atk100], { healing }) => atk100 && healing >= thresh ? atk100 / 100 : 1,
+  damageMult: ([thresh, _, damageMult], { healing }) => damageMult && healing >= thresh ? damageMult / 100 : 1,
+  awokenBindClear: ([thresh, _, _a, awokenBindClear], { healing }) => awokenBindClear && healing >= thresh ? awokenBindClear : 0,
 };
 
 const trueBonusFromColorMatches: LeaderSkill = { // 199
-  trueBonusAttack: ([attrBits, minMatch, trueDamage], {team, comboContainer}) => countMatchedColors(attrBits, comboContainer, team) >= minMatch ? trueDamage : 0,
+  trueBonusAttack: ([attrBits, minMatch, trueDamage], { team, comboContainer }) => countMatchedColors(attrBits, comboContainer, team) >= minMatch ? trueDamage : 0,
 };
 
 const trueBonusFromLinkedOrbs: LeaderSkill = { // 200
-  trueBonusAttack: ([attrBits, minLinked, trueDamage], {comboContainer}) => {
+  trueBonusAttack: ([attrBits, minLinked, trueDamage], { comboContainer }) => {
     return idxsFromBits(attrBits)
-        .some((attr) => comboContainer.combos[COLORS[attr]]
-            .some((c) => c.count >= minLinked)) ? trueDamage : 1;
+      .some((attr) => comboContainer.combos[COLORS[attr]]
+        .some((c) => c.count >= minLinked)) ? trueDamage : 1;
   },
 };
 
@@ -1082,7 +1082,7 @@ const LEADER_SKILL_GENERATORS: Record<number, LeaderSkill> = {
 // Functions for libraries to call directly.
 
 export function bigBoard(id: number): boolean {
-  const playerSkill = vm.model.playerSkills[id];
+  const playerSkill = floof.model.playerSkills[id];
 
   // Handle multiple leader skills.
   if (playerSkill.internalEffectId == 138) {
@@ -1092,7 +1092,7 @@ export function bigBoard(id: number): boolean {
 }
 
 export function noSkyfall(id: number): boolean {
-  const playerSkill = vm.model.playerSkills[id];
+  const playerSkill = floof.model.playerSkills[id];
 
   if (playerSkill.internalEffectId == 138) {
     return playerSkill.internalEffectArguments.some((i) => noSkyfall(i));
@@ -1101,7 +1101,7 @@ export function noSkyfall(id: number): boolean {
 }
 
 export function ignorePoison(id: number): boolean {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   // Handle multiple leader skills.
   if (internalEffectId == 138) {
@@ -1111,7 +1111,7 @@ export function ignorePoison(id: number): boolean {
 }
 
 export function drumEffect(id: number): boolean {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   // Handle multiple leader skills.
   if (internalEffectId == 138) {
@@ -1122,7 +1122,7 @@ export function drumEffect(id: number): boolean {
 }
 
 export function minOrbMatch(id: number): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return Math.max(...internalEffectArguments.map((i) => minOrbMatch(i)));
@@ -1132,7 +1132,7 @@ export function minOrbMatch(id: number): number {
 }
 
 export function resolve(id: number): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return Math.min(...internalEffectArguments.map((i) => resolve(i)));
@@ -1142,7 +1142,7 @@ export function resolve(id: number): number {
 }
 
 export function fixedTime(id: number): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     const times = internalEffectArguments.map((i) => fixedTime(i)).filter((t) => t > 0);
@@ -1153,132 +1153,132 @@ export function fixedTime(id: number): number {
 }
 
 export function timeExtend(id: number): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => timeExtend(i)).reduce(
-        (total: number, value: number) => total + value);
+      (total: number, value: number) => total + value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].timeExtend || (() => 0))(internalEffectArguments);
 }
 
 export function hp(id: number, context: HpContext): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => hp(i, context)).reduce(
-        (total: number, value: number) => total * value);
+      (total: number, value: number) => total * value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].hp || (() => 1))(internalEffectArguments, context);
 }
 
 export function atk(id: number, context: AttackContext): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => atk(i, context)).reduce(
-        (total: number, value: number) => total * value);
+      (total: number, value: number) => total * value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].atk || (() => 1))(internalEffectArguments, context);
 }
 
 export function rcv(id: number, context: RcvContext): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => rcv(i, context)).reduce(
-        (total: number, value: number) => total * value);
+      (total: number, value: number) => total * value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].rcv || (() => 1))(internalEffectArguments, context);
 }
 
 export function rcvPost(id: number, context: RcvPostContext): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => rcvPost(i, context)).reduce(
-        (total: number, value: number) => total * value);
+      (total: number, value: number) => total * value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].rcvPost || (() => 1))(internalEffectArguments, context);
 }
 
 export function damageMult(id: number, context: DamageMultContext): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => damageMult(i, context)).reduce(
-        (total: number, value: number) => total * value);
+      (total: number, value: number) => total * value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].damageMult || (() => 1))(internalEffectArguments, context);
 }
 
 export function plusCombo(id: number, context: PlusComboContext): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => plusCombo(i, context)).reduce(
-        (total: number, value: number) => total + value, 0);
+      (total: number, value: number) => total + value, 0);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].plusCombo || (() => 0))(internalEffectArguments, context);
 }
 
 export function drop(id: number): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => drop(i)).reduce(
-        (total: number, value: number) => total * value);
+      (total: number, value: number) => total * value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].drop || (() => 1))(internalEffectArguments);
 }
 
 export function coins(id: number): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => coins(i)).reduce(
-        (total: number, value: number) => total * value);
+      (total: number, value: number) => total * value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].coins || (() => 1))(internalEffectArguments);
 }
 
 export function exp(id: number): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => exp(i)).reduce(
-        (total: number, value: number) => total * value);
+      (total: number, value: number) => total * value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].exp || (() => 1))(internalEffectArguments);
 }
 
 export function autoHeal(id: number): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => autoHeal(i)).reduce(
-        (total: number, value: number) => total + value);
+      (total: number, value: number) => total + value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].autoHeal || (() => 0))(internalEffectArguments);
 }
 
 export function trueBonusAttack(id: number, context: TrueBonusAttackContext): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => trueBonusAttack(i, context)).reduce(
-        (total: number, value: number) => total + value);
+      (total: number, value: number) => total + value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].trueBonusAttack || (() => 0))(internalEffectArguments, context);
@@ -1286,36 +1286,37 @@ export function trueBonusAttack(id: number, context: TrueBonusAttackContext): nu
 }
 
 export function bonusAttack(id: number): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => bonusAttack(i)).reduce(
-        (total: number, value: number) => total + value);
+      (total: number, value: number) => total + value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].bonusAttack || (() => 0))(internalEffectArguments);
 }
 
-export function counter(id: number): {multiplier: number, attribute: Attribute} {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+export function counter(id: number): { multiplier: number, attribute: Attribute } {
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments
-        .map((i) => counter(i))
-        .reduce((aggregate, next) => ({
-            multiplier: aggregate.multiplier + next.multiplier,
-            attribute: Math.max(aggregate.attribute, next.attribute)}));
+      .map((i) => counter(i))
+      .reduce((aggregate, next) => ({
+        multiplier: aggregate.multiplier + next.multiplier,
+        attribute: Math.max(aggregate.attribute, next.attribute)
+      }));
   }
 
-  return (LEADER_SKILL_GENERATORS[internalEffectId].counter || (() => ({multiplier: 0, attribute: -1})))(internalEffectArguments);
+  return (LEADER_SKILL_GENERATORS[internalEffectId].counter || (() => ({ multiplier: 0, attribute: -1 })))(internalEffectArguments);
 }
 
 export function awokenBindClear(id: number, context: AwokenBindClearContext): number {
-  const {internalEffectId, internalEffectArguments} = vm.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => awokenBindClear(i, context)).reduce(
-        (total: number, value: number) => total + value);
+      (total: number, value: number) => total + value);
   }
 
   return (LEADER_SKILL_GENERATORS[internalEffectId].awokenBindClear || (() => 0))(internalEffectArguments, context);

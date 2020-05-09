@@ -7,11 +7,11 @@
  * compiling them here so that the structure is more consistent.
  */
 
-import {BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType} from './common';
-import {CardAssets, CardUiAssets, vm, Card} from './ilmina_stripped';
-import {fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch} from './fuzzy_search';
+import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType } from './common';
+import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
+import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
 
-// declare var vm: KnockoutVM;
+// declare var floof: KnockoutVM;
 // declare var CardAssets: CardAssetsInterface;
 // declare var CardUiAssets: CardUiAssetsInterface;
 
@@ -164,9 +164,9 @@ class MonsterIcon {
     }
 
     const classNames = [
-        ClassNames.ICON_PLUS, ClassNames.ICON_AWAKE,
-        '', ClassNames.ICON_SUPER,
-        ClassNames.ICON_LEVEL, ClassNames.ICON_ID];
+      ClassNames.ICON_PLUS, ClassNames.ICON_AWAKE,
+      '', ClassNames.ICON_SUPER,
+      ClassNames.ICON_LEVEL, ClassNames.ICON_ID];
     for (let i = 0; i < 3; i++) {
       const row = create('tr');
       for (let j = 0; j < 2; j++) {
@@ -194,7 +194,7 @@ class MonsterIcon {
   }
 
   update(id: number, plusses: number, awakening: number,
-      superAwakeningIdx: number, unavailableReason: string, level: number) {
+    superAwakeningIdx: number, unavailableReason: string, level: number) {
     this.id = id;
     if (id == -1) {
       hide(this.element);
@@ -206,7 +206,7 @@ class MonsterIcon {
     show(this.element);
     show(this.infoTable);
 
-    const card = vm.model.cards[id] || DEFAULT_CARD;
+    const card = floof.model.cards[id] || DEFAULT_CARD;
 
     const descriptor = CardAssets.getIconImageData(card);
     if (descriptor) {
@@ -215,7 +215,7 @@ class MonsterIcon {
       this.element.style.backgroundPosition = `-${descriptor.offsetX * TEAM_SCALING}px -${descriptor.offsetY * TEAM_SCALING}`;
     }
 
-    const attrDescriptor = CardUiAssets.getIconFrame(card.attribute, false, vm.model);
+    const attrDescriptor = CardUiAssets.getIconFrame(card.attribute, false, floof.model);
     if (attrDescriptor) {
       show(this.attributeEl);
       this.attributeEl.style.backgroundImage = `url(${attrDescriptor.url})`;
@@ -224,7 +224,7 @@ class MonsterIcon {
       hide(this.attributeEl);
     }
 
-    const subDescriptor = CardUiAssets.getIconFrame(card.subattribute, true, vm.model);
+    const subDescriptor = CardUiAssets.getIconFrame(card.subattribute, true, floof.model);
     if (subDescriptor) {
       show(this.subattributeEl);
       this.subattributeEl.style.backgroundImage = `url(${subDescriptor.url})`;
@@ -309,7 +309,7 @@ class MonsterInherit {
       return;
     }
 
-    const card = vm.model.cards[id] || DEFAULT_CARD;
+    const card = floof.model.cards[id] || DEFAULT_CARD;
     const desInherit = CardAssets.getIconImageData(card);
     if (desInherit) {
       show(this.icon);
@@ -319,7 +319,7 @@ class MonsterInherit {
     } else {
       hide(this.icon);
     }
-    const desAttr = CardUiAssets.getIconFrame(card.attribute, false, vm.model);
+    const desAttr = CardUiAssets.getIconFrame(card.attribute, false, floof.model);
     if (desAttr) {
       show(this.attr);
       this.attr.style.backgroundImage = `url(${desAttr.url})`;
@@ -327,7 +327,7 @@ class MonsterInherit {
     } else {
       hide(this.attr);
     }
-    const desSub = CardUiAssets.getIconFrame(card.subattribute, true, vm.model);
+    const desSub = CardUiAssets.getIconFrame(card.subattribute, true, floof.model);
     if (desSub) {
       show(this.attr);
       this.sub.style.backgroundImage = `url(${desSub.url})`;
@@ -438,8 +438,8 @@ class ComboEditor {
     return this.element;
   }
 
-  getInputElements(): Record<string, {shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement}[]> {
-    const out: Record<string, {shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement}[]> = {};
+  getInputElements(): Record<string, { shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement }[]> {
+    const out: Record<string, { shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement }[]> = {};
 
     for (const c of COLORS) {
       out[c] = [];
@@ -459,7 +459,7 @@ class ComboEditor {
     return out;
   }
 
-  update(data: Record<string, {shapeCount: string, enhance: number}[]>) {
+  update(data: Record<string, { shapeCount: string, enhance: number }[]>) {
     for (const c in data) {
       const vals = data[c];
       for (let i = 0; i < ComboEditor.maxVisibleCombos; i++) {
@@ -469,7 +469,7 @@ class ComboEditor {
           countEl.value = '';
           enhanceEl.value = '';
         } else {
-          const {shapeCount, enhance} = vals[i];
+          const { shapeCount, enhance } = vals[i];
           countEl.value = shapeCount;
           enhanceEl.value = enhance > 0 ? `${enhance}` : '';
         }
@@ -585,7 +585,7 @@ class GenericSelector<T> {
   protected selectedOption: number = 0;
   protected activeOptions: number = 0;
   protected updateCb: (value: number) => any;
-  protected searchArray: {s: string, value: T}[];
+  protected searchArray: { s: string, value: T }[];
 
   onKeyDown(): (e: KeyboardEvent) => any {
     return (e: KeyboardEvent) => {
@@ -669,7 +669,7 @@ class GenericSelector<T> {
     };
   }
 
-  constructor(searchArray: {s: string, value: T}[], updateCb: (value: number) => any) {
+  constructor(searchArray: { s: string, value: T }[], updateCb: (value: number) => any) {
     this.searchArray = searchArray;
     this.updateCb = updateCb;
 
@@ -711,7 +711,7 @@ class MonsterSelector extends GenericSelector<number> {
     if (id == -1) {
       return 'None';
     } else {
-      return vm.model.cards[id].name;
+      return floof.model.cards[id].name;
     }
   }
 
@@ -721,7 +721,7 @@ class MonsterSelector extends GenericSelector<number> {
 
   postFilter(matches: number[]): number[] {
     if (this.isInherit) {
-      return matches.filter((match) => vm.model.cards[match].inheritanceType & 1);
+      return matches.filter((match) => floof.model.cards[match].inheritanceType & 1);
     }
     return matches;
   }
@@ -729,9 +729,9 @@ class MonsterSelector extends GenericSelector<number> {
   constructor(cards: Card[], updateCb: OnMonsterUpdate, isInherit: boolean = false) {
     super([], (id: number) => {
       if (isInherit) {
-        updateCb({inheritId: id});
+        updateCb({ inheritId: id });
       } else {
-        updateCb({id: id});
+        updateCb({ id: id });
       }
     });
 
@@ -791,7 +791,7 @@ class LevelEditor {
       if (lv > this.maxLevel) {
         lv = this.maxLevel;
       }
-      this.onUpdate({level: lv});
+      this.onUpdate({ level: lv });
     };
     levelCell.appendChild(this.levelInput);
     levelCell.appendChild(this.maxLevelEl);
@@ -801,7 +801,7 @@ class LevelEditor {
     const monsterLevel1Button = create('button') as HTMLButtonElement;
     monsterLevel1Button.innerText = 'Lv1';
     monsterLevel1Button.onclick = () => {
-      this.onUpdate({level: 1});
+      this.onUpdate({ level: 1 });
     };
     monsterLevel1Cell.appendChild(monsterLevel1Button);
     monsterLevelRow.appendChild(monsterLevel1Cell);
@@ -810,7 +810,7 @@ class LevelEditor {
     const monsterLevelMaxButton = create('button') as HTMLButtonElement;
     monsterLevelMaxButton.innerText = 'Lv MAX';
     monsterLevelMaxButton.onclick = () => {
-      this.onUpdate({level: this.maxLevel});
+      this.onUpdate({ level: this.maxLevel });
     };
     monsterLevelMaxCell.appendChild(monsterLevelMaxButton);
     monsterLevelRow.appendChild(monsterLevelMaxCell);
@@ -825,7 +825,7 @@ class LevelEditor {
       if (lv > this.inheritMaxLevel) {
         lv = this.inheritMaxLevel;
       }
-      this.onUpdate({inheritLevel: lv});
+      this.onUpdate({ inheritLevel: lv });
     };
     inheritCell.appendChild(this.inheritInput);
     inheritCell.appendChild(this.inheritMaxLevelEl);
@@ -835,7 +835,7 @@ class LevelEditor {
     const inheritLevel1Button = create('button') as HTMLButtonElement;
     inheritLevel1Button.innerText = 'Lv1';
     inheritLevel1Button.onclick = () => {
-      this.onUpdate({inheritLevel: 1});
+      this.onUpdate({ inheritLevel: 1 });
     };
     inheritLevel1Cell.appendChild(inheritLevel1Button);
     this.inheritRow.appendChild(inheritLevel1Cell);
@@ -844,7 +844,7 @@ class LevelEditor {
     const inheritLevelMaxButton = create('button') as HTMLButtonElement;
     inheritLevelMaxButton.innerText = 'Lv MAX';
     inheritLevelMaxButton.onclick = () => {
-      this.onUpdate({inheritLevel: this.inheritMaxLevel});
+      this.onUpdate({ inheritLevel: this.inheritMaxLevel });
     };
     inheritLevelMaxCell.appendChild(inheritLevelMaxButton);
     this.inheritRow.appendChild(inheritLevelMaxCell);
@@ -860,8 +860,9 @@ class LevelEditor {
     return this.el;
   }
 
-  update({level, inheritLevel, maxLevel, inheritMaxLevel}: {
-    level: number, maxLevel: number, inheritLevel: number, inheritMaxLevel: number}) {
+  update({ level, inheritLevel, maxLevel, inheritMaxLevel }: {
+    level: number, maxLevel: number, inheritLevel: number, inheritMaxLevel: number
+  }) {
     this.maxLevel = maxLevel;
     this.maxLevelEl.data = `/ ${maxLevel}`;
 
@@ -924,28 +925,28 @@ class PlusEditor {
 
     this.hpEl.type = 'number';
     this.hpEl.onchange = () => {
-      this.onUpdate({hpPlus: Number(this.hpEl.value)});
+      this.onUpdate({ hpPlus: Number(this.hpEl.value) });
     };
     this.el.appendChild(document.createTextNode('HP+ '));
     this.el.appendChild(this.hpEl);
 
     this.atkEl.type = 'number';
     this.atkEl.onchange = () => {
-      this.onUpdate({atkPlus: Number(this.atkEl.value)});
+      this.onUpdate({ atkPlus: Number(this.atkEl.value) });
     };
     this.el.appendChild(document.createTextNode('ATK+ '));
     this.el.appendChild(this.atkEl);
 
     this.rcvEl.type = 'number';
     this.rcvEl.onchange = () => {
-      this.onUpdate({rcvPlus: Number(this.rcvEl.value)});
+      this.onUpdate({ rcvPlus: Number(this.rcvEl.value) });
     };
     this.el.appendChild(document.createTextNode('RCV+ '));
     this.el.appendChild(this.rcvEl);
 
     this.inheritEl.type = 'checkbox';
     this.inheritEl.onclick = () => {
-      this.onUpdate({inheritPlussed: this.inheritEl.checked});
+      this.onUpdate({ inheritPlussed: this.inheritEl.checked });
     };
   }
 
@@ -984,7 +985,7 @@ class AwakeningEditor {
     for (let i = 0; i < AwakeningEditor.MAX_AWAKENINGS; i++) {
       const el = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       el.onclick = () => {
-        this.onUpdate({awakeningLevel: i});
+        this.onUpdate({ awakeningLevel: i });
       };
       if (i > 0) {
         hide(el);
@@ -1010,7 +1011,7 @@ class AwakeningEditor {
     for (let i = 0; i < AwakeningEditor.MAX_AWAKENINGS; i++) {
       const el = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       el.onclick = () => {
-        this.onUpdate({superAwakeningIdx: i - 1});
+        this.onUpdate({ superAwakeningIdx: i - 1 });
       };
       if (i > 0) {
         hide(el);
@@ -1027,12 +1028,12 @@ class AwakeningEditor {
 
   // TODO
   update(
-      awakenings: Awakening[], // All awakenings of the current monster.
-      superAwakenings: Awakening[], // All super awakenings of the current monster.
-      inheritAwakenings: Awakening[], // All awakenings of the inherit monster.
-      awakeningLevel: number, // Current awakening level [0, awakenings.length]
-      superAwakeningIdx: number, // Current Super Awakening selected
-      inheritAwakeningLevel = -1) { // UNSUPPORTED RIGHT NOW.
+    awakenings: Awakening[], // All awakenings of the current monster.
+    superAwakenings: Awakening[], // All super awakenings of the current monster.
+    inheritAwakenings: Awakening[], // All awakenings of the inherit monster.
+    awakeningLevel: number, // Current awakening level [0, awakenings.length]
+    superAwakeningIdx: number, // Current Super Awakening selected
+    inheritAwakeningLevel = -1) { // UNSUPPORTED RIGHT NOW.
     if (awakeningLevel > awakenings.length) {
       awakeningLevel = awakenings.length;
     }
@@ -1113,7 +1114,7 @@ class LatentEditor {
       const remover = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       remover.style.backgroundPosition = '0px 0px';
       remover.onclick = () => {
-        this.onUpdate({removeLatent: i});
+        this.onUpdate({ removeLatent: i });
       }
       this.latentRemovers.push(remover);
       removerArea.appendChild(remover);
@@ -1139,7 +1140,7 @@ class LatentEditor {
       const offsetX = (j > 1 ? (80 * x + 2) : 36 * x - 36) * AwakeningEditor.SCALE;
       selector.style.backgroundPosition = `-${offsetX}px -${36 * j * AwakeningEditor.SCALE}px`;
       selector.onclick = () => {
-        this.onUpdate({addLatent: i});
+        this.onUpdate({ addLatent: i });
       };
       this.latentSelectors.push(selector);
       selectorArea.appendChild(selector);
@@ -1253,12 +1254,14 @@ class MonsterEditor {
     this.monsterSelector.setId(ctx.id);
     this.inheritSelector.setId(ctx.inheritId);
     let maxLevel = 1;
-    if (ctx.id in vm.model.cards) {
-      maxLevel = vm.model.cards[ctx.id].isLimitBreakable ? 110 : vm.model.cards[ctx.id].maxLevel;
+    if (ctx.id in floof.model.cards) {
+      maxLevel = floof.model.cards[ctx.id].isLimitBreakable ? 110 : floof.model.cards[ctx.id].maxLevel;
     }
     let inheritMaxLevel = 1;
-    if (ctx.inheritId in vm.model.cards) {
-      inheritMaxLevel = vm.model.cards[ctx.inheritId].isLimitBreakable ? 110 : vm.model.cards[ctx.id].maxLevel;
+    if (ctx.inheritId in floof.model.cards) {
+      inheritMaxLevel = floof.model.cards[ctx.inheritId].isLimitBreakable
+        ? 110
+        : floof.model.cards[ctx.inheritId].maxLevel;
     }
     this.levelEditor.update({
       level: ctx.level,
@@ -1271,12 +1274,12 @@ class MonsterEditor {
     let awakenings: Awakening[] = [];
     let superAwakenings: Awakening[] = [];
     let inheritAwakenings: Awakening[] = [];
-    if (ctx.id in vm.model.cards) {
-      awakenings = vm.model.cards[ctx.id].awakenings;
-      superAwakenings = vm.model.cards[ctx.id].superAwakenings;
+    if (ctx.id in floof.model.cards) {
+      awakenings = floof.model.cards[ctx.id].awakenings;
+      superAwakenings = floof.model.cards[ctx.id].superAwakenings;
     }
-    if (ctx.inheritId in vm.model.cards) {
-      inheritAwakenings = vm.model.cards[ctx.inheritId].awakenings;
+    if (ctx.inheritId in floof.model.cards) {
+      inheritAwakenings = floof.model.cards[ctx.inheritId].awakenings;
     }
     this.awakeningEditor.update(
       awakenings,
@@ -1288,13 +1291,13 @@ class MonsterEditor {
     );
 
     let latentKillers: Latent[] = [];
-    if (ctx.id in vm.model.cards) {
-      latentKillers = vm.model.cards[ctx.id].latentKillers;
+    if (ctx.id in floof.model.cards) {
+      latentKillers = floof.model.cards[ctx.id].latentKillers;
     }
     this.latentEditor.update(
       ctx.latents,
       latentKillers,
-      vm.model.cards[ctx.id].inheritanceType & 32 ? 8 : 6,
+      floof.model.cards[ctx.id].inheritanceType & 32 ? 8 : 6,
     );
   }
 
@@ -1370,7 +1373,7 @@ interface TeamUpdate {
 class TeamPane {
   element_: HTMLElement = create('div');
   teamDivs: HTMLDivElement[] = [];
-  monsterDivs: HTMLElement[] =  [];
+  monsterDivs: HTMLElement[] = [];
   titleEl: HTMLInputElement = create('input', ClassNames.TEAM_TITLE) as HTMLInputElement;
   descriptionEl: HTMLTextAreaElement = create('textarea', ClassNames.TEAM_DESCRIPTION) as HTMLTextAreaElement;
   statsEl: HTMLDivElement = create('div') as HTMLDivElement;
@@ -1384,17 +1387,17 @@ class TeamPane {
   private onTeamUpdate: (ctx: TeamUpdate) => any;
 
   constructor(
-      storageDisplay: HTMLElement,
-      monsterDivs: HTMLElement[],
-      onTeamUpdate: (ctx: TeamUpdate) => any,
-    ) {
-      this.onTeamUpdate = onTeamUpdate;
+    storageDisplay: HTMLElement,
+    monsterDivs: HTMLElement[],
+    onTeamUpdate: (ctx: TeamUpdate) => any,
+  ) {
+    this.onTeamUpdate = onTeamUpdate;
     const teamTab = this.metaTabs.getTab('Team');
 
     this.titleEl.placeholder = 'Team Name';
     teamTab.appendChild(this.titleEl);
     this.titleEl.onchange = () => {
-      this.onTeamUpdate({title: this.titleEl.value});
+      this.onTeamUpdate({ title: this.titleEl.value });
     };
 
     for (let i = 0; i < 3; i++) {
@@ -2410,7 +2413,7 @@ class TeamPane {
 //   const opponentImage = document.createElement('img');
 //   opponentImage.id = 'idc-battle-opponent-img';
 //   const enemyId = this.getActiveEnemy().id;
-//   opponentImage.src = CardAssets.getCroppedPortrait(vm.model.cards[(enemyId in vm.model.cards) ? enemyId : 4800]);
+//   opponentImage.src = CardAssets.getCroppedPortrait(floof.model.cards[(enemyId in floof.model.cards) ? enemyId : 4800]);
 //   opponentImage.style.maxWidth = '350px';
 //   opponentImage.style.display = 'block';
 //   opponentImage.style.marginLeft = 'auto';
@@ -2423,8 +2426,8 @@ class TeamPane {
 //   typeEl.style.marginLeft = 'auto';
 //   typeEl.style.marginRight = 'auto';
 //   typeEl.style.textAlign = 'center';
-//   if (enemyId in vm.model.cards) {
-//     typeEl.innerText = vm.model.cards[enemyId].types.map((t) => TypeToName[t]).join(' / ');
+//   if (enemyId in floof.model.cards) {
+//     typeEl.innerText = floof.model.cards[enemyId].types.map((t) => TypeToName[t]).join(' / ');
 //   }
 //   el.appendChild(typeEl);
 //
@@ -2442,13 +2445,13 @@ class TeamPane {
 // reloadBattleElement() {
 //   // Update image.
 //   let enemy = this.getActiveEnemy();
-//   if (!(enemy.id in vm.model.cards)) {
+//   if (!(enemy.id in floof.model.cards)) {
 //     enemy = new EnemyInstance();
 //     enemy.setId(4800);
 //   }
 //   document.getElementById('idc-battle-opponent-name').innerText = enemy.getCard().name;
 //   const opponentImage = document.getElementById('idc-battle-opponent-img');
-//   opponentImage.src = CardAssets.getCroppedPortrait(vm.model.cards[enemy.id]);
+//   opponentImage.src = CardAssets.getCroppedPortrait(floof.model.cards[enemy.id]);
 //
 //   const typeEl = document.getElementById('idc-enemy-type');
 //   typeEl.innerText = enemy.getCard().types.map((t) => TypeToName[t]).join(' / ');
@@ -2543,7 +2546,7 @@ class TeamPane {
 //     // const subColor = FontColors[activeTeam[i].getSubattribute()] ;
 //
 //     const idEl = document.getElementById(`idc-battle-damage-id-${i}`);
-//     idEl.innerText = activeTeam[i].id in vm.model.cards ? activeTeam[i].id : '-';
+//     idEl.innerText = activeTeam[i].id in floof.model.cards ? activeTeam[i].id : '-';
 //     const boundEl = document.getElementById(`idc-battle-damage-bound-${i}`);
 //     boundEl.checked = activeTeam[i].bound;
 //     const attrEl = document.getElementById(`idc-battle-damage-attr-${i}`);
@@ -2646,9 +2649,9 @@ class ToggleableImage {
   onToggle: (active: boolean) => any;
 
   constructor(
-      image: HTMLImageElement,
-      onToggle: (active: boolean) => any,
-      active: boolean = true) {
+    image: HTMLImageElement,
+    onToggle: (active: boolean) => any,
+    active: boolean = true) {
     this.element = image;
     this.onToggle = onToggle;
     this.setActive(active);
@@ -2675,7 +2678,7 @@ class ToggleableImage {
   }
 }
 
-type AssetInfoRecord = {offsetX: number, offsetY: number, width: number, height: number};
+type AssetInfoRecord = { offsetX: number, offsetY: number, width: number, height: number };
 enum AssetEnum {
   NUMBER_0 = 0,
   NUMBER_1,
@@ -2729,35 +2732,35 @@ enum AssetEnum {
 }
 
 const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
-  [AssetEnum.NUMBER_0, {offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_1, {offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_2, {offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_3, {offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_4, {offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_5, {offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_6, {offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_7, {offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_8, {offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_9, {offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.GUARD_BREAK, {offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36}],
-  [AssetEnum.TIME,        {offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36}],
-  [AssetEnum.POISON,      {offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36}],
-  [AssetEnum.ENRAGE,        {offsetY: 0, offsetX: 114, width: 36, height: 36}],
-  [AssetEnum.STATUS_SHIELD, {offsetY: 0, offsetX: 154, width: 36, height: 36}],
-  [AssetEnum.SKILL_BIND,  {offsetY: 40, offsetX: 141, width: 32, height: 32}],
-  [AssetEnum.AWOKEN_BIND, {offsetY: 73, offsetX: 140, width: 32, height: 32}],
-  [AssetEnum.RESOLVE, {offsetY: 144, offsetX: 132, width: 32, height: 32}],
-  [AssetEnum.BURST, {offsetY: 208, offsetX: 132, width: 32, height: 32}],
-  [AssetEnum.SHIELD_BASE, {offsetY: 55, offsetX: 326, width: 36, height: 36}],
-  [AssetEnum.FIRE_TRANSPARENT,  {offsetY: 288, offsetX: -2 + 32 * 0, width: 32, height: 32}],
-  [AssetEnum.WATER_TRANSPARENT, {offsetY: 288, offsetX: -2 + 32 * 1, width: 32, height: 32}],
-  [AssetEnum.WOOD_TRANSPARENT,  {offsetY: 288, offsetX: -2 + 32 * 2, width: 32, height: 32}],
-  [AssetEnum.LIGHT_TRANSPARENT, {offsetY: 288, offsetX: -2 + 32 * 3, width: 32, height: 32}],
-  [AssetEnum.DARK_TRANSPARENT,  {offsetY: 288, offsetX: -2 + 32 * 4, width: 32, height: 32}],
-  [AssetEnum.TWINKLE, {offsetY: 248, offsetX: 85, width: 36, height: 36}],
-  [AssetEnum.VOID_OVERLAY,   {offsetY: 49, offsetX: 372, width: 32, height: 32}],
-  [AssetEnum.ABSORB_OVERLAY, {offsetY: 49, offsetX: 452, width: 32, height: 32}],
-  [AssetEnum.FIXED_HP, {offsetY: 256, offsetX: 131, width: 32, height: 32}],
+  [AssetEnum.NUMBER_0, { offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_1, { offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_2, { offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_3, { offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_4, { offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_5, { offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_6, { offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_7, { offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_8, { offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_9, { offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.GUARD_BREAK, { offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36 }],
+  [AssetEnum.TIME, { offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36 }],
+  [AssetEnum.POISON, { offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36 }],
+  [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 114, width: 36, height: 36 }],
+  [AssetEnum.STATUS_SHIELD, { offsetY: 0, offsetX: 154, width: 36, height: 36 }],
+  [AssetEnum.SKILL_BIND, { offsetY: 40, offsetX: 141, width: 32, height: 32 }],
+  [AssetEnum.AWOKEN_BIND, { offsetY: 73, offsetX: 140, width: 32, height: 32 }],
+  [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
+  [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
+  [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 326, width: 36, height: 36 }],
+  [AssetEnum.FIRE_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 0, width: 32, height: 32 }],
+  [AssetEnum.WATER_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 1, width: 32, height: 32 }],
+  [AssetEnum.WOOD_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 2, width: 32, height: 32 }],
+  [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 3, width: 32, height: 32 }],
+  [AssetEnum.DARK_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 4, width: 32, height: 32 }],
+  [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36 }],
+  [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
+  [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
+  [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
   // [AssetEnum., {offsetY: , offsetX: , width: , height: }],
 ]);
 
@@ -2779,23 +2782,23 @@ class LayeredAsset {
     };
 
     this.elements = assets
-        .filter((asset) => ASSET_INFO.has(asset))
-        .map((asset) => {
-          const assetInfo = ASSET_INFO.get(asset);
-          const el = create('a') as HTMLAnchorElement;
-          if (assetInfo) {
-            el.style.width = String(assetInfo.width);
-            el.style.height = String(assetInfo.height);
-            if (assetInfo.width > maxSizes.width) {
-              maxSizes.width = assetInfo.width;
-            }
-            if (assetInfo.height > maxSizes.height) {
-              maxSizes.height = assetInfo.height;
-            }
-            el.style.backgroundImage = UI_ASSET_SRC;
-            el.style.backgroundPosition = `${-1 * assetInfo.offsetX} ${-1 * assetInfo.offsetY}`;
+      .filter((asset) => ASSET_INFO.has(asset))
+      .map((asset) => {
+        const assetInfo = ASSET_INFO.get(asset);
+        const el = create('a') as HTMLAnchorElement;
+        if (assetInfo) {
+          el.style.width = String(assetInfo.width);
+          el.style.height = String(assetInfo.height);
+          if (assetInfo.width > maxSizes.width) {
+            maxSizes.width = assetInfo.width;
           }
-          return el;
+          if (assetInfo.height > maxSizes.height) {
+            maxSizes.height = assetInfo.height;
+          }
+          el.style.backgroundImage = UI_ASSET_SRC;
+          el.style.backgroundPosition = `${-1 * assetInfo.offsetX} ${-1 * assetInfo.offsetY}`;
+        }
+        return el;
       });
     // Manually center each of these.
     for (const el of this.elements) {
@@ -2849,14 +2852,14 @@ class MonsterTypeEl {
     this.setType(monsterType);
   }
 
-  private getTypeOffsets(): {offsetX: number, offsetY: number} {
-    const {offsetX, offsetY} = CardAssets.getTypeImageData(Number(this.type));
-    return {offsetX, offsetY};
+  private getTypeOffsets(): { offsetX: number, offsetY: number } {
+    const { offsetX, offsetY } = CardAssets.getTypeImageData(Number(this.type));
+    return { offsetX, offsetY };
   }
 
   setType(type: MonsterType) {
     this.type = type;
-    const {offsetX, offsetY} = this.getTypeOffsets();
+    const { offsetX, offsetY } = this.getTypeOffsets();
     this.element.style.backgroundPosition = `-${offsetX} -${offsetY}`;
   }
 
@@ -2890,11 +2893,11 @@ class DungeonEditor {
   activeEnemyIdx: number = 0;
   dungeonSelector: GenericSelector<number>;
 
-  constructor(dungeonNames: {s: string, value: number}[], onUpdate: OnDungeonUpdate) {
+  constructor(dungeonNames: { s: string, value: number }[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
     this.element.appendChild(document.createTextNode('Dungeon Editor Area Placeholder'));
     this.dungeonSelector = new GenericSelector<number>(dungeonNames, (id: number) => {
-      this.onUpdate({loadDungeon: id});
+      this.onUpdate({ loadDungeon: id });
     });
     this.element.appendChild(this.dungeonSelector.getElement());
 
@@ -2904,7 +2907,7 @@ class DungeonEditor {
     this.element.appendChild(create('br'));
     this.addFloorBtn.innerText = 'Add Floor';
     this.addFloorBtn.onclick = () => {
-      this.onUpdate({addFloor: true});
+      this.onUpdate({ addFloor: true });
     };
     this.element.appendChild(this.addFloorBtn);
 
@@ -2912,11 +2915,11 @@ class DungeonEditor {
 
     this.setupDungeonMultiplierTable();
 
-    this.monsterSelector = new MonsterSelector(prioritizedEnemySearch, ({id}: MonsterUpdate) => {
+    this.monsterSelector = new MonsterSelector(prioritizedEnemySearch, ({ id }: MonsterUpdate) => {
       if (!id) {
         return;
       }
-      this.onUpdate({activeEnemyId: id});
+      this.onUpdate({ activeEnemyId: id });
     });
 
     this.element.appendChild(this.enemyPicture.getElement());
@@ -2948,13 +2951,13 @@ class DungeonEditor {
     defRow.appendChild(this.dungeonDefInput);
 
     this.dungeonHpInput.onchange = () => {
-      this.onUpdate({dungeonHpMultiplier: this.dungeonHpInput.value});
+      this.onUpdate({ dungeonHpMultiplier: this.dungeonHpInput.value });
     };
     this.dungeonAtkInput.onchange = () => {
-      this.onUpdate({dungeonAtkMultiplier: this.dungeonAtkInput.value});
+      this.onUpdate({ dungeonAtkMultiplier: this.dungeonAtkInput.value });
     };
     this.dungeonDefInput.onchange = () => {
-      this.onUpdate({dungeonDefMultiplier: this.dungeonDefInput.value});
+      this.onUpdate({ dungeonDefMultiplier: this.dungeonDefInput.value });
     };
 
     multiplierTable.appendChild(hpRow);
@@ -3036,60 +3039,60 @@ class DungeonEditor {
       const t = (i as unknown) as MonsterType;
       const typeImage = new MonsterTypeEl(t as MonsterType);
       const typeToggle = new ToggleableImage(
-          typeImage.getElement(),
-          (active: boolean) => {
-            if (active) {
-              this.onUpdate({addTypeResist: t});
-            } else {
-              this.onUpdate({removeTypeResist: t});
-            }
-          },
-          false);
+        typeImage.getElement(),
+        (active: boolean) => {
+          if (active) {
+            this.onUpdate({ addTypeResist: t });
+          } else {
+            this.onUpdate({ removeTypeResist: t });
+          }
+        },
+        false);
       this.enemyResistTypesInputs.set(t, typeToggle);
       resistTypesCell.appendChild(typeImage.getElement());
     }
 
     const fire = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.FIRE_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.FIRE});
+        this.onUpdate({ addAttrResist: Attribute.FIRE });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.FIRE});
+        this.onUpdate({ removeAttrResist: Attribute.FIRE });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.FIRE, fire);
     resistAttrCell.appendChild(fire.getElement());
     const water = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WATER_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.WATER});
+        this.onUpdate({ addAttrResist: Attribute.WATER });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.WATER});
+        this.onUpdate({ removeAttrResist: Attribute.WATER });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.WATER, water);
     resistAttrCell.appendChild(water.getElement());
     const wood = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WOOD_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.WOOD});
+        this.onUpdate({ addAttrResist: Attribute.WOOD });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.WOOD});
+        this.onUpdate({ removeAttrResist: Attribute.WOOD });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.WOOD, wood);
     resistAttrCell.appendChild(wood.getElement());
     const light = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.LIGHT_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.LIGHT});
+        this.onUpdate({ addAttrResist: Attribute.LIGHT });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.LIGHT});
+        this.onUpdate({ removeAttrResist: Attribute.LIGHT });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.LIGHT, light);
     resistAttrCell.appendChild(light.getElement());
     const dark = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.DARK_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.DARK});
+        this.onUpdate({ addAttrResist: Attribute.DARK });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.DARK});
+        this.onUpdate({ removeAttrResist: Attribute.DARK });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.DARK, dark);
@@ -3115,7 +3118,7 @@ class DungeonEditor {
       if (v > 100) {
         v = 100;
       }
-      this.onUpdate({enemyLevel: v});
+      this.onUpdate({ enemyLevel: v });
     };
 
     statTable.appendChild(lvRow);
@@ -3139,7 +3142,7 @@ class DungeonEditor {
     const deleteFloorBtn = create('button', ClassNames.FLOOR_DELETE) as HTMLButtonElement;
     deleteFloorBtn.innerText = '[-]';
     deleteFloorBtn.onclick = () => {
-      this.onUpdate({removeFloor: floorIdx});
+      this.onUpdate({ removeFloor: floorIdx });
     };
     floor.appendChild(label);
     label.appendChild(deleteFloorBtn);
@@ -3147,7 +3150,7 @@ class DungeonEditor {
     const addEnemyBtn = create('button', ClassNames.FLOOR_ENEMY_ADD) as HTMLButtonElement;
     addEnemyBtn.innerText = '+';
     addEnemyBtn.onclick = () => {
-      this.onUpdate({activeFloor: floorIdx, addEnemy: true});
+      this.onUpdate({ activeFloor: floorIdx, addEnemy: true });
     }
     this.addEnemyBtns.push(addEnemyBtn);
     floor.appendChild(addEnemyBtn);
@@ -3165,7 +3168,7 @@ class DungeonEditor {
     this.dungeonEnemies[floorIdx].push(enemy);
     const enemyIdx = this.dungeonEnemies[floorIdx].length - 1;
     enemy.getElement().onclick = () => {
-      this.onUpdate({activeFloor: floorIdx, activeEnemy: enemyIdx});
+      this.onUpdate({ activeFloor: floorIdx, activeEnemy: enemyIdx });
     }
     const node = this.addEnemyBtns[floorIdx].parentNode;
     if (node) {
@@ -3179,7 +3182,7 @@ class DungeonEditor {
         let el = this.dungeonEnemies[i][j].getElement();
         if (i == floor && j == monster) {
           el.className = ClassNames.ICON_SELECTED;
-          el.scrollIntoView({block: 'nearest'});
+          el.scrollIntoView({ block: 'nearest' });
           const id = this.dungeonEnemies[i][j].id;
           this.enemyPicture.update(id, 0, 0, -1, '', 0);
           this.monsterSelector.setId(id);
@@ -3219,14 +3222,14 @@ class DungeonEditor {
   }
 
   setEnemyStats(
-      lv: number,
-      hp: number,
-      atk: number,
-      def: number,
-      resolve: number,
-      typeResists: {types: MonsterType[], percent: number},
-      attrResists: {attrs: Attribute[], percent: number},
-    ) {
+    lv: number,
+    hp: number,
+    atk: number,
+    def: number,
+    resolve: number,
+    typeResists: { types: MonsterType[], percent: number },
+    attrResists: { attrs: Attribute[], percent: number },
+  ) {
     this.enemyLevelInput.value = String(lv);
     this.enemyHpInput.value = String(hp);
     this.enemyAtkInput.value = String(atk);
@@ -3261,7 +3264,7 @@ class DungeonPane {
   tabs: TabbedComponent = new TabbedComponent(['Dungeon', 'Editor', 'Save/Load']);
   onUpdate: OnDungeonUpdate;
 
-  constructor(dungeonNames: {s: string, value: number}[], onUpdate: OnDungeonUpdate) {
+  constructor(dungeonNames: { s: string, value: number }[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
 
     this.dungeonEditor = new DungeonEditor(dungeonNames, onUpdate);

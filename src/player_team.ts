@@ -1,7 +1,7 @@
-import {Attribute, MonsterType, Awakening, Latent} from './common';
-import {MonsterInstance, MonsterJson} from './monster_instance';
-import {StoredTeamDisplay, TeamPane, TeamUpdate, Stats} from './templates';
-import {vm, compress, decompress} from './ilmina_stripped';
+import { Attribute, MonsterType, Awakening, Latent } from './common';
+import { MonsterInstance, MonsterJson } from './monster_instance';
+import { StoredTeamDisplay, TeamPane, TeamUpdate, Stats } from './templates';
+import { floof, compress, decompress } from './ilmina_stripped';
 import * as leaders from './leaders';
 
 interface Burst {
@@ -36,8 +36,8 @@ const DEFAULT_STATE: TeamState = {
   skillUsed: true,
   shieldPercent: 0,
   attributesShielded: [
-      Attribute.FIRE, Attribute.WATER, Attribute.WOOD,
-      Attribute.LIGHT, Attribute.DARK],
+    Attribute.FIRE, Attribute.WATER, Attribute.WOOD,
+    Attribute.LIGHT, Attribute.DARK],
   burst: {
     attrRestrictions: [],
     typeRestrictions: [],
@@ -251,31 +251,31 @@ class Team {
         teamStrings[i] = defaultMonster;
       }
       let monsterStrings = teamStrings[i].split('/')
-          .map((s: string): string => s.trim())
-          .reduce((allStrings: string[], monsterString: string) => {
-            const multiply = monsterString.match(multiplierRegex);
-            let count = 1;
-            if (multiply) {
-              count = Number(multiply[0][multiply[0].length - 1]);
-              monsterString = monsterString.substring(0, multiply.index);
-            }
-            for (let j = 0; j < count; j++) {
-              allStrings = allStrings.concat([monsterString])
-            }
-            return allStrings;
-          }, []);
+        .map((s: string): string => s.trim())
+        .reduce((allStrings: string[], monsterString: string) => {
+          const multiply = monsterString.match(multiplierRegex);
+          let count = 1;
+          if (multiply) {
+            count = Number(multiply[0][multiply[0].length - 1]);
+            monsterString = monsterString.substring(0, multiply.index);
+          }
+          for (let j = 0; j < count; j++) {
+            allStrings = allStrings.concat([monsterString])
+          }
+          return allStrings;
+        }, []);
       if (this.playerMode == 2) {
         if (monsterStrings.length > 5) {
           monsterStrings.length = 5;
         }
-        while(monsterStrings.length < 5) {
+        while (monsterStrings.length < 5) {
           monsterStrings.push(defaultMonster);
         }
       } else {
         if (monsterStrings.length > 6) {
           monsterStrings.length = 6;
         }
-        while(monsterStrings.length < 6) {
+        while (monsterStrings.length < 6) {
           monsterStrings.push(defaultMonster);
         }
       }
@@ -385,7 +385,7 @@ class Team {
   getMonsterIdx(teamIdx: number, localIdx: number): number {
     let idx = 6 * teamIdx + localIdx;
     if (this.playerMode == 2 &&
-        ((teamIdx == 0 && localIdx == 5) || (teamIdx == 1 && localIdx == 5))) {
+      ((teamIdx == 0 && localIdx == 5) || (teamIdx == 1 && localIdx == 5))) {
       idx = (1 - teamIdx) * 6;
     }
     return idx;
@@ -510,7 +510,7 @@ class Team {
 
   getBoardWidth(): number {
     const monsterGroupsToCheck: MonsterInstance[][] = [[this.monsters[0]]];
-    switch(this.playerMode) {
+    switch (this.playerMode) {
       case 1:
         monsterGroupsToCheck[0].push(this.monsters[5]);
         break;
@@ -570,14 +570,14 @@ class Team {
       const card = monster.getCard();
       let baseCd = 0;
       if (card.activeSkillId > 0) {
-        baseCd = vm.model.playerSkills[card.activeSkillId].maxCooldown;
+        baseCd = floof.model.playerSkills[card.activeSkillId].maxCooldown;
       }
 
       let inheritCd = 0;
 
       const inheritCard = monster.getInheritCard();
       if (inheritCard && inheritCard.activeSkillId > 0) {
-        inheritCd = vm.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
+        inheritCd = floof.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
       }
 
       if (baseCd && inheritCd) {
@@ -598,7 +598,7 @@ class Team {
       this.countAwakening(Awakening.SKILL_BOOST) +
       2 * this.countAwakening(Awakening.SKILL_BOOST_PLUS));
     counts.set(Awakening.TIME, this.countAwakening(Awakening.TIME) +
-        2 * this.countAwakening(Awakening.TIME_PLUS));
+      2 * this.countAwakening(Awakening.TIME_PLUS));
     counts.set(Awakening.SOLOBOOST, this.countAwakening(Awakening.SOLOBOOST));
     counts.set(Awakening.BONUS_ATTACK, this.countAwakening(Awakening.BONUS_ATTACK));
     counts.set(Awakening.BONUS_ATTACK_SUPER, this.countAwakening(Awakening.BONUS_ATTACK_SUPER));

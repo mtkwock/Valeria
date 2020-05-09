@@ -1,6 +1,4 @@
-import {vm, Card} from './ilmina_stripped';
-
-// declare var vm: KnockoutVM;
+import { Card } from './ilmina_stripped';
 
 // 3 is red and blue
 // 1 red
@@ -38,12 +36,12 @@ function idxsFromBits(bits: number): number[] {
 }
 
 enum Attribute {
-  FIRE  = 0,
+  FIRE = 0,
   WATER = 1,
-  WOOD  = 2,
+  WOOD = 2,
   LIGHT = 3,
-  DARK  = 4,
-  NONE  = -1,
+  DARK = 4,
+  NONE = -1,
 }
 
 const AttributeToName = new Map<Attribute, string>();
@@ -262,5 +260,4 @@ export {
   idxsFromBits,
   numberWithCommas,
   Round,
-  vm,
 };
