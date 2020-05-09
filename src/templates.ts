@@ -97,6 +97,7 @@ enum ClassNames {
   FLOOR_ENEMY = 'valeria-floor-enemy',
   FLOOR_ENEMY_ADD = 'valeria-floor-enemy-add',
   FLOOR_ENEMY_DELETE = 'valeria-floor-delete',
+  ENEMY_STAT_TABLE = 'valeria-enemy-stat-table',
 
   VALERIA = 'valeria',
 }
@@ -151,9 +152,10 @@ class MonsterIcon {
   subattributeEl: HTMLElement = create('a', ClassNames.ICON_SUB);
   infoTable: HTMLElement = create('table', ClassNames.ICON_INFO);
   hideInfoTable: boolean = false;
+  swapIcon: LayeredAsset;
   id: number = -1;
 
-  constructor(hideInfoTable: boolean = false) {
+  constructor(hideInfoTable: boolean = false, showSwap: boolean = false) {
     this.hideInfoTable = hideInfoTable;
     if (this.hideInfoTable) {
       hide(this.infoTable);
@@ -183,16 +185,35 @@ class MonsterIcon {
     this.element.appendChild(this.attributeEl);
     this.attributeEl.appendChild(this.subattributeEl);
     this.element.appendChild(this.infoTable);
+    this.swapIcon = new LayeredAsset([AssetEnum.SWAP], (active: boolean) => { console.log(active); }, true);
+    const swapElement = this.swapIcon.getElement();
+    swapElement.style.position = 'relative';
+    swapElement.style.bottom = '103px';
+    this.element.appendChild(this.swapIcon.getElement());
+    if (!showSwap) {
+      swapElement.style.display = 'none';
+    }
   }
 
   getElement(): HTMLElement {
     return this.element;
   }
 
-  update(id: number, plusses: number, awakening: number,
-    superAwakeningIdx: number, unavailableReason: string, level: number) {
-    this.id = id;
-    if (id == -1) {
+  updateId(id: number) {
+    this.update({ id, plusses: 0, awakening: 0, superAwakeningIdx: -1, unavailableReason: '', level: 0, showSwap: false });
+  }
+
+  update(d: {
+    id: number,
+    plusses: number,
+    awakening: number,
+    superAwakeningIdx: number,
+    unavailableReason: string,
+    level: number,
+    showSwap: boolean,
+  }) {
+    this.id = d.id;
+    if (d.id == -1) {
       hide(this.element);
       hide(this.attributeEl);
       hide(this.subattributeEl);
@@ -202,7 +223,7 @@ class MonsterIcon {
     show(this.element);
     show(this.infoTable);
 
-    const card = floof.model.cards[id] || DEFAULT_CARD;
+    const card = floof.model.cards[d.id] || DEFAULT_CARD;
 
     const descriptor = CardAssets.getIconImageData(card);
     if (descriptor) {
@@ -230,34 +251,36 @@ class MonsterIcon {
     }
 
     const plusEl = this.element.getElementsByClassName(ClassNames.ICON_PLUS)[0] as HTMLElement;
-    if (plusses) {
+    if (d.plusses) {
       show(plusEl);
-      plusEl.innerText = `+${plusses}`;
+      plusEl.innerText = `+${d.plusses}`;
     } else {
       hide(plusEl);
     }
 
     const awakeningEl = this.element.getElementsByClassName(ClassNames.ICON_AWAKE)[0] as HTMLElement;
-    if (awakening != 0) {
+    if (d.awakening != 0) {
       show(awakeningEl);
-      awakeningEl.innerText = `(${awakening})`;
+      awakeningEl.innerText = `(${d.awakening})`;
     } else {
       hide(awakeningEl);
     }
 
     const superAwakeningEl = this.element.getElementsByClassName(ClassNames.ICON_SUPER)[0] as HTMLElement;
-    if (superAwakeningIdx >= 0) {
+    if (d.superAwakeningIdx >= 0) {
       show(superAwakeningEl);
-      updateAwakening(superAwakeningEl, card.superAwakenings[superAwakeningIdx], 0.5, unavailableReason);
+      updateAwakening(superAwakeningEl, card.superAwakenings[d.superAwakeningIdx], 0.5, d.unavailableReason);
     } else {
       hide(superAwakeningEl);
     }
 
     const levelEl = this.element.getElementsByClassName(ClassNames.ICON_LEVEL)[0] as HTMLElement;
-    levelEl.innerText = `Lv${level}`;
+    levelEl.innerText = `Lv${d.level}`;
 
     const idEl = this.element.getElementsByClassName(ClassNames.ICON_ID)[0] as HTMLElement;
-    idEl.innerText = `${id}`;
+    idEl.innerText = `${d.id}`;
+
+    this.swapIcon.getElement().style.display = d.showSwap ? '' : 'none';
   }
 }
 
@@ -1381,6 +1404,7 @@ class TeamPane {
   private metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load']);
   private detailTabs: TabbedComponent = new TabbedComponent(['Description', 'Stats', 'Battle']);
   private onTeamUpdate: (ctx: TeamUpdate) => any;
+  // private leadSwaps: number[] = [0, 0, 0];
 
   constructor(
     storageDisplay: HTMLElement,
@@ -2640,21 +2664,21 @@ interface DungeonUpdate {
 type OnDungeonUpdate = (ctx: DungeonUpdate) => any;
 
 class ToggleableImage {
-  element: HTMLImageElement;
+  element: HTMLElement;
   active: boolean = true;
   onToggle: (active: boolean) => any;
 
   constructor(
-    image: HTMLImageElement,
+    el: HTMLElement,
     onToggle: (active: boolean) => any,
     active: boolean = true) {
-    this.element = image;
+    this.element = el;
     this.onToggle = onToggle;
     this.setActive(active);
-    const oldOnClick = image.onclick;
-    image.onclick = (ev) => {
+    const oldOnClick = el.onclick;
+    el.onclick = (ev) => {
       if (oldOnClick) {
-        oldOnClick.apply(image, [ev]);
+        oldOnClick.apply(el, [ev]);
       }
       this.onToggle(!this.active);
     }
@@ -2725,6 +2749,8 @@ enum AssetEnum {
   // Overlays SHIELD_BASES for Damage Absorb.
   ABSORB_OVERLAY,
   // DAMAGE_NULL,
+
+  SWAP,
 }
 
 const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
@@ -2757,6 +2783,7 @@ const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
   [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
   [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
   [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
+  [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
   // [AssetEnum., {offsetY: , offsetX: , width: , height: }],
 ]);
 
@@ -2841,7 +2868,7 @@ class LayeredAsset {
 }
 
 class MonsterTypeEl {
-  element: HTMLImageElement = create('img', ClassNames.MONSTER_TYPE) as HTMLImageElement;
+  element: HTMLAnchorElement = create('a', ClassNames.MONSTER_TYPE) as HTMLAnchorElement;
   type: MonsterType = MonsterType.NONE;
 
   constructor(monsterType: MonsterType) {
@@ -2859,7 +2886,7 @@ class MonsterTypeEl {
     this.element.style.backgroundPosition = `-${offsetX} -${offsetY}`;
   }
 
-  getElement(): HTMLImageElement {
+  getElement(): HTMLAnchorElement {
     return this.element;
   }
 }
@@ -2884,7 +2911,9 @@ class DungeonEditor {
   enemyDefInput: HTMLInputElement = create('input') as HTMLInputElement;
   enemyResolveInput: HTMLInputElement = create('input') as HTMLInputElement;
   enemyResistTypesInputs: Map<MonsterType, ToggleableImage> = new Map();
+  enemyResistTypePercentInput: HTMLInputElement = create('input') as HTMLInputElement;
   enemyResistAttrInputs: Map<Attribute, LayeredAsset> = new Map();
+  enemyResistAttrPercentInput: HTMLInputElement = create('input') as HTMLInputElement;
   activeFloorIdx: number = 0;
   activeEnemyIdx: number = 0;
   dungeonSelector: GenericSelector<number>;
@@ -2925,7 +2954,7 @@ class DungeonEditor {
   }
 
   private setupDungeonMultiplierTable() {
-    const multiplierTable = create('table') as HTMLTableElement;
+    const multiplierTable = create('table', ClassNames.ENEMY_STAT_TABLE) as HTMLTableElement;
     const hpRow = create('tr') as HTMLTableRowElement;
     const atkRow = create('tr') as HTMLTableRowElement;
     const defRow = create('tr') as HTMLTableRowElement;
@@ -2970,25 +2999,31 @@ class DungeonEditor {
   }
 
   private setupEnemyStatTable() {
-    const statTable = create('table') as HTMLTableElement;
+    const statTable = create('table', ClassNames.ENEMY_STAT_TABLE) as HTMLTableElement;
     const lvRow = create('tr') as HTMLTableRowElement;
     const hpRow = create('tr') as HTMLTableRowElement;
     const atkRow = create('tr') as HTMLTableRowElement;
     const defRow = create('tr') as HTMLTableRowElement;
     const resolveRow = create('tr') as HTMLTableRowElement;
     const resistTypesRow = create('tr') as HTMLTableRowElement;
+    const resistTypePercentRow = create('tr') as HTMLTableRowElement;
     const resistAttrRow = create('tr') as HTMLTableRowElement;
+    const resistAttrPercentRow = create('tr') as HTMLTableRowElement;
 
     this.enemyLevelInput.type = 'number';
     this.enemyHpInput.type = 'number';
     this.enemyAtkInput.type = 'number';
     this.enemyDefInput.type = 'number';
     this.enemyResolveInput.type = 'number';
+    this.enemyResistTypePercentInput.type = 'number';
+    this.enemyResistAttrPercentInput.type = 'number';
 
     this.enemyHpInput.disabled = true;
     this.enemyAtkInput.disabled = true;
     this.enemyDefInput.disabled = true;
     this.enemyResolveInput.disabled = true;
+    this.enemyResistTypePercentInput.disabled = true;
+    this.enemyResistAttrPercentInput.disabled = true;
 
     const lvLabel = create('td') as HTMLTableCellElement;
     const hpLabel = create('td') as HTMLTableCellElement;
@@ -2996,15 +3031,19 @@ class DungeonEditor {
     const defLabel = create('td') as HTMLTableCellElement;
     const resolveLabel = create('td') as HTMLTableCellElement;
     const resistTypesLabel = create('td') as HTMLTableCellElement;
+    const resistTypePercentLabel = create('td') as HTMLTableCellElement;
     const resistAttrLabel = create('td') as HTMLTableCellElement;
+    const resistAttrPercentLabel = create('td') as HTMLTableCellElement;
 
     lvLabel.innerText = 'Level';
     hpLabel.innerText = 'Health';
     atkLabel.innerText = 'Attack';
     defLabel.innerText = 'Defense';
-    resolveLabel.innerText = 'Resolve';
+    resolveLabel.innerText = 'Resolve %';
     resistTypesLabel.innerText = 'Resist Type';
+    resistTypePercentLabel.innerText = '% Resist';
     resistAttrLabel.innerText = 'Resist Attr';
+    resistAttrPercentLabel.innerText = '% Resist';
 
     lvRow.appendChild(lvLabel);
     hpRow.appendChild(hpLabel);
@@ -3012,7 +3051,9 @@ class DungeonEditor {
     defRow.appendChild(defLabel);
     resolveRow.appendChild(resolveLabel);
     resistTypesRow.appendChild(resistTypesLabel);
+    resistTypePercentRow.appendChild(resistTypePercentLabel);
     resistAttrRow.appendChild(resistAttrLabel);
+    resistAttrPercentRow.appendChild(resistAttrPercentLabel);
 
     const lvCell = create('td') as HTMLTableCellElement;
     const hpCell = create('td') as HTMLTableCellElement;
@@ -3020,17 +3061,27 @@ class DungeonEditor {
     const defCell = create('td') as HTMLTableCellElement;
     const resolveCell = create('td') as HTMLTableCellElement;
     const resistTypesCell = create('td') as HTMLTableCellElement;
+    const resistTypePercentCell = create('td') as HTMLTableCellElement;
     const resistAttrCell = create('td') as HTMLTableCellElement;
+    const resistAttrPercentCell = create('td') as HTMLTableCellElement;
 
     lvCell.appendChild(this.enemyLevelInput);
     hpCell.appendChild(this.enemyHpInput);
     atkCell.appendChild(this.enemyAtkInput);
     defCell.appendChild(this.enemyDefInput);
     resolveCell.appendChild(this.enemyResolveInput);
+    resistTypePercentCell.appendChild(this.enemyResistTypePercentInput);
+    resistAttrPercentCell.appendChild(this.enemyResistAttrPercentInput);
+
+    let added = 0;
 
     for (let i = 0; i < 16; i++) {
       if (i == 9 || i == 10 || i == 11 || i == 13) {
         continue;
+      }
+      added++;
+      if (added == 7) {
+        resistTypesCell.appendChild(create('br'));
       }
       const t = (i as unknown) as MonsterType;
       const typeImage = new MonsterTypeEl(t as MonsterType);
@@ -3100,7 +3151,9 @@ class DungeonEditor {
     defRow.appendChild(defCell);
     resolveRow.appendChild(resolveCell);
     resistTypesRow.appendChild(resistTypesCell);
+    resistTypePercentRow.appendChild(resistTypePercentCell);
     resistAttrRow.appendChild(resistAttrCell);
+    resistAttrPercentRow.appendChild(resistAttrPercentCell);
 
     this.enemyLevelInput.onchange = () => {
       let v = Number(this.enemyLevelInput.value);
@@ -3123,7 +3176,9 @@ class DungeonEditor {
     statTable.appendChild(defRow);
     statTable.appendChild(resolveRow);
     statTable.appendChild(resistTypesRow);
+    statTable.appendChild(resistTypePercentRow);
     statTable.appendChild(resistAttrRow);
+    statTable.appendChild(resistAttrPercentRow);
 
     this.element.appendChild(statTable);
   }
@@ -3157,7 +3212,7 @@ class DungeonEditor {
 
   private addEnemy(floorIdx: number) {
     const enemy = new MonsterIcon(true);
-    enemy.update(4014, 0, 0, -1, '', 0);
+    enemy.updateId(4014);
     if (floorIdx >= this.dungeonEnemies.length) {
       this.dungeonEnemies.push([]);
     }
@@ -3180,7 +3235,7 @@ class DungeonEditor {
           el.className = ClassNames.ICON_SELECTED;
           el.scrollIntoView({ block: 'nearest' });
           const id = this.dungeonEnemies[i][j].id;
-          this.enemyPicture.update(id, 0, 0, -1, '', 0);
+          this.enemyPicture.updateId(id);
           this.monsterSelector.setId(id);
         } else {
           el.className = ClassNames.ICON;
@@ -3211,8 +3266,7 @@ class DungeonEditor {
           continue;
         }
         superShow(floorEnemies[j].getElement());
-        floorEnemies[j].update(enemyIds[j], 0, 0, -1, '', 0);
-        // this.onUpdate({activeEnemyId: enemyIds[j]});
+        floorEnemies[j].updateId(enemyIds[j]);
       }
     }
   }
@@ -3234,9 +3288,11 @@ class DungeonEditor {
     for (const [key, toggle] of [...this.enemyResistTypesInputs.entries()]) {
       toggle.setActive(typeResists.types.includes(key));
     }
+    this.enemyResistTypePercentInput.value = String(typeResists.percent);
     for (const [key, asset] of [...this.enemyResistAttrInputs.entries()]) {
       asset.setActive(attrResists.attrs.includes(key));
     }
+    this.enemyResistAttrPercentInput.value = String(attrResists.percent);
   }
 
   getElement(): HTMLElement {
@@ -3322,4 +3378,5 @@ export {
   ValeriaDisplay,
   create,
   MonsterUpdate, OnMonsterUpdate,
+  LayeredAsset, AssetEnum,
 }

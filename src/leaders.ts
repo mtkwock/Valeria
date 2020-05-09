@@ -972,6 +972,7 @@ const trueBonusFromLinkedOrbs: LeaderSkill = { // 200
 };
 
 const LEADER_SKILL_GENERATORS: Record<number, LeaderSkill> = {
+  0: {},
   11: atkFromAttr,
   12: bonusAttackScale,
   13: autoHealLead,

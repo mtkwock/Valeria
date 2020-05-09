@@ -1,4 +1,5 @@
 import { BASE_URL } from './common';
+import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
 import { DungeonPane, DungeonUpdate } from './templates';
 // import {DungeonEditor} from './templates';
@@ -102,7 +103,7 @@ class Rational {
   numerator: number = 0;
   denominator: number = 1;
 
-  static matcher: RegExp = /\s*(\d+)\s*\/\s*(\d+)\s*/;
+  private static matcher: RegExp = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
 
   constructor(numerator: number = 0, denominator: number = 1) {
     this.numerator = numerator;
@@ -202,42 +203,13 @@ type DungeonDataRaw = {
   sub_dungeons: SubDungeonDataRaw[],
 };
 
-// type EncounterData = {
-//   amount: number,
-//   enemyId: number,
-//   level: number,
-//   floor: number, // Which floor to add it to.
-//   orderIdx: number,
-//
-//   hp: number,
-//   atk: number,
-//   def: number,
-//   turns: number,
-// };
-//
-// type SubDungeonData = {
-//   dungeonId: number, // Containing parent dungeon.
-//   dungeonType: number,
-//   name: string, // Combined.
-//   floors: number,
-//
-//   atkMult: number,
-//   defMult: number,
-//   hpMult: number,
-//   encounters: EncounterData[],
-// };
-
-let requestUrl = BASE_URL + 'assets/DungeonsAndEncounters.json';
-let request = new XMLHttpRequest();
-let DUNGEON_DATA: Map<number, DungeonInstanceJson> = new Map();
+const requestUrl = BASE_URL + 'assets/DungeonsAndEncounters.json';
+const DUNGEON_DATA: Map<number, DungeonInstanceJson> = new Map();
 const dungeonSearchArray: { s: string, value: number }[] = [];
-request.open('GET', requestUrl);
-request.responseType = 'json';
-request.send();
-
-request.onload = () => {
-  console.log('JSON loaded, check request.response');
-  const rawData = request.response as DungeonDataRaw[];
+const request = ajax(requestUrl);
+request.done((data) => {
+  console.log('Loading Dungeon JSON data...');
+  const rawData = JSON.parse(data) as DungeonDataRaw[];
   for (const datum of rawData) {
     for (const subDatum of datum.sub_dungeons) {
       const floorsJson: DungeonFloorJson[] = [];
@@ -275,7 +247,8 @@ request.onload = () => {
       dungeonSearchArray.push({ s: dungeonInstanceJson.title, value: subDatum.sub_dungeon_id });
     }
   }
-}
+  console.log('Dungeon Data loaded.');
+});
 
 class DungeonInstance {
   title: string = '';

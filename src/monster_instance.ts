@@ -105,20 +105,37 @@ interface MonsterJson {
   inheritPlussed?: boolean | undefined;
 }
 
-class MonsterInstance {
+interface MonsterIconRenderData {
+  plusses: number;
+  unavailableReason: string,
   id: number;
-  attribute: Attribute;
-  level: number;
   awakenings: number;
-  latents: Latent[];
   superAwakeningIdx: number;
-  hpPlus: number;
-  atkPlus: number;
-  rcvPlus: number;
+  level: number;
   inheritId: number;
   inheritLevel: number;
   inheritPlussed: boolean;
-  bound: boolean;
+  latents: Latent[];
+  showSwap: boolean;
+}
+
+class MonsterInstance {
+  id: number;
+  level: number = 1;
+  awakenings: number = 0;
+  latents: Latent[] = [];
+  superAwakeningIdx: number = -1;
+  hpPlus: number = 0;
+  atkPlus: number = 0;
+  rcvPlus: number = 0;
+  inheritId: number = -1;
+  inheritLevel: number = 1;
+  inheritPlussed: boolean = false;
+
+  // Attributes set in dungeon.
+  bound: boolean = false; // Monster being bound and unusable.
+  attribute: Attribute = Attribute.NONE; // Attribute override.
+  transformedTo: number = -1; // Monster transformation.
 
   el: HTMLElement;
   icon: MonsterIcon;
@@ -127,18 +144,6 @@ class MonsterInstance {
 
   constructor(id: number = -1) {
     this.id = id;
-    this.attribute = Attribute.NONE;
-    this.level = 1;
-    this.awakenings = 0;
-    this.latents = [];
-    this.superAwakeningIdx = -1;
-    this.hpPlus = 0;
-    this.atkPlus = 0;
-    this.rcvPlus = 0;
-    this.inheritId = -1;
-    this.inheritLevel = 1;
-    this.inheritPlussed = false;
-    this.bound = false;
 
     this.el = create('div');
     this.inheritIcon = new MonsterInherit();
@@ -220,19 +225,51 @@ class MonsterInstance {
     }
   }
 
-  update(isMultiplayer: boolean = false): void {
-    const plusses = this.hpPlus + this.atkPlus + this.rcvPlus;
-    // A monster must be above level 99, max plussed, and in solo play for
-    // SAs to be active.  This will change later when 3P allows SB.
-    const unavailableReason: string = [
-      isMultiplayer ? 'Multiplayer' : '',
-      plusses != 297 ? 'Unplussed' : '',
-      this.level < 100 ? 'Not Limit Broken' : '',
-    ].filter(Boolean).join(', ');
-    this.icon.update(this.id, plusses,
-      this.awakenings, this.superAwakeningIdx, unavailableReason, this.level);
-    this.inheritIcon.update(this.inheritId, this.inheritLevel, this.inheritPlussed);
-    this.latentIcon.update([...this.latents]);
+  getId(): number {
+    if (this.transformedTo > 0) {
+      return this.transformedTo;
+    }
+    return this.id;
+  }
+
+  getRenderData(isMultiplayer: boolean, showSwap = false): MonsterIconRenderData {
+    const plusses = this.hpPlus + this.atkPlus + this.rcvPlus
+    return {
+      plusses,
+      // A monster must be above level 99, max plussed, and in solo play for
+      // SAs to be active.  This will change later when 3P allows SB.
+      unavailableReason: [
+        isMultiplayer ? 'Multiplayer' : '',
+        plusses != 297 ? 'Unplussed' : '',
+        this.level < 100 ? 'Not Limit Broken' : '',
+      ].filter(Boolean).join(', '),
+      id: this.getId(),
+      awakenings: this.awakenings,
+      superAwakeningIdx: this.superAwakeningIdx,
+      level: this.level,
+      inheritId: this.inheritId,
+      inheritLevel: this.inheritLevel,
+      inheritPlussed: this.inheritPlussed,
+      latents: [...this.latents],
+      showSwap: showSwap,
+    };
+  }
+
+  update(isMultiplayer: boolean = false, data: MonsterIconRenderData | undefined = undefined): void {
+    if (!data) {
+      data = this.getRenderData(isMultiplayer);
+    }
+    this.icon.update({
+      id: data.id,
+      plusses: data.plusses,
+      awakening: data.awakenings,
+      superAwakeningIdx: data.superAwakeningIdx,
+      unavailableReason: data.unavailableReason,
+      level: data.level,
+      showSwap: data.showSwap,
+    });
+    this.inheritIcon.update(data.inheritId, data.inheritLevel, data.inheritPlussed);
+    this.latentIcon.update([...data.latents]);
   }
 
   toJson(): MonsterJson {
@@ -268,8 +305,12 @@ class MonsterInstance {
     return json;
   }
 
-  getCard(): Card {
-    let c = floof.model.cards[this.id];
+  getCard(ignoreTransform: boolean = false): Card {
+    let id = this.id;
+    if (this.transformedTo > 0 && !ignoreTransform) {
+      id = this.transformedTo;
+    }
+    let c = floof.model.cards[id];
     if (c) {
       return c;
     }
@@ -521,7 +562,11 @@ class MonsterInstance {
       filterFn = (awakening: Awakening) => filterSet.has(awakening);
     }
     const c = this.getCard();
-    const awakenings: Awakening[] = c.awakenings.slice(0, this.awakenings);
+    let awakenings: Awakening[] = c.awakenings.slice(0, this.awakenings);
+    // A transformed monster is always fully awoken.
+    if (this.transformedTo > 0) {
+      awakenings = [...c.awakenings];
+    }
     if (this.isSuperAwakeningActive(isMultiplayer) && this.superAwakeningIdx > -1) {
       awakenings.push(c.superAwakenings[this.superAwakeningIdx]);
     }
@@ -551,7 +596,7 @@ class MonsterInstance {
   }
 
   addLatent(latent: Latent): void {
-    const c = this.getCard();
+    const c = this.getCard(true);
     // Only monsters capable of taking latent killers can take latents.
     if (!c.latentKillers.length) {
       return;

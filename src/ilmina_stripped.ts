@@ -529,6 +529,11 @@ class Card {
   groupingKey: number = 0; // How monsters are sorted in the Monster Book.
   latentId: number = 0; // Latents for fusion.
   transformsTo: number = -1;
+  /**
+   * 0: Old AI: Does 100% basic attack when initial preempt is unreachable.
+   * 1: Current AI: Moves to next skill if a preempt is unreachable.
+   */
+  aiVersion: number = 0;
 }
 class CardEnemySkill {
   enemySkillId: number = -1;
@@ -909,7 +914,7 @@ class ModelBuilder {
   buildCardInternal(cardData: string) {
     const c = new Card();
     const reader = new RawDataReader(cardData);
-    const unknownData = [];
+    // const unknownData = [];
     c.id = reader.readNumber(); // 0
     c.name = reader.readString(); // 1
     c.attribute = ColorAttribute[ColorAttribute[reader.readNumber()]] as number; // 2
@@ -984,7 +989,7 @@ class ModelBuilder {
     // If it's not 0, then this is the Technical Dungeon turnTimer.
     c.technicalTurnTimer = reader.readNumber(); // 51
     // 0s and 1s, unclear. Obviously a flag, but for what?
-    unknownData.push(reader.readNumber()); // 52 // ??? u3
+    c.aiVersion = reader.readNumber(); // 52
     c.charges = reader.readNumber(); // 53
     c.chargeGain = reader.readNumber(); // 54
     // 0 for all monsters except:
@@ -1046,7 +1051,7 @@ class ModelBuilder {
     if (maybeTransform.length) {
       c.transformsTo = parseInt(maybeTransform.substring(5));
     }
-    c.unknownData = unknownData;
+    // c.unknownData = unknownData;
     if (!reader.isEmpty()) {
       //throw "Excess data detected";
       console.log("excess data detected");

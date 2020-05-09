@@ -82,7 +82,7 @@ class Valeria {
     this.team.updateIdxCb = () => {
       this.updateMonsterEditor();
     }
-    this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 / 5209 (5190) | lv110 sa2');
+    this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 ; 5209 (5190) | lv110 sa2');
 
     this.display.panes[1].appendChild(this.team.teamPane.getElement());
 
@@ -93,13 +93,13 @@ class Valeria {
   updateMonsterEditor() {
     const monster = this.team.monsters[this.team.activeMonster];
     this.monsterEditor.update({
-      id: monster.id,
+      id: monster.getId(),
       inheritId: monster.inheritId,
       level: monster.level,
       hpPlus: monster.hpPlus,
       atkPlus: monster.atkPlus,
       rcvPlus: monster.rcvPlus,
-      awakeningLevel: monster.awakenings,
+      awakeningLevel: monster.transformedTo > 0 ? 9 : monster.awakenings,
       inheritLevel: monster.inheritLevel,
       inheritPlussed: monster.inheritPlussed,
       latents: monster.latents,

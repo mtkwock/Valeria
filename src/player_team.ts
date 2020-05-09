@@ -28,6 +28,30 @@ interface TeamState {
 
   rcvMult: number;
   fixedHp: number;
+  leadSwaps: number[];
+}
+
+interface TeamStateContext {
+  awakenings?: boolean;
+  healPercent?: number;
+  healFlat?: number;
+  damagePercent?: number;
+  damageFlat?: number;
+  damageAttribute?: Attribute;
+
+  shieldPercent?: number;
+  attributesShielded?: Attribute[];
+  burst?: Burst;
+  ignoreDamageAbsorb?: boolean;
+  ignoreAttributeAbsorb?: boolean;
+  ignoreDamageVoid?: boolean;
+
+  timeBonus?: number;
+  timeIsMult?: boolean;
+
+  rcvMult?: number;
+  fixedHp?: number;
+  leadSwap?: number;
 }
 
 const DEFAULT_STATE: TeamState = {
@@ -54,6 +78,8 @@ const DEFAULT_STATE: TeamState = {
 
   rcvMult: 0,
   fixedHp: 0,
+
+  leadSwaps: [0, 0, 0],
 };
 
 interface TeamJson {
@@ -187,6 +213,18 @@ class Team {
     // TODO: Battle Display - Different Class?
   }
 
+  updateState(ctx: TeamStateContext): void {
+    if (ctx.leadSwap != undefined) {
+      if (ctx.leadSwap >= 0 && ctx.leadSwap < 5) {
+        this.state.leadSwaps[this.activeTeamIdx] = ctx.leadSwap;
+      } else {
+        console.error('Lead Swap index must be in range [0, 4]');
+      }
+    }
+
+    this.update();
+  }
+
   openTeamTab(): void {
     this.teamPane.goToTab('Team');
   }
@@ -198,6 +236,15 @@ class Team {
       }
       if (idx == 11) {
         idx = 0;
+      }
+    }
+    // Determine which leadSwap we're talking about.
+    const leadSwap = this.state.leadSwaps[Math.floor(idx / 6)];
+    if (leadSwap) {
+      if (idx % 6 == 0) {
+        idx += leadSwap;
+      } else if (idx % 6 == leadSwap) {
+        idx -= leadSwap;
       }
     }
     this.activeMonster = idx;
@@ -213,6 +260,9 @@ class Team {
       return;
     }
     Object.assign(this.state, DEFAULT_STATE);
+    for (let i = 0; i < 3; i++) {
+      this.state.leadSwaps[i] = 0;
+    }
     state.currentHp = this.getHp();
   }
 
@@ -238,6 +288,7 @@ class Team {
   }
 
   fromPdchu(s: string): void {
+    this.resetState();
     const teamStrings = s.split(';');
     // We don't support >3P.
     if (teamStrings.length > 3) {
@@ -294,6 +345,7 @@ class Team {
     for (let i = 0; i < 6; i++) {
       monsters[i] = this.monsters[this.getMonsterIdx(teamIdx, i)];
     }
+
     return monsters;
   }
 
@@ -382,12 +434,23 @@ class Team {
     // TODO: Update visuals and calculations when this happens.
   }
 
+  /**
+   * Obtain the monster at the requested position. This takes into account
+   * lead swapping.
+   */
   getMonsterIdx(teamIdx: number, localIdx: number): number {
-    let idx = 6 * teamIdx + localIdx;
-    if (this.playerMode == 2 &&
-      ((teamIdx == 0 && localIdx == 5) || (teamIdx == 1 && localIdx == 5))) {
-      idx = (1 - teamIdx) * 6;
+    // Adjust for P2 lead.
+    if (this.playerMode == 2 && localIdx == 5 && teamIdx < 2) {
+      teamIdx = 1 - teamIdx;
+      localIdx = 0;
     }
+    // Adjust for leadswaps.
+    if (localIdx == 0) {
+      localIdx = this.state.leadSwaps[teamIdx];
+    } else if (localIdx == this.state.leadSwaps[teamIdx]) {
+      localIdx = 0;
+    }
+    const idx = teamIdx * 6 + localIdx;
     return idx;
   }
 
@@ -539,13 +602,24 @@ class Team {
 
   update(): void {
     if (this.playerMode == 2) {
-      this.monsters[5].copyFrom(this.monsters[6]);
-      this.monsters[11].copyFrom(this.monsters[0]);
+      // this.monsters[5].copyFrom(this.monsters[this.getMonsterIdx(1, 0)]);
+      // this.monsters[11].copyFrom(this.monsters[this.getMonsterIdx(0, 0)]);
     }
     this.teamPane.update(this.playerMode, this.teamName, this.description);
-    for (const monster of this.monsters) {
-      monster.update(this.isMultiplayer());
+    for (let teamIdx = 0; teamIdx < 3; teamIdx++) {
+      for (let monsterIdx = 0; monsterIdx < 6; monsterIdx++) {
+        const displayIndex = 6 * teamIdx + monsterIdx;
+        const actualIndex = this.getMonsterIdx(teamIdx, monsterIdx);
+        const showSwap = Boolean(displayIndex != actualIndex && monsterIdx && monsterIdx < 5);
+        this.monsters[displayIndex].update(
+          this.isMultiplayer(),
+          this.monsters[actualIndex].getRenderData(this.isMultiplayer(), showSwap),
+        );
+      }
     }
+    // for (const monster of this.monsters) {
+    //   monster.update(this.isMultiplayer());
+    // }
     this.teamPane.updateStats(this.getStats());
   }
 
