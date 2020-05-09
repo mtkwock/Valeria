@@ -1343,15 +1343,13 @@
                 return this.index >= this.data.length;
             }
         }
-        const vm = new Ilmina();
-        exports.vm = vm;
-        window.vm = vm;
+        const floof = new Ilmina();
+        exports.floof = floof;
+        window.floof = floof;
     });
     define("common", ["require", "exports", "ilmina_stripped"], function (require, exports, ilmina_stripped_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        exports.vm = ilmina_stripped_1.vm;
-        // declare var vm: KnockoutVM;
         // 3 is red and blue
         // 1 red
         // 2 blue
@@ -1668,9 +1666,9 @@
             });
         }
         function SearchInit() {
-            const ids = Object.keys(ilmina_stripped_2.vm.model.cards).map((id) => Number(id));
-            exports.prioritizedEnemySearch = prioritizedEnemySearch = ids.map((id) => ilmina_stripped_2.vm.model.cards[id]).reverse();
-            exports.prioritizedMonsterSearch = prioritizedMonsterSearch = ids.map((id) => ilmina_stripped_2.vm.model.cards[id]).filter((card) => {
+            const ids = Object.keys(ilmina_stripped_2.floof.model.cards).map((id) => Number(id));
+            exports.prioritizedEnemySearch = prioritizedEnemySearch = ids.map((id) => ilmina_stripped_2.floof.model.cards[id]).reverse();
+            exports.prioritizedMonsterSearch = prioritizedMonsterSearch = ids.map((id) => ilmina_stripped_2.floof.model.cards[id]).filter((card) => {
                 return card.id < 100000;
             }).sort((card1, card2) => {
                 if (isLowPriority(card1.name) != isLowPriority(card2.name)) {
@@ -1707,7 +1705,7 @@
                 // }
                 return card2.id - card1.id;
             });
-            for (const group of ilmina_stripped_2.vm.model.cardGroups) {
+            for (const group of ilmina_stripped_2.floof.model.cardGroups) {
                 for (const alias of group.aliases.filter((alias) => alias.indexOf(' ') == -1 && alias == alias.toLowerCase())) {
                     prefixToCardIds[alias] = group.cards;
                     if (alias == 'halloween') {
@@ -1754,7 +1752,7 @@
             }
             const result = [];
             // Test for exact match.
-            if (text in ilmina_stripped_2.vm.model.cards) {
+            if (text in ilmina_stripped_2.floof.model.cards) {
                 result.push(Number(text));
             }
             let lowerPriority = [];
@@ -1884,9 +1882,9 @@
             if (toEquip) {
                 let equips = [];
                 for (const id of result) {
-                    const treeId = ilmina_stripped_2.vm.model.cards[id].evoTreeBaseId;
-                    if (treeId in ilmina_stripped_2.vm.model.evoTrees) {
-                        for (const card of ilmina_stripped_2.vm.model.evoTrees[treeId].cards) {
+                    const treeId = ilmina_stripped_2.floof.model.cards[id].evoTreeBaseId;
+                    if (treeId in ilmina_stripped_2.floof.model.evoTrees) {
+                        for (const card of ilmina_stripped_2.floof.model.evoTrees[treeId].cards) {
                             if (!equips.some((id) => id == card.id) && card.awakenings[0] == common_1.Awakening.AWOKEN_ASSIST) {
                                 equips.push(card.id);
                             }
@@ -1907,7 +1905,7 @@
                 }
             }
             if (toBase) {
-                let bases = result.map((id) => ilmina_stripped_2.vm.model.cards[id].evoTreeBaseId);
+                let bases = result.map((id) => ilmina_stripped_2.floof.model.cards[id].evoTreeBaseId);
                 const seen = new Set();
                 result.length = 0;
                 for (const id of bases) {
@@ -1997,7 +1995,7 @@
     define("templates", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search"], function (require, exports, common_2, ilmina_stripped_3, fuzzy_search_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        // declare var vm: KnockoutVM;
+        // declare var floof: KnockoutVM;
         // declare var CardAssets: CardAssetsInterface;
         // declare var CardUiAssets: CardUiAssetsInterface;
         function create(tag, cls = '') {
@@ -2168,14 +2166,14 @@
                 }
                 show(this.element);
                 show(this.infoTable);
-                const card = ilmina_stripped_3.vm.model.cards[id] || common_2.DEFAULT_CARD;
+                const card = ilmina_stripped_3.floof.model.cards[id] || common_2.DEFAULT_CARD;
                 const descriptor = ilmina_stripped_3.CardAssets.getIconImageData(card);
                 if (descriptor) {
                     this.element.style.backgroundSize = `${TEAM_SCALING * descriptor.baseWidth}px ${descriptor.baseHeight * TEAM_SCALING}px`;
                     this.element.style.backgroundImage = `url(${descriptor.url})`;
                     this.element.style.backgroundPosition = `-${descriptor.offsetX * TEAM_SCALING}px -${descriptor.offsetY * TEAM_SCALING}`;
                 }
-                const attrDescriptor = ilmina_stripped_3.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_3.vm.model);
+                const attrDescriptor = ilmina_stripped_3.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_3.floof.model);
                 if (attrDescriptor) {
                     show(this.attributeEl);
                     this.attributeEl.style.backgroundImage = `url(${attrDescriptor.url})`;
@@ -2184,7 +2182,7 @@
                 else {
                     hide(this.attributeEl);
                 }
-                const subDescriptor = ilmina_stripped_3.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_3.vm.model);
+                const subDescriptor = ilmina_stripped_3.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_3.floof.model);
                 if (subDescriptor) {
                     show(this.subattributeEl);
                     this.subattributeEl.style.backgroundImage = `url(${subDescriptor.url})`;
@@ -2262,7 +2260,7 @@
                     hide(this.plusEl);
                     return;
                 }
-                const card = ilmina_stripped_3.vm.model.cards[id] || common_2.DEFAULT_CARD;
+                const card = ilmina_stripped_3.floof.model.cards[id] || common_2.DEFAULT_CARD;
                 const desInherit = ilmina_stripped_3.CardAssets.getIconImageData(card);
                 if (desInherit) {
                     show(this.icon);
@@ -2273,7 +2271,7 @@
                 else {
                     hide(this.icon);
                 }
-                const desAttr = ilmina_stripped_3.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_3.vm.model);
+                const desAttr = ilmina_stripped_3.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_3.floof.model);
                 if (desAttr) {
                     show(this.attr);
                     this.attr.style.backgroundImage = `url(${desAttr.url})`;
@@ -2282,7 +2280,7 @@
                 else {
                     hide(this.attr);
                 }
-                const desSub = ilmina_stripped_3.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_3.vm.model);
+                const desSub = ilmina_stripped_3.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_3.floof.model);
                 if (desSub) {
                     show(this.attr);
                     this.sub.style.backgroundImage = `url(${desSub.url})`;
@@ -2611,7 +2609,7 @@
                     return 'None';
                 }
                 else {
-                    return ilmina_stripped_3.vm.model.cards[id].name;
+                    return ilmina_stripped_3.floof.model.cards[id].name;
                 }
             }
             getFuzzyMatches(text) {
@@ -2619,7 +2617,7 @@
             }
             postFilter(matches) {
                 if (this.isInherit) {
-                    return matches.filter((match) => ilmina_stripped_3.vm.model.cards[match].inheritanceType & 1);
+                    return matches.filter((match) => ilmina_stripped_3.floof.model.cards[match].inheritanceType & 1);
                 }
                 return matches;
             }
@@ -3071,12 +3069,14 @@
                 this.monsterSelector.setId(ctx.id);
                 this.inheritSelector.setId(ctx.inheritId);
                 let maxLevel = 1;
-                if (ctx.id in ilmina_stripped_3.vm.model.cards) {
-                    maxLevel = ilmina_stripped_3.vm.model.cards[ctx.id].isLimitBreakable ? 110 : ilmina_stripped_3.vm.model.cards[ctx.id].maxLevel;
+                if (ctx.id in ilmina_stripped_3.floof.model.cards) {
+                    maxLevel = ilmina_stripped_3.floof.model.cards[ctx.id].isLimitBreakable ? 110 : ilmina_stripped_3.floof.model.cards[ctx.id].maxLevel;
                 }
                 let inheritMaxLevel = 1;
-                if (ctx.inheritId in ilmina_stripped_3.vm.model.cards) {
-                    inheritMaxLevel = ilmina_stripped_3.vm.model.cards[ctx.inheritId].isLimitBreakable ? 110 : ilmina_stripped_3.vm.model.cards[ctx.id].maxLevel;
+                if (ctx.inheritId in ilmina_stripped_3.floof.model.cards) {
+                    inheritMaxLevel = ilmina_stripped_3.floof.model.cards[ctx.inheritId].isLimitBreakable
+                        ? 110
+                        : ilmina_stripped_3.floof.model.cards[ctx.inheritId].maxLevel;
                 }
                 this.levelEditor.update({
                     level: ctx.level,
@@ -3088,19 +3088,19 @@
                 let awakenings = [];
                 let superAwakenings = [];
                 let inheritAwakenings = [];
-                if (ctx.id in ilmina_stripped_3.vm.model.cards) {
-                    awakenings = ilmina_stripped_3.vm.model.cards[ctx.id].awakenings;
-                    superAwakenings = ilmina_stripped_3.vm.model.cards[ctx.id].superAwakenings;
+                if (ctx.id in ilmina_stripped_3.floof.model.cards) {
+                    awakenings = ilmina_stripped_3.floof.model.cards[ctx.id].awakenings;
+                    superAwakenings = ilmina_stripped_3.floof.model.cards[ctx.id].superAwakenings;
                 }
-                if (ctx.inheritId in ilmina_stripped_3.vm.model.cards) {
-                    inheritAwakenings = ilmina_stripped_3.vm.model.cards[ctx.inheritId].awakenings;
+                if (ctx.inheritId in ilmina_stripped_3.floof.model.cards) {
+                    inheritAwakenings = ilmina_stripped_3.floof.model.cards[ctx.inheritId].awakenings;
                 }
                 this.awakeningEditor.update(awakenings, superAwakenings, inheritAwakenings, ctx.awakeningLevel, ctx.superAwakeningIdx, -1);
                 let latentKillers = [];
-                if (ctx.id in ilmina_stripped_3.vm.model.cards) {
-                    latentKillers = ilmina_stripped_3.vm.model.cards[ctx.id].latentKillers;
+                if (ctx.id in ilmina_stripped_3.floof.model.cards) {
+                    latentKillers = ilmina_stripped_3.floof.model.cards[ctx.id].latentKillers;
                 }
-                this.latentEditor.update(ctx.latents, latentKillers, ilmina_stripped_3.vm.model.cards[ctx.id].inheritanceType & 32 ? 8 : 6);
+                this.latentEditor.update(ctx.latents, latentKillers, ilmina_stripped_3.floof.model.cards[ctx.id].inheritanceType & 32 ? 8 : 6);
             }
             getElement() {
                 return this.el;
@@ -4337,7 +4337,7 @@
                 return this.el;
             }
             setId(id) {
-                if (id >= 0 && !(id in ilmina_stripped_4.vm.model.cards)) {
+                if (id >= 0 && !(id in ilmina_stripped_4.floof.model.cards)) {
                     console.warn('Invalid monster id: ' + String(id));
                     return;
                 }
@@ -4350,7 +4350,7 @@
                     this.setHpPlus(0);
                     this.setAtkPlus(0);
                     this.setRcvPlus(0);
-                    // this.card = vm.model.cards[4014];
+                    // this.card = floof.model.cards[4014];
                     return;
                 }
                 const c = this.getCard();
@@ -4444,7 +4444,7 @@
                 return json;
             }
             getCard() {
-                let c = ilmina_stripped_4.vm.model.cards[this.id];
+                let c = ilmina_stripped_4.floof.model.cards[this.id];
                 if (c) {
                     return c;
                 }
@@ -4454,11 +4454,11 @@
                 if (this.inheritId == 0) {
                     return common_4.DEFAULT_CARD;
                 }
-                return ilmina_stripped_4.vm.model.cards[this.inheritId];
+                return ilmina_stripped_4.floof.model.cards[this.inheritId];
             }
             toPdchu() {
                 let string = '';
-                if (this.id in ilmina_stripped_4.vm.model.cards) {
+                if (this.id in ilmina_stripped_4.floof.model.cards) {
                     string += String(this.id);
                 }
                 else {
@@ -4937,7 +4937,6 @@
     define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_6, ilmina_stripped_5) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        // declare var vm: KnockoutVM;
         var EnemySkillEffect;
         (function (EnemySkillEffect) {
             EnemySkillEffect["NONE"] = "None";
@@ -5123,7 +5122,7 @@
                 const c = this.getCard();
                 const resolveSkills = c.enemySkills
                     .map((skill) => skill.enemySkillId)
-                    .map((id) => ilmina_stripped_5.vm.model.enemySkills[id])
+                    .map((id) => ilmina_stripped_5.floof.model.enemySkills[id])
                     .filter((skill) => skill.internalEffectId == 73);
                 if (!resolveSkills.length) {
                     return 0;
@@ -5137,7 +5136,7 @@
                 const c = this.getCard();
                 const resistTypeSkills = c.enemySkills
                     .map((skill) => skill.enemySkillId)
-                    .map((id) => ilmina_stripped_5.vm.model.enemySkills[id])
+                    .map((id) => ilmina_stripped_5.floof.model.enemySkills[id])
                     .filter((skill) => skill.internalEffectId == 118);
                 if (!resistTypeSkills.length) {
                     return { types: [], percent: 0 };
@@ -5155,7 +5154,7 @@
                 const c = this.getCard();
                 const resistAttrSkills = c.enemySkills
                     .map((skill) => skill.enemySkillId)
-                    .map((id) => ilmina_stripped_5.vm.model.enemySkills[id])
+                    .map((id) => ilmina_stripped_5.floof.model.enemySkills[id])
                     .filter((skill) => skill.internalEffectId == 72);
                 if (!resistAttrSkills.length) {
                     return { attrs: [], percent: 0 };
@@ -5170,23 +5169,23 @@
                 };
             }
             getCard() {
-                if (!ilmina_stripped_5.vm.model.cards[this.id]) {
+                if (!ilmina_stripped_5.floof.model.cards[this.id]) {
                     return common_6.DEFAULT_CARD;
                 }
-                return ilmina_stripped_5.vm.model.cards[this.id];
+                return ilmina_stripped_5.floof.model.cards[this.id];
             }
             getAttribute() {
-                if (this.id in ilmina_stripped_5.vm.model.cards && this.currentAttribute == -1) {
-                    return ilmina_stripped_5.vm.model.cards[this.id].attribute;
+                if (this.id in ilmina_stripped_5.floof.model.cards && this.currentAttribute == -1) {
+                    return ilmina_stripped_5.floof.model.cards[this.id].attribute;
                 }
-                if (this.id in ilmina_stripped_5.vm.model.cards && this.currentAttribute == -2) {
-                    return ilmina_stripped_5.vm.model.cards[this.id].subattribute > -1 ? ilmina_stripped_5.vm.model.cards[this.id].subattribute : ilmina_stripped_5.vm.model.cards[this.id].attribute;
+                if (this.id in ilmina_stripped_5.floof.model.cards && this.currentAttribute == -2) {
+                    return ilmina_stripped_5.floof.model.cards[this.id].subattribute > -1 ? ilmina_stripped_5.floof.model.cards[this.id].subattribute : ilmina_stripped_5.floof.model.cards[this.id].attribute;
                 }
                 return this.currentAttribute;
             }
             // calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
             //   let currentDamage = ping.amount;
-            //   const types = vm.model.cards[this.id] ? vm.model.cards[this.id].types : [];
+            //   const types = floof.model.cards[this.id] ? floof.model.cards[this.id].types : [];
             //   // Attribute Advantage
             //   currentDamage *= attributeMultiplier(ping.attribute, this.getAttribute());
             //   currentDamage = Math.ceil(currentDamage);
@@ -5251,16 +5250,16 @@
             //   return currentDamage;
             // }
             setId(id) {
-                if (!(id in ilmina_stripped_5.vm.model.cards)) {
+                if (!(id in ilmina_stripped_5.floof.model.cards)) {
                     return;
                 }
                 this.id = id;
             }
             getName() {
-                if (this.id < 0 || !(this.id in ilmina_stripped_5.vm.model.cards)) {
+                if (this.id < 0 || !(this.id in ilmina_stripped_5.floof.model.cards)) {
                     return 'UNSET';
                 }
-                return ilmina_stripped_5.vm.model.cards[this.id].name;
+                return ilmina_stripped_5.floof.model.cards[this.id].name;
             }
             reset( /** idc */) {
                 this.currentHp = this.getHp();
@@ -5291,7 +5290,7 @@
             // }
             toJson() {
                 const obj = {};
-                if (this.id in ilmina_stripped_5.vm.model.cards) {
+                if (this.id in ilmina_stripped_5.floof.model.cards) {
                     obj.id = this.id;
                 }
                 if (this.lv != 10) {
@@ -5333,7 +5332,7 @@
                 const enemy = new EnemyInstance();
                 enemy.id = Number(json.id) || -1;
                 enemy.lv = Number(json.lv) || 10;
-                if (enemy.id in ilmina_stripped_5.vm.model.cards) {
+                if (enemy.id in ilmina_stripped_5.floof.model.cards) {
                     // TODO: Preload Card with this information.
                     enemy.hp = Number(json.hp) || -1;
                     enemy.attack = Number(json.attack) || -1;
@@ -6557,7 +6556,7 @@
         };
         // Functions for libraries to call directly.
         function bigBoard(id) {
-            const playerSkill = ilmina_stripped_6.vm.model.playerSkills[id];
+            const playerSkill = ilmina_stripped_6.floof.model.playerSkills[id];
             // Handle multiple leader skills.
             if (playerSkill.internalEffectId == 138) {
                 return playerSkill.internalEffectArguments.some((i) => bigBoard(i));
@@ -6566,7 +6565,7 @@
         }
         exports.bigBoard = bigBoard;
         function noSkyfall(id) {
-            const playerSkill = ilmina_stripped_6.vm.model.playerSkills[id];
+            const playerSkill = ilmina_stripped_6.floof.model.playerSkills[id];
             if (playerSkill.internalEffectId == 138) {
                 return playerSkill.internalEffectArguments.some((i) => noSkyfall(i));
             }
@@ -6574,7 +6573,7 @@
         }
         exports.noSkyfall = noSkyfall;
         function ignorePoison(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             // Handle multiple leader skills.
             if (internalEffectId == 138) {
                 return internalEffectArguments.some((i) => ignorePoison(i));
@@ -6583,7 +6582,7 @@
         }
         exports.ignorePoison = ignorePoison;
         function drumEffect(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             // Handle multiple leader skills.
             if (internalEffectId == 138) {
                 return internalEffectArguments.some((i) => drumEffect(i));
@@ -6592,7 +6591,7 @@
         }
         exports.drumEffect = drumEffect;
         function minOrbMatch(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return Math.max(...internalEffectArguments.map((i) => minOrbMatch(i)));
             }
@@ -6600,7 +6599,7 @@
         }
         exports.minOrbMatch = minOrbMatch;
         function resolve(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return Math.min(...internalEffectArguments.map((i) => resolve(i)));
             }
@@ -6608,7 +6607,7 @@
         }
         exports.resolve = resolve;
         function fixedTime(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 const times = internalEffectArguments.map((i) => fixedTime(i)).filter((t) => t > 0);
                 return times.length ? Math.min(...times) : 0;
@@ -6617,7 +6616,7 @@
         }
         exports.fixedTime = fixedTime;
         function timeExtend(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => timeExtend(i)).reduce((total, value) => total + value);
             }
@@ -6625,7 +6624,7 @@
         }
         exports.timeExtend = timeExtend;
         function hp(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => hp(i, context)).reduce((total, value) => total * value);
             }
@@ -6633,7 +6632,7 @@
         }
         exports.hp = hp;
         function atk(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => atk(i, context)).reduce((total, value) => total * value);
             }
@@ -6641,7 +6640,7 @@
         }
         exports.atk = atk;
         function rcv(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => rcv(i, context)).reduce((total, value) => total * value);
             }
@@ -6649,7 +6648,7 @@
         }
         exports.rcv = rcv;
         function rcvPost(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => rcvPost(i, context)).reduce((total, value) => total * value);
             }
@@ -6657,7 +6656,7 @@
         }
         exports.rcvPost = rcvPost;
         function damageMult(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => damageMult(i, context)).reduce((total, value) => total * value);
             }
@@ -6665,7 +6664,7 @@
         }
         exports.damageMult = damageMult;
         function plusCombo(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => plusCombo(i, context)).reduce((total, value) => total + value, 0);
             }
@@ -6673,7 +6672,7 @@
         }
         exports.plusCombo = plusCombo;
         function drop(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => drop(i)).reduce((total, value) => total * value);
             }
@@ -6681,7 +6680,7 @@
         }
         exports.drop = drop;
         function coins(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => coins(i)).reduce((total, value) => total * value);
             }
@@ -6689,7 +6688,7 @@
         }
         exports.coins = coins;
         function exp(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => exp(i)).reduce((total, value) => total * value);
             }
@@ -6697,7 +6696,7 @@
         }
         exports.exp = exp;
         function autoHeal(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => autoHeal(i)).reduce((total, value) => total + value);
             }
@@ -6705,7 +6704,7 @@
         }
         exports.autoHeal = autoHeal;
         function trueBonusAttack(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => trueBonusAttack(i, context)).reduce((total, value) => total + value);
             }
@@ -6713,7 +6712,7 @@
         }
         exports.trueBonusAttack = trueBonusAttack;
         function bonusAttack(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => bonusAttack(i)).reduce((total, value) => total + value);
             }
@@ -6721,7 +6720,7 @@
         }
         exports.bonusAttack = bonusAttack;
         function counter(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments
                     .map((i) => counter(i))
@@ -6734,7 +6733,7 @@
         }
         exports.counter = counter;
         function awokenBindClear(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.vm.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => awokenBindClear(i, context)).reduce((total, value) => total + value);
             }
@@ -7224,12 +7223,12 @@
                     const card = monster.getCard();
                     let baseCd = 0;
                     if (card.activeSkillId > 0) {
-                        baseCd = ilmina_stripped_7.vm.model.playerSkills[card.activeSkillId].maxCooldown;
+                        baseCd = ilmina_stripped_7.floof.model.playerSkills[card.activeSkillId].maxCooldown;
                     }
                     let inheritCd = 0;
                     const inheritCard = monster.getInheritCard();
                     if (inheritCard && inheritCard.activeSkillId > 0) {
-                        inheritCd = ilmina_stripped_7.vm.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
+                        inheritCd = ilmina_stripped_7.floof.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
                     }
                     if (baseCd && inheritCd) {
                         cds.push(`${baseCd}(${baseCd + inheritCd})`);
@@ -7293,28 +7292,6 @@
                 await new Promise((resolve) => setTimeout(resolve, waitMs));
             }
         }
-        // function annotateMonsterScaling() {
-        //   const VALID_SCALES = new Set([0.7, 1.0, 1, 1.5]);
-        //   for (const id in vm.model.cards) {
-        //     const c = vm.model.cards[id];
-        //     const [hpGrowth, atkGrowth, rcvGrowth] = [c.unknownData[2], c.unknownData[3], c.unknownData[4]];
-        //     if (!VALID_SCALES.has(hpGrowth)) {
-        //       console.log(`Invalid scaling found! ${hpGrowth} Monster: ${id}`);
-        //     } else {
-        //       c.hpGrowth = hpGrowth;
-        //     }
-        //     if (!VALID_SCALES.has(atkGrowth)) {
-        //       console.log(`Invalid scaling found! ${atkGrowth} Monster: ${id}`);
-        //     } else {
-        //       c.atkGrowth = atkGrowth;
-        //     }
-        //     if (!VALID_SCALES.has(rcvGrowth)) {
-        //       console.log(`Invalid scaling found! ${rcvGrowth} Monster: ${id}`);
-        //     } else {
-        //       c.rcvGrowth = rcvGrowth;
-        //     }
-        //   }
-        // }
         class Valeria {
             constructor() {
                 this.display = new templates_5.ValeriaDisplay();
@@ -7402,7 +7379,7 @@
             }
         }
         async function init() {
-            await waitFor(() => ilmina_stripped_8.vm.ready);
+            await waitFor(() => ilmina_stripped_8.floof.ready);
             console.log('Valeria taking over.');
             // annotateMonsterScaling();
             fuzzy_search_3.SearchInit();
