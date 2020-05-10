@@ -65,6 +65,10 @@ enum ClassNames {
   STAT_LABEL = 'valeria-team-stat-label',
   STAT_VALUE = 'valeria-team-stat-value',
 
+  STAT_TOTAL_VALUE = 'valeria-team-stat-total-value',
+
+  AWAKENING_TABLE = 'valeria-team-awakening-table',
+
   TEAM_CONTAINER = 'valeria-team-container',
   MONSTER_CONTAINER = 'valeria-monster-container',
   MONSTER_CONTAINER_SELECTED = 'valeria-monster-container-selected',
@@ -103,6 +107,13 @@ enum ClassNames {
 
 enum Ids {
   COMBO_TABLE_PREFIX = 'valeria-combo-table-',
+}
+
+enum StatIndex {
+  HP = 0,
+  ATK = 1,
+  RCV = 2,
+  CD = 3
 }
 
 const TEAM_SCALING = 0.6;
@@ -1389,10 +1400,10 @@ class TeamPane {
   titleEl: HTMLInputElement = create('input', ClassNames.TEAM_TITLE) as HTMLInputElement;
   descriptionEl: HTMLTextAreaElement = create('textarea', ClassNames.TEAM_DESCRIPTION) as HTMLTextAreaElement;
   statsEl: HTMLDivElement = create('div') as HTMLDivElement;
-  statsByIdxByIdx: HTMLTableCellElement[][] = [];
-  private totalHpValue: HTMLSpanElement = create('span') as HTMLSpanElement;
-  private totalRcvValue: HTMLSpanElement = create('span') as HTMLSpanElement;
-  private totalTimeValue: HTMLSpanElement = create('span') as HTMLSpanElement;
+  statsByIdxByIdx: HTMLDivElement[][] = [];
+  private totalHpValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
+  private totalRcvValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
+  private totalTimeValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
   private metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load']);
   private detailTabs: TabbedComponent = new TabbedComponent(['Description', 'Stats', 'Battle']);
@@ -1448,50 +1459,43 @@ class TeamPane {
     }
   }
 
+  private createStatRow(labelText: string, statIndex: number) {
+    const row = create('tr') as HTMLTableRowElement;
+
+    for (let i = 0; i < 6; i++) {
+      const cell = create('td') as HTMLTableCellElement;
+
+      // Label the first column
+      if (i == 0) {
+        const label = create('div', ClassNames.STAT_LABEL) as HTMLDivElement;
+        label.innerText = labelText + ':';
+        cell.appendChild(label);
+      }
+
+      const value = create('div', ClassNames.STAT_VALUE) as HTMLDivElement;
+      cell.appendChild(value);
+      row.appendChild(cell);
+
+      // Save a reference to the value div for easy access
+      if (!this.statsByIdxByIdx[i]) {
+        this.statsByIdxByIdx[i] = [];
+      }
+      this.statsByIdxByIdx[i][statIndex] = value;
+    }
+
+    return row;
+  }
+
   private populateStats() {
     const statsTable = create('table', ClassNames.STAT_TABLE) as HTMLTableElement;
-    const baseStatRow = create('tr') as HTMLTableRowElement;
-    for (let i = 0; i < 6; i++) {
-      const statCell = create('td') as HTMLTableCellElement;
-      const statContainer = create('div') as HTMLDivElement;
-      const miniStatTable = create('table') as HTMLTableElement;
-      const hpRow = create('tr') as HTMLTableRowElement;
-      const atkRow = create('tr') as HTMLTableRowElement;
-      const rcvRow = create('tr') as HTMLTableRowElement;
-      const cdRow = create('tr') as HTMLTableRowElement;
-      if (i == 0) {
-        const hpLabel = create('td', ClassNames.STAT_LABEL) as HTMLTableCellElement;
-        const atkLabel = create('td', ClassNames.STAT_LABEL) as HTMLTableCellElement;
-        const rcvLabel = create('td', ClassNames.STAT_LABEL) as HTMLTableCellElement;
-        const cdLabel = create('td', ClassNames.STAT_LABEL) as HTMLTableCellElement;
-        hpLabel.innerText = 'HP:';
-        atkLabel.innerText = 'ATK:';
-        rcvLabel.innerText = 'RCV:';
-        cdLabel.innerText = 'CD:';
-        hpRow.appendChild(hpLabel);
-        atkRow.appendChild(atkLabel);
-        rcvRow.appendChild(rcvLabel);
-        cdRow.appendChild(cdLabel);
-      }
-      const hpValue = create('td', ClassNames.STAT_VALUE) as HTMLTableCellElement;
-      const atkValue = create('td', ClassNames.STAT_VALUE) as HTMLTableCellElement;
-      const rcvValue = create('td', ClassNames.STAT_VALUE) as HTMLTableCellElement;
-      const cdValue = create('td', ClassNames.STAT_VALUE) as HTMLTableCellElement;
-      this.statsByIdxByIdx.push([hpValue, atkValue, rcvValue, cdValue]);
-      hpRow.appendChild(hpValue);
-      atkRow.appendChild(atkValue);
-      rcvRow.appendChild(rcvValue);
-      cdRow.appendChild(cdValue);
-      miniStatTable.appendChild(hpRow);
-      miniStatTable.appendChild(atkRow);
-      miniStatTable.appendChild(rcvRow);
-      miniStatTable.appendChild(cdRow);
-
-      statContainer.appendChild(miniStatTable);
-      statCell.appendChild(statContainer);
-      baseStatRow.appendChild(statCell);
-    }
-    statsTable.appendChild(baseStatRow);
+    const hpRow = this.createStatRow('HP', StatIndex.HP);
+    const atkRow = this.createStatRow('ATK', StatIndex.ATK);
+    const rcvRow = this.createStatRow('RCV', StatIndex.RCV);
+    const cdRow = this.createStatRow('CD', StatIndex.CD);
+    statsTable.appendChild(hpRow);
+    statsTable.appendChild(atkRow);
+    statsTable.appendChild(rcvRow);
+    statsTable.appendChild(cdRow);
     this.statsEl.appendChild(statsTable);
 
     const totalBaseStatEl = create('div') as HTMLDivElement;
@@ -1510,37 +1514,58 @@ class TeamPane {
     this.statsEl.appendChild(totalBaseStatEl);
 
     const awakeningsToDisplay = [
-      Awakening.SKILL_BOOST,
-      Awakening.TIME,
-      Awakening.SOLOBOOST,
-      Awakening.BONUS_ATTACK,
-      Awakening.BONUS_ATTACK_SUPER,
-      Awakening.SBR,
-      Awakening.RESIST_POISON,
-      Awakening.RESIST_BLIND,
-      Awakening.RESIST_JAMMER,
-      Awakening.RESIST_CLOUD,
-      Awakening.RESIST_TAPE,
-      Awakening.OE_FIRE,
-      Awakening.OE_WATER,
-      Awakening.OE_WOOD,
-      Awakening.OE_LIGHT,
-      Awakening.OE_DARK,
-      Awakening.OE_HEART,
+      [
+        Awakening.SKILL_BOOST,
+        Awakening.TIME,
+        Awakening.SOLOBOOST,
+        Awakening.BONUS_ATTACK,
+        Awakening.BONUS_ATTACK_SUPER,
+        Awakening.L_GUARD
+      ],
+      [
+        Awakening.SBR,
+        Awakening.RESIST_POISON,
+        Awakening.RESIST_BLIND,
+        Awakening.RESIST_JAMMER,
+        Awakening.RESIST_CLOUD,
+        Awakening.RESIST_TAPE
+      ],
+      [
+        Awakening.OE_FIRE,
+        Awakening.OE_WATER,
+        Awakening.OE_WOOD,
+        Awakening.OE_LIGHT,
+        Awakening.OE_DARK,
+        Awakening.OE_HEART
+      ],
+      [
+        Awakening.ROW_FIRE,
+        Awakening.ROW_WATER,
+        Awakening.ROW_WOOD,
+        Awakening.ROW_LIGHT,
+        Awakening.ROW_DARK,
+        Awakening.RECOVER_BIND
+      ]
     ];
-    for (const awakening of awakeningsToDisplay) {
-      const container = create('span') as HTMLSpanElement;
-      const awakeningIcon = create('span', ClassNames.AWAKENING) as HTMLSpanElement;
-      const [x, y] = getAwakeningOffsets(awakening);
-      awakeningIcon.style.backgroundPosition = `${AwakeningEditor.SCALE * x}px ${AwakeningEditor.SCALE * y}px`;
+    const awakeningTable = create('table', ClassNames.AWAKENING_TABLE) as HTMLTableElement;
+    for (const awakeningSet of awakeningsToDisplay) {
+      const awakeningRow = create('tr') as HTMLTableRowElement;
+      for (const awakening of awakeningSet) {
+        const container = create('td') as HTMLSpanElement;
+        const awakeningIcon = create('span', ClassNames.AWAKENING) as HTMLSpanElement;
+        const [x, y] = getAwakeningOffsets(awakening);
+        awakeningIcon.style.backgroundPosition = `${AwakeningEditor.SCALE * x}px ${AwakeningEditor.SCALE * y}px`;
 
-      container.appendChild(awakeningIcon);
-      const aggregatedAwakeningCount = create('span') as HTMLSpanElement;
-      aggregatedAwakeningCount.innerText = 'x0';
-      this.aggregatedAwakeningCounts.set(awakening, aggregatedAwakeningCount);
-      container.appendChild(aggregatedAwakeningCount);
-      this.statsEl.appendChild(container);
+        container.appendChild(awakeningIcon);
+        const aggregatedAwakeningCount = create('span') as HTMLTableCellElement;
+        aggregatedAwakeningCount.innerText = 'x0';
+        this.aggregatedAwakeningCounts.set(awakening, aggregatedAwakeningCount);
+        container.appendChild(aggregatedAwakeningCount);
+        awakeningRow.appendChild(container);
+      }
+      awakeningTable.appendChild(awakeningRow);
     }
+    this.statsEl.appendChild(awakeningTable);
   }
 
   // TODO
@@ -1563,10 +1588,10 @@ class TeamPane {
   updateStats(stats: Stats) {
     for (let i = 0; i < 6; i++) {
       const statsByIdx = this.statsByIdxByIdx[i];
-      statsByIdx[0].innerText = stats.hps[i] ? String(stats.hps[i]) : '';
-      statsByIdx[1].innerText = String(stats.atks[i]);
-      statsByIdx[2].innerText = String(stats.rcvs[i]);
-      statsByIdx[3].innerText = stats.cds[i];
+      statsByIdx[StatIndex.HP].innerText = stats.hps[i] ? String(stats.hps[i]) : '';
+      statsByIdx[StatIndex.ATK].innerText = String(stats.atks[i]);
+      statsByIdx[StatIndex.RCV].innerText = String(stats.rcvs[i]);
+      statsByIdx[StatIndex.CD].innerText = stats.cds[i];
     }
     this.totalHpValue.innerText = String(stats.totalHp);
     this.totalRcvValue.innerText = String(stats.totalRcv);
@@ -1574,7 +1599,14 @@ class TeamPane {
     for (const awakening of this.aggregatedAwakeningCounts.keys()) {
       const val = this.aggregatedAwakeningCounts.get(awakening)
       if (val) {
-        val.innerText = `x${stats.counts.get(awakening) || 0}`;
+        const count = stats.counts.get(awakening) || 0;
+        val.innerText = `x${count}`;
+        const awakeningCell = val.parentElement || val;
+        if (count == 0) {
+          awakeningCell.classList.add(ClassNames.HALF_OPACITY);
+        } else {
+          awakeningCell.classList.remove(ClassNames.HALF_OPACITY);
+        }
       }
     }
   }
