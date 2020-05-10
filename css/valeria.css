@@ -317,6 +317,34 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   font-size: small;
 }
 
+.valeria-hp {
+  padding-top: 5px;
+  padding-bottom: 10px;
+  padding-left: 5%;
+  padding-right: 5%;
+}
+
+.valeria-hp-slider {
+  webkit-appearance: none;
+  width: 100%;
+  height: 5px;
+  margin-bottom: 5px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.valeria-hp-input {
+  width: 100px;
+}
+
+.valeria-hp-max {
+  margin-right: 15px;
+}
+
+.valeria-hp-percent {
+  width: 20px;
+}
+
 .valeria-monster-editor {
   padding: 5px;
 }
@@ -396,6 +424,18 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   background-repeat: no-repeat;
   cursor: pointer;
   background-position: 0px -226.8px;
+}
+
+.valeria-swap-icon {
+  position: relative;
+  bottom: 102px;
+  left: 1px;
+}
+
+.valeria-transform-icon {
+  position: relative;
+  bottom: 102px;
+  left: 13px;
 }
 
 .valeria-floor-container {

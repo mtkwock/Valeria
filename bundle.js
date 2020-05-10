@@ -371,6 +371,8 @@
             }
             finishedLoadingData(builder) {
                 const model = builder.build();
+                // Manually put in P'numas's link back.
+                model.cards[5987].transformsTo = 5986;
                 this.model = model;
                 this.finishedDataRender();
             }
@@ -2047,6 +2049,11 @@
             ClassNames["STAT_TABLE"] = "valeria-team-stat-table";
             ClassNames["STAT_LABEL"] = "valeria-team-stat-label";
             ClassNames["STAT_VALUE"] = "valeria-team-stat-value";
+            ClassNames["HP_DIV"] = "valeria-hp";
+            ClassNames["HP_SLIDER"] = "valeria-hp-slider";
+            ClassNames["HP_INPUT"] = "valeria-hp-input";
+            ClassNames["HP_MAX"] = "valeria-hp-max";
+            ClassNames["HP_PERCENT"] = "valeria-hp-percent";
             ClassNames["TEAM_CONTAINER"] = "valeria-team-container";
             ClassNames["MONSTER_CONTAINER"] = "valeria-monster-container";
             ClassNames["MONSTER_CONTAINER_SELECTED"] = "valeria-monster-container-selected";
@@ -2065,6 +2072,8 @@
             ClassNames["PLUS_EDITOR"] = "valeria-plus-editor";
             ClassNames["AWAKENING"] = "valeria-monster-awakening";
             ClassNames["AWAKENING_SUPER"] = "valeria-monster-awakening-super";
+            ClassNames["SWAP_ICON"] = "valeria-swap-icon";
+            ClassNames["TRANSFORM_ICON"] = "valeria-transform-icon";
             ClassNames["ENEMY_PICTURE"] = "valeria-enemy-picture-container";
             ClassNames["DUNGEON_EDITOR_FLOORS"] = "valeria-dungeon-edit-floors";
             ClassNames["FLOOR_NAME"] = "valeria-floor-name";
@@ -2117,7 +2126,7 @@
             el.title = unavailableReason;
         }
         class MonsterIcon {
-            constructor(hideInfoTable = false, showSwap = false) {
+            constructor(hideInfoTable = false) {
                 this.element = create('a', ClassNames.ICON);
                 this.attributeEl = create('a', ClassNames.ICON_ATTR);
                 this.subattributeEl = create('a', ClassNames.ICON_SUB);
@@ -2154,18 +2163,38 @@
                 this.element.appendChild(this.infoTable);
                 this.swapIcon = new LayeredAsset([AssetEnum.SWAP], (active) => { console.log(active); }, true);
                 const swapElement = this.swapIcon.getElement();
-                swapElement.style.position = 'relative';
-                swapElement.style.bottom = '103px';
-                this.element.appendChild(this.swapIcon.getElement());
-                if (!showSwap) {
-                    swapElement.style.display = 'none';
-                }
+                swapElement.classList.add(ClassNames.SWAP_ICON);
+                this.element.appendChild(swapElement);
+                hide(swapElement);
+                this.transformIcon = new LayeredAsset([AssetEnum.TRANSFROM], (active) => {
+                    this.onUpdate({
+                        transformActive: active,
+                    });
+                }, false);
+                const transformElement = this.transformIcon.getElement();
+                transformElement.classList.add(ClassNames.TRANSFORM_ICON);
+                this.element.appendChild(transformElement);
+                hide(transformElement);
+                this.onUpdate = () => { };
             }
             getElement() {
                 return this.element;
             }
+            setOnUpdate(onUpdate) {
+                this.onUpdate = onUpdate;
+            }
             updateId(id) {
-                this.update({ id, plusses: 0, awakening: 0, superAwakeningIdx: -1, unavailableReason: '', level: 0, showSwap: false });
+                this.update({
+                    id,
+                    plusses: 0,
+                    awakening: 0,
+                    superAwakeningIdx: -1,
+                    unavailableReason: '',
+                    level: 0,
+                    showSwap: false,
+                    showTransform: false,
+                    activeTransform: false,
+                });
             }
             update(d) {
                 this.id = d.id;
@@ -2231,7 +2260,9 @@
                 levelEl.innerText = `Lv${d.level}`;
                 const idEl = this.element.getElementsByClassName(ClassNames.ICON_ID)[0];
                 idEl.innerText = `${d.id}`;
-                this.swapIcon.getElement().style.display = d.showSwap ? '' : 'none';
+                (d.showSwap ? show : hide)(this.swapIcon.getElement());
+                (d.showTransform ? show : hide)(this.transformIcon.getElement());
+                this.transformIcon.setActive(d.activeTransform);
             }
         }
         exports.MonsterIcon = MonsterIcon;
@@ -3120,6 +3151,78 @@
             }
         }
         exports.MonsterEditor = MonsterEditor;
+        function addCommas(n, maxPrecision = 3) {
+            let decimalPart = '';
+            if (!Number.isInteger(n)) {
+                let fn = Math.floor;
+                if (n < 0) {
+                    fn = Math.ceil;
+                }
+                decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
+                while (decimalPart[decimalPart.length - 1] == '0') {
+                    decimalPart = decimalPart.substring(0, decimalPart.length - 1);
+                }
+                n = fn(n);
+            }
+            const reversed = String(n).split('').reverse().join('');
+            const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
+            if (forwardCommaArray[0] == ',') {
+                forwardCommaArray.splice(0, 1);
+            }
+            else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
+                forwardCommaArray.splice(1, 1);
+            }
+            return forwardCommaArray.join('') + decimalPart;
+        }
+        function removeCommas(s) {
+            return Number(s.replace(/,/g, ''));
+        }
+        class HpBar {
+            constructor(onUpdate) {
+                this.element = create('div', ClassNames.HP_DIV);
+                this.maxHp = 1;
+                this.currentHp = 1;
+                this.sliderEl = create('input', ClassNames.HP_SLIDER);
+                this.hpInput = create('input', ClassNames.HP_INPUT);
+                this.hpMaxEl = create('span', ClassNames.HP_MAX);
+                this.percentEl = create('span', ClassNames.HP_PERCENT);
+                this.onUpdate = onUpdate;
+                this.sliderEl.type = 'range';
+                this.sliderEl.onchange = () => {
+                    this.onUpdate(Number(this.sliderEl.value));
+                };
+                this.element.appendChild(this.sliderEl);
+                this.hpInput.onchange = () => {
+                    this.onUpdate(removeCommas(this.hpInput.value));
+                };
+                this.element.appendChild(this.hpInput);
+                const divisionSpan = create('span');
+                divisionSpan.innerText = ' / ';
+                this.element.appendChild(divisionSpan);
+                this.element.appendChild(this.hpMaxEl);
+                this.element.appendChild(this.percentEl);
+                this.percentEl.innerText = '100%';
+            }
+            setHp(currentHp, maxHp = -1) {
+                if (maxHp > 0) {
+                    this.maxHp = maxHp;
+                    this.sliderEl.max = String(maxHp);
+                }
+                this.hpMaxEl.innerText = String(this.maxHp);
+                if (currentHp <= this.maxHp) {
+                    this.currentHp = currentHp;
+                }
+                else {
+                    this.currentHp = this.maxHp;
+                }
+                this.hpInput.value = addCommas(this.currentHp);
+                this.sliderEl.value = String(this.currentHp);
+                this.percentEl.innerText = `${Math.round(100 * this.currentHp / this.maxHp)}%`;
+            }
+            getElement() {
+                return this.element;
+            }
+        }
         class StoredTeamDisplay {
             constructor(saveFn, loadFn, deleteFn) {
                 this.element = create('div', ClassNames.TEAM_STORAGE);
@@ -3162,7 +3265,6 @@
         }
         exports.StoredTeamDisplay = StoredTeamDisplay;
         class TeamPane {
-            // private leadSwaps: number[] = [0, 0, 0];
             constructor(storageDisplay, monsterDivs, onTeamUpdate) {
                 this.element_ = create('div');
                 this.teamDivs = [];
@@ -3171,12 +3273,14 @@
                 this.descriptionEl = create('textarea', ClassNames.TEAM_DESCRIPTION);
                 this.statsEl = create('div');
                 this.statsByIdxByIdx = [];
+                this.battleEl = create('div');
                 this.totalHpValue = create('span');
                 this.totalRcvValue = create('span');
                 this.totalTimeValue = create('span');
                 this.aggregatedAwakeningCounts = new Map();
                 this.metaTabs = new TabbedComponent(['Team', 'Save/Load']);
                 this.detailTabs = new TabbedComponent(['Description', 'Stats', 'Battle']);
+                this.leadSwapInput = create('input');
                 this.onTeamUpdate = onTeamUpdate;
                 const teamTab = this.metaTabs.getTab('Team');
                 this.titleEl.placeholder = 'Team Name';
@@ -3212,6 +3316,14 @@
                 const statsTab = this.detailTabs.getTab('Stats');
                 this.populateStats();
                 statsTab.appendChild(this.statsEl);
+                const battleTab = this.detailTabs.getTab('Battle');
+                this.hpBar = new HpBar((hp) => {
+                    this.onTeamUpdate({
+                        currentHp: hp,
+                    });
+                });
+                this.populateBattle();
+                battleTab.appendChild(this.battleEl);
                 teamTab.appendChild(this.detailTabs.getElement());
                 this.metaTabs.getTab('Save/Load').appendChild(storageDisplay);
                 this.element_.appendChild(this.metaTabs.getElement());
@@ -3320,6 +3432,29 @@
                     this.statsEl.appendChild(container);
                 }
             }
+            populateBattle() {
+                // HP Element
+                this.battleEl.appendChild(this.hpBar.getElement());
+                // Choose combos or active.
+                const leadSwapLabel = create('span');
+                leadSwapLabel.innerText = 'Current Lead Index: ';
+                this.battleEl.appendChild(leadSwapLabel);
+                this.leadSwapInput.type = 'number';
+                this.leadSwapInput.value = '0';
+                this.leadSwapInput.onchange = () => {
+                    let pos = Number(this.leadSwapInput.value);
+                    if (pos < 0) {
+                        pos = 0;
+                    }
+                    if (pos > 4) {
+                        pos = 4;
+                    }
+                    this.onTeamUpdate({ leadSwap: pos });
+                };
+                this.battleEl.appendChild(this.leadSwapInput);
+                // Player State including
+                // * Void Attr, Void
+            }
             // TODO
             update(playerMode, title, description) {
                 for (let i = 1; i < this.teamDivs.length; i++) {
@@ -3353,6 +3488,10 @@
                         val.innerText = `x${stats.counts.get(awakening) || 0}`;
                     }
                 }
+            }
+            updateBattle(teamBattle) {
+                this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
+                this.leadSwapInput.value = `${teamBattle.leadSwap}`;
             }
         }
         exports.TeamPane = TeamPane;
@@ -3429,6 +3568,7 @@
             AssetEnum[AssetEnum["ABSORB_OVERLAY"] = 37] = "ABSORB_OVERLAY";
             // DAMAGE_NULL,
             AssetEnum[AssetEnum["SWAP"] = 38] = "SWAP";
+            AssetEnum[AssetEnum["TRANSFROM"] = 39] = "TRANSFROM";
         })(AssetEnum || (AssetEnum = {}));
         exports.AssetEnum = AssetEnum;
         const ASSET_INFO = new Map([
@@ -3462,6 +3602,7 @@
             [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
             [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
             [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
+            [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
         ]);
         const UI_ASSET_SRC = `url(${common_2.BASE_URL}assets/UIPAT1.PNG)`;
         class LayeredAsset {
@@ -4356,7 +4497,7 @@
             return min + added;
         }
         class MonsterInstance {
-            constructor(id = -1) {
+            constructor(id = -1, onUpdate = () => { }) {
                 this.level = 1;
                 this.awakenings = 0;
                 this.latents = [];
@@ -4375,9 +4516,28 @@
                 this.el = templates_2.create('div');
                 this.inheritIcon = new templates_2.MonsterInherit();
                 this.icon = new templates_2.MonsterIcon();
+                this.icon.setOnUpdate(onUpdate);
                 this.latentIcon = new templates_2.MonsterLatent();
-                this.el.appendChild(this.inheritIcon.getElement());
+                const inheritIconEl = this.inheritIcon.getElement();
+                inheritIconEl.onclick = () => {
+                    const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
+                    if (els.length > 1) {
+                        const el = els[1];
+                        el.focus();
+                        el.select();
+                    }
+                };
+                this.el.appendChild(inheritIconEl);
                 this.el.appendChild(this.icon.getElement());
+                const iconEl = this.icon.getElement();
+                iconEl.onclick = () => {
+                    const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
+                    if (els.length) {
+                        const el = els[0];
+                        el.focus();
+                        el.select();
+                    }
+                };
                 this.el.appendChild(this.latentIcon.getElement());
                 this.setId(id);
             }
@@ -4446,8 +4606,8 @@
                     this.setRcvPlus(99);
                 }
             }
-            getId() {
-                if (this.transformedTo > 0) {
+            getId(ignoreTransform = false) {
+                if (!ignoreTransform && this.transformedTo > 0) {
                     return this.transformedTo;
                 }
                 return this.id;
@@ -4472,6 +4632,8 @@
                     inheritPlussed: this.inheritPlussed,
                     latents: [...this.latents],
                     showSwap: showSwap,
+                    showTransform: this.transformedTo > 0 || this.getCard().transformsTo > 0,
+                    activeTransform: this.transformedTo > 0,
                 };
             }
             update(isMultiplayer = false, data = undefined) {
@@ -4486,6 +4648,8 @@
                     unavailableReason: data.unavailableReason,
                     level: data.level,
                     showSwap: data.showSwap,
+                    showTransform: data.showTransform,
+                    activeTransform: data.activeTransform,
                 });
                 this.inheritIcon.update(data.inheritId, data.inheritLevel, data.inheritPlussed);
                 this.latentIcon.update([...data.latents]);
@@ -4523,10 +4687,7 @@
                 return json;
             }
             getCard(ignoreTransform = false) {
-                let id = this.id;
-                if (this.transformedTo > 0 && !ignoreTransform) {
-                    id = this.transformedTo;
-                }
+                const id = this.getId(ignoreTransform);
                 let c = ilmina_stripped_4.floof.model.cards[id];
                 if (c) {
                     return c;
@@ -4572,7 +4733,7 @@
                         counts.set(name, (counts.get(name) || 0) + 1);
                     }
                     string += '[';
-                    for (const name in counts) {
+                    for (const name of counts.keys()) {
                         if (counts.get(name) == 1) {
                             string += name + ',';
                         }
@@ -4589,7 +4750,10 @@
                 if (this.awakenings != card.awakenings.length) {
                     stats += ` aw${this.awakenings}`;
                 }
-                if (this.hpPlus != 99 || this.atkPlus != 99 || this.rcvPlus != 99) {
+                if (this.hpPlus == 0 && this.atkPlus == 0 && this.rcvPlus == 0) {
+                    stats += ' +0';
+                }
+                else if (this.hpPlus != 99 || this.atkPlus != 99 || this.rcvPlus != 99) {
                     stats += ` +H${this.hpPlus} +A${this.atkPlus} +R${this.rcvPlus}`;
                 }
                 if (this.superAwakeningIdx >= 0) {
@@ -6913,7 +7077,19 @@
                  * 3P: 0-5, 6-11, 12-17
                  */
                 for (let i = 0; i < 18; i++) {
-                    this.monsters.push(new monster_instance_1.MonsterInstance());
+                    this.monsters.push(new monster_instance_1.MonsterInstance(-1, (ctx) => {
+                        if (ctx.transformActive != undefined) {
+                            const idxToTransform = this.getMonsterIdx(Math.floor(i / 6), i % 6);
+                            const monster = this.monsters[idxToTransform];
+                            if (monster.getCard().transformsTo > 0) {
+                                monster.transformedTo = monster.getCard().transformsTo;
+                            }
+                            else if (!ctx.transformActive) {
+                                monster.transformedTo = -1;
+                            }
+                        }
+                        this.update();
+                    }));
                 }
                 this.storage = new StoredTeams(this);
                 this.teamPane = new templates_4.TeamPane(this.storage.getElement(), this.monsters.map((monster) => monster.getElement()), (ctx) => {
@@ -6929,6 +7105,21 @@
                     if (ctx.description) {
                         this.description = ctx.description;
                     }
+                    if (ctx.currentHp != undefined) {
+                        if (ctx.currentHp < 0) {
+                            this.state.currentHp = 0;
+                        }
+                        else if (ctx.currentHp > this.getHp()) {
+                            this.state.currentHp = this.getHp();
+                        }
+                        else {
+                            this.state.currentHp = ctx.currentHp;
+                        }
+                    }
+                    if (ctx.leadSwap != undefined) {
+                        this.updateState({ leadSwap: ctx.leadSwap });
+                    }
+                    this.update();
                 });
                 this.updateIdxCb = () => null;
                 // TODO: Battle Display - Different Class?
@@ -6994,7 +7185,7 @@
                     case 1:
                         return combine(strings.slice(0, 6));
                     case 2:
-                        return combine(strings.slice(0, 5)) + ' ; ' + combine(strings.slice(6, 12));
+                        return combine(strings.slice(0, 5)) + ' ; ' + combine(strings.slice(6, 11));
                     case 3:
                         return [combine(strings.slice(0, 6)), combine(strings.slice(6, 12)), combine(strings.slice(12, 18))].join(' ; ');
                 }
@@ -7283,10 +7474,10 @@
                         monsterGroupsToCheck.push([this.monsters[12], this.monsters[17]]);
                 }
                 for (const [m1, m2] of monsterGroupsToCheck) {
-                    if (leaders.bigBoard(m1.getCard().leaderSkillId)) {
+                    if (leaders.bigBoard(m1.getCard(true).leaderSkillId)) {
                         continue;
                     }
-                    if (leaders.bigBoard(m2.getCard().leaderSkillId)) {
+                    if (leaders.bigBoard(m2.getCard(true).leaderSkillId)) {
                         continue;
                     }
                     // If neither of the leads have bigBoard, return 6.
@@ -7296,23 +7487,22 @@
                 return 7;
             }
             update() {
-                if (this.playerMode == 2) {
-                    // this.monsters[5].copyFrom(this.monsters[this.getMonsterIdx(1, 0)]);
-                    // this.monsters[11].copyFrom(this.monsters[this.getMonsterIdx(0, 0)]);
-                }
                 this.teamPane.update(this.playerMode, this.teamName, this.description);
                 for (let teamIdx = 0; teamIdx < 3; teamIdx++) {
                     for (let monsterIdx = 0; monsterIdx < 6; monsterIdx++) {
                         const displayIndex = 6 * teamIdx + monsterIdx;
                         const actualIndex = this.getMonsterIdx(teamIdx, monsterIdx);
+                        // We should only show the lead swap icon on the lead who is now the sub.
                         const showSwap = Boolean(displayIndex != actualIndex && monsterIdx && monsterIdx < 5);
                         this.monsters[displayIndex].update(this.isMultiplayer(), this.monsters[actualIndex].getRenderData(this.isMultiplayer(), showSwap));
                     }
                 }
-                // for (const monster of this.monsters) {
-                //   monster.update(this.isMultiplayer());
-                // }
                 this.teamPane.updateStats(this.getStats());
+                this.teamPane.updateBattle({
+                    currentHp: this.state.currentHp,
+                    maxHp: this.getHp(),
+                    leadSwap: this.state.leadSwaps[this.activeTeamIdx],
+                });
             }
             countAwakening(awakening) {
                 const monsters = this.getActiveTeam();
@@ -7435,6 +7625,7 @@
                     }
                     if (ctx.hasOwnProperty('id')) {
                         monster.setId(Number(ctx.id));
+                        monster.transformedTo = -1;
                     }
                     if (ctx.hasOwnProperty('inheritId')) {
                         monster.inheritId = Number(ctx.inheritId);
@@ -7454,13 +7645,19 @@
                 };
                 this.monsterEditor.pdchu.exportButton.onclick = () => {
                     this.monsterEditor.pdchu.io.value = this.team.toPdchu();
+                    const els = document.getElementsByClassName(templates_5.ClassNames.PDCHU_IO);
+                    if (els.length) {
+                        const el = els[0];
+                        el.focus();
+                        el.select();
+                    }
                 };
                 this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
                 this.team = new player_team_1.Team();
                 this.team.updateIdxCb = () => {
                     this.updateMonsterEditor();
                 };
-                this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 ; 5209 (5190) | lv110 sa2');
+                this.team.fromPdchu('5780 (5789)[sdr*4] / 5810 (5193)[sdr*4] / 5624 (4633)[sdr*4] | lv110 / 5157 (5783 | lv99)[sdr*4] | lv110 / 5798 (4143)[sdr*4] | lv110 ; 5844 (5069 | lv99)[sdr*4] / 3508 (4154 | lv99)[sdr*4] | lv110 / 5325 (4810)[sdr*4] | lv110 / 4379 (5193)[sdr*4] / 4747 (5417)[sdr*4] | lv110');
                 this.display.panes[1].appendChild(this.team.teamPane.getElement());
                 this.dungeon = new dungeon_1.DungeonInstance();
                 this.display.panes[2].appendChild(this.dungeon.getPane());
