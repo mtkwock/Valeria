@@ -1,7 +1,4 @@
-import {Card, KnockoutVM} from '../typings/ilmina';
-declare var vm: KnockoutVM;
-
-vm = vm;
+import { Card } from './ilmina_stripped';
 
 // 3 is red and blue
 // 1 red
@@ -39,12 +36,12 @@ function idxsFromBits(bits: number): number[] {
 }
 
 enum Attribute {
-  FIRE  = 0,
+  FIRE = 0,
   WATER = 1,
-  WOOD  = 2,
+  WOOD = 2,
   LIGHT = 3,
-  DARK  = 4,
-  NONE  = -1,
+  DARK = 4,
+  NONE = -1,
 }
 
 const AttributeToName = new Map<Attribute, string>();
@@ -201,45 +198,7 @@ function numberWithCommas(x: number): string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-const DEFAULT_CARD: Card = {
-  id: 0,
-  name: 'sdr',
-  maxLevel: 1,
-  awakenings: [],
-  attribute: -1,
-  subattribute: -1,
-  superAwakenings: [],
-  latentKillers: [],
-  minHp: 0,
-  maxHp: 0,
-  hpGrowth: 1,
-  minAtk: 0,
-  maxAtk: 0,
-  atkGrowth: 1,
-  minRcv: 0,
-  maxRcv: 0,
-  rcvGrowth: 1,
-  isLimitBreakable: false,
-  limitBreakStatGain: 0,
-  types: [],
-  unknownData: [0,0,0,0,0,0,0],
-  evoTreeBaseId: 0,
-  collab: 0,
-  leaderSkillId: 0,
-  activeSkillId: 0,
-  inheritanceType: 0,
-  enemyAtkAtLv1: 1,
-  enemyAtkAtLv10: 1,
-  enemyAtkCurve: 1,
-  enemyHpAtLv1: 1,
-  enemyHpAtLv10: 1,
-  enemyHpCurve: 1,
-  enemyDefAtLv1: 1,
-  enemyDefAtLv10: 1,
-  enemyDefCurve: 1,
-
-  enemySkills: [],
-};
+const DEFAULT_CARD = new Card();
 
 const LatentSuper = new Set<Latent>([
   Latent.EVO, Latent.AWOKEN, Latent.ENHANCED, Latent.REDEEMABLE,
@@ -301,5 +260,4 @@ export {
   idxsFromBits,
   numberWithCommas,
   Round,
-  vm,
 };

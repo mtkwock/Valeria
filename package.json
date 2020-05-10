@@ -2,20 +2,23 @@
   "name": "valeria",
   "version": "0.1.0",
   "private": true,
-  "devDependencies": {
-    "@bazel/bazel": "latest",
-    "@bazel/buildifier": "latest",
-    "@bazel/ibazel": "latest",
-    "@bazel/typescript": "latest",
-    "typescript": "~3.4.0"
-  },
   "scripts": {
-    "build": "bazel build //...",
-    "test": "bazel test //...",
-    "scss": "node-sass --watch scss -o bin/css/"
+    "dev": "npm-run-all -p ts sass serve-dev",
+    "ts": "tsc-bundle ./tsconfig.json --watch",
+    "sass": "sass --watch ./scss/valeria.sass bin/css/valeria.css",
+    "serve-dev": "npx serve ./bin ./src -l 4800",
+    "serve-dist": "npx serve ./dist -l 4800",
+    "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css && del-cli ./dist && ncp ./bin ./dist"
   },
   "dependencies": {
-    "handlebars": "^4.5.2",
-    "node-sass": "^4.13.0"
+    "@types/jquery": "^3.3.38",
+    "sass": "^1.26.5",
+    "typescript": "^3.8.3",
+    "typescript-bundle": "^1.0.16"
+  },
+  "devDependencies": {
+    "del-cli": "^3.0.0",
+    "ncp": "^2.0.0",
+    "npm-run-all": "^4.1.5"
   }
 }

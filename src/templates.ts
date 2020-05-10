@@ -1,15 +1,15 @@
 /**
  * Rendering tools for other classes to reference.
  * These take relatively pure data and update that way.
+ * TODO: Split this into files corresponding to the classes they are templated
+ * for.
+ * TODO: Consider making some of these into proper soy templates and then
+ * compiling them here so that the structure is more consistent.
  */
 
-import {BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType} from './common';
-import {CardAssetInterface, CardUiAssetInterface, KnockoutVM, Card} from '../typings/ilmina';
-import {fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch} from './fuzzy_search';
-
-declare var vm: KnockoutVM;
-declare var CardAssets:CardAssetInterface;
-declare var CardUiAssets:CardUiAssetInterface;
+import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType } from './common';
+import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
+import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
 
 function create(tag: string, cls: string = ''): HTMLElement {
   const el = document.createElement(tag);
@@ -51,7 +51,7 @@ enum ClassNames {
 
   TABBED = 'valeria-tabbed',
   TABBED_LABEL = 'valeria-tabbed-label',
-  TABBED_LABelSELECTED = 'valeria-tabbed-label-selected',
+  TABBED_LABEL_SELECTED = 'valeria-tabbed-label-selected',
   TABBED_TAB = 'valeria-tabbed-tab',
   TABBED_TAB_SELECTED = 'valeria-tabbed-tab-selected',
 
@@ -68,6 +68,11 @@ enum ClassNames {
   STAT_TOTAL_VALUE = 'valeria-team-stat-total-value',
 
   AWAKENING_TABLE = 'valeria-team-awakening-table',
+  HP_DIV = 'valeria-hp',
+  HP_SLIDER = 'valeria-hp-slider',
+  HP_INPUT = 'valeria-hp-input',
+  HP_MAX = 'valeria-hp-max',
+  HP_PERCENT = 'valeria-hp-percent',
 
   TEAM_CONTAINER = 'valeria-team-container',
   MONSTER_CONTAINER = 'valeria-monster-container',
@@ -84,11 +89,13 @@ enum ClassNames {
 
   MONSTER_EDITOR = 'valeria-monster-editor',
   PDCHU_IO = 'valeria-pdchu-io',
-  LEVelEDITOR = 'valeria-level-editor',
-  LEVelINPUT = 'valeria-level-input',
+  LEVEL_EDITOR = 'valeria-level-editor',
+  LEVEL_INPUT = 'valeria-level-input',
   PLUS_EDITOR = 'valeria-plus-editor',
   AWAKENING = 'valeria-monster-awakening',
   AWAKENING_SUPER = 'valeria-monster-awakening-super',
+  SWAP_ICON = 'valeria-swap-icon',
+  TRANSFORM_ICON = 'valeria-transform-icon',
 
   ENEMY_PICTURE = 'valeria-enemy-picture-container',
   DUNGEON_EDITOR_FLOORS = 'valeria-dungeon-edit-floors',
@@ -101,6 +108,7 @@ enum ClassNames {
   FLOOR_ENEMY = 'valeria-floor-enemy',
   FLOOR_ENEMY_ADD = 'valeria-floor-enemy-add',
   FLOOR_ENEMY_DELETE = 'valeria-floor-delete',
+  ENEMY_STAT_TABLE = 'valeria-enemy-stat-table',
 
   VALERIA = 'valeria',
 }
@@ -149,10 +157,11 @@ function getAwakeningOffsets(awakeningNumber: number): number[] {
   return result;
 }
 
-function updateAwakening(el: HTMLElement, awakening: number, scale: number, available: boolean = true): void {
+function updateAwakening(el: HTMLElement, awakening: number, scale: number, unavailableReason: string = ''): void {
   const [x, y] = getAwakeningOffsets(awakening);
   el.style.backgroundPosition = `${x * scale}px ${y * scale}px`;
-  el.style.opacity = `${available ? 1 : 0}`;create('div') as HTMLDivElement
+  el.style.opacity = `${unavailableReason ? 0.5 : 1}`;
+  el.title = unavailableReason;
 }
 
 class MonsterIcon {
@@ -161,7 +170,10 @@ class MonsterIcon {
   subattributeEl: HTMLElement = create('a', ClassNames.ICON_SUB);
   infoTable: HTMLElement = create('table', ClassNames.ICON_INFO);
   hideInfoTable: boolean = false;
+  swapIcon: LayeredAsset;
+  transformIcon: LayeredAsset;
   id: number = -1;
+  private onUpdate: OnMonsterUpdate;
 
   constructor(hideInfoTable: boolean = false) {
     this.hideInfoTable = hideInfoTable;
@@ -170,9 +182,9 @@ class MonsterIcon {
     }
 
     const classNames = [
-        ClassNames.ICON_PLUS, ClassNames.ICON_AWAKE,
-        '', ClassNames.ICON_SUPER,
-        ClassNames.ICON_LEVEL, ClassNames.ICON_ID];
+      ClassNames.ICON_PLUS, ClassNames.ICON_AWAKE,
+      '', ClassNames.ICON_SUPER,
+      ClassNames.ICON_LEVEL, ClassNames.ICON_ID];
     for (let i = 0; i < 3; i++) {
       const row = create('tr');
       for (let j = 0; j < 2; j++) {
@@ -193,16 +205,60 @@ class MonsterIcon {
     this.element.appendChild(this.attributeEl);
     this.attributeEl.appendChild(this.subattributeEl);
     this.element.appendChild(this.infoTable);
+
+    this.swapIcon = new LayeredAsset([AssetEnum.SWAP], (active: boolean) => { console.log(active); }, true);
+    const swapElement = this.swapIcon.getElement();
+    swapElement.classList.add(ClassNames.SWAP_ICON);
+    this.element.appendChild(swapElement);
+    hide(swapElement);
+
+    this.transformIcon = new LayeredAsset([AssetEnum.TRANSFROM], (active: boolean) => {
+      this.onUpdate({
+        transformActive: active,
+      });
+    }, false);
+    const transformElement = this.transformIcon.getElement();
+    transformElement.classList.add(ClassNames.TRANSFORM_ICON);
+    this.element.appendChild(transformElement);
+    hide(transformElement);
+    this.onUpdate = () => { };
   }
 
   getElement(): HTMLElement {
     return this.element;
   }
 
-  update(id: number, plusses: number, awakening: number,
-      superAwakeningIdx: number, saAvailable: boolean, level: number) {
-    this.id = id;
-    if (id == -1) {
+  setOnUpdate(onUpdate: OnMonsterUpdate) {
+    this.onUpdate = onUpdate;
+  }
+
+  updateId(id: number) {
+    this.update({
+      id,
+      plusses: 0,
+      awakening: 0,
+      superAwakeningIdx: -1,
+      unavailableReason: '',
+      level: 0,
+      showSwap: false,
+      showTransform: false,
+      activeTransform: false,
+    });
+  }
+
+  update(d: {
+    id: number,
+    plusses: number,
+    awakening: number,
+    superAwakeningIdx: number,
+    unavailableReason: string,
+    level: number,
+    showSwap: boolean,
+    showTransform: boolean,
+    activeTransform: boolean,
+  }) {
+    this.id = d.id;
+    if (d.id == -1) {
       hide(this.element);
       hide(this.attributeEl);
       hide(this.subattributeEl);
@@ -210,10 +266,9 @@ class MonsterIcon {
       return;
     }
     show(this.element);
-    if (!this.hideInfoTable) {
-      const card = vm.model.cards[id] || DEFAULT_CARD;
-    }
-    const card = vm.model.cards[id] || DEFAULT_CARD;
+    show(this.infoTable);
+
+    const card = floof.model.cards[d.id] || DEFAULT_CARD;
 
     const descriptor = CardAssets.getIconImageData(card);
     if (descriptor) {
@@ -222,7 +277,7 @@ class MonsterIcon {
       this.element.style.backgroundPosition = `-${descriptor.offsetX * TEAM_SCALING}px -${descriptor.offsetY * TEAM_SCALING}`;
     }
 
-    const attrDescriptor = CardUiAssets.getIconFrame(card.attribute, false, vm);
+    const attrDescriptor = CardUiAssets.getIconFrame(card.attribute, false, floof.model);
     if (attrDescriptor) {
       show(this.attributeEl);
       this.attributeEl.style.backgroundImage = `url(${attrDescriptor.url})`;
@@ -231,7 +286,7 @@ class MonsterIcon {
       hide(this.attributeEl);
     }
 
-    const subDescriptor = CardUiAssets.getIconFrame(card.subattribute, true, vm);
+    const subDescriptor = CardUiAssets.getIconFrame(card.subattribute, true, floof.model);
     if (subDescriptor) {
       show(this.subattributeEl);
       this.subattributeEl.style.backgroundImage = `url(${subDescriptor.url})`;
@@ -241,62 +296,64 @@ class MonsterIcon {
     }
 
     const plusEl = this.element.getElementsByClassName(ClassNames.ICON_PLUS)[0] as HTMLElement;
-    plusEl.innerText = `+${plusses}`;
+    if (d.plusses) {
+      show(plusEl);
+      plusEl.innerText = `+${d.plusses}`;
+    } else {
+      hide(plusEl);
+    }
 
     const awakeningEl = this.element.getElementsByClassName(ClassNames.ICON_AWAKE)[0] as HTMLElement;
-    if (awakening != 0) {
+    if (d.awakening != 0) {
       show(awakeningEl);
-      awakeningEl.innerText = `(${awakening})`;
+      awakeningEl.innerText = `(${d.awakening})`;
     } else {
       hide(awakeningEl);
     }
 
     const superAwakeningEl = this.element.getElementsByClassName(ClassNames.ICON_SUPER)[0] as HTMLElement;
-    if (superAwakeningIdx >= 0) {
+    if (d.superAwakeningIdx >= 0) {
       show(superAwakeningEl);
-      updateAwakening(superAwakeningEl, card.superAwakenings[superAwakeningIdx], 0.5, saAvailable);
+      updateAwakening(superAwakeningEl, card.superAwakenings[d.superAwakeningIdx], 0.5, d.unavailableReason);
     } else {
       hide(superAwakeningEl);
     }
 
     const levelEl = this.element.getElementsByClassName(ClassNames.ICON_LEVEL)[0] as HTMLElement;
-    levelEl.innerText = `Lv${level}`;
+    levelEl.innerText = `Lv${d.level}`;
 
     const idEl = this.element.getElementsByClassName(ClassNames.ICON_ID)[0] as HTMLElement;
-    idEl.innerText = `${id}`;
+    idEl.innerText = `${d.id}`;
+
+    (d.showSwap ? show : hide)(this.swapIcon.getElement());
+    (d.showTransform ? show : hide)(this.transformIcon.getElement());
+    this.transformIcon.setActive(d.activeTransform);
   }
 }
 
 class MonsterInherit {
-  element: HTMLElement;
-  icon: HTMLElement;
-  attr: HTMLElement;
-  sub: HTMLElement;
-  idEl: HTMLElement;
-  levelEl: HTMLElement;
-  plusEl: HTMLElement;
+  private element: HTMLElement = create('table', ClassNames.INHERIT);
+  icon: HTMLElement = create('a', ClassNames.INHERIT_ICON);
+  attr: HTMLElement = create('a', ClassNames.INHERIT_ATTR);
+  sub: HTMLElement = create('a', ClassNames.INHERIT_SUB);
+  idEl: HTMLElement = create('div', ClassNames.INHERIT_ID);
+  levelEl: HTMLElement = create('div', ClassNames.INHERIT_LEVEL);
+  plusEl: HTMLElement = create('div', ClassNames.INHERIT_PLUS);
 
   constructor() {
-    this.element = create('table', ClassNames.INHERIT);
     const row = create('tr');
 
     const iconCell = create('td');
-    this.icon = create('a', ClassNames.INHERIT_ICON);
-    this.attr = create('a', ClassNames.INHERIT_ATTR);
     this.icon.appendChild(this.attr);
-    this.sub = create('a', ClassNames.INHERIT_SUB);
     this.attr.appendChild(this.sub);
     iconCell.appendChild(this.icon);
     row.appendChild(iconCell);
 
     const detailCell = create('td');
-    this.idEl = create('div', ClassNames.INHERIT_ID);
     detailCell.appendChild(this.idEl);
     detailCell.appendChild(create('br'));
-    this.levelEl = create('div', ClassNames.INHERIT_LEVEL);
     detailCell.appendChild(this.levelEl);
     detailCell.appendChild(create('br'));
-    this.plusEl = create('div', ClassNames.INHERIT_PLUS);
     detailCell.appendChild(this.plusEl);
     row.appendChild(detailCell);
     this.element.appendChild(row);
@@ -318,7 +375,7 @@ class MonsterInherit {
       return;
     }
 
-    const card = vm.model.cards[id] || DEFAULT_CARD;
+    const card = floof.model.cards[id] || DEFAULT_CARD;
     const desInherit = CardAssets.getIconImageData(card);
     if (desInherit) {
       show(this.icon);
@@ -328,7 +385,7 @@ class MonsterInherit {
     } else {
       hide(this.icon);
     }
-    const desAttr = CardUiAssets.getIconFrame(card.attribute, false, vm);
+    const desAttr = CardUiAssets.getIconFrame(card.attribute, false, floof.model);
     if (desAttr) {
       show(this.attr);
       this.attr.style.backgroundImage = `url(${desAttr.url})`;
@@ -336,7 +393,7 @@ class MonsterInherit {
     } else {
       hide(this.attr);
     }
-    const desSub = CardUiAssets.getIconFrame(card.subattribute, true, vm);
+    const desSub = CardUiAssets.getIconFrame(card.subattribute, true, floof.model);
     if (desSub) {
       show(this.attr);
       this.sub.style.backgroundImage = `url(${desSub.url})`;
@@ -355,12 +412,10 @@ class MonsterInherit {
 }
 
 class MonsterLatent {
-  el: HTMLElement;
-  latentEls: HTMLElement[];
+  private el: HTMLElement = create('div', ClassNames.MONSTER_LATENTS);
+  latentEls: HTMLElement[] = [];
 
   constructor() {
-    this.el = create('div', ClassNames.MONSTER_LATENTS);
-    this.latentEls = [];
     for (let i = 0; i < 6; i++) {
       const latentEl = create('a', ClassNames.MONSTER_LATENT);
       this.latentEls.push(latentEl);
@@ -398,19 +453,16 @@ class MonsterLatent {
 }
 
 class ComboEditor {
-  element: HTMLElement;
-  commandInput: HTMLInputElement;
-  colorTables: Record<string, HTMLTableElement>;
-  static maxVisibleCombos: number = 14;
+  public static maxVisibleCombos: number = 14;
+  public commandInput: HTMLInputElement = create('input', ClassNames.COMBO_COMMAND) as HTMLInputElement;
+
+  private element: HTMLElement = create('div', ClassNames.COMBO_EDITOR);
+  private colorTables: Record<string, HTMLTableElement> = {};
 
   constructor() {
-    this.element = create('div', ClassNames.COMBO_EDITOR);
-
-    this.commandInput = create('input', ClassNames.COMBO_COMMAND) as HTMLInputElement;
     this.commandInput.placeholder = 'Combo Commands';
     this.element.appendChild(this.commandInput);
 
-    this.colorTables = {};
     for (const c of COLORS) {
       const colorTable = create('table', ClassNames.COMBO_TABLE) as HTMLTableElement;
       colorTable.id = Ids.COMBO_TABLE_PREFIX + c;
@@ -452,8 +504,8 @@ class ComboEditor {
     return this.element;
   }
 
-  getInputElements(): Record<string, {shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement}[]> {
-    const out: Record<string, {shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement}[]> = {};
+  getInputElements(): Record<string, { shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement }[]> {
+    const out: Record<string, { shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement }[]> = {};
 
     for (const c of COLORS) {
       out[c] = [];
@@ -473,7 +525,7 @@ class ComboEditor {
     return out;
   }
 
-  update(data: Record<string, {shapeCount: string, enhance: number}[]>) {
+  update(data: Record<string, { shapeCount: string, enhance: number }[]>) {
     for (const c in data) {
       const vals = data[c];
       for (let i = 0; i < ComboEditor.maxVisibleCombos; i++) {
@@ -483,7 +535,7 @@ class ComboEditor {
           countEl.value = '';
           enhanceEl.value = '';
         } else {
-          const {shapeCount, enhance} = vals[i];
+          const { shapeCount, enhance } = vals[i];
           countEl.value = shapeCount;
           enhanceEl.value = enhance > 0 ? `${enhance}` : '';
         }
@@ -517,7 +569,7 @@ class TabbedComponent {
     this.tabs_ = {};
 
     for (const tabName of tabNames) {
-      const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABelSELECTED : ClassNames.TABBED_LABEL;
+      const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABEL_SELECTED : ClassNames.TABBED_LABEL;
       const label = create('td', labelClassName) as HTMLTableColElement;
       label.innerText = tabName;
       label.onclick = () => this.setActiveTab(tabName);
@@ -538,7 +590,7 @@ class TabbedComponent {
   setActiveTab(activeTabName: string): void {
     for (const tabName of this.tabNames_) {
       if (tabName == activeTabName) {
-        this.labels_[tabName].className = ClassNames.TABBED_LABelSELECTED;
+        this.labels_[tabName].className = ClassNames.TABBED_LABEL_SELECTED;
         this.tabs_[tabName].className = ClassNames.TABBED_TAB_SELECTED;
       } else {
         this.labels_[tabName].className = ClassNames.TABBED_LABEL;
@@ -570,6 +622,8 @@ interface MonsterUpdate {
   inheritPlussed?: boolean,
   addLatent?: Latent,
   removeLatent?: number,
+
+  transformActive?: boolean,
 }
 
 // Partial update values.
@@ -599,7 +653,7 @@ class GenericSelector<T> {
   protected selectedOption: number = 0;
   protected activeOptions: number = 0;
   protected updateCb: (value: number) => any;
-  protected searchArray: {s: string, value: T}[];
+  protected searchArray: { s: string, value: T }[];
 
   onKeyDown(): (e: KeyboardEvent) => any {
     return (e: KeyboardEvent) => {
@@ -683,7 +737,7 @@ class GenericSelector<T> {
     };
   }
 
-  constructor(searchArray: {s: string, value: T}[], updateCb: (value: number) => any) {
+  constructor(searchArray: { s: string, value: T }[], updateCb: (value: number) => any) {
     this.searchArray = searchArray;
     this.updateCb = updateCb;
 
@@ -725,7 +779,7 @@ class MonsterSelector extends GenericSelector<number> {
     if (id == -1) {
       return 'None';
     } else {
-      return vm.model.cards[id].name;
+      return floof.model.cards[id].name;
     }
   }
 
@@ -735,7 +789,7 @@ class MonsterSelector extends GenericSelector<number> {
 
   postFilter(matches: number[]): number[] {
     if (this.isInherit) {
-      return matches.filter((match) => vm.model.cards[match].inheritanceType & 1);
+      return matches.filter((match) => floof.model.cards[match].inheritanceType & 1);
     }
     return matches;
   }
@@ -743,9 +797,9 @@ class MonsterSelector extends GenericSelector<number> {
   constructor(cards: Card[], updateCb: OnMonsterUpdate, isInherit: boolean = false) {
     super([], (id: number) => {
       if (isInherit) {
-        updateCb({inheritId: id});
+        updateCb({ inheritId: id });
       } else {
-        updateCb({id: id});
+        updateCb({ id: id });
       }
     });
 
@@ -761,10 +815,10 @@ class MonsterSelector extends GenericSelector<number> {
 }
 
 class LevelEditor {
-  el: HTMLElement = create('div', ClassNames.LEVelEDITOR);
+  el: HTMLElement = create('div', ClassNames.LEVEL_EDITOR);
   inheritRow: HTMLTableRowElement = create('tr') as HTMLTableRowElement;
-  levelInput: HTMLInputElement = create('input', ClassNames.LEVelINPUT) as HTMLInputElement;
-  inheritInput: HTMLInputElement = create('input', ClassNames.LEVelINPUT) as HTMLInputElement;
+  levelInput: HTMLInputElement = create('input', ClassNames.LEVEL_INPUT) as HTMLInputElement;
+  inheritInput: HTMLInputElement = create('input', ClassNames.LEVEL_INPUT) as HTMLInputElement;
   maxLevel: number = 1;
   inheritMaxLevel: number = 1;
   maxLevelEl: Text = document.createTextNode('/ 1');
@@ -805,7 +859,7 @@ class LevelEditor {
       if (lv > this.maxLevel) {
         lv = this.maxLevel;
       }
-      this.onUpdate({level: lv});
+      this.onUpdate({ level: lv });
     };
     levelCell.appendChild(this.levelInput);
     levelCell.appendChild(this.maxLevelEl);
@@ -815,7 +869,7 @@ class LevelEditor {
     const monsterLevel1Button = create('button') as HTMLButtonElement;
     monsterLevel1Button.innerText = 'Lv1';
     monsterLevel1Button.onclick = () => {
-      this.onUpdate({level: 1});
+      this.onUpdate({ level: 1 });
     };
     monsterLevel1Cell.appendChild(monsterLevel1Button);
     monsterLevelRow.appendChild(monsterLevel1Cell);
@@ -824,7 +878,7 @@ class LevelEditor {
     const monsterLevelMaxButton = create('button') as HTMLButtonElement;
     monsterLevelMaxButton.innerText = 'Lv MAX';
     monsterLevelMaxButton.onclick = () => {
-      this.onUpdate({level: this.maxLevel});
+      this.onUpdate({ level: this.maxLevel });
     };
     monsterLevelMaxCell.appendChild(monsterLevelMaxButton);
     monsterLevelRow.appendChild(monsterLevelMaxCell);
@@ -839,7 +893,7 @@ class LevelEditor {
       if (lv > this.inheritMaxLevel) {
         lv = this.inheritMaxLevel;
       }
-      this.onUpdate({inheritLevel: lv});
+      this.onUpdate({ inheritLevel: lv });
     };
     inheritCell.appendChild(this.inheritInput);
     inheritCell.appendChild(this.inheritMaxLevelEl);
@@ -849,7 +903,7 @@ class LevelEditor {
     const inheritLevel1Button = create('button') as HTMLButtonElement;
     inheritLevel1Button.innerText = 'Lv1';
     inheritLevel1Button.onclick = () => {
-      this.onUpdate({inheritLevel: 1});
+      this.onUpdate({ inheritLevel: 1 });
     };
     inheritLevel1Cell.appendChild(inheritLevel1Button);
     this.inheritRow.appendChild(inheritLevel1Cell);
@@ -858,7 +912,7 @@ class LevelEditor {
     const inheritLevelMaxButton = create('button') as HTMLButtonElement;
     inheritLevelMaxButton.innerText = 'Lv MAX';
     inheritLevelMaxButton.onclick = () => {
-      this.onUpdate({inheritLevel: this.inheritMaxLevel});
+      this.onUpdate({ inheritLevel: this.inheritMaxLevel });
     };
     inheritLevelMaxCell.appendChild(inheritLevelMaxButton);
     this.inheritRow.appendChild(inheritLevelMaxCell);
@@ -874,8 +928,9 @@ class LevelEditor {
     return this.el;
   }
 
-  update({level, inheritLevel, maxLevel, inheritMaxLevel}: {
-    level: number, maxLevel: number, inheritLevel: number, inheritMaxLevel: number}) {
+  update({ level, inheritLevel, maxLevel, inheritMaxLevel }: {
+    level: number, maxLevel: number, inheritLevel: number, inheritMaxLevel: number
+  }) {
     this.maxLevel = maxLevel;
     this.maxLevelEl.data = `/ ${maxLevel}`;
 
@@ -892,15 +947,14 @@ class LevelEditor {
 }
 
 class PlusEditor {
-  el: HTMLElement;
+  private el: HTMLElement = create('div');
   onUpdate: OnMonsterUpdate;
-  hpEl: HTMLInputElement;
-  atkEl: HTMLInputElement;
-  rcvEl: HTMLInputElement;
-  inheritEl: HTMLInputElement;
+  private hpEl: HTMLInputElement = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
+  private atkEl: HTMLInputElement = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
+  private rcvEl: HTMLInputElement = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
+  private inheritEl: HTMLInputElement = create('input') as HTMLInputElement;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el = create('div');
     this.onUpdate = onUpdate;
 
     const maxPlusButton = create('button') as HTMLButtonElement;
@@ -937,34 +991,30 @@ class PlusEditor {
 
     this.el.appendChild(create('br'));
 
-    this.hpEl = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
     this.hpEl.type = 'number';
     this.hpEl.onchange = () => {
-      this.onUpdate({hpPlus: Number(this.hpEl.value)});
+      this.onUpdate({ hpPlus: Number(this.hpEl.value) });
     };
     this.el.appendChild(document.createTextNode('HP+ '));
     this.el.appendChild(this.hpEl);
 
-    this.atkEl = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
     this.atkEl.type = 'number';
     this.atkEl.onchange = () => {
-      this.onUpdate({atkPlus: Number(this.atkEl.value)});
+      this.onUpdate({ atkPlus: Number(this.atkEl.value) });
     };
     this.el.appendChild(document.createTextNode('ATK+ '));
     this.el.appendChild(this.atkEl);
 
-    this.rcvEl = create('input', ClassNames.PLUS_EDITOR) as HTMLInputElement;
     this.rcvEl.type = 'number';
     this.rcvEl.onchange = () => {
-      this.onUpdate({rcvPlus: Number(this.rcvEl.value)});
+      this.onUpdate({ rcvPlus: Number(this.rcvEl.value) });
     };
     this.el.appendChild(document.createTextNode('RCV+ '));
     this.el.appendChild(this.rcvEl);
 
-    this.inheritEl = create('input') as HTMLInputElement;
     this.inheritEl.type = 'checkbox';
     this.inheritEl.onclick = () => {
-      this.onUpdate({inheritPlussed: this.inheritEl.checked});
+      this.onUpdate({ inheritPlussed: this.inheritEl.checked });
     };
   }
 
@@ -983,15 +1033,15 @@ class PlusEditor {
 class AwakeningEditor {
   static MAX_AWAKENINGS = 10;
   static SCALE = 0.7;
-  el: HTMLElement = create('div');
+  private el: HTMLElement = create('div');
 
   awakeningArea: HTMLDivElement = create('div') as HTMLDivElement;
-  inheritAwakeningArea: HTMLDivElement;
-  superAwakeningArea: HTMLDivElement;
+  inheritAwakeningArea: HTMLDivElement = create('div') as HTMLDivElement;
+  superAwakeningArea: HTMLDivElement = create('div') as HTMLDivElement;
 
-  awakeningSelectors: HTMLAnchorElement[];
-  superAwakeningSelectors: HTMLAnchorElement[];
-  inheritDisplays: HTMLAnchorElement[];
+  awakeningSelectors: HTMLAnchorElement[] = [];
+  superAwakeningSelectors: HTMLAnchorElement[] = [];
+  inheritDisplays: HTMLAnchorElement[] = [];
   onUpdate: OnMonsterUpdate;
 
   constructor(onUpdate: OnMonsterUpdate) {
@@ -1000,11 +1050,10 @@ class AwakeningEditor {
 
     this.awakeningArea.appendChild(document.createTextNode('Awakenings'));
     this.awakeningArea.appendChild(create('br'));
-    this.awakeningSelectors = [];
     for (let i = 0; i < AwakeningEditor.MAX_AWAKENINGS; i++) {
       const el = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       el.onclick = () => {
-        this.onUpdate({awakeningLevel: i});
+        this.onUpdate({ awakeningLevel: i });
       };
       if (i > 0) {
         hide(el);
@@ -1014,8 +1063,6 @@ class AwakeningEditor {
     }
     this.el.appendChild(this.awakeningArea);
 
-    this.inheritDisplays = [];
-    this.inheritAwakeningArea = create('div') as HTMLDivElement;
     for (let i = 0; i < 10; i++) {
       const el = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       el.style.cursor = 'default';
@@ -1027,14 +1074,12 @@ class AwakeningEditor {
     }
     this.el.appendChild(this.inheritAwakeningArea);
 
-    this.superAwakeningSelectors = [];
-    this.superAwakeningArea = create('div') as HTMLDivElement;
     this.superAwakeningArea.appendChild(document.createTextNode('Super Awakening'));
     this.superAwakeningArea.appendChild(create('br'));
     for (let i = 0; i < AwakeningEditor.MAX_AWAKENINGS; i++) {
       const el = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       el.onclick = () => {
-        this.onUpdate({superAwakeningIdx: i - 1});
+        this.onUpdate({ superAwakeningIdx: i - 1 });
       };
       if (i > 0) {
         hide(el);
@@ -1051,12 +1096,12 @@ class AwakeningEditor {
 
   // TODO
   update(
-      awakenings: Awakening[], // All awakenings of the current monster.
-      superAwakenings: Awakening[], // All super awakenings of the current monster.
-      inheritAwakenings: Awakening[], // All awakenings of the inherit monster.
-      awakeningLevel: number, // Current awakening level [0, awakenings.length]
-      superAwakeningIdx: number, // Current Super Awakening selected
-      inheritAwakeningLevel = -1) { // UNSUPPORTED RIGHT NOW.
+    awakenings: Awakening[], // All awakenings of the current monster.
+    superAwakenings: Awakening[], // All super awakenings of the current monster.
+    inheritAwakenings: Awakening[], // All awakenings of the inherit monster.
+    awakeningLevel: number, // Current awakening level [0, awakenings.length]
+    superAwakeningIdx: number, // Current Super Awakening selected
+    inheritAwakeningLevel = -1) { // UNSUPPORTED RIGHT NOW.
     if (awakeningLevel > awakenings.length) {
       awakeningLevel = awakenings.length;
     }
@@ -1120,34 +1165,30 @@ class AwakeningEditor {
 }
 
 class LatentEditor {
-  el: HTMLDivElement;
-  latentRemovers: HTMLAnchorElement[];
-  latentSelectors: HTMLAnchorElement[];
+  private el: HTMLDivElement = create('div') as HTMLDivElement;
+  latentRemovers: HTMLAnchorElement[] = [];
+  latentSelectors: HTMLAnchorElement[] = [];
   onUpdate: OnMonsterUpdate;
-  currentLatents: Latent[];
+  currentLatents: Latent[] = [];
   static PER_ROW = 11;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el = create('div') as HTMLDivElement;
     this.onUpdate = onUpdate;
     this.el.appendChild(document.createTextNode('Latents'));
     this.el.appendChild(create('br'));
 
-    this.latentRemovers = [];
-    this.currentLatents = [];
     const removerArea = create('div');
     for (let i = 0; i < 8; i++) {
       const remover = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
       remover.style.backgroundPosition = '0px 0px';
       remover.onclick = () => {
-        this.onUpdate({removeLatent: i});
+        this.onUpdate({ removeLatent: i });
       }
       this.latentRemovers.push(remover);
       removerArea.appendChild(remover);
     }
     this.el.appendChild(removerArea);
 
-    this.latentSelectors = [];
     const selectorArea = create('div');
     let currentWidth = 0;
     let j = 1;
@@ -1167,7 +1208,7 @@ class LatentEditor {
       const offsetX = (j > 1 ? (80 * x + 2) : 36 * x - 36) * AwakeningEditor.SCALE;
       selector.style.backgroundPosition = `-${offsetX}px -${36 * j * AwakeningEditor.SCALE}px`;
       selector.onclick = () => {
-        this.onUpdate({addLatent: i});
+        this.onUpdate({ addLatent: i });
       };
       this.latentSelectors.push(selector);
       selectorArea.appendChild(selector);
@@ -1229,7 +1270,7 @@ class LatentEditor {
 }
 
 class MonsterEditor {
-  el: HTMLElement;
+  private el: HTMLElement = create('div', ClassNames.MONSTER_EDITOR);
   pdchu: {
     io: HTMLTextAreaElement;
     importButton: HTMLElement;
@@ -1243,7 +1284,6 @@ class MonsterEditor {
   latentEditor: LatentEditor;
 
   constructor(onUpdate: OnMonsterUpdate) {
-    this.el = create('div', ClassNames.MONSTER_EDITOR);
     const pdchuArea = create('div');
     this.pdchu = {
       io: create('textarea', ClassNames.PDCHU_IO) as HTMLTextAreaElement,
@@ -1282,12 +1322,14 @@ class MonsterEditor {
     this.monsterSelector.setId(ctx.id);
     this.inheritSelector.setId(ctx.inheritId);
     let maxLevel = 1;
-    if (ctx.id in vm.model.cards) {
-      maxLevel = vm.model.cards[ctx.id].isLimitBreakable ? 110 : vm.model.cards[ctx.id].maxLevel;
+    if (ctx.id in floof.model.cards) {
+      maxLevel = floof.model.cards[ctx.id].isLimitBreakable ? 110 : floof.model.cards[ctx.id].maxLevel;
     }
     let inheritMaxLevel = 1;
-    if (ctx.inheritId in vm.model.cards) {
-      inheritMaxLevel = vm.model.cards[ctx.inheritId].isLimitBreakable ? 110 : vm.model.cards[ctx.id].maxLevel;
+    if (ctx.inheritId in floof.model.cards) {
+      inheritMaxLevel = floof.model.cards[ctx.inheritId].isLimitBreakable
+        ? 110
+        : floof.model.cards[ctx.inheritId].maxLevel;
     }
     this.levelEditor.update({
       level: ctx.level,
@@ -1300,12 +1342,12 @@ class MonsterEditor {
     let awakenings: Awakening[] = [];
     let superAwakenings: Awakening[] = [];
     let inheritAwakenings: Awakening[] = [];
-    if (ctx.id in vm.model.cards) {
-      awakenings = vm.model.cards[ctx.id].awakenings;
-      superAwakenings = vm.model.cards[ctx.id].superAwakenings;
+    if (ctx.id in floof.model.cards) {
+      awakenings = floof.model.cards[ctx.id].awakenings;
+      superAwakenings = floof.model.cards[ctx.id].superAwakenings;
     }
-    if (ctx.inheritId in vm.model.cards) {
-      inheritAwakenings = vm.model.cards[ctx.inheritId].awakenings;
+    if (ctx.inheritId in floof.model.cards) {
+      inheritAwakenings = floof.model.cards[ctx.inheritId].awakenings;
     }
     this.awakeningEditor.update(
       awakenings,
@@ -1317,13 +1359,13 @@ class MonsterEditor {
     );
 
     let latentKillers: Latent[] = [];
-    if (ctx.id in vm.model.cards) {
-      latentKillers = vm.model.cards[ctx.id].latentKillers;
+    if (ctx.id in floof.model.cards) {
+      latentKillers = floof.model.cards[ctx.id].latentKillers;
     }
     this.latentEditor.update(
       ctx.latents,
       latentKillers,
-      vm.model.cards[ctx.id].inheritanceType & 32 ? 8 : 6,
+      floof.model.cards[ctx.id].inheritanceType & 32 ? 8 : 6,
     );
   }
 
@@ -1332,37 +1374,111 @@ class MonsterEditor {
   }
 }
 
+function addCommas(n: number, maxPrecision = 3): string {
+  let decimalPart = '';
+  if (!Number.isInteger(n)) {
+    let fn = Math.floor;
+    if (n < 0) {
+      fn = Math.ceil;
+    }
+    decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
+    while (decimalPart[decimalPart.length - 1] == '0') {
+      decimalPart = decimalPart.substring(0, decimalPart.length - 1);
+    }
+    n = fn(n);
+  }
+  const reversed = String(n).split('').reverse().join('');
+  const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
+  if (forwardCommaArray[0] == ',') {
+    forwardCommaArray.splice(0, 1);
+  } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
+    forwardCommaArray.splice(1, 1);
+  }
+  return forwardCommaArray.join('') + decimalPart;
+}
+
+function removeCommas(s: string): number {
+  return Number(s.replace(/,/g, ''));
+}
+
+class HpBar {
+  private element: HTMLElement = create('div', ClassNames.HP_DIV) as HTMLElement;
+  maxHp: number = 1;
+  currentHp: number = 1;
+
+  private sliderEl = create('input', ClassNames.HP_SLIDER) as HTMLInputElement;
+  private hpInput = create('input', ClassNames.HP_INPUT) as HTMLInputElement;
+  private hpMaxEl = create('span', ClassNames.HP_MAX) as HTMLSpanElement;
+  private percentEl = create('span', ClassNames.HP_PERCENT) as HTMLSpanElement;
+  private onUpdate: (hp: number) => any;
+
+  constructor(onUpdate: (hp: number) => any) {
+    this.onUpdate = onUpdate;
+    this.sliderEl.type = 'range';
+    this.sliderEl.onchange = () => {
+      this.onUpdate(Number(this.sliderEl.value));
+    }
+    this.element.appendChild(this.sliderEl);
+    this.hpInput.onchange = () => {
+      this.onUpdate(removeCommas(this.hpInput.value));
+    }
+    this.element.appendChild(this.hpInput);
+    const divisionSpan = create('span') as HTMLSpanElement;
+    divisionSpan.innerText = ' / ';
+    this.element.appendChild(divisionSpan);
+    this.element.appendChild(this.hpMaxEl);
+    this.element.appendChild(this.percentEl);
+    this.percentEl.innerText = '100%';
+  }
+
+  setHp(currentHp: number, maxHp: number = -1) {
+    if (maxHp > 0) {
+      this.maxHp = maxHp;
+      this.sliderEl.max = String(maxHp);
+    }
+    this.hpMaxEl.innerText = String(this.maxHp);
+    if (currentHp <= this.maxHp) {
+      this.currentHp = currentHp;
+    } else {
+      this.currentHp = this.maxHp;
+    }
+    this.hpInput.value = addCommas(this.currentHp);
+    this.sliderEl.value = String(this.currentHp);
+    this.percentEl.innerText = `${Math.round(100 * this.currentHp / this.maxHp)}%`;
+  }
+
+  getElement(): HTMLElement {
+    return this.element;
+  }
+}
+
 class StoredTeamDisplay {
-  element_: HTMLElement;
-  saveTeamEl: HTMLElement;
-  loadTable_: HTMLTableElement;
-  teamRows_: HTMLTableRowElement[];
+  private element: HTMLElement = create('div', ClassNames.TEAM_STORAGE);
+  saveTeamEl: HTMLElement = create('div', ClassNames.TEAM_STORAGE_SAVE);
+  private loadTable: HTMLTableElement = create('table', ClassNames.TEAM_STORAGE_LOAD_AREA) as HTMLTableElement;
+  private teamRows: HTMLTableRowElement[] = [];
   loadFn: (name: string) => any;
   deleteFn: (name: string) => any;
 
   constructor(saveFn: () => any, loadFn: (name: string) => any, deleteFn: (name: string) => any) {
-    this.element_ = create('div', ClassNames.TEAM_STORAGE);
-    this.saveTeamEl = create('div', ClassNames.TEAM_STORAGE_SAVE);
     this.saveTeamEl.innerText = 'Save Team';
     this.saveTeamEl.onclick = saveFn;
-    this.element_.appendChild(this.saveTeamEl);
-    this.loadTable_ = create('table', ClassNames.TEAM_STORAGE_LOAD_AREA) as HTMLTableElement;
-    this.element_.appendChild(this.loadTable_);
-    this.teamRows_ = [];
+    this.element.appendChild(this.saveTeamEl);
+    this.element.appendChild(this.loadTable);
     this.loadFn = loadFn;
     this.deleteFn = deleteFn;
   }
 
   getElement() {
-    return this.element_;
+    return this.element;
   }
 
   update(names: string[]): void {
-    for (let i = 0; i < Math.max(names.length, this.teamRows_.length); i++) {
+    for (let i = 0; i < Math.max(names.length, this.teamRows.length); i++) {
       if (i >= names.length) {
-        this.teamRows_[i].className = ClassNames.TEAM_STORAGE_LOAD_INACTIVE;
+        this.teamRows[i].className = ClassNames.TEAM_STORAGE_LOAD_INACTIVE;
         continue;
-      } else if (i >= this.teamRows_.length) {
+      } else if (i >= this.teamRows.length) {
         const newRow = create('tr', ClassNames.TEAM_STORAGE_LOAD_ACTIVE) as HTMLTableRowElement;
         const newLoad = create('td');
         newLoad.onclick = () => this.loadFn(newLoad.innerText);
@@ -1371,11 +1487,11 @@ class StoredTeamDisplay {
         newDelete.innerText = 'x';
         newDelete.onclick = () => this.deleteFn(newLoad.innerText);
         newRow.appendChild(newDelete);
-        this.loadTable_.appendChild(newRow);
-        this.teamRows_.push(newRow);
+        this.loadTable.appendChild(newRow);
+        this.teamRows.push(newRow);
       }
-      this.teamRows_[i].className = ClassNames.TEAM_STORAGE_LOAD_ACTIVE;
-      const loadCell = this.teamRows_[i].firstElementChild as HTMLTableCellElement;
+      this.teamRows[i].className = ClassNames.TEAM_STORAGE_LOAD_ACTIVE;
+      const loadCell = this.teamRows[i].firstElementChild as HTMLTableCellElement;
       loadCell.innerText = names[i];
     }
   }
@@ -1393,10 +1509,26 @@ interface Stats {
   counts: Map<Awakening, number>,
 }
 
+interface TeamBattle {
+  maxHp: number,
+  currentHp: number,
+  leadSwap: number,
+}
+
+interface TeamUpdate {
+  teamIdx?: number,
+  monsterIdx?: number,
+  title?: string,
+  description?: string,
+
+  currentHp?: number,
+  leadSwap?: number,
+}
+
 class TeamPane {
   element_: HTMLElement = create('div');
   teamDivs: HTMLDivElement[] = [];
-  monsterDivs: HTMLElement[] =  [];
+  monsterDivs: HTMLElement[] = [];
   titleEl: HTMLInputElement = create('input', ClassNames.TEAM_TITLE) as HTMLInputElement;
   descriptionEl: HTMLTextAreaElement = create('textarea', ClassNames.TEAM_DESCRIPTION) as HTMLTextAreaElement;
   statsEl: HTMLDivElement = create('div') as HTMLDivElement;
@@ -1404,18 +1536,27 @@ class TeamPane {
   private totalHpValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   private totalRcvValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   private totalTimeValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
+  battleEl: HTMLDivElement = create('div') as HTMLDivElement;
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
   private metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load']);
   private detailTabs: TabbedComponent = new TabbedComponent(['Description', 'Stats', 'Battle']);
+  private onTeamUpdate: (ctx: TeamUpdate) => any;
+  private hpBar: HpBar;
+  private leadSwapInput = create('input') as HTMLInputElement;
 
   constructor(
-      storageDisplay: HTMLElement,
-      monsterDivs: HTMLElement[],
-      onSelectIdx: (idx: number) => any,
-      onSelectTeamIdx: (idx: number) => any) {
+    storageDisplay: HTMLElement,
+    monsterDivs: HTMLElement[],
+    onTeamUpdate: (ctx: TeamUpdate) => any,
+  ) {
+    this.onTeamUpdate = onTeamUpdate;
     const teamTab = this.metaTabs.getTab('Team');
 
+    this.titleEl.placeholder = 'Team Name';
     teamTab.appendChild(this.titleEl);
+    this.titleEl.onchange = () => {
+      this.onTeamUpdate({ title: this.titleEl.value });
+    };
 
     for (let i = 0; i < 3; i++) {
       this.teamDivs.push(create('div', ClassNames.TEAM_CONTAINER) as HTMLDivElement);
@@ -1423,8 +1564,10 @@ class TeamPane {
         const d = create('div', ClassNames.MONSTER_CONTAINER);
         d.appendChild(monsterDivs[i * 6 + j]);
         d.onclick = () => {
-          onSelectIdx(i * 6 + j);
-          onSelectTeamIdx(i);
+          this.onTeamUpdate({
+            teamIdx: i,
+            monsterIdx: i * 6 + j,
+          });
           this.selectMonster(i * 6 + j);
         };
         this.monsterDivs.push(d);
@@ -1435,11 +1578,25 @@ class TeamPane {
 
     const descriptionTab = this.detailTabs.getTab('Description');
     this.descriptionEl.spellcheck = false;
+    this.descriptionEl.onchange = () => {
+      this.onTeamUpdate({
+        description: this.descriptionEl.value,
+      });
+    };
     descriptionTab.appendChild(this.descriptionEl);
 
     const statsTab = this.detailTabs.getTab('Stats');
     this.populateStats();
     statsTab.appendChild(this.statsEl);
+
+    const battleTab = this.detailTabs.getTab('Battle');
+    this.hpBar = new HpBar((hp) => {
+      this.onTeamUpdate({
+        currentHp: hp,
+      });
+    })
+    this.populateBattle();
+    battleTab.appendChild(this.battleEl);
 
     teamTab.appendChild(this.detailTabs.getElement());
 
@@ -1459,9 +1616,11 @@ class TeamPane {
     }
   }
 
+  goToTab(s: string) {
+    this.metaTabs.setActiveTab(s);
+  }
   private createStatRow(labelText: string, statIndex: number) {
     const row = create('tr') as HTMLTableRowElement;
-
     for (let i = 0; i < 6; i++) {
       const cell = create('td') as HTMLTableCellElement;
 
@@ -1568,6 +1727,31 @@ class TeamPane {
     this.statsEl.appendChild(awakeningTable);
   }
 
+  private populateBattle() {
+    // HP Element
+    this.battleEl.appendChild(this.hpBar.getElement());
+    // Choose combos or active.
+    const leadSwapLabel = create('span') as HTMLSpanElement;
+    leadSwapLabel.innerText = 'Current Lead Index: ';
+    this.battleEl.appendChild(leadSwapLabel);
+    this.leadSwapInput.type = 'number';
+    this.leadSwapInput.value = '0';
+    this.leadSwapInput.onchange = () => {
+      let pos = Number(this.leadSwapInput.value);
+      if (pos < 0) {
+        pos = 0;
+      }
+      if (pos > 4) {
+        pos = 4;
+      }
+      this.onTeamUpdate({ leadSwap: pos });
+    }
+    this.battleEl.appendChild(this.leadSwapInput);
+    // Player State including
+    // * Void Attr, Void
+
+  }
+
   // TODO
   update(playerMode: number, title: string, description: string) {
     for (let i = 1; i < this.teamDivs.length; i++) {
@@ -1610,211 +1794,14 @@ class TeamPane {
       }
     }
   }
+
+  updateBattle(teamBattle: TeamBattle) {
+    this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
+    this.leadSwapInput.value = `${teamBattle.leadSwap}`;
+  }
 }
 
 /**
-// interface DungeonFloorUpdate {
-//   addEnemy?: boolean;
-//   deleteEnemy?: number;
-//   activeEnemy?: number;
-//   deleteFloor?: number;
-// }
-//
-// class DungeonFloorRow {
-//   private readonly el: HTMLTableRowElement;
-//   floorNumber: number;
-//   onUpdate: (ctx: DungeonFloorUpdate) => any;
-//   enemiesTable: HTMLTableElement;
-//   floorNameContainer: HTMLDivElement;
-//   enemyRows: HTMLTableRowElement[];
-//   activeEnemy: number = 0;
-//
-//   constructor(floorNumber: number, onUpdate: (ctx: DungeonFloorUpdate) => any) {
-//     this.floorNumber = floorNumber;
-//     this.el = create('tr') as HTMLTableRowElement;
-//     this.onUpdate = onUpdate;
-//     const floorCell = create('td');
-//     this.floorNameContainer = create('div', ClassNames.FLOOR_NAME) as HTMLDivElement;
-//     //   floorName.style.minWidth = '25px';
-//     this.floorNameContainer.innerText = `F${floorNumber}`;
-//     floorCell.appendChild(this.floorNameContainer);
-//     const addMonsterDiv = create('div', ClassNames.FLOOR_ENEMY_ADD);
-//     //   addMonster.className = 'idc-dungeon-floor-add-enemy';
-//     //   addMonster.style.cursor = 'pointer';
-//     //   addMonster.onmouseover = () => {
-//     //     addMonster.style.border = BORDER_COLOR;
-//     //   };
-//     //   addMonster.onmouseleave = () => {
-//     //     addMonster.style.border = '';
-//     //   };
-//     addMonsterDiv.innerText = '[+]';
-//     addMonsterDiv.onclick = () => {
-//       this.onUpdate({addEnemy: true});
-//       //   addMonster.onclick = () => {
-//       //     this.enemies.length += 1;
-//       //     this.activeEnemy = this.enemies.length - 1;
-//       //     this.enemies[this.activeEnemy] = new EnemyInstance();
-//       //   }
-//     };
-//     floorCell.appendChild(addMonsterDiv);
-//     this.el.appendChild(floorCell);
-//
-//     const enemies = create('td') as HTMLTableCellElement;
-//     this.enemiesTable = create('table', ClassNames.FLOOR_ENEMIES) as HTMLTableElement;
-//     enemies.appendChild(this.enemiesTable);
-//     const firstRow = this.createEnemyRow(0);
-//     this.enemyRows = [firstRow];
-//     this.enemiesTable.appendChild(firstRow);
-//     this.el.appendChild(enemies);
-//     // enemiesTable.className = 'idc-dungeon-floor-enemies';
-//     //   enemiesTable.style.fontSize = 'x-small';
-//
-//     const deleteEl = create('td', ClassNames.FLOOR_DELETE);
-//     //     deleteEl.className = 'idc-dungeon-floor-delete';
-//     //     deleteEl.style.cursor = 'pointer';
-//     if (floorNumber != 0) {
-//       deleteEl.innerText = '[-]';
-//     }
-//     deleteEl.onclick = () => {
-//       this.onUpdate({deleteFloor: this.floorNumber});
-//     }
-//     this.el.appendChild(deleteEl);
-//   }
-//
-//   createEnemyRow(idx: number, name: string = 'UNSET'): HTMLTableRowElement {
-//     const row = create('tr', ClassNames.FLOOR_ENEMY) as HTMLTableRowElement;
-//     //     enemyRow.className = 'idc-dungeon-floor-enemy';
-//     const deleteCell = create('td', ClassNames.FLOOR_ENEMY_DELETE) as HTMLTableCellElement;
-//     //       deleteCell.style.cursor = 'pointer';
-//     deleteCell.innerText = '[-]';
-//     deleteCell.onclick = () => {
-//       this.onUpdate({deleteEnemy: idx});
-//     };
-//     row.appendChild(deleteCell);
-//     const enemyCell = create('td') as HTMLTableCellElement;
-//     enemyCell.innerText = name;
-//     enemyCell.onclick = () => {
-//       this.onUpdate({activeEnemy: idx});
-//     }
-//     row.appendChild(enemyCell);
-//     return row;
-//   }
-//
-//   update(floorNumber: number, enemyNames: string[], activeEnemy: number) {
-//     this.floorNumber = floorNumber;
-//     this.activeEnemy = activeEnemy;
-//     this.floorNameContainer.innerText = `F${floorNumber}`;
-//
-//     for (let i = 0; i < enemyNames.length; i++) {
-//       if (i >= this.enemyRows.length) {
-//         this.enemyRows.push(this.createEnemyRow(i, enemyNames[i]));
-//         this.enemiesTable.appendChild(this.enemyRows[i]);
-//       } else {
-//         this.enemyRows[i].cells[1].innerText = enemyNames[i];
-//         this.enemyRows[i].style.display = '';
-//       }
-//       if (i == activeEnemy) {
-//         // TODO: Cleanup?
-//         this.enemyRows[i].style.border = '1px solid white';
-//       }
-//     }
-//     // Hide extraneous ones.
-//     for (let i = enemyNames.length; i < this.enemyRows.length; i++) {
-//       this.enemyRows[i].style.display = 'none';
-//     }
-//   }
-//
-//   getElement(): HTMLTableRowElement {
-//     return this.el;
-//   }
-// }
-
-// createEnemySelector() {
-//   const maxResults = 15;
-//   const enemySelection = document.createElement('div');
-//   const enemySelector = document.createElement('input');
-//   enemySelector.style.width = '100%';
-//   enemySelector.placeholder = 'Monster Search';
-//   const options = document.createElement('div');
-//   options.display = 'none';
-//   for (let i = 0; i < maxResults; i++) {
-//     const option = document.createElement('div');
-//     option.id = `idc-enemy-select-option-${i}`;
-//     option.value = '0';
-//     option.style.display = 'none';
-//     options.style.fontSize = 'x-small';
-//     option.onmouseover = () => {
-//       option.style.border = BORDER_COLOR;
-//     }
-//     option.onmouseleave = () => {
-//       option.style.border = '';
-//     }
-//     option.onclick = () => {
-//       options.style.display = 'none';
-//       let value = Number(option.value);
-//       enemySelector.value = value;
-//       const enemy = this.getActiveEnemy();
-//       enemy.setId(enemySelector.value);
-//       if (value in vm.model.cards) {
-//         const card = vm.model.cards[value];
-//         // Hopefully good defaults.  May change!
-//         enemy.maxHp = card.unknownData[7];
-//         enemy.attack = card.unknownData[10];
-//         enemy.defense = card.unknownData[13];
-//       }
-//       enemy.reset();
-//       this.reloadEditorElement();
-//       this.reloadBattleElement();
-//     }
-//     options.appendChild(option);
-//   }
-//   enemySelector.id = 'idc-selector-enemy';
-//   enemySelector.onkeyup = (e) => {
-//     if (e.keyCode == 13) {
-//       let value = Number(document.getElementById(`idc-enemy-select-option-0`).value);
-//       const enemy = this.getActiveEnemy();
-//       enemy.setId(value);
-//       if (value in vm.model.cards) {
-//         const card = vm.model.cards[value];
-//         // Hopefully good defaults.  May change!
-//         enemy.maxHp = card.unknownData[7];
-//         enemy.attack = card.unknownData[10];
-//         enemy.defense = card.unknownData[13];
-//       }
-//       options.style.display = 'none';
-//       enemy.reset();
-//       this.reloadEditorElement();
-//       this.reloadBattleElement();
-//       return;
-//     }
-//     const currentText = e.target.value.toLowerCase();
-//     if (currentText == '') {
-//       options.style.display = 'none';
-//       return;
-//     }
-//     options.style.display = 'block';
-//     const fuzzyMatches = fuzzyMonsterSearch(currentText, maxResults, prioritizedEnemySearch);
-//     for (let i = 0; i < fuzzyMatches.length && i < maxResults; i++) {
-//       const option = document.getElementById(`idc-enemy-select-option-${i}`);
-//       const key = fuzzyMatches[i];
-//       option.innerText = `${key} - ${vm.model.cards[key].name}`;
-//       option.value = key;
-//       option.style.display = 'block';
-//     }
-//     for (let i = fuzzyMatches.length; i < maxResults; i++) {
-//       const option = document.getElementById(`idc-enemy-select-option-${i}`);
-//       option.style.display = 'none';
-//     }
-//   }
-//   enemySelection.onblur = () => {
-//     options.style.display = 'none';
-//   }
-//   enemySelection.appendChild(enemySelector);
-//   enemySelection.appendChild(document.createElement('br'));
-//   enemySelection.appendChild(options);
-//   return enemySelection;
-// }
-
 // createSkillsetEditor(i) {
 //   const el = document.createElement('div');
 //   el.style.marginTop = '5px';
@@ -2107,89 +2094,6 @@ class TeamPane {
 //   enemyEditor.appendChild(skillEditorEl);
 //
 //   return enemyEditor
-// }
-
-// createEditorElement() {
-//   const dungeonContainer = document.createElement('div');
-//   dungeonContainer.id = 'idc-dungeon-editor';
-//   dungeonContainer.style.padding = '5px';
-//
-//   const ioArea = document.createElement('textarea');
-//   ioArea.style.height = '30px';
-//   ioArea.style.width = '100%';
-//   ioArea.onclick = () => {
-//     ioArea.select();
-//   };
-//   dungeonContainer.appendChild(ioArea);
-//   dungeonContainer.appendChild(document.createElement('br'));
-//
-//   const exportButton = document.createElement('button');
-//   exportButton.innerText = 'Export Dungeon';
-//   exportButton.onclick = () => {
-//     ioArea.value = JSON.stringify(this.toJson());
-//     ioArea.select();
-//   };
-//   const importButton = document.createElement('button');
-//   importButton.innerText = 'Import Dungeon';
-//   importButton.onclick = () => {
-//     const json = JSON.parse(ioArea.value);
-//     this.loadJson(json);
-//     this.reloadEditorElement();
-//     this.reloadBattleElement();
-//   };
-//   dungeonContainer.appendChild(exportButton);
-//   dungeonContainer.appendChild(importButton);
-//
-//   const titleSetter = document.createElement('input');
-//   titleSetter.placeholder = 'Dungeon Name';
-//   titleSetter.id = 'idc-dungeon-editor-title'
-//   titleSetter.style.width = '100%';
-//   titleSetter.onkeyup = () => {
-//     this.title = titleSetter.value;
-//   };
-//   dungeonContainer.appendChild(titleSetter);
-//
-//   const floorsEditor = document.createElement('table');
-//   floorsEditor.id = 'idc-dungeon-editor-floors'
-//   floorsEditor.style.fontSize = 'small';
-//   for (let i = 0; i < this.floors.length; i++) {
-//     const floorEditor = this.floors[i].createEditorElement(i, i == this.activeFloor);
-//     floorEditor.onclick = () => {
-//       // this.getActiveEnemy().reset();
-//       this.activeFloor = i;
-//       this.getActiveEnemy().reset();
-//       this.reloadEditorElement();
-//       this.reloadBattleElement();
-//     }
-//     const floorDelete = floorEditor.getElementsByClassName('idc-dungeon-floor-delete')[0];
-//     if (floorDelete) {
-//       floorDelete.onclick = () => {
-//         this.deleteFloor(i, idc);
-//       }
-//     }
-//
-//     floorsEditor.appendChild(floorEditor);
-//   }
-//   dungeonContainer.appendChild(floorsEditor);
-//
-//   const floorAdder = document.createElement('div');
-//   floorAdder.id = 'idc-dungeon-editor-addfloor';
-//   floorAdder.style.cursor = 'pointer';
-//   floorAdder.innerText = 'Add Floor';
-//   floorAdder.onclick = () => {
-//     this.addFloor();
-//   };
-//   floorAdder.onmouseover = () => {
-//     floorAdder.style.border = BORDER_COLOR;
-//   };
-//   floorAdder.onmouseleave = () => {
-//     floorAdder.style.border = '';
-//   };
-//   dungeonContainer.appendChild(floorAdder);
-//
-//   dungeonContainer.appendChild(this.createEnemyEditor());
-//
-//   return dungeonContainer;
 // }
 
 // reloadEditorElement() {
@@ -2635,7 +2539,7 @@ class TeamPane {
 //   const opponentImage = document.createElement('img');
 //   opponentImage.id = 'idc-battle-opponent-img';
 //   const enemyId = this.getActiveEnemy().id;
-//   opponentImage.src = CardAssets.getCroppedPortrait(vm.model.cards[(enemyId in vm.model.cards) ? enemyId : 4800]);
+//   opponentImage.src = CardAssets.getCroppedPortrait(floof.model.cards[(enemyId in floof.model.cards) ? enemyId : 4800]);
 //   opponentImage.style.maxWidth = '350px';
 //   opponentImage.style.display = 'block';
 //   opponentImage.style.marginLeft = 'auto';
@@ -2648,8 +2552,8 @@ class TeamPane {
 //   typeEl.style.marginLeft = 'auto';
 //   typeEl.style.marginRight = 'auto';
 //   typeEl.style.textAlign = 'center';
-//   if (enemyId in vm.model.cards) {
-//     typeEl.innerText = vm.model.cards[enemyId].types.map((t) => TypeToName[t]).join(' / ');
+//   if (enemyId in floof.model.cards) {
+//     typeEl.innerText = floof.model.cards[enemyId].types.map((t) => TypeToName[t]).join(' / ');
 //   }
 //   el.appendChild(typeEl);
 //
@@ -2667,13 +2571,13 @@ class TeamPane {
 // reloadBattleElement() {
 //   // Update image.
 //   let enemy = this.getActiveEnemy();
-//   if (!(enemy.id in vm.model.cards)) {
+//   if (!(enemy.id in floof.model.cards)) {
 //     enemy = new EnemyInstance();
 //     enemy.setId(4800);
 //   }
 //   document.getElementById('idc-battle-opponent-name').innerText = enemy.getCard().name;
 //   const opponentImage = document.getElementById('idc-battle-opponent-img');
-//   opponentImage.src = CardAssets.getCroppedPortrait(vm.model.cards[enemy.id]);
+//   opponentImage.src = CardAssets.getCroppedPortrait(floof.model.cards[enemy.id]);
 //
 //   const typeEl = document.getElementById('idc-enemy-type');
 //   typeEl.innerText = enemy.getCard().types.map((t) => TypeToName[t]).join(' / ');
@@ -2768,7 +2672,7 @@ class TeamPane {
 //     // const subColor = FontColors[activeTeam[i].getSubattribute()] ;
 //
 //     const idEl = document.getElementById(`idc-battle-damage-id-${i}`);
-//     idEl.innerText = activeTeam[i].id in vm.model.cards ? activeTeam[i].id : '-';
+//     idEl.innerText = activeTeam[i].id in floof.model.cards ? activeTeam[i].id : '-';
 //     const boundEl = document.getElementById(`idc-battle-damage-bound-${i}`);
 //     boundEl.checked = activeTeam[i].bound;
 //     const attrEl = document.getElementById(`idc-battle-damage-attr-${i}`);
@@ -2866,21 +2770,21 @@ interface DungeonUpdate {
 type OnDungeonUpdate = (ctx: DungeonUpdate) => any;
 
 class ToggleableImage {
-  element: HTMLImageElement;
+  element: HTMLElement;
   active: boolean = true;
   onToggle: (active: boolean) => any;
 
   constructor(
-      image: HTMLImageElement,
-      onToggle: (active: boolean) => any,
-      active: boolean = true) {
-    this.element = image;
+    el: HTMLElement,
+    onToggle: (active: boolean) => any,
+    active: boolean = true) {
+    this.element = el;
     this.onToggle = onToggle;
     this.setActive(active);
-    const oldOnClick = image.onclick;
-    image.onclick = (ev) => {
+    const oldOnClick = el.onclick;
+    el.onclick = (ev) => {
       if (oldOnClick) {
-        oldOnClick.apply(image, [ev]);
+        oldOnClick.apply(el, [ev]);
       }
       this.onToggle(!this.active);
     }
@@ -2900,7 +2804,7 @@ class ToggleableImage {
   }
 }
 
-type AssetInfoRecord = {offsetX: number, offsetY: number, width: number, height: number};
+type AssetInfoRecord = { offsetX: number, offsetY: number, width: number, height: number };
 enum AssetEnum {
   NUMBER_0 = 0,
   NUMBER_1,
@@ -2951,38 +2855,43 @@ enum AssetEnum {
   // Overlays SHIELD_BASES for Damage Absorb.
   ABSORB_OVERLAY,
   // DAMAGE_NULL,
+
+  SWAP,
+  TRANSFROM,
 }
 
 const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
-  [AssetEnum.NUMBER_0, {offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_1, {offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_2, {offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_3, {offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_4, {offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_5, {offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_6, {offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_7, {offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_8, {offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.NUMBER_9, {offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26}],
-  [AssetEnum.GUARD_BREAK, {offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36}],
-  [AssetEnum.TIME,        {offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36}],
-  [AssetEnum.POISON,      {offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36}],
-  [AssetEnum.ENRAGE,        {offsetY: 0, offsetX: 114, width: 36, height: 36}],
-  [AssetEnum.STATUS_SHIELD, {offsetY: 0, offsetX: 154, width: 36, height: 36}],
-  [AssetEnum.SKILL_BIND,  {offsetY: 40, offsetX: 141, width: 32, height: 32}],
-  [AssetEnum.AWOKEN_BIND, {offsetY: 73, offsetX: 140, width: 32, height: 32}],
-  [AssetEnum.RESOLVE, {offsetY: 144, offsetX: 132, width: 32, height: 32}],
-  [AssetEnum.BURST, {offsetY: 208, offsetX: 132, width: 32, height: 32}],
-  [AssetEnum.SHIELD_BASE, {offsetY: 55, offsetX: 326, width: 36, height: 36}],
-  [AssetEnum.FIRE_TRANSPARENT,  {offsetY: 288, offsetX: -2 + 32 * 0, width: 32, height: 32}],
-  [AssetEnum.WATER_TRANSPARENT, {offsetY: 288, offsetX: -2 + 32 * 1, width: 32, height: 32}],
-  [AssetEnum.WOOD_TRANSPARENT,  {offsetY: 288, offsetX: -2 + 32 * 2, width: 32, height: 32}],
-  [AssetEnum.LIGHT_TRANSPARENT, {offsetY: 288, offsetX: -2 + 32 * 3, width: 32, height: 32}],
-  [AssetEnum.DARK_TRANSPARENT,  {offsetY: 288, offsetX: -2 + 32 * 4, width: 32, height: 32}],
-  [AssetEnum.TWINKLE, {offsetY: 248, offsetX: 85, width: 36, height: 36}],
-  [AssetEnum.VOID_OVERLAY,   {offsetY: 49, offsetX: 372, width: 32, height: 32}],
-  [AssetEnum.ABSORB_OVERLAY, {offsetY: 49, offsetX: 452, width: 32, height: 32}],
-  [AssetEnum.FIXED_HP, {offsetY: 256, offsetX: 131, width: 32, height: 32}],
+  [AssetEnum.NUMBER_0, { offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_1, { offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_2, { offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_3, { offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_4, { offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_5, { offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_6, { offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_7, { offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_8, { offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_9, { offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.GUARD_BREAK, { offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36 }],
+  [AssetEnum.TIME, { offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36 }],
+  [AssetEnum.POISON, { offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36 }],
+  [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 114, width: 36, height: 36 }],
+  [AssetEnum.STATUS_SHIELD, { offsetY: 0, offsetX: 154, width: 36, height: 36 }],
+  [AssetEnum.SKILL_BIND, { offsetY: 40, offsetX: 141, width: 32, height: 32 }],
+  [AssetEnum.AWOKEN_BIND, { offsetY: 73, offsetX: 140, width: 32, height: 32 }],
+  [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
+  [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
+  [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 326, width: 36, height: 36 }],
+  [AssetEnum.FIRE_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 0, width: 32, height: 32 }],
+  [AssetEnum.WATER_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 1, width: 32, height: 32 }],
+  [AssetEnum.WOOD_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 2, width: 32, height: 32 }],
+  [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 3, width: 32, height: 32 }],
+  [AssetEnum.DARK_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 4, width: 32, height: 32 }],
+  [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36 }],
+  [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
+  [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
+  [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
+  [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
+  [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
   // [AssetEnum., {offsetY: , offsetX: , width: , height: }],
 ]);
 
@@ -3004,23 +2913,23 @@ class LayeredAsset {
     };
 
     this.elements = assets
-        .filter((asset) => ASSET_INFO.has(asset))
-        .map((asset) => {
-          const assetInfo = ASSET_INFO.get(asset);
-          const el = create('a') as HTMLAnchorElement;
-          if (assetInfo) {
-            el.style.width = String(assetInfo.width);
-            el.style.height = String(assetInfo.height);
-            if (assetInfo.width > maxSizes.width) {
-              maxSizes.width = assetInfo.width;
-            }
-            if (assetInfo.height > maxSizes.height) {
-              maxSizes.height = assetInfo.height;
-            }
-            el.style.backgroundImage = UI_ASSET_SRC;
-            el.style.backgroundPosition = `${-1 * assetInfo.offsetX} ${-1 * assetInfo.offsetY}`;
+      .filter((asset) => ASSET_INFO.has(asset))
+      .map((asset) => {
+        const assetInfo = ASSET_INFO.get(asset);
+        const el = create('a') as HTMLAnchorElement;
+        if (assetInfo) {
+          el.style.width = String(assetInfo.width);
+          el.style.height = String(assetInfo.height);
+          if (assetInfo.width > maxSizes.width) {
+            maxSizes.width = assetInfo.width;
           }
-          return el;
+          if (assetInfo.height > maxSizes.height) {
+            maxSizes.height = assetInfo.height;
+          }
+          el.style.backgroundImage = UI_ASSET_SRC;
+          el.style.backgroundPosition = `${-1 * assetInfo.offsetX} ${-1 * assetInfo.offsetY}`;
+        }
+        return el;
       });
     // Manually center each of these.
     for (const el of this.elements) {
@@ -3067,25 +2976,25 @@ class LayeredAsset {
 }
 
 class MonsterTypeEl {
-  element: HTMLImageElement = create('img', ClassNames.MONSTER_TYPE) as HTMLImageElement;
+  element: HTMLAnchorElement = create('a', ClassNames.MONSTER_TYPE) as HTMLAnchorElement;
   type: MonsterType = MonsterType.NONE;
 
   constructor(monsterType: MonsterType) {
     this.setType(monsterType);
   }
 
-  private getTypeOffsets(): {offsetX: number, offsetY: number} {
-    const {offsetX, offsetY} = CardAssets.getTypeImageData(Number(this.type), vm);
-    return {offsetX, offsetY};
+  private getTypeOffsets(): { offsetX: number, offsetY: number } {
+    const { offsetX, offsetY } = CardAssets.getTypeImageData(Number(this.type));
+    return { offsetX, offsetY };
   }
 
   setType(type: MonsterType) {
     this.type = type;
-    const {offsetX, offsetY} = this.getTypeOffsets();
+    const { offsetX, offsetY } = this.getTypeOffsets();
     this.element.style.backgroundPosition = `-${offsetX} -${offsetY}`;
   }
 
-  getElement(): HTMLImageElement {
+  getElement(): HTMLAnchorElement {
     return this.element;
   }
 }
@@ -3100,7 +3009,6 @@ class DungeonEditor {
   importer: HTMLTextAreaElement = create('textarea') as HTMLTextAreaElement;
   onUpdate: OnDungeonUpdate;
   monsterSelector: MonsterSelector;
-  // enemyPictureContainer: HTMLDivElement = create('div', ClassNames.ENEMY_PICTURE) as HTMLDivElement;
   enemyPicture: MonsterIcon = new MonsterIcon(true);
   enemyLevelInput: HTMLInputElement = create('input') as HTMLInputElement;
   dungeonHpInput: HTMLInputElement = create('input') as HTMLInputElement;
@@ -3111,16 +3019,18 @@ class DungeonEditor {
   enemyDefInput: HTMLInputElement = create('input') as HTMLInputElement;
   enemyResolveInput: HTMLInputElement = create('input') as HTMLInputElement;
   enemyResistTypesInputs: Map<MonsterType, ToggleableImage> = new Map();
+  enemyResistTypePercentInput: HTMLInputElement = create('input') as HTMLInputElement;
   enemyResistAttrInputs: Map<Attribute, LayeredAsset> = new Map();
+  enemyResistAttrPercentInput: HTMLInputElement = create('input') as HTMLInputElement;
   activeFloorIdx: number = 0;
   activeEnemyIdx: number = 0;
   dungeonSelector: GenericSelector<number>;
 
-  constructor(dungeonNames: {s: string, value: number}[], onUpdate: OnDungeonUpdate) {
+  constructor(dungeonNames: { s: string, value: number }[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
     this.element.appendChild(document.createTextNode('Dungeon Editor Area Placeholder'));
     this.dungeonSelector = new GenericSelector<number>(dungeonNames, (id: number) => {
-      this.onUpdate({loadDungeon: id});
+      this.onUpdate({ loadDungeon: id });
     });
     this.element.appendChild(this.dungeonSelector.getElement());
 
@@ -3130,7 +3040,7 @@ class DungeonEditor {
     this.element.appendChild(create('br'));
     this.addFloorBtn.innerText = 'Add Floor';
     this.addFloorBtn.onclick = () => {
-      this.onUpdate({addFloor: true});
+      this.onUpdate({ addFloor: true });
     };
     this.element.appendChild(this.addFloorBtn);
 
@@ -3138,23 +3048,21 @@ class DungeonEditor {
 
     this.setupDungeonMultiplierTable();
 
-    this.monsterSelector = new MonsterSelector(prioritizedEnemySearch, ({id}: MonsterUpdate) => {
+    this.monsterSelector = new MonsterSelector(prioritizedEnemySearch, ({ id }: MonsterUpdate) => {
       if (!id) {
         return;
       }
-      this.onUpdate({activeEnemyId: id});
-      // this.enemyPicture.src = CardAssets.getCroppedPortrait(vm.model.cards[id]);
+      this.onUpdate({ activeEnemyId: id });
     });
 
     this.element.appendChild(this.enemyPicture.getElement());
-    // this.enemyPictureContainer.appendChild(this.enemyPicture);
-    // this.element.appendChild(this.enemyPictureContainer);
+    this.element.appendChild(this.monsterSelector.getElement());
 
     this.setupEnemyStatTable();
   }
 
   private setupDungeonMultiplierTable() {
-    const multiplierTable = create('table') as HTMLTableElement;
+    const multiplierTable = create('table', ClassNames.ENEMY_STAT_TABLE) as HTMLTableElement;
     const hpRow = create('tr') as HTMLTableRowElement;
     const atkRow = create('tr') as HTMLTableRowElement;
     const defRow = create('tr') as HTMLTableRowElement;
@@ -3176,13 +3084,13 @@ class DungeonEditor {
     defRow.appendChild(this.dungeonDefInput);
 
     this.dungeonHpInput.onchange = () => {
-      this.onUpdate({dungeonHpMultiplier: this.dungeonHpInput.value});
+      this.onUpdate({ dungeonHpMultiplier: this.dungeonHpInput.value });
     };
     this.dungeonAtkInput.onchange = () => {
-      this.onUpdate({dungeonAtkMultiplier: this.dungeonAtkInput.value});
+      this.onUpdate({ dungeonAtkMultiplier: this.dungeonAtkInput.value });
     };
     this.dungeonDefInput.onchange = () => {
-      this.onUpdate({dungeonDefMultiplier: this.dungeonDefInput.value});
+      this.onUpdate({ dungeonDefMultiplier: this.dungeonDefInput.value });
     };
 
     multiplierTable.appendChild(hpRow);
@@ -3199,25 +3107,31 @@ class DungeonEditor {
   }
 
   private setupEnemyStatTable() {
-    const statTable = create('table') as HTMLTableElement;
+    const statTable = create('table', ClassNames.ENEMY_STAT_TABLE) as HTMLTableElement;
     const lvRow = create('tr') as HTMLTableRowElement;
     const hpRow = create('tr') as HTMLTableRowElement;
     const atkRow = create('tr') as HTMLTableRowElement;
     const defRow = create('tr') as HTMLTableRowElement;
     const resolveRow = create('tr') as HTMLTableRowElement;
     const resistTypesRow = create('tr') as HTMLTableRowElement;
+    const resistTypePercentRow = create('tr') as HTMLTableRowElement;
     const resistAttrRow = create('tr') as HTMLTableRowElement;
+    const resistAttrPercentRow = create('tr') as HTMLTableRowElement;
 
     this.enemyLevelInput.type = 'number';
     this.enemyHpInput.type = 'number';
     this.enemyAtkInput.type = 'number';
     this.enemyDefInput.type = 'number';
     this.enemyResolveInput.type = 'number';
+    this.enemyResistTypePercentInput.type = 'number';
+    this.enemyResistAttrPercentInput.type = 'number';
 
     this.enemyHpInput.disabled = true;
     this.enemyAtkInput.disabled = true;
     this.enemyDefInput.disabled = true;
     this.enemyResolveInput.disabled = true;
+    this.enemyResistTypePercentInput.disabled = true;
+    this.enemyResistAttrPercentInput.disabled = true;
 
     const lvLabel = create('td') as HTMLTableCellElement;
     const hpLabel = create('td') as HTMLTableCellElement;
@@ -3225,15 +3139,19 @@ class DungeonEditor {
     const defLabel = create('td') as HTMLTableCellElement;
     const resolveLabel = create('td') as HTMLTableCellElement;
     const resistTypesLabel = create('td') as HTMLTableCellElement;
+    const resistTypePercentLabel = create('td') as HTMLTableCellElement;
     const resistAttrLabel = create('td') as HTMLTableCellElement;
+    const resistAttrPercentLabel = create('td') as HTMLTableCellElement;
 
     lvLabel.innerText = 'Level';
     hpLabel.innerText = 'Health';
     atkLabel.innerText = 'Attack';
     defLabel.innerText = 'Defense';
-    resolveLabel.innerText = 'Resolve';
+    resolveLabel.innerText = 'Resolve %';
     resistTypesLabel.innerText = 'Resist Type';
+    resistTypePercentLabel.innerText = '% Resist';
     resistAttrLabel.innerText = 'Resist Attr';
+    resistAttrPercentLabel.innerText = '% Resist';
 
     lvRow.appendChild(lvLabel);
     hpRow.appendChild(hpLabel);
@@ -3241,7 +3159,9 @@ class DungeonEditor {
     defRow.appendChild(defLabel);
     resolveRow.appendChild(resolveLabel);
     resistTypesRow.appendChild(resistTypesLabel);
+    resistTypePercentRow.appendChild(resistTypePercentLabel);
     resistAttrRow.appendChild(resistAttrLabel);
+    resistAttrPercentRow.appendChild(resistAttrPercentLabel);
 
     const lvCell = create('td') as HTMLTableCellElement;
     const hpCell = create('td') as HTMLTableCellElement;
@@ -3249,75 +3169,85 @@ class DungeonEditor {
     const defCell = create('td') as HTMLTableCellElement;
     const resolveCell = create('td') as HTMLTableCellElement;
     const resistTypesCell = create('td') as HTMLTableCellElement;
+    const resistTypePercentCell = create('td') as HTMLTableCellElement;
     const resistAttrCell = create('td') as HTMLTableCellElement;
+    const resistAttrPercentCell = create('td') as HTMLTableCellElement;
 
     lvCell.appendChild(this.enemyLevelInput);
     hpCell.appendChild(this.enemyHpInput);
     atkCell.appendChild(this.enemyAtkInput);
     defCell.appendChild(this.enemyDefInput);
     resolveCell.appendChild(this.enemyResolveInput);
+    resistTypePercentCell.appendChild(this.enemyResistTypePercentInput);
+    resistAttrPercentCell.appendChild(this.enemyResistAttrPercentInput);
+
+    let added = 0;
 
     for (let i = 0; i < 16; i++) {
       if (i == 9 || i == 10 || i == 11 || i == 13) {
         continue;
       }
+      added++;
+      if (added == 7) {
+        resistTypesCell.appendChild(create('br'));
+      }
       const t = (i as unknown) as MonsterType;
       const typeImage = new MonsterTypeEl(t as MonsterType);
       const typeToggle = new ToggleableImage(
-          typeImage.getElement(),
-          (active: boolean) => {
-            if (active) {
-              this.onUpdate({addTypeResist: t});
-            } else {
-              this.onUpdate({removeTypeResist: t});
-            }
-          },
-          false);
+        typeImage.getElement(),
+        (active: boolean) => {
+          if (active) {
+            this.onUpdate({ addTypeResist: t });
+          } else {
+            this.onUpdate({ removeTypeResist: t });
+          }
+        },
+        false);
       this.enemyResistTypesInputs.set(t, typeToggle);
       resistTypesCell.appendChild(typeImage.getElement());
     }
 
     const fire = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.FIRE_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.FIRE});
+        this.onUpdate({ addAttrResist: Attribute.FIRE });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.FIRE});
+        this.onUpdate({ removeAttrResist: Attribute.FIRE });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.FIRE, fire);
     resistAttrCell.appendChild(fire.getElement());
     const water = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WATER_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.WATER});
+        this.onUpdate({ addAttrResist: Attribute.WATER });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.WATER});
+        this.onUpdate({ removeAttrResist: Attribute.WATER });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.WATER, water);
     resistAttrCell.appendChild(water.getElement());
     const wood = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WOOD_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.WOOD});
+        this.onUpdate({ addAttrResist: Attribute.WOOD });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.WOOD});
+        this.onUpdate({ removeAttrResist: Attribute.WOOD });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.WOOD, wood);
     resistAttrCell.appendChild(wood.getElement());
     const light = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.LIGHT_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.LIGHT});
+        this.onUpdate({ addAttrResist: Attribute.LIGHT });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.LIGHT});
+        this.onUpdate({ removeAttrResist: Attribute.LIGHT });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.LIGHT, light);
     resistAttrCell.appendChild(light.getElement());
     const dark = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.DARK_TRANSPARENT], (active) => {
       if (active) {
-        this.onUpdate({addAttrResist: Attribute.DARK});
+        this.onUpdate({ addAttrResist: Attribute.DARK });
       } else {
-        this.onUpdate({removeAttrResist: Attribute.DARK});
+        this.onUpdate({ removeAttrResist: Attribute.DARK });
       }
     }, false);
     this.enemyResistAttrInputs.set(Attribute.DARK, dark);
@@ -3329,7 +3259,9 @@ class DungeonEditor {
     defRow.appendChild(defCell);
     resolveRow.appendChild(resolveCell);
     resistTypesRow.appendChild(resistTypesCell);
+    resistTypePercentRow.appendChild(resistTypePercentCell);
     resistAttrRow.appendChild(resistAttrCell);
+    resistAttrPercentRow.appendChild(resistAttrPercentCell);
 
     this.enemyLevelInput.onchange = () => {
       let v = Number(this.enemyLevelInput.value);
@@ -3343,7 +3275,7 @@ class DungeonEditor {
       if (v > 100) {
         v = 100;
       }
-      this.onUpdate({enemyLevel: v});
+      this.onUpdate({ enemyLevel: v });
     };
 
     statTable.appendChild(lvRow);
@@ -3352,7 +3284,9 @@ class DungeonEditor {
     statTable.appendChild(defRow);
     statTable.appendChild(resolveRow);
     statTable.appendChild(resistTypesRow);
+    statTable.appendChild(resistTypePercentRow);
     statTable.appendChild(resistAttrRow);
+    statTable.appendChild(resistAttrPercentRow);
 
     this.element.appendChild(statTable);
   }
@@ -3367,16 +3301,15 @@ class DungeonEditor {
     const deleteFloorBtn = create('button', ClassNames.FLOOR_DELETE) as HTMLButtonElement;
     deleteFloorBtn.innerText = '[-]';
     deleteFloorBtn.onclick = () => {
-      this.onUpdate({removeFloor: floorIdx});
+      this.onUpdate({ removeFloor: floorIdx });
     };
     floor.appendChild(label);
     label.appendChild(deleteFloorBtn);
 
-    const enemies = create('td') as HTMLTableCellElement;
     const addEnemyBtn = create('button', ClassNames.FLOOR_ENEMY_ADD) as HTMLButtonElement;
     addEnemyBtn.innerText = '+';
     addEnemyBtn.onclick = () => {
-      this.onUpdate({activeFloor: floorIdx, addEnemy: true});
+      this.onUpdate({ activeFloor: floorIdx, addEnemy: true });
     }
     this.addEnemyBtns.push(addEnemyBtn);
     floor.appendChild(addEnemyBtn);
@@ -3387,14 +3320,14 @@ class DungeonEditor {
 
   private addEnemy(floorIdx: number) {
     const enemy = new MonsterIcon(true);
-    enemy.update(4014, 0, 0, -1, false, 0);
+    enemy.updateId(4014);
     if (floorIdx >= this.dungeonEnemies.length) {
       this.dungeonEnemies.push([]);
     }
     this.dungeonEnemies[floorIdx].push(enemy);
     const enemyIdx = this.dungeonEnemies[floorIdx].length - 1;
     enemy.getElement().onclick = () => {
-      this.onUpdate({activeFloor: floorIdx, activeEnemy: enemyIdx});
+      this.onUpdate({ activeFloor: floorIdx, activeEnemy: enemyIdx });
     }
     const node = this.addEnemyBtns[floorIdx].parentNode;
     if (node) {
@@ -3408,9 +3341,9 @@ class DungeonEditor {
         let el = this.dungeonEnemies[i][j].getElement();
         if (i == floor && j == monster) {
           el.className = ClassNames.ICON_SELECTED;
-          el.scrollIntoView({block: 'nearest'});
+          el.scrollIntoView({ block: 'nearest' });
           const id = this.dungeonEnemies[i][j].id;
-          this.enemyPicture.update(id, 0, 0, -1, false, 0);
+          this.enemyPicture.updateId(id);
           this.monsterSelector.setId(id);
         } else {
           el.className = ClassNames.ICON;
@@ -3441,22 +3374,20 @@ class DungeonEditor {
           continue;
         }
         superShow(floorEnemies[j].getElement());
-        floorEnemies[j].update(enemyIds[j], 0, 0, -1, false, 0);
-        // this.onUpdate({activeEnemyId: enemyIds[j]});
-        console.log('Now setting to id: ' + String(enemyIds[j]));
+        floorEnemies[j].updateId(enemyIds[j]);
       }
     }
   }
 
   setEnemyStats(
-      lv: number,
-      hp: number,
-      atk: number,
-      def: number,
-      resolve: number,
-      typeResists: {types: MonsterType[], percent: number},
-      attrResists: {attrs: Attribute[], percent: number},
-    ) {
+    lv: number,
+    hp: number,
+    atk: number,
+    def: number,
+    resolve: number,
+    typeResists: { types: MonsterType[], percent: number },
+    attrResists: { attrs: Attribute[], percent: number },
+  ) {
     this.enemyLevelInput.value = String(lv);
     this.enemyHpInput.value = String(hp);
     this.enemyAtkInput.value = String(atk);
@@ -3465,9 +3396,11 @@ class DungeonEditor {
     for (const [key, toggle] of [...this.enemyResistTypesInputs.entries()]) {
       toggle.setActive(typeResists.types.includes(key));
     }
+    this.enemyResistTypePercentInput.value = String(typeResists.percent);
     for (const [key, asset] of [...this.enemyResistAttrInputs.entries()]) {
       asset.setActive(attrResists.attrs.includes(key));
     }
+    this.enemyResistAttrPercentInput.value = String(attrResists.percent);
   }
 
   getElement(): HTMLElement {
@@ -3475,7 +3408,7 @@ class DungeonEditor {
   }
 }
 
-class DungeonDisplay {
+class BattleDisplay {
   enemyPicture: HTMLElement = create('img');
   enemySelectors: MonsterIcon[][] = [];
   onUpdate: OnDungeonUpdate;
@@ -3487,13 +3420,15 @@ class DungeonDisplay {
 
 class DungeonPane {
   dungeonEditor: DungeonEditor;
+  battleDisplay: BattleDisplay;
   tabs: TabbedComponent = new TabbedComponent(['Dungeon', 'Editor', 'Save/Load']);
   onUpdate: OnDungeonUpdate;
 
-  constructor(dungeonNames: {s: string, value: number}[], onUpdate: OnDungeonUpdate) {
+  constructor(dungeonNames: { s: string, value: number }[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
 
     this.dungeonEditor = new DungeonEditor(dungeonNames, onUpdate);
+    this.battleDisplay = new BattleDisplay(onUpdate);
 
     this.tabs.getTab('Editor').appendChild(this.dungeonEditor.getElement());
   }
@@ -3544,11 +3479,12 @@ export {
   TabbedComponent,
   StoredTeamDisplay,
   MonsterEditor,
-  Stats, TeamPane,
+  Stats, TeamPane, TeamUpdate,
   DungeonEditor,
   DungeonPane,
   DungeonUpdate, OnDungeonUpdate,
   ValeriaDisplay,
   create,
   MonsterUpdate, OnMonsterUpdate,
+  LayeredAsset, AssetEnum,
 }

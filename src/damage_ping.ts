@@ -1,5 +1,5 @@
-import {Attribute, Round} from './common';
-import {MonsterInstance} from './monster_instance';
+import { Attribute, Round } from './common';
+import { MonsterInstance } from './monster_instance';
 
 class DamagePing {
   source: MonsterInstance;

@@ -24,9 +24,8 @@
     "strictNullChecks": true,
     "target": "ESNext",
     "typeRoots": ["./typings"],
-    "types": [],
-    "watch": true
-    },
+    "types": []
+  },
   "include": [
     "src/*.ts"
   ]

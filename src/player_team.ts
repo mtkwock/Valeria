@@ -1,6 +1,7 @@
-import {Attribute, MonsterType, Awakening, Latent, vm} from './common';
-import {MonsterInstance, MonsterJson} from './monster_instance';
-import {StoredTeamDisplay, TeamPane, Stats} from './templates';
+import { Attribute, MonsterType, Awakening, Latent } from './common';
+import { MonsterInstance, MonsterJson } from './monster_instance';
+import { StoredTeamDisplay, TeamPane, TeamUpdate, Stats, MonsterUpdate } from './templates';
+import { floof, compress, decompress } from './ilmina_stripped';
 import * as leaders from './leaders';
 
 interface Burst {
@@ -27,6 +28,30 @@ interface TeamState {
 
   rcvMult: number;
   fixedHp: number;
+  leadSwaps: number[];
+}
+
+interface TeamStateContext {
+  awakenings?: boolean;
+  healPercent?: number;
+  healFlat?: number;
+  damagePercent?: number;
+  damageFlat?: number;
+  damageAttribute?: Attribute;
+
+  shieldPercent?: number;
+  attributesShielded?: Attribute[];
+  burst?: Burst;
+  ignoreDamageAbsorb?: boolean;
+  ignoreAttributeAbsorb?: boolean;
+  ignoreDamageVoid?: boolean;
+
+  timeBonus?: number;
+  timeIsMult?: boolean;
+
+  rcvMult?: number;
+  fixedHp?: number;
+  leadSwap?: number;
 }
 
 const DEFAULT_STATE: TeamState = {
@@ -35,8 +60,8 @@ const DEFAULT_STATE: TeamState = {
   skillUsed: true,
   shieldPercent: 0,
   attributesShielded: [
-      Attribute.FIRE, Attribute.WATER, Attribute.WOOD,
-      Attribute.LIGHT, Attribute.DARK],
+    Attribute.FIRE, Attribute.WATER, Attribute.WOOD,
+    Attribute.LIGHT, Attribute.DARK],
   burst: {
     attrRestrictions: [],
     typeRestrictions: [],
@@ -53,6 +78,8 @@ const DEFAULT_STATE: TeamState = {
 
   rcvMult: 0,
   fixedHp: 0,
+
+  leadSwaps: [0, 0, 0],
 };
 
 interface TeamJson {
@@ -63,13 +90,17 @@ interface TeamJson {
 }
 
 class StoredTeams {
-  teams: Record<string, TeamJson>;
+  teams: Record<string, TeamJson> = {};
   display: StoredTeamDisplay;
 
   constructor(team: Team) {
-    this.teams = {};
     if (window.localStorage.idcStoredTeams) {
-      this.teams = JSON.parse(window.localStorage.idcStoredTeams);
+      try {
+        this.teams = JSON.parse(decompress(window.localStorage.idcStoredTeams));
+      } catch (e) {
+        this.teams = JSON.parse(window.localStorage.idcStoredTeams);
+        window.localStorage.idcStoredTeams = compress(window.localStorage.idcStoredTeams);
+      }
     }
     this.display = new StoredTeamDisplay(
       // On Save Click
@@ -80,6 +111,7 @@ class StoredTeams {
       // On Load Click
       (name: string) => {
         team.fromJson(this.getTeam(name));
+        team.openTeamTab();
       },
       // On Delete Click
       (name: string) => {
@@ -108,13 +140,13 @@ class StoredTeams {
   // TODO: Add confirmation if overriding.
   saveTeam(teamJson: TeamJson) {
     this.teams[teamJson.title] = teamJson;
-    window.localStorage.idcStoredTeams = JSON.stringify(this.teams);
+    window.localStorage.idcStoredTeams = compress(JSON.stringify(this.teams));
   }
 
   // TODO: Add confirmation.
   deleteTeam(title: string) {
     delete this.teams[title];
-    window.localStorage.idcStoredTeams = JSON.stringify(this.teams);
+    window.localStorage.idcStoredTeams = compress(JSON.stringify(this.teams));
   }
 }
 
@@ -153,20 +185,73 @@ class Team {
      * 3P: 0-5, 6-11, 12-17
      */
     for (let i = 0; i < 18; i++) {
-      this.monsters.push(new MonsterInstance());
+      this.monsters.push(new MonsterInstance(-1, (ctx: MonsterUpdate) => {
+        if (ctx.transformActive != undefined) {
+          const idxToTransform = this.getMonsterIdx(Math.floor(i / 6), i % 6);
+          const monster = this.monsters[idxToTransform];
+          if (monster.getCard().transformsTo > 0) {
+            monster.transformedTo = monster.getCard().transformsTo;
+          } else if (!ctx.transformActive) {
+            monster.transformedTo = -1;
+          }
+        }
+        this.update();
+      }));
     }
 
     this.storage = new StoredTeams(this);
     this.teamPane = new TeamPane(
       this.storage.getElement(),
       this.monsters.map((monster) => monster.getElement()),
-      (idx: number) => this.setActiveMonsterIdx(idx),
-      (idx: number) => this.setActiveTeamIdx(idx),
+      (ctx: TeamUpdate) => {
+        if (ctx.title) {
+          this.teamName = ctx.title;
+        }
+        if (ctx.teamIdx != undefined) {
+          this.setActiveTeamIdx(ctx.teamIdx);
+        }
+        if (ctx.monsterIdx != undefined) {
+          this.setActiveMonsterIdx(ctx.monsterIdx);
+        }
+        if (ctx.description) {
+          this.description = ctx.description;
+        }
+
+        if (ctx.currentHp != undefined) {
+          if (ctx.currentHp < 0) {
+            this.state.currentHp = 0;
+          } else if (ctx.currentHp > this.getHp()) {
+            this.state.currentHp = this.getHp();
+          } else {
+            this.state.currentHp = ctx.currentHp;
+          }
+        }
+        if (ctx.leadSwap != undefined) {
+          this.updateState({ leadSwap: ctx.leadSwap });
+        }
+        this.update();
+      }
     );
 
     this.updateIdxCb = () => null;
 
     // TODO: Battle Display - Different Class?
+  }
+
+  updateState(ctx: TeamStateContext): void {
+    if (ctx.leadSwap != undefined) {
+      if (ctx.leadSwap >= 0 && ctx.leadSwap < 5) {
+        this.state.leadSwaps[this.activeTeamIdx] = ctx.leadSwap;
+      } else {
+        console.error('Lead Swap index must be in range [0, 4]');
+      }
+    }
+
+    this.update();
+  }
+
+  openTeamTab(): void {
+    this.teamPane.goToTab('Team');
   }
 
   setActiveMonsterIdx(idx: number) {
@@ -176,6 +261,15 @@ class Team {
       }
       if (idx == 11) {
         idx = 0;
+      }
+    }
+    // Determine which leadSwap we're talking about.
+    const leadSwap = this.state.leadSwaps[Math.floor(idx / 6)];
+    if (leadSwap) {
+      if (idx % 6 == 0) {
+        idx += leadSwap;
+      } else if (idx % 6 == leadSwap) {
+        idx -= leadSwap;
       }
     }
     this.activeMonster = idx;
@@ -191,6 +285,9 @@ class Team {
       return;
     }
     Object.assign(this.state, DEFAULT_STATE);
+    for (let i = 0; i < 3; i++) {
+      this.state.leadSwaps[i] = 0;
+    }
     state.currentHp = this.getHp();
   }
 
@@ -207,7 +304,7 @@ class Team {
       case 1:
         return combine(strings.slice(0, 6));
       case 2:
-        return combine(strings.slice(0, 5)) + ' ; ' + combine(strings.slice(6, 12));
+        return combine(strings.slice(0, 5)) + ' ; ' + combine(strings.slice(6, 11));
       case 3:
         return [combine(strings.slice(0, 6)), combine(strings.slice(6, 12)), combine(strings.slice(12, 18))].join(' ; ');
     }
@@ -216,6 +313,7 @@ class Team {
   }
 
   fromPdchu(s: string): void {
+    this.resetState();
     const teamStrings = s.split(';');
     // We don't support >3P.
     if (teamStrings.length > 3) {
@@ -229,31 +327,31 @@ class Team {
         teamStrings[i] = defaultMonster;
       }
       let monsterStrings = teamStrings[i].split('/')
-          .map((s: string): string => s.trim())
-          .reduce((allStrings: string[], monsterString: string) => {
-            const multiply = monsterString.match(multiplierRegex);
-            let count = 1;
-            if (multiply) {
-              count = Number(multiply[0][multiply[0].length - 1]);
-              monsterString = monsterString.substring(0, multiply.index);
-            }
-            for (let j = 0; j < count; j++) {
-              allStrings = allStrings.concat([monsterString])
-            }
-            return allStrings;
-          }, []);
+        .map((s: string): string => s.trim())
+        .reduce((allStrings: string[], monsterString: string) => {
+          const multiply = monsterString.match(multiplierRegex);
+          let count = 1;
+          if (multiply) {
+            count = Number(multiply[0][multiply[0].length - 1]);
+            monsterString = monsterString.substring(0, multiply.index);
+          }
+          for (let j = 0; j < count; j++) {
+            allStrings = allStrings.concat([monsterString])
+          }
+          return allStrings;
+        }, []);
       if (this.playerMode == 2) {
         if (monsterStrings.length > 5) {
           monsterStrings.length = 5;
         }
-        while(monsterStrings.length < 5) {
+        while (monsterStrings.length < 5) {
           monsterStrings.push(defaultMonster);
         }
       } else {
         if (monsterStrings.length > 6) {
           monsterStrings.length = 6;
         }
-        while(monsterStrings.length < 6) {
+        while (monsterStrings.length < 6) {
           monsterStrings.push(defaultMonster);
         }
       }
@@ -272,6 +370,7 @@ class Team {
     for (let i = 0; i < 6; i++) {
       monsters[i] = this.monsters[this.getMonsterIdx(teamIdx, i)];
     }
+
     return monsters;
   }
 
@@ -360,12 +459,23 @@ class Team {
     // TODO: Update visuals and calculations when this happens.
   }
 
+  /**
+   * Obtain the monster at the requested position. This takes into account
+   * lead swapping.
+   */
   getMonsterIdx(teamIdx: number, localIdx: number): number {
-    let idx = 6 * teamIdx + localIdx;
-    if (this.playerMode == 2 &&
-        ((teamIdx == 0 && localIdx == 5) || (teamIdx == 1 && localIdx == 5))) {
-      idx = (1 - teamIdx) * 6;
+    // Adjust for P2 lead.
+    if (this.playerMode == 2 && localIdx == 5 && teamIdx < 2) {
+      teamIdx = 1 - teamIdx;
+      localIdx = 0;
     }
+    // Adjust for leadswaps.
+    if (localIdx == 0) {
+      localIdx = this.state.leadSwaps[teamIdx];
+    } else if (localIdx == this.state.leadSwaps[teamIdx]) {
+      localIdx = 0;
+    }
+    const idx = teamIdx * 6 + localIdx;
     return idx;
   }
 
@@ -488,7 +598,7 @@ class Team {
 
   getBoardWidth(): number {
     const monsterGroupsToCheck: MonsterInstance[][] = [[this.monsters[0]]];
-    switch(this.playerMode) {
+    switch (this.playerMode) {
       case 1:
         monsterGroupsToCheck[0].push(this.monsters[5]);
         break;
@@ -502,10 +612,10 @@ class Team {
     }
 
     for (const [m1, m2] of monsterGroupsToCheck) {
-      if (leaders.bigBoard(m1.getCard().leaderSkillId)) {
+      if (leaders.bigBoard(m1.getCard(true).leaderSkillId)) {
         continue;
       }
-      if (leaders.bigBoard(m2.getCard().leaderSkillId)) {
+      if (leaders.bigBoard(m2.getCard(true).leaderSkillId)) {
         continue;
       }
       // If neither of the leads have bigBoard, return 6.
@@ -516,15 +626,25 @@ class Team {
   }
 
   update(): void {
-    if (this.playerMode == 2) {
-      this.monsters[5].copyFrom(this.monsters[6]);
-      this.monsters[11].copyFrom(this.monsters[0]);
-    }
     this.teamPane.update(this.playerMode, this.teamName, this.description);
-    for (const monster of this.monsters) {
-      monster.update(this.isMultiplayer());
+    for (let teamIdx = 0; teamIdx < 3; teamIdx++) {
+      for (let monsterIdx = 0; monsterIdx < 6; monsterIdx++) {
+        const displayIndex = 6 * teamIdx + monsterIdx;
+        const actualIndex = this.getMonsterIdx(teamIdx, monsterIdx);
+        // We should only show the lead swap icon on the lead who is now the sub.
+        const showSwap = Boolean(displayIndex != actualIndex && monsterIdx && monsterIdx < 5);
+        this.monsters[displayIndex].update(
+          this.isMultiplayer(),
+          this.monsters[actualIndex].getRenderData(this.isMultiplayer(), showSwap),
+        );
+      }
     }
     this.teamPane.updateStats(this.getStats());
+    this.teamPane.updateBattle({
+      currentHp: this.state.currentHp,
+      maxHp: this.getHp(),
+      leadSwap: this.state.leadSwaps[this.activeTeamIdx],
+    });
   }
 
   countAwakening(awakening: Awakening): number {
@@ -548,14 +668,14 @@ class Team {
       const card = monster.getCard();
       let baseCd = 0;
       if (card.activeSkillId > 0) {
-        baseCd = vm.model.playerSkills[card.activeSkillId].maxCooldown;
+        baseCd = floof.model.playerSkills[card.activeSkillId].maxCooldown;
       }
 
       let inheritCd = 0;
 
       const inheritCard = monster.getInheritCard();
       if (inheritCard && inheritCard.activeSkillId > 0) {
-        inheritCd = vm.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
+        inheritCd = floof.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
       }
 
       if (baseCd && inheritCd) {
@@ -578,7 +698,7 @@ class Team {
       this.countAwakening(Awakening.SKILL_BOOST) +
       2 * this.countAwakening(Awakening.SKILL_BOOST_PLUS));
     counts.set(Awakening.TIME, this.countAwakening(Awakening.TIME) +
-        2 * this.countAwakening(Awakening.TIME_PLUS));
+      2 * this.countAwakening(Awakening.TIME_PLUS));
     counts.set(Awakening.SOLOBOOST, this.countAwakening(Awakening.SOLOBOOST));
     counts.set(Awakening.BONUS_ATTACK, this.countAwakening(Awakening.BONUS_ATTACK));
     counts.set(Awakening.BONUS_ATTACK_SUPER, this.countAwakening(Awakening.BONUS_ATTACK_SUPER));

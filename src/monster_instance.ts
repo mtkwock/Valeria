@@ -1,9 +1,7 @@
-import {Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits, vm} from './common';
-import {Card, CardAssetInterface, KnockoutVM} from '../typings/ilmina';
-import {create, MonsterIcon, MonsterInherit, MonsterLatent} from './templates';
-import {fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch} from './fuzzy_search';
-
-declare var CardAssets:CardAssetInterface;
+import { Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
+import { Card, CardAssets, floof } from './ilmina_stripped';
+import { create, MonsterIcon, MonsterInherit, MonsterLatent, ClassNames, OnMonsterUpdate } from './templates';
+import { fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch } from './fuzzy_search';
 
 const AWAKENING_BONUS = new Map<Awakening, number>([
   [Awakening.HP, 500],
@@ -95,59 +93,85 @@ function calcScaleStat(card: Card, max: number, min: number, level: number, grow
 
 interface MonsterJson {
   id?: number;
-  level?: number|undefined;
-  awakenings?: number|undefined;
-  latents?: Latent[]|undefined;
-  superAwakeningIdx?: number|undefined;
-  hpPlus?: number|undefined;
-  atkPlus?: number|undefined;
-  rcvPlus?: number|undefined;
-  inheritId?: number|undefined;
-  inheritLevel?: number|undefined;
-  inheritPlussed?: boolean|undefined;
+  level?: number | undefined;
+  awakenings?: number | undefined;
+  latents?: Latent[] | undefined;
+  superAwakeningIdx?: number | undefined;
+  hpPlus?: number | undefined;
+  atkPlus?: number | undefined;
+  rcvPlus?: number | undefined;
+  inheritId?: number | undefined;
+  inheritLevel?: number | undefined;
+  inheritPlussed?: boolean | undefined;
+}
+
+interface MonsterIconRenderData {
+  plusses: number;
+  unavailableReason: string,
+  id: number;
+  awakenings: number;
+  superAwakeningIdx: number;
+  level: number;
+  inheritId: number;
+  inheritLevel: number;
+  inheritPlussed: boolean;
+  latents: Latent[];
+  showSwap: boolean;
+  showTransform: boolean;
+  activeTransform: boolean;
 }
 
 class MonsterInstance {
   id: number;
-  attribute: Attribute;
-  level: number;
-  awakenings: number;
-  latents: Latent[];
-  superAwakeningIdx: number;
-  hpPlus: number;
-  atkPlus: number;
-  rcvPlus: number;
-  inheritId: number;
-  inheritLevel: number;
-  inheritPlussed: boolean;
-  bound: boolean;
+  level: number = 1;
+  awakenings: number = 0;
+  latents: Latent[] = [];
+  superAwakeningIdx: number = -1;
+  hpPlus: number = 0;
+  atkPlus: number = 0;
+  rcvPlus: number = 0;
+  inheritId: number = -1;
+  inheritLevel: number = 1;
+  inheritPlussed: boolean = false;
+
+  // Attributes set in dungeon.
+  bound: boolean = false; // Monster being bound and unusable.
+  attribute: Attribute = Attribute.NONE; // Attribute override.
+  transformedTo: number = -1; // Monster transformation.
 
   el: HTMLElement;
   icon: MonsterIcon;
   inheritIcon: MonsterInherit;
   latentIcon: MonsterLatent;
 
-  constructor(id: number = -1) {
+  constructor(id: number = -1, onUpdate: OnMonsterUpdate = () => { }) {
     this.id = id;
-    this.attribute = Attribute.NONE;
-    this.level = 1;
-    this.awakenings = 0;
-    this.latents = [];
-    this.superAwakeningIdx = -1;
-    this.hpPlus = 0;
-    this.atkPlus = 0;
-    this.rcvPlus = 0;
-    this.inheritId = -1;
-    this.inheritLevel = 1;
-    this.inheritPlussed = false;
-    this.bound = false;
 
     this.el = create('div');
     this.inheritIcon = new MonsterInherit();
     this.icon = new MonsterIcon();
+    this.icon.setOnUpdate(onUpdate);
     this.latentIcon = new MonsterLatent();
-    this.el.appendChild(this.inheritIcon.getElement());
+    const inheritIconEl = this.inheritIcon.getElement();
+    inheritIconEl.onclick = () => {
+      const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
+      if (els.length > 1) {
+        const el = els[1] as HTMLInputElement;
+        el.focus();
+        el.select();
+      }
+    }
+    this.el.appendChild(inheritIconEl);
     this.el.appendChild(this.icon.getElement());
+    const iconEl = this.icon.getElement();
+    iconEl.onclick = () => {
+      const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
+      if (els.length) {
+        const el = els[0] as HTMLInputElement;
+        el.focus();
+        el.select();
+      }
+    }
     this.el.appendChild(this.latentIcon.getElement());
 
     this.setId(id);
@@ -158,7 +182,7 @@ class MonsterInstance {
   }
 
   setId(id: number): void {
-    if (id >= 0 && !(id in vm.model.cards)) {
+    if (id >= 0 && !(id in floof.model.cards)) {
       console.warn('Invalid monster id: ' + String(id));
       return;
     }
@@ -171,7 +195,7 @@ class MonsterInstance {
       this.setHpPlus(0);
       this.setAtkPlus(0);
       this.setRcvPlus(0);
-      // this.card = vm.model.cards[4014];
+      // this.card = floof.model.cards[4014];
       return;
     }
     const c = this.getCard();
@@ -179,7 +203,7 @@ class MonsterInstance {
     // If the level is above the max level of the new card OR
     // the level is maxed out from previously, set the level to c's max level.
     if (this.level > c.maxLevel && !c.isLimitBreakable ||
-        !c || this.level == c.maxLevel && this.level < c.maxLevel) {
+      !c || this.level == c.maxLevel && this.level < c.maxLevel) {
       this.setLevel(c.maxLevel);
     }
 
@@ -187,7 +211,7 @@ class MonsterInstance {
     // the awakening level is maxed out from previously, set awakening level to
     // c's max awakening level.
     if (this.awakenings > c.awakenings.length ||
-        !c || this.awakenings == c.awakenings.length) {
+      !c || this.awakenings == c.awakenings.length) {
       this.awakenings = c.awakenings.length;
     }
 
@@ -222,13 +246,55 @@ class MonsterInstance {
     }
   }
 
-  update(isMultiplayer: boolean = false): void {
-    const plusses = this.hpPlus + this.atkPlus + this.rcvPlus;
-    const saAvailable = !isMultiplayer && plusses == 297 && this.level > 99;
-    this.icon.update(this.id, plusses,
-      this.awakenings, this.superAwakeningIdx, saAvailable, this.level);
-    this.inheritIcon.update(this.inheritId, this.inheritLevel, this.inheritPlussed);
-    this.latentIcon.update([...this.latents]);
+  getId(ignoreTransform: boolean = false): number {
+    if (!ignoreTransform && this.transformedTo > 0) {
+      return this.transformedTo;
+    }
+    return this.id;
+  }
+
+  getRenderData(isMultiplayer: boolean, showSwap = false): MonsterIconRenderData {
+    const plusses = this.hpPlus + this.atkPlus + this.rcvPlus
+    return {
+      plusses,
+      // A monster must be above level 99, max plussed, and in solo play for
+      // SAs to be active.  This will change later when 3P allows SB.
+      unavailableReason: [
+        isMultiplayer ? 'Multiplayer' : '',
+        plusses != 297 ? 'Unplussed' : '',
+        this.level < 100 ? 'Not Limit Broken' : '',
+      ].filter(Boolean).join(', '),
+      id: this.getId(),
+      awakenings: this.awakenings,
+      superAwakeningIdx: this.superAwakeningIdx,
+      level: this.level,
+      inheritId: this.inheritId,
+      inheritLevel: this.inheritLevel,
+      inheritPlussed: this.inheritPlussed,
+      latents: [...this.latents],
+      showSwap: showSwap,
+      showTransform: this.transformedTo > 0 || this.getCard().transformsTo > 0,
+      activeTransform: this.transformedTo > 0,
+    };
+  }
+
+  update(isMultiplayer: boolean = false, data: MonsterIconRenderData | undefined = undefined): void {
+    if (!data) {
+      data = this.getRenderData(isMultiplayer);
+    }
+    this.icon.update({
+      id: data.id,
+      plusses: data.plusses,
+      awakening: data.awakenings,
+      superAwakeningIdx: data.superAwakeningIdx,
+      unavailableReason: data.unavailableReason,
+      level: data.level,
+      showSwap: data.showSwap,
+      showTransform: data.showTransform,
+      activeTransform: data.activeTransform,
+    });
+    this.inheritIcon.update(data.inheritId, data.inheritLevel, data.inheritPlussed);
+    this.latentIcon.update([...data.latents]);
   }
 
   toJson(): MonsterJson {
@@ -264,24 +330,25 @@ class MonsterInstance {
     return json;
   }
 
-  getCard(): Card {
-    let c = vm.model.cards[this.id];
+  getCard(ignoreTransform: boolean = false): Card {
+    const id = this.getId(ignoreTransform);
+    let c = floof.model.cards[id];
     if (c) {
       return c;
     }
     return DEFAULT_CARD;
   }
 
-  getInheritCard(): Card|void {
+  getInheritCard(): Card | void {
     if (this.inheritId == 0) {
       return DEFAULT_CARD;
     }
-    return vm.model.cards[this.inheritId];
+    return floof.model.cards[this.inheritId];
   }
 
   toPdchu(): string {
     let string = '';
-    if (this.id in vm.model.cards) {
+    if (this.id in floof.model.cards) {
       string += String(this.id);
     } else {
       string += 'sdr';
@@ -313,7 +380,7 @@ class MonsterInstance {
         counts.set(name, (counts.get(name) || 0) + 1);
       }
       string += '[';
-      for (const name in counts) {
+      for (const name of counts.keys()) {
         if (counts.get(name) == 1) {
           string += name + ',';
         } else {
@@ -331,7 +398,9 @@ class MonsterInstance {
     if (this.awakenings != card.awakenings.length) {
       stats += ` aw${this.awakenings}`;
     }
-    if (this.hpPlus != 99 || this.atkPlus != 99 || this.rcvPlus != 99) {
+    if (this.hpPlus == 0 && this.atkPlus == 0 && this.rcvPlus == 0) {
+      stats += ' +0';
+    } else if (this.hpPlus != 99 || this.atkPlus != 99 || this.rcvPlus != 99) {
       stats += ` +H${this.hpPlus} +A${this.atkPlus} +R${this.rcvPlus}`;
     }
 
@@ -411,11 +480,11 @@ class MonsterInstance {
     let latentMatch = s.match(LATENT_REGEX);
     if (latentMatch) {
       const latentPieces = latentMatch[0]
-          .substring(1, latentMatch[0].length - 1)
-          .trim()
-          .split(',')
-          .map((piece) => piece.trim())
-          .filter((a) => a.length > 0);
+        .substring(1, latentMatch[0].length - 1)
+        .trim()
+        .split(',')
+        .map((piece) => piece.trim())
+        .filter((a) => a.length > 0);
       for (const piece of latentPieces) {
         const latentMatch = piece.match(/\w+\+?/);
         if (!latentMatch) {
@@ -488,7 +557,7 @@ class MonsterInstance {
     this.superAwakeningIdx = superAwakeningIdx;
     this.setLevel(level);
     for (const latent of latents) {
-      this.addLatent(/** @type {!Latent}*/ (latent));
+      this.addLatent(/** @type {!Latent}*/(latent));
     }
     this.setHpPlus(hpPlus);
     this.setAtkPlus(atkPlus);
@@ -508,7 +577,7 @@ class MonsterInstance {
 
   isSuperAwakeningActive(isMultiplayer: boolean): boolean {
     return (!isMultiplayer && this.level > 99 && this.hpPlus == 99
-        && this.atkPlus == 99 && this.hpPlus == 99);
+      && this.atkPlus == 99 && this.hpPlus == 99);
   }
 
   getAwakenings(isMultiplayer: boolean, filterSet: Set<Awakening>): Awakening[] {
@@ -517,7 +586,11 @@ class MonsterInstance {
       filterFn = (awakening: Awakening) => filterSet.has(awakening);
     }
     const c = this.getCard();
-    const awakenings: Awakening[] = c.awakenings.slice(0, this.awakenings);
+    let awakenings: Awakening[] = c.awakenings.slice(0, this.awakenings);
+    // A transformed monster is always fully awoken.
+    if (this.transformedTo > 0) {
+      awakenings = [...c.awakenings];
+    }
     if (this.isSuperAwakeningActive(isMultiplayer) && this.superAwakeningIdx > -1) {
       awakenings.push(c.superAwakenings[this.superAwakeningIdx]);
     }
@@ -534,7 +607,7 @@ class MonsterInstance {
     return this.getAwakenings(isMultiplayer, new Set([awakening])).length;
   }
 
-  getLatents(filterSet: Set<Latent>|null = null): Latent[] {
+  getLatents(filterSet: Set<Latent> | null = null): Latent[] {
     let filterFn = (_latent: Latent) => true;
     if (filterSet) {
       filterFn = (latent: Latent) => filterSet.has(latent);
@@ -547,7 +620,7 @@ class MonsterInstance {
   }
 
   addLatent(latent: Latent): void {
-    const c = this.getCard();
+    const c = this.getCard(true);
     // Only monsters capable of taking latent killers can take latents.
     if (!c.latentKillers.length) {
       return;

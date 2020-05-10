@@ -1,7 +1,5 @@
-import {Attribute, MonsterType, DEFAULT_CARD, idxsFromBits} from './common';
-import {KnockoutVM, Card} from '../typings/ilmina';
-
-declare var vm: KnockoutVM;
+import { Attribute, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
+import { floof, Card } from './ilmina_stripped';
 
 enum EnemySkillEffect {
   NONE = 'None',
@@ -269,9 +267,9 @@ class EnemyInstance {
   getResolve(): number {
     const c = this.getCard();
     const resolveSkills = c.enemySkills
-        .map((skill) => skill.enemySkillId)
-        .map((id) => vm.model.enemySkills[id])
-        .filter((skill) => skill.internalEffectId == 73);
+      .map((skill) => skill.enemySkillId)
+      .map((id) => floof.model.enemySkills[id])
+      .filter((skill) => skill.internalEffectId == 73);
     if (!resolveSkills.length) {
       return 0;
     }
@@ -281,14 +279,14 @@ class EnemyInstance {
     return resolveSkills[0].skillArgs[0];
   }
 
-  getTypeResists(): {types: MonsterType[], percent: number} {
+  getTypeResists(): { types: MonsterType[], percent: number } {
     const c = this.getCard();
     const resistTypeSkills = c.enemySkills
       .map((skill) => skill.enemySkillId)
-      .map((id) => vm.model.enemySkills[id])
+      .map((id) => floof.model.enemySkills[id])
       .filter((skill) => skill.internalEffectId == 118);
     if (!resistTypeSkills.length) {
-      return {types: [], percent: 0};
+      return { types: [], percent: 0 };
     }
     if (resistTypeSkills.length > 1) {
       console.warn('Multiple Type Resist skills detected. Only using first');
@@ -300,14 +298,14 @@ class EnemyInstance {
     };
   }
 
-  getAttrResists(): {attrs: Attribute[], percent: number} {
+  getAttrResists(): { attrs: Attribute[], percent: number } {
     const c = this.getCard();
     const resistAttrSkills = c.enemySkills
       .map((skill) => skill.enemySkillId)
-      .map((id) => vm.model.enemySkills[id])
+      .map((id) => floof.model.enemySkills[id])
       .filter((skill) => skill.internalEffectId == 72);
     if (!resistAttrSkills.length) {
-      return {attrs: [], percent: 0};
+      return { attrs: [], percent: 0 };
     }
     if (resistAttrSkills.length > 1) {
       console.warn('Multiple Type Resist skills detected. Only using first');
@@ -320,25 +318,25 @@ class EnemyInstance {
   }
 
   getCard(): Card {
-    if (!vm.model.cards[this.id]) {
-      return DEFAULT_CARD
+    if (!floof.model.cards[this.id]) {
+      return DEFAULT_CARD;
     }
-    return vm.model.cards[this.id];
+    return floof.model.cards[this.id];
   }
 
   getAttribute() {
-    if (this.id in vm.model.cards && this.currentAttribute == -1) {
-      return vm.model.cards[this.id].attribute;
+    if (this.id in floof.model.cards && this.currentAttribute == -1) {
+      return floof.model.cards[this.id].attribute;
     }
-    if (this.id in vm.model.cards && this.currentAttribute == -2) {
-      return vm.model.cards[this.id].subattribute > -1 ? vm.model.cards[this.id].subattribute : vm.model.cards[this.id].attribute;
+    if (this.id in floof.model.cards && this.currentAttribute == -2) {
+      return floof.model.cards[this.id].subattribute > -1 ? floof.model.cards[this.id].subattribute : floof.model.cards[this.id].attribute;
     }
     return this.currentAttribute;
   }
 
   // calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
   //   let currentDamage = ping.amount;
-  //   const types = vm.model.cards[this.id] ? vm.model.cards[this.id].types : [];
+  //   const types = floof.model.cards[this.id] ? floof.model.cards[this.id].types : [];
   //   // Attribute Advantage
   //   currentDamage *= attributeMultiplier(ping.attribute, this.getAttribute());
   //   currentDamage = Math.ceil(currentDamage);
@@ -404,7 +402,7 @@ class EnemyInstance {
   // }
 
   setId(id: number): void {
-    if (!(id in vm.model.cards)) {
+    if (!(id in floof.model.cards)) {
       return;
     }
 
@@ -412,10 +410,10 @@ class EnemyInstance {
   }
 
   getName(): string {
-    if (this.id < 0 || !(this.id in vm.model.cards)) {
+    if (this.id < 0 || !(this.id in floof.model.cards)) {
       return 'UNSET';
     }
-    return vm.model.cards[this.id].name;
+    return floof.model.cards[this.id].name;
   }
 
   reset(/** idc */) {
@@ -434,7 +432,7 @@ class EnemyInstance {
     this.poison = 0;
     this.delayed = false;
     if (this.preemptiveSkillset) {
-    //   this.preemptiveSkillset.applySkillset(idc, this);
+      //   this.preemptiveSkillset.applySkillset(idc, this);
     }
   }
 
@@ -449,10 +447,8 @@ class EnemyInstance {
 
   toJson(): EnemyInstanceJson {
     const obj: EnemyInstanceJson = {};
-    let card: Card = DEFAULT_CARD;
-    if (this.id in vm.model.cards) {
+    if (this.id in floof.model.cards) {
       obj.id = this.id;
-      card = vm.model.cards[this.id];
     }
     if (this.lv != 10) {
       obj.lv = this.lv;
@@ -494,8 +490,7 @@ class EnemyInstance {
     const enemy = new EnemyInstance();
     enemy.id = Number(json.id) || -1;
     enemy.lv = Number(json.lv) || 10;
-    if (enemy.id in vm.model.cards) {
-      const card = vm.model.cards[enemy.id];
+    if (enemy.id in floof.model.cards) {
       // TODO: Preload Card with this information.
       enemy.hp = Number(json.hp) || -1;
       enemy.attack = Number(json.attack) || -1;
@@ -509,9 +504,9 @@ class EnemyInstance {
     enemy.attributesResisted = (json.attributesResisted || []).map((a) => Number(a));
     enemy.typeResists = (json.typeResists || []).map((a) => Number(a));
     enemy.preemptiveSkillset = json.preemptiveSkillset ?
-        EnemySkillset.fromJson(json.preemptiveSkillset) : new EnemySkillset();
+      EnemySkillset.fromJson(json.preemptiveSkillset) : new EnemySkillset();
     enemy.skillsets = (json.skillsets || []).map(
-        (skillsetJson) => EnemySkillset.fromJson(skillsetJson));
+      (skillsetJson) => EnemySkillset.fromJson(skillsetJson));
     enemy.turnCounter = json.turnCounter || 1;
     enemy.reset();
     return enemy;

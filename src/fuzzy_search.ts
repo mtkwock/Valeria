@@ -1,35 +1,46 @@
-import {Awakening} from './common';
-import {KnockoutVM, Card} from '../typings/ilmina';
-
-declare var vm: KnockoutVM;
+import { Awakening } from './common';
+import { floof, Card } from './ilmina_stripped';
 
 const prefixToCardIds: Record<string, number[]> = {};
 
 let prioritizedEnemySearch: Card[] = [];
 let prioritizedMonsterSearch: Card[] = [];
 let prioritizedInheritSearch: Card[] = [];
+const LOW_PRIORITY_SUBSTRING = [
+  ' disguise', // Jiraiya disguises mucking up searches for Zela, Rex, and so on.
+];
+function isLowPriority(s: string): boolean {
+  return LOW_PRIORITY_SUBSTRING.some((badSubstring) => {
+    return s.toLowerCase().includes(badSubstring);
+  });
+}
 function SearchInit() {
-  const ids: number[] = Object.keys(vm.model.cards).map((id) => Number(id));
+  const ids: number[] = Object.keys(floof.model.cards).map((id) => Number(id));
 
-  prioritizedEnemySearch = ids.map((id: number) => vm.model.cards[id]).reverse();
-  prioritizedMonsterSearch = ids.map((id: number) => vm.model.cards[id]).filter((card: Card) => {
+  prioritizedEnemySearch = ids.map((id: number) => floof.model.cards[id]).reverse();
+  prioritizedMonsterSearch = ids.map((id: number) => floof.model.cards[id]).filter((card: Card) => {
     return card.id < 100000;
   }).sort((card1, card2) => {
-    if (card2.awakenings[0] == Awakening.AWOKEN_ASSIST) {
-      return -1;
+    if (isLowPriority(card1.name) != isLowPriority(card2.name)) {
+      return isLowPriority(card2.name) ? -1 : 1;
     }
-    if (card1.awakenings[0] == Awakening.AWOKEN_ASSIST) {
-      return 1;
+    // First throw all equips towards the end.
+    if (card1.awakenings[0] != card2.awakenings[0]) {
+      if (card2.awakenings[0] == Awakening.AWOKEN_ASSIST) {
+        return -1;
+      }
+      if (card1.awakenings[0] == Awakening.AWOKEN_ASSIST) {
+        return 1;
+      }
+    }
+    if (card2.monsterPoints != card1.monsterPoints) {
+      return card2.monsterPoints - card1.monsterPoints;
     }
     return card2.id - card1.id;
   });
 
   prioritizedInheritSearch = prioritizedMonsterSearch.filter((card) => {
-    // No idea why, but inheritanceType 3 and 7 are assistables.
-    // 1, 4, and 5 are unknown
-    // 0 is none
-    // 2 and 6 are unassistable.
-    // return card.inheritanceType == 3 || card.inheritanceType == 7;
+    // inheritanceType is defined with the flag &1..
     return Boolean(card);
   }).sort((card1, card2) => {
     if (card1.awakenings[0] != card2.awakenings[0]) {
@@ -46,9 +57,9 @@ function SearchInit() {
     return card2.id - card1.id;
   });
 
-  for (const group of vm.model.cardGroups) {
+  for (const group of floof.model.cardGroups) {
     for (const alias of group.aliases.filter(
-        (alias) => alias.indexOf(' ') == -1 && alias == alias.toLowerCase())) {
+      (alias) => alias.indexOf(' ') == -1 && alias == alias.toLowerCase())) {
       prefixToCardIds[alias] = group.cards;
       if (alias == 'halloween') {
         prefixToCardIds['h'] = group.cards;
@@ -70,20 +81,28 @@ function SearchInit() {
  * @param searchArray
  * @param filtered
  */
-function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: Card[]|undefined = undefined, filtered = false): number[] {
+function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: Card[] | undefined = undefined, filtered = false): number[] {
   if (!text || text == '-1') {
     return [-1];
   }
   searchArray = searchArray || prioritizedMonsterSearch;
   text = text.toLowerCase();
   let toEquip = false;
+  let toBase = false;
   if (text.startsWith('equip')) {
     text = text.substring('equip'.length).trim();
     toEquip = true;
+  } else if (text.startsWith('base')) {
+    text = text.substring('base'.length).trim();
+    toBase = true;
+  } else if (text.startsWith('revo')) {
+    text = text.replace('revo', 'reincarnated');
+  } else if (text.startsWith('srevo')) {
+    text = text.replace('srevo', 'super reincarnated');
   }
   const result: number[] = [];
   // Test for exact match.
-  if (text in vm.model.cards) {
+  if (text in floof.model.cards) {
     result.push(Number(text));
   }
   let lowerPriority: number[] = [];
@@ -97,8 +116,8 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
     if (idx < 0) {
       continue;
     }
-    if (idx == 0 || card.name[idx - 1] == ' ')  {
-      if (idx + text.length == card.name.length || card.name[idx + text.length + 1] == ' ') {
+    if (idx == 0 || card.name[idx - 1] == ' ') {
+      if (idx + text.length == card.name.length || card.name[idx + text.length] == ' ') {
         result.push(card.id);
       } else {
         lowerPriority.push(card.id);
@@ -211,9 +230,9 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
   if (toEquip) {
     let equips: number[] = [];
     for (const id of result) {
-      const treeId = vm.model.cards[id].evoTreeBaseId;
-      if (treeId in vm.model.evoTrees) {
-        for (const card of vm.model.evoTrees[treeId].cards) {
+      const treeId = floof.model.cards[id].evoTreeBaseId;
+      if (treeId in floof.model.evoTrees) {
+        for (const card of floof.model.evoTrees[treeId].cards) {
           if (!equips.some((id) => id == card.id) && card.awakenings[0] == Awakening.AWOKEN_ASSIST) {
             equips.push(card.id);
           }
@@ -233,35 +252,48 @@ function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: 
       result.push(id);
     }
   }
+  if (toBase) {
+    let bases = result.map((id) => floof.model.cards[id].evoTreeBaseId);
+
+    const seen = new Set<number>();
+    result.length = 0;
+    for (const id of bases) {
+      if (seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      result.push(id);
+    }
+  }
   if (!result.length) {
     return [-1];
   }
   return result;
 }
 
-function fuzzySearch<T>(text: string, maxResults: number = 15, searchArray: {s: string, value: T}[]): T[] {
+function fuzzySearch<T>(text: string, maxResults: number = 15, searchArray: { s: string, value: T }[]): T[] {
   if (!text) {
     return [];
   }
   text = text.toLowerCase();
   const result: T[] = [];
 
-  for (const {s, value} of searchArray) {
+  for (const { s, value } of searchArray) {
     if (s == text) {
       result.push(value);
     }
   }
 
-  for (const {s, value} of searchArray) {
+  for (const { s, value } of searchArray) {
     if (text.includes(s) && !result.includes(value)) {
       result.push(value);
     }
   }
 
-  let scoredPriority: {score: number, value: T}[] = [];
+  let scoredPriority: { score: number, value: T }[] = [];
   // Fuzzy match with the name.
   // This prioritizes values with consecutive letters.
-  for (const {s, value} of searchArray) {
+  for (const { s, value } of searchArray) {
     if (result.length >= maxResults) {
       break;
     }
@@ -286,7 +318,7 @@ function fuzzySearch<T>(text: string, maxResults: number = 15, searchArray: {s: 
       }
     }
     if (currentStringIdx >= 0) {
-      scoredPriority.push({value, score});
+      scoredPriority.push({ value, score });
       continue;
     }
   }

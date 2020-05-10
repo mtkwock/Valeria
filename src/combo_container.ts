@@ -1,5 +1,5 @@
-import {COLORS, Shape, ShapeToLetter, LetterToShape} from './common';
-import {ComboEditor} from './templates';
+import { COLORS, Shape, ShapeToLetter, LetterToShape } from './common';
+import { ComboEditor } from './templates';
 
 class Combo {
   count: number;
@@ -14,10 +14,10 @@ class Combo {
     }
     this.enhanced = enhanced;
     if (shape == Shape.L && count != 5 ||
-        shape == Shape.COLUMN && (count < 4 || count > 6) ||
-        shape == Shape.CROSS && count != 5 ||
-        shape == Shape.BOX && count != 9 ||
-        shape == Shape.ROW && count < 5) {
+      shape == Shape.COLUMN && (count < 4 || count > 6) ||
+      shape == Shape.CROSS && count != 5 ||
+      shape == Shape.BOX && count != 9 ||
+      shape == Shape.ROW && count < 5) {
       console.warn(`Invalid Shape and count combination. Changing shape to AMORPHOUS`);
       shape = Shape.AMORPHOUS;
     }
@@ -72,7 +72,7 @@ class ComboContainer {
     for (const c in colorToInputs) {
       for (const i in colorToInputs[c]) {
         const idx = Number(i);
-        const {shapeCountEl, enhanceEl} = colorToInputs[c][i];
+        const { shapeCountEl, enhanceEl } = colorToInputs[c][i];
         // TODO: Add onclick modifiers to these.
         shapeCountEl.onblur = () => {
           const v = shapeCountEl.value.replace(/\s/g, '');
@@ -109,7 +109,7 @@ class ComboContainer {
               return;
             }
             this.addShape(shape, `${count}${c}`);
-          // Modify or delete a combo.
+            // Modify or delete a combo.
           } else {
             if (count == 0) {
               this.delete(`${c}${idx}`);
@@ -142,8 +142,8 @@ class ComboContainer {
 
   doCommands(cmdsString: string) {
     const cmds = cmdsString.split(' ')
-        .map((c: string): string => c.trim())
-        .filter((c: string): boolean => Boolean(c));
+      .map((c: string): string => c.trim())
+      .filter((c: string): boolean => Boolean(c));
 
     let executed = 0;
     for (const i in cmds) {
@@ -192,7 +192,7 @@ class ComboContainer {
       count = Number(maybeCount[0]);
       cmd = cmd.substring(maybeCount[0].length);
     }
-    switch(shape) {
+    switch (shape) {
       case 'R':
         count = Math.max(count, this.boardWidth);
         break;
@@ -215,7 +215,7 @@ class ComboContainer {
       count = 3;
     }
     let added = false;
-    while(cmd) {
+    while (cmd) {
       if (!(cmd[0] in this.combos)) {
         break;
       }
@@ -239,7 +239,7 @@ class ComboContainer {
   // TODO
   delete(cmd: string): boolean {
     let colorsToDelete = [];
-    while(cmd && cmd[0] in this.combos) {
+    while (cmd && cmd[0] in this.combos) {
       colorsToDelete.push(cmd[0]);
       cmd = cmd.substring(1);
     }
@@ -294,9 +294,9 @@ class ComboContainer {
   }
 
   update() {
-    const data: Record<string, {shapeCount: string, enhance: number}[]>= {};
+    const data: Record<string, { shapeCount: string, enhance: number }[]> = {};
     for (const c in this.combos) {
-      data[c] = this.combos[c].map((combo: Combo): {shapeCount: string, enhance: number} => {
+      data[c] = this.combos[c].map((combo: Combo): { shapeCount: string, enhance: number } => {
         let countString = ShapeToLetter[combo.shape];
         if (combo.shape == Shape.AMORPHOUS) {
           countString = `${combo.count}`;
