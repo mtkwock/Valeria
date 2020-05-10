@@ -65,6 +65,12 @@ enum ClassNames {
   STAT_LABEL = 'valeria-team-stat-label',
   STAT_VALUE = 'valeria-team-stat-value',
 
+  HP_DIV = 'valeria-hp',
+  HP_SLIDER = 'valeria-hp-slider',
+  HP_INPUT = 'valeria-hp-input',
+  HP_MAX = 'valeria-hp-max',
+  HP_PERCENT = 'valeria-hp-percent',
+
   TEAM_CONTAINER = 'valeria-team-container',
   MONSTER_CONTAINER = 'valeria-monster-container',
   MONSTER_CONTAINER_SELECTED = 'valeria-monster-container-selected',
@@ -85,6 +91,8 @@ enum ClassNames {
   PLUS_EDITOR = 'valeria-plus-editor',
   AWAKENING = 'valeria-monster-awakening',
   AWAKENING_SUPER = 'valeria-monster-awakening-super',
+  SWAP_ICON = 'valeria-swap-icon',
+  TRANSFORM_ICON = 'valeria-transform-icon',
 
   ENEMY_PICTURE = 'valeria-enemy-picture-container',
   DUNGEON_EDITOR_FLOORS = 'valeria-dungeon-edit-floors',
@@ -153,9 +161,11 @@ class MonsterIcon {
   infoTable: HTMLElement = create('table', ClassNames.ICON_INFO);
   hideInfoTable: boolean = false;
   swapIcon: LayeredAsset;
+  transformIcon: LayeredAsset;
   id: number = -1;
+  private onUpdate: OnMonsterUpdate;
 
-  constructor(hideInfoTable: boolean = false, showSwap: boolean = false) {
+  constructor(hideInfoTable: boolean = false) {
     this.hideInfoTable = hideInfoTable;
     if (this.hideInfoTable) {
       hide(this.infoTable);
@@ -185,22 +195,45 @@ class MonsterIcon {
     this.element.appendChild(this.attributeEl);
     this.attributeEl.appendChild(this.subattributeEl);
     this.element.appendChild(this.infoTable);
+
     this.swapIcon = new LayeredAsset([AssetEnum.SWAP], (active: boolean) => { console.log(active); }, true);
     const swapElement = this.swapIcon.getElement();
-    swapElement.style.position = 'relative';
-    swapElement.style.bottom = '103px';
-    this.element.appendChild(this.swapIcon.getElement());
-    if (!showSwap) {
-      swapElement.style.display = 'none';
-    }
+    swapElement.classList.add(ClassNames.SWAP_ICON);
+    this.element.appendChild(swapElement);
+    hide(swapElement);
+
+    this.transformIcon = new LayeredAsset([AssetEnum.TRANSFROM], (active: boolean) => {
+      this.onUpdate({
+        transformActive: active,
+      });
+    }, false);
+    const transformElement = this.transformIcon.getElement();
+    transformElement.classList.add(ClassNames.TRANSFORM_ICON);
+    this.element.appendChild(transformElement);
+    hide(transformElement);
+    this.onUpdate = () => { };
   }
 
   getElement(): HTMLElement {
     return this.element;
   }
 
+  setOnUpdate(onUpdate: OnMonsterUpdate) {
+    this.onUpdate = onUpdate;
+  }
+
   updateId(id: number) {
-    this.update({ id, plusses: 0, awakening: 0, superAwakeningIdx: -1, unavailableReason: '', level: 0, showSwap: false });
+    this.update({
+      id,
+      plusses: 0,
+      awakening: 0,
+      superAwakeningIdx: -1,
+      unavailableReason: '',
+      level: 0,
+      showSwap: false,
+      showTransform: false,
+      activeTransform: false,
+    });
   }
 
   update(d: {
@@ -211,6 +244,8 @@ class MonsterIcon {
     unavailableReason: string,
     level: number,
     showSwap: boolean,
+    showTransform: boolean,
+    activeTransform: boolean,
   }) {
     this.id = d.id;
     if (d.id == -1) {
@@ -280,7 +315,9 @@ class MonsterIcon {
     const idEl = this.element.getElementsByClassName(ClassNames.ICON_ID)[0] as HTMLElement;
     idEl.innerText = `${d.id}`;
 
-    this.swapIcon.getElement().style.display = d.showSwap ? '' : 'none';
+    (d.showSwap ? show : hide)(this.swapIcon.getElement());
+    (d.showTransform ? show : hide)(this.transformIcon.getElement());
+    this.transformIcon.setActive(d.activeTransform);
   }
 }
 
@@ -575,6 +612,8 @@ interface MonsterUpdate {
   inheritPlussed?: boolean,
   addLatent?: Latent,
   removeLatent?: number,
+
+  transformActive?: boolean,
 }
 
 // Partial update values.
@@ -1325,6 +1364,84 @@ class MonsterEditor {
   }
 }
 
+function addCommas(n: number, maxPrecision = 3): string {
+  let decimalPart = '';
+  if (!Number.isInteger(n)) {
+    let fn = Math.floor;
+    if (n < 0) {
+      fn = Math.ceil;
+    }
+    decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
+    while (decimalPart[decimalPart.length - 1] == '0') {
+      decimalPart = decimalPart.substring(0, decimalPart.length - 1);
+    }
+    n = fn(n);
+  }
+  const reversed = String(n).split('').reverse().join('');
+  const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
+  if (forwardCommaArray[0] == ',') {
+    forwardCommaArray.splice(0, 1);
+  } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
+    forwardCommaArray.splice(1, 1);
+  }
+  return forwardCommaArray.join('') + decimalPart;
+}
+
+function removeCommas(s: string): number {
+  return Number(s.replace(/,/g, ''));
+}
+
+class HpBar {
+  private element: HTMLElement = create('div', ClassNames.HP_DIV) as HTMLElement;
+  maxHp: number = 1;
+  currentHp: number = 1;
+
+  private sliderEl = create('input', ClassNames.HP_SLIDER) as HTMLInputElement;
+  private hpInput = create('input', ClassNames.HP_INPUT) as HTMLInputElement;
+  private hpMaxEl = create('span', ClassNames.HP_MAX) as HTMLSpanElement;
+  private percentEl = create('span', ClassNames.HP_PERCENT) as HTMLSpanElement;
+  private onUpdate: (hp: number) => any;
+
+  constructor(onUpdate: (hp: number) => any) {
+    this.onUpdate = onUpdate;
+    this.sliderEl.type = 'range';
+    this.sliderEl.onchange = () => {
+      this.onUpdate(Number(this.sliderEl.value));
+    }
+    this.element.appendChild(this.sliderEl);
+    this.hpInput.onchange = () => {
+      this.onUpdate(removeCommas(this.hpInput.value));
+    }
+    this.element.appendChild(this.hpInput);
+    const divisionSpan = create('span') as HTMLSpanElement;
+    divisionSpan.innerText = ' / ';
+    this.element.appendChild(divisionSpan);
+    this.element.appendChild(this.hpMaxEl);
+    this.element.appendChild(this.percentEl);
+    this.percentEl.innerText = '100%';
+  }
+
+  setHp(currentHp: number, maxHp: number = -1) {
+    if (maxHp > 0) {
+      this.maxHp = maxHp;
+      this.sliderEl.max = String(maxHp);
+    }
+    this.hpMaxEl.innerText = String(this.maxHp);
+    if (currentHp <= this.maxHp) {
+      this.currentHp = currentHp;
+    } else {
+      this.currentHp = this.maxHp;
+    }
+    this.hpInput.value = addCommas(this.currentHp);
+    this.sliderEl.value = String(this.currentHp);
+    this.percentEl.innerText = `${Math.round(100 * this.currentHp / this.maxHp)}%`;
+  }
+
+  getElement(): HTMLElement {
+    return this.element;
+  }
+}
+
 class StoredTeamDisplay {
   private element: HTMLElement = create('div', ClassNames.TEAM_STORAGE);
   saveTeamEl: HTMLElement = create('div', ClassNames.TEAM_STORAGE_SAVE);
@@ -1382,11 +1499,20 @@ interface Stats {
   counts: Map<Awakening, number>,
 }
 
+interface TeamBattle {
+  maxHp: number,
+  currentHp: number,
+  leadSwap: number,
+}
+
 interface TeamUpdate {
   teamIdx?: number,
   monsterIdx?: number,
   title?: string,
   description?: string,
+
+  currentHp?: number,
+  leadSwap?: number,
 }
 
 class TeamPane {
@@ -1397,6 +1523,7 @@ class TeamPane {
   descriptionEl: HTMLTextAreaElement = create('textarea', ClassNames.TEAM_DESCRIPTION) as HTMLTextAreaElement;
   statsEl: HTMLDivElement = create('div') as HTMLDivElement;
   statsByIdxByIdx: HTMLTableCellElement[][] = [];
+  battleEl: HTMLDivElement = create('div') as HTMLDivElement;
   private totalHpValue: HTMLSpanElement = create('span') as HTMLSpanElement;
   private totalRcvValue: HTMLSpanElement = create('span') as HTMLSpanElement;
   private totalTimeValue: HTMLSpanElement = create('span') as HTMLSpanElement;
@@ -1404,7 +1531,8 @@ class TeamPane {
   private metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load']);
   private detailTabs: TabbedComponent = new TabbedComponent(['Description', 'Stats', 'Battle']);
   private onTeamUpdate: (ctx: TeamUpdate) => any;
-  // private leadSwaps: number[] = [0, 0, 0];
+  private hpBar: HpBar;
+  private leadSwapInput = create('input') as HTMLInputElement;
 
   constructor(
     storageDisplay: HTMLElement,
@@ -1450,6 +1578,15 @@ class TeamPane {
     const statsTab = this.detailTabs.getTab('Stats');
     this.populateStats();
     statsTab.appendChild(this.statsEl);
+
+    const battleTab = this.detailTabs.getTab('Battle');
+    this.hpBar = new HpBar((hp) => {
+      this.onTeamUpdate({
+        currentHp: hp,
+      });
+    })
+    this.populateBattle();
+    battleTab.appendChild(this.battleEl);
 
     teamTab.appendChild(this.detailTabs.getElement());
 
@@ -1568,6 +1705,31 @@ class TeamPane {
     }
   }
 
+  private populateBattle() {
+    // HP Element
+    this.battleEl.appendChild(this.hpBar.getElement());
+    // Choose combos or active.
+    const leadSwapLabel = create('span') as HTMLSpanElement;
+    leadSwapLabel.innerText = 'Current Lead Index: ';
+    this.battleEl.appendChild(leadSwapLabel);
+    this.leadSwapInput.type = 'number';
+    this.leadSwapInput.value = '0';
+    this.leadSwapInput.onchange = () => {
+      let pos = Number(this.leadSwapInput.value);
+      if (pos < 0) {
+        pos = 0;
+      }
+      if (pos > 4) {
+        pos = 4;
+      }
+      this.onTeamUpdate({ leadSwap: pos });
+    }
+    this.battleEl.appendChild(this.leadSwapInput);
+    // Player State including
+    // * Void Attr, Void
+
+  }
+
   // TODO
   update(playerMode: number, title: string, description: string) {
     for (let i = 1; i < this.teamDivs.length; i++) {
@@ -1603,16 +1765,14 @@ class TeamPane {
       }
     }
   }
+
+  updateBattle(teamBattle: TeamBattle) {
+    this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
+    this.leadSwapInput.value = `${teamBattle.leadSwap}`;
+  }
 }
 
 /**
-// interface DungeonFloorUpdate {
-//   addEnemy?: boolean;
-//   deleteEnemy?: number;
-//   activeEnemy?: number;
-//   deleteFloor?: number;
-// }
-//
 // createSkillsetEditor(i) {
 //   const el = document.createElement('div');
 //   el.style.marginTop = '5px';
@@ -1905,89 +2065,6 @@ class TeamPane {
 //   enemyEditor.appendChild(skillEditorEl);
 //
 //   return enemyEditor
-// }
-
-// createEditorElement() {
-//   const dungeonContainer = document.createElement('div');
-//   dungeonContainer.id = 'idc-dungeon-editor';
-//   dungeonContainer.style.padding = '5px';
-//
-//   const ioArea = document.createElement('textarea');
-//   ioArea.style.height = '30px';
-//   ioArea.style.width = '100%';
-//   ioArea.onclick = () => {
-//     ioArea.select();
-//   };
-//   dungeonContainer.appendChild(ioArea);
-//   dungeonContainer.appendChild(document.createElement('br'));
-//
-//   const exportButton = document.createElement('button');
-//   exportButton.innerText = 'Export Dungeon';
-//   exportButton.onclick = () => {
-//     ioArea.value = JSON.stringify(this.toJson());
-//     ioArea.select();
-//   };
-//   const importButton = document.createElement('button');
-//   importButton.innerText = 'Import Dungeon';
-//   importButton.onclick = () => {
-//     const json = JSON.parse(ioArea.value);
-//     this.loadJson(json);
-//     this.reloadEditorElement();
-//     this.reloadBattleElement();
-//   };
-//   dungeonContainer.appendChild(exportButton);
-//   dungeonContainer.appendChild(importButton);
-//
-//   const titleSetter = document.createElement('input');
-//   titleSetter.placeholder = 'Dungeon Name';
-//   titleSetter.id = 'idc-dungeon-editor-title'
-//   titleSetter.style.width = '100%';
-//   titleSetter.onkeyup = () => {
-//     this.title = titleSetter.value;
-//   };
-//   dungeonContainer.appendChild(titleSetter);
-//
-//   const floorsEditor = document.createElement('table');
-//   floorsEditor.id = 'idc-dungeon-editor-floors'
-//   floorsEditor.style.fontSize = 'small';
-//   for (let i = 0; i < this.floors.length; i++) {
-//     const floorEditor = this.floors[i].createEditorElement(i, i == this.activeFloor);
-//     floorEditor.onclick = () => {
-//       // this.getActiveEnemy().reset();
-//       this.activeFloor = i;
-//       this.getActiveEnemy().reset();
-//       this.reloadEditorElement();
-//       this.reloadBattleElement();
-//     }
-//     const floorDelete = floorEditor.getElementsByClassName('idc-dungeon-floor-delete')[0];
-//     if (floorDelete) {
-//       floorDelete.onclick = () => {
-//         this.deleteFloor(i, idc);
-//       }
-//     }
-//
-//     floorsEditor.appendChild(floorEditor);
-//   }
-//   dungeonContainer.appendChild(floorsEditor);
-//
-//   const floorAdder = document.createElement('div');
-//   floorAdder.id = 'idc-dungeon-editor-addfloor';
-//   floorAdder.style.cursor = 'pointer';
-//   floorAdder.innerText = 'Add Floor';
-//   floorAdder.onclick = () => {
-//     this.addFloor();
-//   };
-//   floorAdder.onmouseover = () => {
-//     floorAdder.style.border = BORDER_COLOR;
-//   };
-//   floorAdder.onmouseleave = () => {
-//     floorAdder.style.border = '';
-//   };
-//   dungeonContainer.appendChild(floorAdder);
-//
-//   dungeonContainer.appendChild(this.createEnemyEditor());
-//
-//   return dungeonContainer;
 // }
 
 // reloadEditorElement() {
@@ -2751,6 +2828,7 @@ enum AssetEnum {
   // DAMAGE_NULL,
 
   SWAP,
+  TRANSFROM,
 }
 
 const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
@@ -2784,6 +2862,7 @@ const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
   [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
   [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
   [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
+  [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
   // [AssetEnum., {offsetY: , offsetX: , width: , height: }],
 ]);
 

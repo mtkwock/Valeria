@@ -1,6 +1,6 @@
 import { Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
 import { Card, CardAssets, floof } from './ilmina_stripped';
-import { create, MonsterIcon, MonsterInherit, MonsterLatent } from './templates';
+import { create, MonsterIcon, MonsterInherit, MonsterLatent, ClassNames, OnMonsterUpdate } from './templates';
 import { fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch } from './fuzzy_search';
 
 const AWAKENING_BONUS = new Map<Awakening, number>([
@@ -117,6 +117,8 @@ interface MonsterIconRenderData {
   inheritPlussed: boolean;
   latents: Latent[];
   showSwap: boolean;
+  showTransform: boolean;
+  activeTransform: boolean;
 }
 
 class MonsterInstance {
@@ -142,15 +144,34 @@ class MonsterInstance {
   inheritIcon: MonsterInherit;
   latentIcon: MonsterLatent;
 
-  constructor(id: number = -1) {
+  constructor(id: number = -1, onUpdate: OnMonsterUpdate = () => { }) {
     this.id = id;
 
     this.el = create('div');
     this.inheritIcon = new MonsterInherit();
     this.icon = new MonsterIcon();
+    this.icon.setOnUpdate(onUpdate);
     this.latentIcon = new MonsterLatent();
-    this.el.appendChild(this.inheritIcon.getElement());
+    const inheritIconEl = this.inheritIcon.getElement();
+    inheritIconEl.onclick = () => {
+      const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
+      if (els.length > 1) {
+        const el = els[1] as HTMLInputElement;
+        el.focus();
+        el.select();
+      }
+    }
+    this.el.appendChild(inheritIconEl);
     this.el.appendChild(this.icon.getElement());
+    const iconEl = this.icon.getElement();
+    iconEl.onclick = () => {
+      const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
+      if (els.length) {
+        const el = els[0] as HTMLInputElement;
+        el.focus();
+        el.select();
+      }
+    }
     this.el.appendChild(this.latentIcon.getElement());
 
     this.setId(id);
@@ -225,8 +246,8 @@ class MonsterInstance {
     }
   }
 
-  getId(): number {
-    if (this.transformedTo > 0) {
+  getId(ignoreTransform: boolean = false): number {
+    if (!ignoreTransform && this.transformedTo > 0) {
       return this.transformedTo;
     }
     return this.id;
@@ -252,6 +273,8 @@ class MonsterInstance {
       inheritPlussed: this.inheritPlussed,
       latents: [...this.latents],
       showSwap: showSwap,
+      showTransform: this.transformedTo > 0 || this.getCard().transformsTo > 0,
+      activeTransform: this.transformedTo > 0,
     };
   }
 
@@ -267,6 +290,8 @@ class MonsterInstance {
       unavailableReason: data.unavailableReason,
       level: data.level,
       showSwap: data.showSwap,
+      showTransform: data.showTransform,
+      activeTransform: data.activeTransform,
     });
     this.inheritIcon.update(data.inheritId, data.inheritLevel, data.inheritPlussed);
     this.latentIcon.update([...data.latents]);
@@ -306,10 +331,7 @@ class MonsterInstance {
   }
 
   getCard(ignoreTransform: boolean = false): Card {
-    let id = this.id;
-    if (this.transformedTo > 0 && !ignoreTransform) {
-      id = this.transformedTo;
-    }
+    const id = this.getId(ignoreTransform);
     let c = floof.model.cards[id];
     if (c) {
       return c;
@@ -358,7 +380,7 @@ class MonsterInstance {
         counts.set(name, (counts.get(name) || 0) + 1);
       }
       string += '[';
-      for (const name in counts) {
+      for (const name of counts.keys()) {
         if (counts.get(name) == 1) {
           string += name + ',';
         } else {
@@ -376,7 +398,9 @@ class MonsterInstance {
     if (this.awakenings != card.awakenings.length) {
       stats += ` aw${this.awakenings}`;
     }
-    if (this.hpPlus != 99 || this.atkPlus != 99 || this.rcvPlus != 99) {
+    if (this.hpPlus == 0 && this.atkPlus == 0 && this.rcvPlus == 0) {
+      stats += ' +0';
+    } else if (this.hpPlus != 99 || this.atkPlus != 99 || this.rcvPlus != 99) {
       stats += ` +H${this.hpPlus} +A${this.atkPlus} +R${this.rcvPlus}`;
     }
 

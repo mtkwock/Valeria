@@ -7,7 +7,7 @@ import { ComboContainer } from './combo_container';
 import { DungeonInstance } from './dungeon';
 import { SearchInit } from './fuzzy_search';
 import { Team } from './player_team';
-import { MonsterEditor, ValeriaDisplay, MonsterUpdate } from './templates';
+import { MonsterEditor, ValeriaDisplay, MonsterUpdate, ClassNames } from './templates';
 import { floof } from './ilmina_stripped';
 
 async function waitFor(conditionFn: () => boolean, waitMs = 50) {
@@ -56,6 +56,7 @@ class Valeria {
       }
       if (ctx.hasOwnProperty('id')) {
         monster.setId(Number(ctx.id));
+        monster.transformedTo = -1;
       }
       if (ctx.hasOwnProperty('inheritId')) {
         monster.inheritId = Number(ctx.inheritId);
@@ -75,6 +76,12 @@ class Valeria {
     };
     this.monsterEditor.pdchu.exportButton.onclick = () => {
       this.monsterEditor.pdchu.io.value = this.team.toPdchu();
+      const els = document.getElementsByClassName(ClassNames.PDCHU_IO);
+      if (els.length) {
+        const el = els[0] as HTMLInputElement;
+        el.focus();
+        el.select();
+      }
     }
     this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
 
@@ -82,7 +89,7 @@ class Valeria {
     this.team.updateIdxCb = () => {
       this.updateMonsterEditor();
     }
-    this.team.fromPdchu('3298 (5414 | lv99 +297) | lv110  sa3 / 2957 (5212) | lv103  sa1 / 5521 (5417 | lv99 +297) | lv110  sa3 / 5382 (5239) | lv110  sa5 / 5141 (5411) | lv110  sa3 ; 5209 (5190) | lv110 sa2');
+    this.team.fromPdchu('5780 (5789)[sdr*4] / 5810 (5193)[sdr*4] / 5624 (4633)[sdr*4] | lv110 / 5157 (5783 | lv99)[sdr*4] | lv110 / 5798 (4143)[sdr*4] | lv110 ; 5844 (5069 | lv99)[sdr*4] / 3508 (4154 | lv99)[sdr*4] | lv110 / 5325 (4810)[sdr*4] | lv110 / 4379 (5193)[sdr*4] / 4747 (5417)[sdr*4] | lv110');
 
     this.display.panes[1].appendChild(this.team.teamPane.getElement());
 

@@ -347,6 +347,8 @@ class Ilmina {
   }
   finishedLoadingData(builder: ModelBuilder) {
     const model = builder.build();
+    // Manually put in P'numas's link back.
+    model.cards[5987].transformsTo = 5986;
     this.model = model;
     this.finishedDataRender();
   }
