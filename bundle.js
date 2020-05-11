@@ -7843,7 +7843,8 @@
                     }
                 };
                 this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
-                    this.monsterEditor.pdchu.io.value = `${location.origin}/?team=${custom_base64_1.ValeriaEncode(this.team)}`;
+                    const searchlessUrl = location.href.replace(location.search, '');
+                    this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${custom_base64_1.ValeriaEncode(this.team)}`;
                     const els = document.getElementsByClassName(templates_5.ClassNames.PDCHU_IO);
                     if (els.length) {
                         const el = els[0];
