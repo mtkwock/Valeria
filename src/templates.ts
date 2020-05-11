@@ -1716,7 +1716,7 @@ class TeamPane {
         awakeningIcon.style.backgroundPosition = `${AwakeningEditor.SCALE * x}px ${AwakeningEditor.SCALE * y}px`;
 
         container.appendChild(awakeningIcon);
-        const aggregatedAwakeningCount = create('span') as HTMLTableCellElement;
+        const aggregatedAwakeningCount = create('span') as HTMLSpanElement;
         aggregatedAwakeningCount.innerText = 'x0';
         this.aggregatedAwakeningCounts.set(awakening, aggregatedAwakeningCount);
         container.appendChild(aggregatedAwakeningCount);
