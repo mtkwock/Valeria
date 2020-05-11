@@ -1710,7 +1710,7 @@ class TeamPane {
     for (const awakeningSet of awakeningsToDisplay) {
       const awakeningRow = create('tr') as HTMLTableRowElement;
       for (const awakening of awakeningSet) {
-        const container = create('td') as HTMLSpanElement;
+        const container = create('td') as HTMLTableCellElement;
         const awakeningIcon = create('span', ClassNames.AWAKENING) as HTMLSpanElement;
         const [x, y] = getAwakeningOffsets(awakening);
         awakeningIcon.style.backgroundPosition = `${AwakeningEditor.SCALE * x}px ${AwakeningEditor.SCALE * y}px`;
