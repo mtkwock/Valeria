@@ -1265,6 +1265,7 @@ class MonsterEditor {
     io: HTMLTextAreaElement;
     importButton: HTMLElement;
     exportButton: HTMLElement;
+    exportUrlButton: HTMLElement;
   }
   monsterSelector: MonsterSelector;
   inheritSelector: MonsterSelector;
@@ -1279,13 +1280,16 @@ class MonsterEditor {
       io: create('textarea', ClassNames.PDCHU_IO) as HTMLTextAreaElement,
       importButton: create('button'),
       exportButton: create('button'),
+      exportUrlButton: create('button'),
     };
     this.pdchu.io.placeholder = 'pdchu Import + Export';
     this.pdchu.exportButton.innerText = 'Export pdchu';
     this.pdchu.importButton.innerText = 'Import pdchu';
+    this.pdchu.exportUrlButton.innerText = 'Get Link';
     pdchuArea.appendChild(this.pdchu.io);
     pdchuArea.appendChild(this.pdchu.importButton);
     pdchuArea.appendChild(this.pdchu.exportButton);
+    pdchuArea.appendChild(this.pdchu.exportUrlButton);
     this.el.appendChild(pdchuArea);
 
     this.monsterSelector = new MonsterSelector(prioritizedMonsterSearch, onUpdate);

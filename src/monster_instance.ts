@@ -855,6 +855,7 @@ class MonsterInstance {
 }
 
 export {
+  LatentToPdchu,
   MonsterInstance,
   MonsterJson,
 }

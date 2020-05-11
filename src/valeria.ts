@@ -9,6 +9,8 @@ import { SearchInit } from './fuzzy_search';
 import { Team } from './player_team';
 import { MonsterEditor, ValeriaDisplay, MonsterUpdate, ClassNames } from './templates';
 import { floof } from './ilmina_stripped';
+import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
+import { getUrlParameter } from './url_handler';
 
 async function waitFor(conditionFn: () => boolean, waitMs = 50) {
   while (!conditionFn()) {
@@ -83,13 +85,28 @@ class Valeria {
         el.select();
       }
     }
+    this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
+      this.monsterEditor.pdchu.io.value = `${location.origin}/?team=${ValeriaEncode(this.team)}`;
+      const els = document.getElementsByClassName(ClassNames.PDCHU_IO);
+      if (els.length) {
+        const el = els[0] as HTMLInputElement;
+        el.focus();
+        el.select();
+      }
+    }
     this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
 
     this.team = new Team();
     this.team.updateIdxCb = () => {
       this.updateMonsterEditor();
     }
-    this.team.fromPdchu('5780 (5789)[sdr*4] / 5810 (5193)[sdr*4] / 5624 (4633)[sdr*4] | lv110 / 5157 (5783 | lv99)[sdr*4] | lv110 / 5798 (4143)[sdr*4] | lv110 ; 5844 (5069 | lv99)[sdr*4] / 3508 (4154 | lv99)[sdr*4] | lv110 / 5325 (4810)[sdr*4] | lv110 / 4379 (5193)[sdr*4] / 4747 (5417)[sdr*4] | lv110');
+    let team = getUrlParameter('team');
+    if (team) {
+      team = ValeriaDecodeToPdchu(team);
+    } else {
+      team = '';
+    }
+    this.team.fromPdchu(team);
 
     this.display.panes[1].appendChild(this.team.teamPane.getElement());
 
