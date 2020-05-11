@@ -86,7 +86,8 @@ class Valeria {
       }
     }
     this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
-      this.monsterEditor.pdchu.io.value = `${location.origin}/?team=${ValeriaEncode(this.team)}`;
+      const searchlessUrl = location.href.replace(location.search, '');
+      this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${ValeriaEncode(this.team)}`;
       const els = document.getElementsByClassName(ClassNames.PDCHU_IO);
       if (els.length) {
         const el = els[0] as HTMLInputElement;
