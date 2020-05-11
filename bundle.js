@@ -3087,13 +3087,16 @@
                     io: create('textarea', ClassNames.PDCHU_IO),
                     importButton: create('button'),
                     exportButton: create('button'),
+                    exportUrlButton: create('button'),
                 };
                 this.pdchu.io.placeholder = 'pdchu Import + Export';
                 this.pdchu.exportButton.innerText = 'Export pdchu';
                 this.pdchu.importButton.innerText = 'Import pdchu';
+                this.pdchu.exportUrlButton.innerText = 'Get Link';
                 pdchuArea.appendChild(this.pdchu.io);
                 pdchuArea.appendChild(this.pdchu.importButton);
                 pdchuArea.appendChild(this.pdchu.exportButton);
+                pdchuArea.appendChild(this.pdchu.exportUrlButton);
                 this.el.appendChild(pdchuArea);
                 this.monsterSelector = new MonsterSelector(fuzzy_search_1.prioritizedMonsterSearch, onUpdate);
                 this.inheritSelector = new MonsterSelector(fuzzy_search_1.prioritizedInheritSearch, onUpdate, true);
@@ -4474,6 +4477,7 @@
             [common_4.Latent.PHYSICAL, 'phk'],
             [common_4.Latent.HEALER, 'hek'],
         ]);
+        exports.LatentToPdchu = LatentToPdchu;
         const PdchuToLatent = new Map();
         for (const key of LatentToPdchu.keys()) {
             PdchuToLatent.set(LatentToPdchu.get(key) || '', key);
@@ -5185,729 +5189,7 @@
         }
         exports.DamagePing = DamagePing;
     });
-    define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_6, ilmina_stripped_5) {
-        "use strict";
-        Object.defineProperty(exports, "__esModule", { value: true });
-        var EnemySkillEffect;
-        (function (EnemySkillEffect) {
-            EnemySkillEffect["NONE"] = "None";
-            // MULTI_HIT: 'multi-hit', // #hits
-            // GRAVITY: 'gravity', // %Gravity
-            EnemySkillEffect["STATUS_SHIELD"] = "Status Shield";
-            EnemySkillEffect["DAMAGE_SHIELD"] = "Shield";
-            // SELF_HEAL: 'enemy-heal', // %heal (e.g. 10, 50, 100)
-            // PLAYER_HEAL: 'player-heal', // %heal
-            EnemySkillEffect["DAMAGE_ABSORB"] = "Damage Absorb";
-            EnemySkillEffect["ATTRIBUTE_ABSORB"] = "Attribute Absorb";
-            EnemySkillEffect["COMBO_ABSORB"] = "Combo Absorb";
-            // ENRAGE: 'enrage', // %Damage (e.g. 150, 200, 1000)
-            EnemySkillEffect["DAMAGE_VOID"] = "Damage Void";
-            // CLEAR_BUFFS: 'clear', // config unused.
-            // RCV_BUFF: 'rcv', // Percent RCV (e.g. 0, 25, 50, 300)
-            // TIME_BUFF_FLAT: 'time-flat', // Time delta (e.g. -5, -2, +1, +5)
-            // TIME_BUFF_SCALE: 'time-scale', // Time multiplier (e.g. 0.25, 0.5, 3)
-            // Not supporting.
-            // ORB_CHANGE: 'orb-change',
-            // BLIND: 'blind', // Unused config.
-            // STICKY_BLIND: 'sticky-blind', // Config is [positions], turns
-            // AWAKENING_BIND: 'awakening-bind',
-        })(EnemySkillEffect || (EnemySkillEffect = {}));
-        ;
-        function calcScaleStat(max, min, level, growth) {
-            const diff = max - min;
-            const frac = (level - 1) / 9;
-            const added = Math.round(Math.pow(frac, growth) * diff);
-            return min + added;
-        }
-        class EnemySkill {
-            constructor() {
-                this.name = '';
-                this.effect = EnemySkillEffect.NONE;
-                this.config = 0;
-                this.damagePercent = 0; // If 0, no attack.
-            }
-            // apply(idc, source) {
-            //   // console.warn('Enemy Skills not handled yet');
-            //   console.debug(idc);
-            //   switch(this.effect) {
-            //     case EnemySkillEffect.NONE:
-            //       break;
-            //     case EnemySkillEffect.STATUS_SHIELD:
-            //       source.statusShield = true;
-            //       break;
-            //     case EnemySkillEffect.DAMAGE_SHIELD:
-            //       source.shieldPercent = this.config;
-            //       break;
-            //     case EnemySkillEffect.DAMAGE_ABSORB:
-            //       source.damageAbsorb = this.config;
-            //       break;
-            //     case EnemySkillEffect.ATTRIBUTE_ABSORB:
-            //       source.attributeAbsorb = idxsFromBits(this.config);
-            //       break;
-            //     case EnemySkillEffect.DAMAGE_VOID:
-            //       source.damageVoid = this.config;
-            //       break;
-            //     case EnemySkillEffect.COMBO_ABSORB:
-            //       source.comboAbsorb = this.config;
-            //       break;
-            //     case EnemySkillEffect.ENRAGE:
-            //       source.enrage = this.config;
-            //       break;
-            //     // case EnemySkillEffect.MULTI_HIT:
-            //     // case EnemySkillEffect.GRAVITY:
-            //     // case EnemySkillEffect.SELF_HEAL:
-            //     // case EnemySkillEffect.PLAYER_HEAL:
-            //     // case EnemySkillEffect.CLEAR_BUFFS:
-            //     // case EnemySkillEffect.RCV_BUFF:
-            //     // case EnemySkillEffect.TIME_BUFF_FLAT:
-            //     // case EnemySkillEffect.TIME_BUFF_SCALE:
-            //     default:
-            //       console.warn('Unhandled type: ' + this.effect);
-            //   }
-            // }
-            toJson() {
-                const obj = {};
-                if (this.name) {
-                    obj.name = this.name;
-                }
-                if (this.effect != EnemySkillEffect.NONE) {
-                    obj.effect = this.effect;
-                }
-                if (this.config) {
-                    obj.config = this.config;
-                }
-                if (this.damagePercent) {
-                    obj.damagePercent = this.damagePercent;
-                }
-                return obj;
-            }
-            static fromJson(json) {
-                const skill = new EnemySkill();
-                skill.name = skill.name || '';
-                skill.damagePercent = json.damagePercent || 0;
-                skill.effect = json.effect || EnemySkillEffect.NONE;
-                skill.config = json.config || 0;
-                return skill;
-            }
-        }
-        class EnemySkillset {
-            constructor() {
-                this.skills = [];
-            }
-            // TODO
-            // applySkillset(idc, source) {
-            //   // console.warn('Enemy skillset application not supported yet.');
-            //   for (const skill of this.skills) {
-            //     skill.apply(idc, source);
-            //   }
-            // }
-            toJson() {
-                const obj = {};
-                if (this.skills.length) {
-                    obj.skills = this.skills.map((skill) => skill.toJson());
-                }
-                return obj;
-            }
-            static fromJson(json) {
-                const skillset = new EnemySkillset();
-                skillset.skills = (json.skills || []).map((j) => EnemySkill.fromJson(j));
-                return skillset;
-            }
-        }
-        class EnemyInstance {
-            constructor() {
-                this.id = 4014;
-                this.lv = 10;
-                this.hp = -1;
-                this.attack = -1;
-                this.defense = -1;
-                this.resolvePercent = 0;
-                this.turnCounter = 1; // Currently unused.
-                // Values that can change during battle.
-                this.currentHp = 1;
-                this.currentAttribute = -1; // -1 is main, -2 is sub.
-                this.statusShield = false;
-                this.shieldPercent = 0; // Damage is multiplied by (100 - shieldPercent) / 100
-                this.comboAbsorb = 0; // Combos of this or fewer are absorbed.
-                this.damageAbsorb = 0;
-                this.damageVoid = 0;
-                this.attackMultiplier = 1; // Enrage
-                this.turnsRemaining = 1; // Not to be used yet.
-                this.turnCounterOverride = -1; // Not to be used yet.
-                // Debuffs by players
-                this.ignoreDefensePercent = 0;
-                this.poison = 0;
-                this.delayed = false; // Not to be used yet.
-                // Passives that are always applied
-                this.attributesResisted = [];
-                this.typeResists = [];
-                this.preemptiveSkillset = new EnemySkillset(); // Used when loading the monster.
-                this.skillsets = [];
-                this.attributeAbsorb = [];
-            }
-            setLevel(lv) {
-                this.lv = lv;
-            }
-            getHp() {
-                // if (this.hp > 0) {
-                //   return this.hp;
-                // }
-                const c = this.getCard();
-                return calcScaleStat(c.enemyHpAtLv10, c.enemyHpAtLv1, this.lv, c.enemyHpCurve);
-            }
-            getAtk() {
-                // if (this.atk > 0) {
-                //   return this.atk;
-                // }
-                const c = this.getCard();
-                return calcScaleStat(c.enemyAtkAtLv10, c.enemyAtkAtLv1, this.lv, c.enemyAtkCurve);
-            }
-            getDef() {
-                // if (this.def > 0) {
-                //   return this.def;
-                // }
-                const c = this.getCard();
-                return calcScaleStat(c.enemyDefAtLv10, c.enemyDefAtLv1, this.lv, c.enemyDefCurve);
-            }
-            getResolve() {
-                const c = this.getCard();
-                const resolveSkills = c.enemySkills
-                    .map((skill) => skill.enemySkillId)
-                    .map((id) => ilmina_stripped_5.floof.model.enemySkills[id])
-                    .filter((skill) => skill.internalEffectId == 73);
-                if (!resolveSkills.length) {
-                    return 0;
-                }
-                if (resolveSkills.length > 1) {
-                    console.warn('Multiple resolve skills detected. Only using first');
-                }
-                return resolveSkills[0].skillArgs[0];
-            }
-            getTypeResists() {
-                const c = this.getCard();
-                const resistTypeSkills = c.enemySkills
-                    .map((skill) => skill.enemySkillId)
-                    .map((id) => ilmina_stripped_5.floof.model.enemySkills[id])
-                    .filter((skill) => skill.internalEffectId == 118);
-                if (!resistTypeSkills.length) {
-                    return { types: [], percent: 0 };
-                }
-                if (resistTypeSkills.length > 1) {
-                    console.warn('Multiple Type Resist skills detected. Only using first');
-                }
-                const [typeBits, percent] = resistTypeSkills[0].skillArgs;
-                return {
-                    types: common_6.idxsFromBits(typeBits),
-                    percent: percent,
-                };
-            }
-            getAttrResists() {
-                const c = this.getCard();
-                const resistAttrSkills = c.enemySkills
-                    .map((skill) => skill.enemySkillId)
-                    .map((id) => ilmina_stripped_5.floof.model.enemySkills[id])
-                    .filter((skill) => skill.internalEffectId == 72);
-                if (!resistAttrSkills.length) {
-                    return { attrs: [], percent: 0 };
-                }
-                if (resistAttrSkills.length > 1) {
-                    console.warn('Multiple Type Resist skills detected. Only using first');
-                }
-                const [attrBits, percent] = resistAttrSkills[0].skillArgs;
-                return {
-                    attrs: common_6.idxsFromBits(attrBits),
-                    percent: percent,
-                };
-            }
-            getCard() {
-                if (!ilmina_stripped_5.floof.model.cards[this.id]) {
-                    return common_6.DEFAULT_CARD;
-                }
-                return ilmina_stripped_5.floof.model.cards[this.id];
-            }
-            getAttribute() {
-                if (this.id in ilmina_stripped_5.floof.model.cards && this.currentAttribute == -1) {
-                    return ilmina_stripped_5.floof.model.cards[this.id].attribute;
-                }
-                if (this.id in ilmina_stripped_5.floof.model.cards && this.currentAttribute == -2) {
-                    return ilmina_stripped_5.floof.model.cards[this.id].subattribute > -1 ? ilmina_stripped_5.floof.model.cards[this.id].subattribute : ilmina_stripped_5.floof.model.cards[this.id].attribute;
-                }
-                return this.currentAttribute;
-            }
-            // calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
-            //   let currentDamage = ping.amount;
-            //   const types = floof.model.cards[this.id] ? floof.model.cards[this.id].types : [];
-            //   // Attribute Advantage
-            //   currentDamage *= attributeMultiplier(ping.attribute, this.getAttribute());
-            //   currentDamage = Math.ceil(currentDamage);
-            //
-            //   if (!ping.isActive) {
-            //     // Killers
-            //     const killerCount = ping.source.getAwakenings(isMultiplayer, new Set(types.map((type) => TypeToKiller[type]))).length;
-            //     currentDamage *= (3 ** killerCount);
-            //
-            //     // Latent Killers
-            //     const validLatents = types.map((type) => TypeToLatent[type]);
-            //     const latentCount = ping.source.latents.filter((latent) => validLatents.includes(latent)).length;
-            //     currentDamage *= (1.5 ** latentCount);
-            //     currentDamage = Math.ceil(currentDamage);
-            //     if (currentDamage >= 2147483648) {
-            //       currentDamage = 2147483647;
-            //     }
-            //   }
-            //
-            //   if (ping.attribute != -1) {
-            //     // Innate Resists (e.g. attribute and type)
-            //     if (this.attributesResisted.includes(ping.attribute)) {
-            //       currentDamage *= 0.5;
-            //       currentDamage = Math.ceil(currentDamage);
-            //     }
-            //     if (this.typeResists.some((type) => ping.source.getCard().types.includes(type))) {
-            //       currentDamage *= 0.5;
-            //       currentDamage = Math.ceil(currentDamage);
-            //     }
-            //
-            //     // Shield
-            //     currentDamage = currentDamage * (100 - this.shieldPercent) / 100
-            //     currentDamage = Math.ceil(currentDamage);
-            //
-            //     // Defense + Guard Break, Damage afterward is minimum 1.
-            //     if ((ping.source.countAwakening(Awakening.GUARD_BREAK) == 0 ||
-            //             (new Set(pings.map((ping) => ping.attribute))).size < 5)) {
-            //       const defense = this.defense * (100 - this.ignoreDefensePercent) / 100;
-            //       currentDamage -= defense;
-            //       currentDamage = Math.ceil(currentDamage);
-            //
-            //       currentDamage = Math.max(currentDamage, 1);
-            //     }
-            //   }
-            //
-            //   // Void
-            //   if (this.damageVoid
-            //       && currentDamage > this.damageVoid
-            //       && !voids.damageVoid
-            //       && (!(COLORS[ping.attribute] in comboContainer.combos) ||
-            //           comboContainer.combos[COLORS[ping.attribute]].every((combo) => combo.shape != Shape.BOX))) {
-            //     currentDamage = 0;
-            //   }
-            //
-            //   // Absorbs
-            //   if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb ||
-            //       this.damageAbsorb && currentDamage >= this.damageAbsorb && !voids.damageAbsorb ||
-            //       this.comboAbsorb && comboContainer.comboCount() <= this.comboAbsorb && !ping.isActive) {
-            //     currentDamage *= -1;
-            //   }
-            //
-            //   return currentDamage;
-            // }
-            setId(id) {
-                if (!(id in ilmina_stripped_5.floof.model.cards)) {
-                    return;
-                }
-                this.id = id;
-            }
-            getName() {
-                if (this.id < 0 || !(this.id in ilmina_stripped_5.floof.model.cards)) {
-                    return 'UNSET';
-                }
-                return ilmina_stripped_5.floof.model.cards[this.id].name;
-            }
-            reset( /** idc */) {
-                this.currentHp = this.getHp();
-                this.currentAttribute = -1;
-                this.statusShield = false;
-                this.shieldPercent = 0;
-                this.attributeAbsorb.length = 0;
-                this.comboAbsorb = 0;
-                this.damageAbsorb = 0;
-                this.damageVoid = 0;
-                this.attackMultiplier = 1;
-                this.turnsRemaining = this.turnCounter;
-                this.turnCounterOverride = -1;
-                this.ignoreDefensePercent = 0;
-                this.poison = 0;
-                this.delayed = false;
-                if (this.preemptiveSkillset) {
-                    //   this.preemptiveSkillset.applySkillset(idc, this);
-                }
-            }
-            // TODO
-            // useSkillset(skillIdx, idc) {
-            //   if (!skillIdx in this.skillsets) {
-            //     console.warn(`Invalid idx: ${skillIdx}, not performing any.`)
-            //     return;
-            //   }
-            //   this.skillsets[skillIdx].applySkillset(idc, this);
-            // }
-            toJson() {
-                const obj = {};
-                if (this.id in ilmina_stripped_5.floof.model.cards) {
-                    obj.id = this.id;
-                }
-                if (this.lv != 10) {
-                    obj.lv = this.lv;
-                }
-                if (this.hp > 0) {
-                    obj.hp = this.hp;
-                }
-                if (this.attack > 0) {
-                    obj.attack = this.attack;
-                }
-                if (this.defense >= 0) {
-                    obj.defense = this.defense;
-                }
-                if (this.resolvePercent > 0) {
-                    obj.resolvePercent = this.resolvePercent;
-                }
-                if (this.attributesResisted.length) {
-                    obj.attributesResisted = [...this.attributesResisted];
-                }
-                if (this.typeResists.length) {
-                    obj.typeResists = [...this.typeResists];
-                }
-                if (this.preemptiveSkillset) {
-                    const preemptiveJson = this.preemptiveSkillset.toJson();
-                    if (preemptiveJson.skills && preemptiveJson.skills.length) {
-                        obj.preemptiveSkillset = preemptiveJson;
-                    }
-                }
-                if (this.skillsets.length) {
-                    obj.skillsets = this.skillsets.map((skillset) => skillset.toJson());
-                }
-                if (this.turnCounter != 1) {
-                    obj.turnCounter = this.turnCounter;
-                }
-                return obj;
-            }
-            static fromJson(json) {
-                const enemy = new EnemyInstance();
-                enemy.id = Number(json.id) || -1;
-                enemy.lv = Number(json.lv) || 10;
-                if (enemy.id in ilmina_stripped_5.floof.model.cards) {
-                    // TODO: Preload Card with this information.
-                    enemy.hp = Number(json.hp) || -1;
-                    enemy.attack = Number(json.attack) || -1;
-                    enemy.defense = Number(json.defense) || -1;
-                }
-                else {
-                    enemy.hp = Number(json.hp) || 1;
-                    enemy.attack = Number(json.attack) || 1;
-                    enemy.defense = Number(json.defense) || 0;
-                }
-                enemy.resolvePercent = Number(json.resolvePercent) || 0;
-                enemy.attributesResisted = (json.attributesResisted || []).map((a) => Number(a));
-                enemy.typeResists = (json.typeResists || []).map((a) => Number(a));
-                enemy.preemptiveSkillset = json.preemptiveSkillset ?
-                    EnemySkillset.fromJson(json.preemptiveSkillset) : new EnemySkillset();
-                enemy.skillsets = (json.skillsets || []).map((skillsetJson) => EnemySkillset.fromJson(skillsetJson));
-                enemy.turnCounter = json.turnCounter || 1;
-                enemy.reset();
-                return enemy;
-            }
-        }
-        exports.EnemyInstance = EnemyInstance;
-    });
-    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates"], function (require, exports, common_7, ajax_2, enemy_instance_1, templates_3) {
-        "use strict";
-        Object.defineProperty(exports, "__esModule", { value: true });
-        class DungeonFloor {
-            // dungeonEditor: DungeonEditor;
-            // combinations: number[][];
-            constructor() {
-                this.activeEnemy = 0;
-                this.enemies = [new enemy_instance_1.EnemyInstance()];
-                this.activeEnemy = 0;
-            }
-            addEnemy() {
-                this.enemies.push(new enemy_instance_1.EnemyInstance());
-            }
-            deleteEnemy(idx) {
-                if (this.enemies.length <= 1 || !(idx in this.enemies)) {
-                    console.log('Unable to delete enemy from floor.');
-                    return;
-                }
-                this.enemies.splice(idx, 1);
-            }
-            getActiveEnemy() {
-                return this.enemies[this.activeEnemy];
-            }
-            getEnemyIds() {
-                return this.enemies.map((enemy) => enemy.id);
-            }
-            toJson() {
-                return {
-                    enemies: this.enemies.map((enemy) => enemy.toJson()),
-                };
-            }
-            static fromJson(json) {
-                const floor = new DungeonFloor();
-                floor.enemies = json.enemies.map((enemy) => enemy_instance_1.EnemyInstance.fromJson(enemy));
-                return floor;
-            }
-        }
-        class Rational {
-            constructor(numerator = 0, denominator = 1) {
-                this.numerator = 0;
-                this.denominator = 1;
-                this.numerator = numerator;
-                this.denominator = denominator;
-            }
-            multiply(n) {
-                return n * this.numerator / this.denominator;
-            }
-            reduce() {
-                // Cannot reduce if denominator already 1
-                if (this.denominator == 1) {
-                    return;
-                }
-                // Can only reduce integral pairs.
-                if (!Number.isInteger(this.numerator) || !Number.isInteger(this.denominator)) {
-                    return;
-                }
-                function divides(num, den) {
-                    return Number.isInteger(num / den);
-                }
-                function gcd(a, b) {
-                    while (!divides(a, b) && !divides(b, a)) {
-                        if (a > b) {
-                            a -= b;
-                        }
-                        else {
-                            b -= a;
-                        }
-                    }
-                    return Math.min(a, b);
-                }
-                const divisor = gcd(this.numerator, this.denominator);
-                if (divisor == 1) {
-                    return;
-                }
-                this.numerator /= divisor;
-                this.denominator /= divisor;
-            }
-            toString() {
-                this.reduce();
-                if (this.denominator == 1) {
-                    return String(this.numerator);
-                }
-                return `${this.numerator} / ${this.denominator}`;
-            }
-            static from(s) {
-                if (!s.includes('/')) {
-                    return new Rational(Number(s));
-                }
-                let match = s.match(Rational.matcher);
-                if (match && match[0] == s) {
-                    return new Rational(Number(match[1]), Number(match[2]));
-                }
-                return new Rational(NaN);
-            }
-        }
-        Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
-        const requestUrl = common_7.BASE_URL + 'assets/DungeonsAndEncounters.json';
-        const DUNGEON_DATA = new Map();
-        const dungeonSearchArray = [];
-        const request = ajax_2.ajax(requestUrl);
-        request.done((data) => {
-            console.log('Loading Dungeon JSON data...');
-            const rawData = JSON.parse(data);
-            for (const datum of rawData) {
-                for (const subDatum of datum.sub_dungeons) {
-                    const floorsJson = [];
-                    for (let i = 0; i < subDatum.floors; i++) {
-                        floorsJson.push({
-                            enemies: [],
-                        });
-                    }
-                    for (const encounter of subDatum.encounters) {
-                        if (encounter.stage <= 0) {
-                            encounter.stage = 1;
-                        }
-                        if (encounter.stage > floorsJson.length) {
-                            encounter.stage = floorsJson.length;
-                        }
-                        const floor = floorsJson[encounter.stage - 1];
-                        if (!floor) {
-                            console.warn('invalid floor count...');
-                            continue;
-                        }
-                        floor.enemies.push({
-                            id: encounter.enemy_id,
-                            lv: encounter.level,
-                            turnCounter: encounter.turns,
-                        });
-                    }
-                    const dungeonInstanceJson = {
-                        title: `${datum.name_na} - ${subDatum.name_na}`,
-                        floors: floorsJson,
-                        hp: String(subDatum.hp_mult),
-                        atk: String(subDatum.atk_mult),
-                        def: String(subDatum.def_mult),
-                    };
-                    DUNGEON_DATA.set(subDatum.sub_dungeon_id, dungeonInstanceJson);
-                    dungeonSearchArray.push({ s: dungeonInstanceJson.title, value: subDatum.sub_dungeon_id });
-                }
-            }
-            console.log('Dungeon Data loaded.');
-        });
-        class DungeonInstance {
-            constructor() {
-                this.title = '';
-                this.boardWidth = 6;
-                this.fixedTime = 0;
-                this.isRogue = false; // UNIMPLEMENTED
-                this.allAttributesRequired = false;
-                this.noDupes = false;
-                this.hpMultiplier = new Rational(1);
-                this.atkMultiplier = new Rational(1);
-                this.defMultiplier = new Rational(1);
-                this.activeFloor = 0;
-                this.activeEnemy = 0;
-                // Sets all of your monsters to level 1 temporarily.
-                this.floors = [new DungeonFloor()];
-                // this.editorElement = this.createEditorElement();
-                this.pane = new templates_3.DungeonPane(dungeonSearchArray, (ctx) => {
-                    console.log(ctx);
-                    if (ctx.loadDungeon != undefined) {
-                        this.loadDungeon(ctx.loadDungeon);
-                    }
-                    const old = {
-                        floor: this.activeFloor,
-                        enemy: this.activeEnemy,
-                    };
-                    if (ctx.activeFloor != undefined) {
-                        this.activeFloor = ctx.activeFloor;
-                        this.setActiveEnemy(0);
-                    }
-                    if (ctx.activeEnemy != undefined) {
-                        // TODO: Centralize definition of activeEnemy into either DungeonInstace or DungeonFloor.
-                        this.setActiveEnemy(ctx.activeEnemy);
-                    }
-                    if (ctx.addFloor) {
-                        this.addFloor();
-                        this.setActiveEnemy(0);
-                    }
-                    if (ctx.removeFloor != undefined) {
-                        if (ctx.removeFloor == 0) {
-                            // Do nothing for now?
-                        }
-                        else {
-                            this.deleteFloor(ctx.removeFloor);
-                        }
-                    }
-                    if (ctx.dungeonHpMultiplier != undefined) {
-                        this.hpMultiplier = Rational.from(ctx.dungeonHpMultiplier);
-                    }
-                    if (ctx.dungeonAtkMultiplier != undefined) {
-                        this.atkMultiplier = Rational.from(ctx.dungeonAtkMultiplier);
-                    }
-                    if (ctx.dungeonDefMultiplier != undefined) {
-                        this.defMultiplier = Rational.from(ctx.dungeonDefMultiplier);
-                    }
-                    if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
-                        // Update other dungeon info about dungeon editor.
-                    }
-                    if (ctx.addEnemy) {
-                        const floor = this.floors[this.activeFloor];
-                        floor.addEnemy();
-                        this.setActiveEnemy(floor.enemies.length - 1);
-                    }
-                    if (ctx.enemyLevel) {
-                        this.getActiveEnemy().setLevel(ctx.enemyLevel);
-                    }
-                    if (ctx.activeEnemyId != undefined) {
-                        this.getActiveEnemy().id = ctx.activeEnemyId;
-                    }
-                    if (ctx.addTypeResist != undefined) {
-                        this.getActiveEnemy().typeResists.push(ctx.addTypeResist);
-                    }
-                    if (ctx.removeTypeResist != undefined) {
-                        if (this.getActiveEnemy().typeResists.includes(ctx.removeTypeResist)) {
-                            this.getActiveEnemy().typeResists.splice(this.getActiveEnemy().typeResists.indexOf(ctx.removeTypeResist), 1);
-                        }
-                    }
-                    const updateActiveEnemy = old.floor != this.activeFloor || old.enemy != this.activeEnemy;
-                    this.update(updateActiveEnemy);
-                });
-            }
-            loadDungeon(subDungeonId) {
-                const data = DUNGEON_DATA.get(subDungeonId);
-                if (!data) {
-                    console.warn('invalid sub dungeon');
-                    return;
-                }
-                this.loadJson(data);
-            }
-            getPane() {
-                return this.pane.getElement();
-            }
-            update(updateActiveEnemy) {
-                this.pane.dungeonEditor.setEnemies(this.floors.map((floor) => floor.getEnemyIds()));
-                if (updateActiveEnemy) {
-                    this.pane.dungeonEditor.setActiveEnemy(this.activeFloor, this.activeEnemy);
-                }
-                const enemy = this.getActiveEnemy();
-                this.pane.dungeonEditor.setDungeonMultipliers(this.hpMultiplier.toString(), this.atkMultiplier.toString(), this.defMultiplier.toString());
-                this.pane.dungeonEditor.setEnemyStats(enemy.lv, Math.round(this.hpMultiplier.multiply(enemy.getHp())), Math.round(this.atkMultiplier.multiply(enemy.getAtk())), Math.round(this.defMultiplier.multiply(enemy.getDef())), Math.round(enemy.getResolve()), enemy.getTypeResists(), enemy.getAttrResists());
-            }
-            addFloor() {
-                this.floors.push(new DungeonFloor());
-                this.activeFloor = this.floors.length - 1;
-                // this.reloadEditorElement();
-            }
-            deleteFloor(idx) {
-                if (this.floors.length <= 1 || !(idx in this.floors)) {
-                    console.log('Unable to delete floor.');
-                    return;
-                }
-                this.floors.splice(idx, 1);
-                if (this.activeFloor >= idx) {
-                    this.activeFloor = idx - 1;
-                }
-            }
-            setActiveEnemy(idx) {
-                this.activeEnemy = idx;
-                this.floors[this.activeFloor].activeEnemy = idx;
-            }
-            getActiveEnemy() {
-                return this.floors[this.activeFloor].getActiveEnemy();
-            }
-            toJson() {
-                const obj = {
-                    title: this.title,
-                    floors: this.floors.map((floor) => floor.toJson()),
-                };
-                const hpString = this.hpMultiplier.toString();
-                if (hpString != '1' && hpString != 'NaN') {
-                    obj.hp = hpString;
-                }
-                const atkString = this.atkMultiplier.toString();
-                if (atkString != '1' && atkString != 'NaN') {
-                    obj.atk = atkString;
-                }
-                const defString = this.defMultiplier.toString();
-                if (defString != '1' && defString != 'NaN') {
-                    obj.def = defString;
-                }
-                return obj;
-            }
-            loadJson(json) {
-                this.title = json.title || '';
-                this.floors = json.floors.map((floor) => DungeonFloor.fromJson(floor));
-                if (!this.floors) {
-                    this.addFloor();
-                }
-                this.activeFloor = 0;
-                this.setActiveEnemy(0);
-                this.hpMultiplier = Rational.from(json.hp || '1');
-                this.atkMultiplier = Rational.from(json.atk || '1');
-                this.defMultiplier = Rational.from(json.def || '1');
-                this.update(true);
-            }
-        }
-        exports.DungeonInstance = DungeonInstance;
-    });
-    define("leaders", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_8, ilmina_stripped_6) {
+    define("leaders", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_6, ilmina_stripped_5) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         ;
@@ -6028,11 +5310,11 @@
             coins: ([coins100]) => coins100 / 100,
         };
         function countMatchedColors(attrBits, comboContainer, team) {
-            const attrs = common_8.idxsFromBits(attrBits);
+            const attrs = common_6.idxsFromBits(attrBits);
             let total = 0;
             for (const attr of attrs) {
                 // Check if this color was matched.
-                if (comboContainer.combos[common_8.COLORS[attr]].length > 0) {
+                if (comboContainer.combos[common_6.COLORS[attr]].length > 0) {
                     // Check if any of the monsters would have attacked.
                     // This could be refactored to check all of the available pings, but that's more dependencies.
                     if (team.some((monster) => !monster.bound && (monster.getAttribute() == attr || monster.getSubattribute() == attr))) {
@@ -6157,8 +5439,8 @@
             rcvPost: ([minCombo, _, rcvFlag, rcv100], { comboContainer }) => rcvFlag && comboContainer.comboCount() >= minCombo ? rcv100 / 100 : 1,
         };
         const atkRcvFromAttrCombos = {
-            atk: ([a, attrBits, b, c, d], ctx) => ctx.ping.source.anyAttributes(common_8.idxsFromBits(attrBits)) ? (atkRcvFromCombos.atk || (() => 1))([a, b, c, d], ctx) : 1,
-            rcvPost: ([a, attrBits, b, c, d], ctx) => ctx.monster.anyAttributes(common_8.idxsFromBits(attrBits)) ? (atkRcvFromCombos.rcv || (() => 1))([a, b, c, d], ctx) : 1,
+            atk: ([a, attrBits, b, c, d], ctx) => ctx.ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) ? (atkRcvFromCombos.atk || (() => 1))([a, b, c, d], ctx) : 1,
+            rcvPost: ([a, attrBits, b, c, d], ctx) => ctx.monster.anyAttributes(common_6.idxsFromBits(attrBits)) ? (atkRcvFromCombos.rcv || (() => 1))([a, b, c, d], ctx) : 1,
         };
         const atkFromDecreasedRcv = {
             atk: ([_, atk100]) => atk100 / 100,
@@ -6176,7 +5458,7 @@
             atk: ([_, type, atk100], { ping }) => ping.source.isType(type) ? atk100 / 100 : 1,
         };
         const atkFromLinkedOrbs = {
-            atk: ([attrBits, minLinked, atk100], { comboContainer }) => common_8.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_8.COLORS[attr]].some((c) => c.count >= minLinked)) ? atk100 / 100 : 1,
+            atk: ([attrBits, minLinked, atk100], { comboContainer }) => common_6.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_6.COLORS[attr]].some((c) => c.count >= minLinked)) ? atk100 / 100 : 1,
         };
         const atkHpFromTwoAttrs = {
             hp: hpFromTwoAttrs.hp,
@@ -6195,8 +5477,8 @@
                 atk100scale = atk100scale || 0;
                 maxLinked = maxLinked || minLinked;
                 let linked = 0;
-                for (const attr of common_8.idxsFromBits(attrBits)) {
-                    for (const combo of comboContainer.combos[common_8.COLORS[attr]]) {
+                for (const attr of common_6.idxsFromBits(attrBits)) {
+                    for (const combo of comboContainer.combos[common_6.COLORS[attr]]) {
                         linked = combo.count > linked ? combo.count : linked;
                     }
                 }
@@ -6210,19 +5492,19 @@
             },
         };
         const baseStatFromAttrsTypes = {
-            hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && (monster.anyAttributes(common_8.idxsFromBits(attrBits)) || monster.anyTypes(common_8.idxsFromBits(typeBits))) ? hp100 / 100 : 1,
-            atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && (ping.source.anyAttributes(common_8.idxsFromBits(attrBits)) || ping.source.anyTypes(common_8.idxsFromBits(typeBits))) ? atk100 / 100 : 1,
-            rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && (monster.anyAttributes(common_8.idxsFromBits(attrBits)) || monster.anyTypes(common_8.idxsFromBits(typeBits))) ? rcv100 / 100 : 1,
+            hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && (monster.anyAttributes(common_6.idxsFromBits(attrBits)) || monster.anyTypes(common_6.idxsFromBits(typeBits))) ? hp100 / 100 : 1,
+            atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && (ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) || ping.source.anyTypes(common_6.idxsFromBits(typeBits))) ? atk100 / 100 : 1,
+            rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && (monster.anyAttributes(common_6.idxsFromBits(attrBits)) || monster.anyTypes(common_6.idxsFromBits(typeBits))) ? rcv100 / 100 : 1,
         };
         const atkRcvFromAttrTypeSubHp = {
             atk: ([thresh, attrBits, typeBits, atk100], { ping, percentHp }) => {
-                if (atk100 && percentHp <= thresh && (ping.source.anyAttributes(common_8.idxsFromBits(attrBits)) || ping.source.anyTypes(common_8.idxsFromBits(typeBits)))) {
+                if (atk100 && percentHp <= thresh && (ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) || ping.source.anyTypes(common_6.idxsFromBits(typeBits)))) {
                     return atk100 / 100;
                 }
                 return 1;
             },
             rcvPost: ([thresh, attrBits, typeBits, _, rcv100], { monster, percentHp }) => {
-                if (rcv100 && percentHp <= thresh && (monster.anyAttributes(common_8.idxsFromBits(attrBits)) || monster.anyTypes(common_8.idxsFromBits(typeBits)))) {
+                if (rcv100 && percentHp <= thresh && (monster.anyAttributes(common_6.idxsFromBits(attrBits)) || monster.anyTypes(common_6.idxsFromBits(typeBits)))) {
                     return rcv100 / 100;
                 }
                 return 1;
@@ -6230,7 +5512,7 @@
         };
         const atkFromAttrTypeAboveHp = {
             atk: ([thresh, attrBits, typeBits, atk100], { ping, percentHp }) => {
-                if (atk100 && percentHp >= thresh && (ping.source.anyAttributes(common_8.idxsFromBits(attrBits)) || ping.source.anyTypes(common_8.idxsFromBits(typeBits)))) {
+                if (atk100 && percentHp >= thresh && (ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) || ping.source.anyTypes(common_6.idxsFromBits(typeBits)))) {
                     return atk100 / 100;
                 }
                 return 1;
@@ -6243,12 +5525,12 @@
                     0: 0, 1: 0, 2: 0, 3: 0, 4: 0, '-1': 0,
                 };
                 for (const attrBit of [attr1bit, attr2bit, attr3bit, attr4bit, attr5bit].filter((a) => a > 0)) {
-                    const attr = common_8.idxsFromBits(attrBit)[0];
+                    const attr = common_6.idxsFromBits(attrBit)[0];
                     maxCounts[attr]++;
                 }
                 let total = 0;
                 for (const attr in maxCounts) {
-                    total += Math.min(comboContainer.combos[common_8.COLORS[attr]].length, maxCounts[attr]);
+                    total += Math.min(comboContainer.combos[common_6.COLORS[attr]].length, maxCounts[attr]);
                 }
                 if (total < minMatch) {
                     return 1;
@@ -6270,7 +5552,7 @@
             hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? hp100 / 100 : 1,
             atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
             rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
-            damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], { enemy }) => shield && common_8.idxsFromBits(attrBits).some((attr) => attr == enemy.getAttribute()) ? 1 - shield / 100 : 1,
+            damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], { enemy }) => shield && common_6.idxsFromBits(attrBits).some((attr) => attr == enemy.getAttribute()) ? 1 - shield / 100 : 1,
         };
         const atkRcvShieldFromSubHp = {
             atk: ([thresh, ...remaining], context) => thresh <= context.percentHp ? (baseStatFromAttrType.atk || (() => 1))(remaining, context) : 1,
@@ -6331,12 +5613,12 @@
             rcvPost: ([rcv100], { comboContainer }) => comboContainer.combos['h'].some((combo) => combo.count == 4) ? rcv100 / 100 : 1,
         };
         const fiveOrbEnhance = {
-            atk: ([_unknown, atk100], { ping, comboContainer }) => comboContainer.combos[common_8.COLORS[ping.attribute]].some((combo) => combo.count == 5 && combo.enhanced > 0) ? atk100 / 100 : 1,
+            atk: ([_unknown, atk100], { ping, comboContainer }) => comboContainer.combos[common_6.COLORS[ping.attribute]].some((combo) => combo.count == 5 && combo.enhanced > 0) ? atk100 / 100 : 1,
         };
         const atkRcvShieldFromHeartCross = {
-            atk: ([atk100], { comboContainer }) => atk100 && comboContainer.combos['h'].some((c) => c.shape == common_8.Shape.CROSS) ? atk100 / 100 : 1,
-            rcvPost: ([_, rcv100], { comboContainer }) => rcv100 && comboContainer.combos['h'].some((c) => c.shape == common_8.Shape.CROSS) ? rcv100 / 100 : 1,
-            damageMult: ([_, _a, shield], { comboContainer }) => shield && comboContainer.combos['h'].some((c) => c.shape == common_8.Shape.CROSS) ? 1 - shield / 100 : 1,
+            atk: ([atk100], { comboContainer }) => atk100 && comboContainer.combos['h'].some((c) => c.shape == common_6.Shape.CROSS) ? atk100 / 100 : 1,
+            rcvPost: ([_, rcv100], { comboContainer }) => rcv100 && comboContainer.combos['h'].some((c) => c.shape == common_6.Shape.CROSS) ? rcv100 / 100 : 1,
+            damageMult: ([_, _a, shield], { comboContainer }) => shield && comboContainer.combos['h'].some((c) => c.shape == common_6.Shape.CROSS) ? 1 - shield / 100 : 1,
         };
         const baseStatFromAttrTypeMultiplayer = {
             hp: (params, context) => context.isMultiplayer ? (baseStatFromAttrsTypes.hp || (() => 1))(params, context) : 1,
@@ -6347,7 +5629,7 @@
             atk: (params, { comboContainer }) => {
                 let multiplier = 1;
                 for (let i = 0; i + 1 < params.length; i += 2) {
-                    const count = comboContainer.combos[common_8.COLORS[params[i]]].filter((c) => c.shape == common_8.Shape.CROSS).length;
+                    const count = comboContainer.combos[common_6.COLORS[params[i]]].filter((c) => c.shape == common_6.Shape.CROSS).length;
                     multiplier *= (params[i + 1] / 100) ** count;
                 }
                 return multiplier;
@@ -6375,14 +5657,14 @@
                     return 1;
                 }
                 scale100 = scale100 || 0;
-                const attrs = [a, b, c, d].filter(Boolean).map((bit) => common_8.idxsFromBits(bit)[0]);
+                const attrs = [a, b, c, d].filter(Boolean).map((bit) => common_6.idxsFromBits(bit)[0]);
                 const counts = {};
                 for (const attr of attrs) {
                     counts[attr] = (attr in counts) ? counts[attr] + 1 : 1;
                 }
                 let total = 0;
                 for (const attr in counts) {
-                    total += Math.max(comboContainer.combos[common_8.COLORS[attr]].length, counts[attr]);
+                    total += Math.max(comboContainer.combos[common_6.COLORS[attr]].length, counts[attr]);
                 }
                 if (total < minMatch) {
                     return 1;
@@ -6394,14 +5676,14 @@
                     return 1;
                 }
                 scale100 = scale100 || 0;
-                const attrs = [a, b, c, d].filter(Boolean).map((bit) => common_8.idxsFromBits(bit)[0]);
+                const attrs = [a, b, c, d].filter(Boolean).map((bit) => common_6.idxsFromBits(bit)[0]);
                 const counts = {};
                 for (const attr of attrs) {
                     counts[attr] = (attr in counts) ? counts[attr] + 1 : 1;
                 }
                 let total = 0;
                 for (const attr in counts) {
-                    total += Math.max(comboContainer.combos[common_8.COLORS[attr]].length, counts[attr]);
+                    total += Math.max(comboContainer.combos[common_6.COLORS[attr]].length, counts[attr]);
                 }
                 if (total < minMatch) {
                     return 1;
@@ -6458,8 +5740,8 @@
                 atk100scale = atk100scale || 0;
                 maxLinked = maxLinked || minLinked;
                 let highest = 0;
-                for (const attr of common_8.idxsFromBits(attrBits)) {
-                    for (const c of comboContainer.combos[common_8.COLORS[attr]]) {
+                for (const attr of common_6.idxsFromBits(attrBits)) {
+                    for (const c of comboContainer.combos[common_6.COLORS[attr]]) {
                         if (c.count > highest) {
                             highest = c.count;
                         }
@@ -6477,8 +5759,8 @@
                 rcv100scale = rcv100scale || 0;
                 maxLinked = maxLinked || minLinked;
                 let highest = 0;
-                for (const attr of common_8.idxsFromBits(attrBits)) {
-                    for (const c of comboContainer.combos[common_8.COLORS[attr]]) {
+                for (const attr of common_6.idxsFromBits(attrBits)) {
+                    for (const c of comboContainer.combos[common_6.COLORS[attr]]) {
                         if (c.count > highest) {
                             highest = c.count;
                         }
@@ -6504,12 +5786,12 @@
                     return 1;
                 }
                 const counts = {};
-                for (const attr of [a, b, c, d].filter(Boolean).map((v) => common_8.idxsFromBits(v)[0])) {
+                for (const attr of [a, b, c, d].filter(Boolean).map((v) => common_6.idxsFromBits(v)[0])) {
                     counts[attr] = counts[attr] ? counts[attr] + 1 : 1;
                 }
                 let total = 0;
                 for (const attr in counts) {
-                    total += Math.min(counts[attr], comboContainer.combos[common_8.COLORS[attr]].length);
+                    total += Math.min(counts[attr], comboContainer.combos[common_6.COLORS[attr]].length);
                 }
                 return total >= minMatch ? atk100 : 1;
             },
@@ -6518,12 +5800,12 @@
                     return 1;
                 }
                 const counts = {};
-                for (const attr of [a, b, c, d].filter(Boolean).map((v) => common_8.idxsFromBits(v)[0])) {
+                for (const attr of [a, b, c, d].filter(Boolean).map((v) => common_6.idxsFromBits(v)[0])) {
                     counts[attr] = counts[attr] ? counts[attr] + 1 : 1;
                 }
                 let total = 0;
                 for (const attr in counts) {
-                    total += Math.min(counts[attr], comboContainer.combos[common_8.COLORS[attr]].length);
+                    total += Math.min(counts[attr], comboContainer.combos[common_6.COLORS[attr]].length);
                 }
                 return total >= minMatch ? shield : 1;
             },
@@ -6571,8 +5853,8 @@
                     return 1;
                 }
                 let highest = 0;
-                for (const attr of common_8.idxsFromBits(attrBits)) {
-                    for (const c of comboContainer.combos[common_8.COLORS[attr]]) {
+                for (const attr of common_6.idxsFromBits(attrBits)) {
+                    for (const c of comboContainer.combos[common_6.COLORS[attr]]) {
                         highest = c.count > highest ? c.count : highest;
                     }
                 }
@@ -6583,8 +5865,8 @@
                     return 1;
                 }
                 let highest = 0;
-                for (const attr of common_8.idxsFromBits(attrBits)) {
-                    for (const c of comboContainer.combos[common_8.COLORS[attr]]) {
+                for (const attr of common_6.idxsFromBits(attrBits)) {
+                    for (const c of comboContainer.combos[common_6.COLORS[attr]]) {
                         highest = c.count > highest ? c.count : highest;
                     }
                 }
@@ -6634,23 +5916,23 @@
                 if (!atk100) {
                     return 1;
                 }
-                return common_8.idxsFromBits(attrBits)
-                    .every((attr) => comboContainer.combos[common_8.COLORS[attr]]
+                return common_6.idxsFromBits(attrBits)
+                    .every((attr) => comboContainer.combos[common_6.COLORS[attr]]
                     .some((c) => c.count >= minLinked)) ? atk100 / 100 : 1;
             },
             plusCombo: ([attrBits, minLinked, _, comboBonus], { comboContainer }) => {
                 if (!comboBonus) {
                     return 1;
                 }
-                return common_8.idxsFromBits(attrBits)
-                    .every((attr) => comboContainer.combos[common_8.COLORS[attr]]
+                return common_6.idxsFromBits(attrBits)
+                    .every((attr) => comboContainer.combos[common_6.COLORS[attr]]
                     .some((c) => c.count >= minLinked)) ? comboBonus : 0;
             },
         };
         const atkRcvShieldFromLMatch = {
-            atk: ([attrBits, atk100], { comboContainer }) => atk100 && common_8.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_8.COLORS[attr]].some((c) => c.shape == common_8.Shape.L)) ? atk100 / 100 : 1,
-            rcvPost: ([attrBits, _, rcv100], { comboContainer }) => rcv100 && common_8.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_8.COLORS[attr]].some((c) => c.shape == common_8.Shape.L)) ? rcv100 / 100 : 1,
-            damageMult: ([attrBits, _, _a, shield], { comboContainer }) => shield && common_8.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_8.COLORS[attr]].some((c) => c.shape == common_8.Shape.L)) ? 1 - shield / 100 : 1,
+            atk: ([attrBits, atk100], { comboContainer }) => atk100 && common_6.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_6.COLORS[attr]].some((c) => c.shape == common_6.Shape.L)) ? atk100 / 100 : 1,
+            rcvPost: ([attrBits, _, rcv100], { comboContainer }) => rcv100 && common_6.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_6.COLORS[attr]].some((c) => c.shape == common_6.Shape.L)) ? rcv100 / 100 : 1,
+            damageMult: ([attrBits, _, _a, shield], { comboContainer }) => shield && common_6.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_6.COLORS[attr]].some((c) => c.shape == common_6.Shape.L)) ? 1 - shield / 100 : 1,
         };
         const atkPlusCombosFromRainbow = {
             atk: ([attrBits, minColors, atk100], { comboContainer, team }) => atk100 && countMatchedColors(attrBits, comboContainer, team) > minColors ? atk100 / 100 : 1,
@@ -6669,8 +5951,8 @@
         };
         const trueBonusFromLinkedOrbs = {
             trueBonusAttack: ([attrBits, minLinked, trueDamage], { comboContainer }) => {
-                return common_8.idxsFromBits(attrBits)
-                    .some((attr) => comboContainer.combos[common_8.COLORS[attr]]
+                return common_6.idxsFromBits(attrBits)
+                    .some((attr) => comboContainer.combos[common_6.COLORS[attr]]
                     .some((c) => c.count >= minLinked)) ? trueDamage : 1;
             },
         };
@@ -6782,7 +6064,7 @@
         };
         // Functions for libraries to call directly.
         function bigBoard(id) {
-            const playerSkill = ilmina_stripped_6.floof.model.playerSkills[id];
+            const playerSkill = ilmina_stripped_5.floof.model.playerSkills[id];
             // Handle multiple leader skills.
             if (playerSkill.internalEffectId == 138) {
                 return playerSkill.internalEffectArguments.some((i) => bigBoard(i));
@@ -6791,7 +6073,7 @@
         }
         exports.bigBoard = bigBoard;
         function noSkyfall(id) {
-            const playerSkill = ilmina_stripped_6.floof.model.playerSkills[id];
+            const playerSkill = ilmina_stripped_5.floof.model.playerSkills[id];
             if (playerSkill.internalEffectId == 138) {
                 return playerSkill.internalEffectArguments.some((i) => noSkyfall(i));
             }
@@ -6799,7 +6081,7 @@
         }
         exports.noSkyfall = noSkyfall;
         function ignorePoison(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             // Handle multiple leader skills.
             if (internalEffectId == 138) {
                 return internalEffectArguments.some((i) => ignorePoison(i));
@@ -6808,7 +6090,7 @@
         }
         exports.ignorePoison = ignorePoison;
         function drumEffect(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             // Handle multiple leader skills.
             if (internalEffectId == 138) {
                 return internalEffectArguments.some((i) => drumEffect(i));
@@ -6817,7 +6099,7 @@
         }
         exports.drumEffect = drumEffect;
         function minOrbMatch(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return Math.max(...internalEffectArguments.map((i) => minOrbMatch(i)));
             }
@@ -6825,7 +6107,7 @@
         }
         exports.minOrbMatch = minOrbMatch;
         function resolve(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return Math.min(...internalEffectArguments.map((i) => resolve(i)));
             }
@@ -6833,7 +6115,7 @@
         }
         exports.resolve = resolve;
         function fixedTime(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 const times = internalEffectArguments.map((i) => fixedTime(i)).filter((t) => t > 0);
                 return times.length ? Math.min(...times) : 0;
@@ -6842,7 +6124,7 @@
         }
         exports.fixedTime = fixedTime;
         function timeExtend(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => timeExtend(i)).reduce((total, value) => total + value);
             }
@@ -6850,7 +6132,7 @@
         }
         exports.timeExtend = timeExtend;
         function hp(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => hp(i, context)).reduce((total, value) => total * value);
             }
@@ -6858,7 +6140,7 @@
         }
         exports.hp = hp;
         function atk(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => atk(i, context)).reduce((total, value) => total * value);
             }
@@ -6866,7 +6148,7 @@
         }
         exports.atk = atk;
         function rcv(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => rcv(i, context)).reduce((total, value) => total * value);
             }
@@ -6874,7 +6156,7 @@
         }
         exports.rcv = rcv;
         function rcvPost(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => rcvPost(i, context)).reduce((total, value) => total * value);
             }
@@ -6882,7 +6164,7 @@
         }
         exports.rcvPost = rcvPost;
         function damageMult(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => damageMult(i, context)).reduce((total, value) => total * value);
             }
@@ -6890,7 +6172,7 @@
         }
         exports.damageMult = damageMult;
         function plusCombo(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => plusCombo(i, context)).reduce((total, value) => total + value, 0);
             }
@@ -6898,7 +6180,7 @@
         }
         exports.plusCombo = plusCombo;
         function drop(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => drop(i)).reduce((total, value) => total * value);
             }
@@ -6906,7 +6188,7 @@
         }
         exports.drop = drop;
         function coins(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => coins(i)).reduce((total, value) => total * value);
             }
@@ -6914,7 +6196,7 @@
         }
         exports.coins = coins;
         function exp(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => exp(i)).reduce((total, value) => total * value);
             }
@@ -6922,7 +6204,7 @@
         }
         exports.exp = exp;
         function autoHeal(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => autoHeal(i)).reduce((total, value) => total + value);
             }
@@ -6930,7 +6212,7 @@
         }
         exports.autoHeal = autoHeal;
         function trueBonusAttack(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => trueBonusAttack(i, context)).reduce((total, value) => total + value);
             }
@@ -6938,7 +6220,7 @@
         }
         exports.trueBonusAttack = trueBonusAttack;
         function bonusAttack(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => bonusAttack(i)).reduce((total, value) => total + value);
             }
@@ -6946,7 +6228,7 @@
         }
         exports.bonusAttack = bonusAttack;
         function counter(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments
                     .map((i) => counter(i))
@@ -6959,7 +6241,7 @@
         }
         exports.counter = counter;
         function awokenBindClear(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_6.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => awokenBindClear(i, context)).reduce((total, value) => total + value);
             }
@@ -6967,7 +6249,7 @@
         }
         exports.awokenBindClear = awokenBindClear;
     });
-    define("player_team", ["require", "exports", "common", "monster_instance", "templates", "ilmina_stripped", "leaders"], function (require, exports, common_9, monster_instance_1, templates_4, ilmina_stripped_7, leaders) {
+    define("player_team", ["require", "exports", "common", "monster_instance", "templates", "ilmina_stripped", "leaders"], function (require, exports, common_7, monster_instance_1, templates_3, ilmina_stripped_6, leaders) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const DEFAULT_STATE = {
@@ -6976,8 +6258,8 @@
             skillUsed: true,
             shieldPercent: 0,
             attributesShielded: [
-                common_9.Attribute.FIRE, common_9.Attribute.WATER, common_9.Attribute.WOOD,
-                common_9.Attribute.LIGHT, common_9.Attribute.DARK
+                common_7.Attribute.FIRE, common_7.Attribute.WATER, common_7.Attribute.WOOD,
+                common_7.Attribute.LIGHT, common_7.Attribute.DARK
             ],
             burst: {
                 attrRestrictions: [],
@@ -7000,14 +6282,14 @@
                 this.teams = {};
                 if (window.localStorage.idcStoredTeams) {
                     try {
-                        this.teams = JSON.parse(ilmina_stripped_7.decompress(window.localStorage.idcStoredTeams));
+                        this.teams = JSON.parse(ilmina_stripped_6.decompress(window.localStorage.idcStoredTeams));
                     }
                     catch (e) {
                         this.teams = JSON.parse(window.localStorage.idcStoredTeams);
-                        window.localStorage.idcStoredTeams = ilmina_stripped_7.compress(window.localStorage.idcStoredTeams);
+                        window.localStorage.idcStoredTeams = ilmina_stripped_6.compress(window.localStorage.idcStoredTeams);
                     }
                 }
-                this.display = new templates_4.StoredTeamDisplay(
+                this.display = new templates_3.StoredTeamDisplay(
                 // On Save Click
                 () => {
                     this.saveTeam(team.toJson());
@@ -7040,26 +6322,26 @@
             // TODO: Add confirmation if overriding.
             saveTeam(teamJson) {
                 this.teams[teamJson.title] = teamJson;
-                window.localStorage.idcStoredTeams = ilmina_stripped_7.compress(JSON.stringify(this.teams));
+                window.localStorage.idcStoredTeams = ilmina_stripped_6.compress(JSON.stringify(this.teams));
             }
             // TODO: Add confirmation.
             deleteTeam(title) {
                 delete this.teams[title];
-                window.localStorage.idcStoredTeams = ilmina_stripped_7.compress(JSON.stringify(this.teams));
+                window.localStorage.idcStoredTeams = ilmina_stripped_6.compress(JSON.stringify(this.teams));
             }
         }
         const SHARED_AWAKENINGS = new Set([
-            common_9.Awakening.SKILL_BOOST,
-            common_9.Awakening.SKILL_BOOST_PLUS,
-            common_9.Awakening.RESIST_POISON,
-            common_9.Awakening.RESIST_POISON_PLUS,
-            common_9.Awakening.RESIST_BLIND,
-            common_9.Awakening.RESIST_BLIND_PLUS,
-            common_9.Awakening.RESIST_JAMMER,
-            common_9.Awakening.RESIST_JAMMER_PLUS,
-            common_9.Awakening.SBR,
-            common_9.Awakening.RESIST_CLOUD,
-            common_9.Awakening.RESIST_TAPE,
+            common_7.Awakening.SKILL_BOOST,
+            common_7.Awakening.SKILL_BOOST_PLUS,
+            common_7.Awakening.RESIST_POISON,
+            common_7.Awakening.RESIST_POISON_PLUS,
+            common_7.Awakening.RESIST_BLIND,
+            common_7.Awakening.RESIST_BLIND_PLUS,
+            common_7.Awakening.RESIST_JAMMER,
+            common_7.Awakening.RESIST_JAMMER_PLUS,
+            common_7.Awakening.SBR,
+            common_7.Awakening.RESIST_CLOUD,
+            common_7.Awakening.RESIST_TAPE,
         ]);
         class Team {
             constructor() {
@@ -7092,7 +6374,7 @@
                     }));
                 }
                 this.storage = new StoredTeams(this);
-                this.teamPane = new templates_4.TeamPane(this.storage.getElement(), this.monsters.map((monster) => monster.getElement()), (ctx) => {
+                this.teamPane = new templates_3.TeamPane(this.storage.getElement(), this.monsters.map((monster) => monster.getElement()), (ctx) => {
                     if (ctx.title) {
                         this.teamName = ctx.title;
                     }
@@ -7377,7 +6659,7 @@
                     return monsters.map((monster) => monster.getHp(this.isMultiplayer(), this.state.awakenings));
                 }
                 let hps = [];
-                const teamHpAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(common_9.Awakening.TEAM_HP), 0) * 0.05) : 0);
+                const teamHpAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_HP), 0) * 0.05) : 0);
                 for (const monster of monsters) {
                     if (!monster.id || monster.id <= 0) {
                         hps.push(0);
@@ -7416,7 +6698,7 @@
                         isMultiplayer: this.isMultiplayer(),
                     });
                 };
-                const teamRcvAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(common_9.Awakening.TEAM_RCV), 0) * 0.1) : 0);
+                const teamRcvAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_RCV), 0) * 0.1) : 0);
                 for (const monster of monsters) {
                     if (!monster.id || monster.id <= 0) {
                         rcvs.push(0);
@@ -7446,10 +6728,10 @@
                 let time = 5;
                 time += leaders.timeExtend(leadId) + leaders.timeExtend(helperId);
                 for (const monster of monsters) {
-                    time += monster.countAwakening(common_9.Awakening.TIME) * 0.5;
-                    time += monster.countAwakening(common_9.Awakening.TIME_PLUS);
-                    time += monster.latents.filter((l) => l == common_9.Latent.TIME).length * 0.05;
-                    time += monster.latents.filter((l) => l == common_9.Latent.TIME_PLUS).length * 0.12;
+                    time += monster.countAwakening(common_7.Awakening.TIME) * 0.5;
+                    time += monster.countAwakening(common_7.Awakening.TIME_PLUS);
+                    time += monster.latents.filter((l) => l == common_7.Latent.TIME).length * 0.05;
+                    time += monster.latents.filter((l) => l == common_7.Latent.TIME_PLUS).length * 0.12;
                 }
                 if (this.state.timeIsMult) {
                     time *= this.state.timeBonus;
@@ -7521,12 +6803,12 @@
                     const card = monster.getCard();
                     let baseCd = 0;
                     if (card.activeSkillId > 0) {
-                        baseCd = ilmina_stripped_7.floof.model.playerSkills[card.activeSkillId].maxCooldown;
+                        baseCd = ilmina_stripped_6.floof.model.playerSkills[card.activeSkillId].maxCooldown;
                     }
                     let inheritCd = 0;
                     const inheritCard = monster.getInheritCard();
                     if (inheritCard && inheritCard.activeSkillId > 0) {
-                        inheritCd = ilmina_stripped_7.floof.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
+                        inheritCd = ilmina_stripped_6.floof.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
                     }
                     if (baseCd && inheritCd) {
                         cds.push(`${baseCd}(${baseCd + inheritCd})`);
@@ -7543,28 +6825,28 @@
                 }
                 const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.isMultiplayer(), this.state.awakenings));
                 const counts = new Map();
-                counts.set(common_9.Awakening.SKILL_BOOST, this.countAwakening(common_9.Awakening.SKILL_BOOST) +
-                    2 * this.countAwakening(common_9.Awakening.SKILL_BOOST_PLUS));
-                counts.set(common_9.Awakening.TIME, this.countAwakening(common_9.Awakening.TIME) +
-                    2 * this.countAwakening(common_9.Awakening.TIME_PLUS));
-                counts.set(common_9.Awakening.SOLOBOOST, this.countAwakening(common_9.Awakening.SOLOBOOST));
-                counts.set(common_9.Awakening.BONUS_ATTACK, this.countAwakening(common_9.Awakening.BONUS_ATTACK));
-                counts.set(common_9.Awakening.BONUS_ATTACK_SUPER, this.countAwakening(common_9.Awakening.BONUS_ATTACK_SUPER));
-                counts.set(common_9.Awakening.SBR, this.countAwakening(common_9.Awakening.SBR));
-                counts.set(common_9.Awakening.RESIST_POISON, this.countAwakening(common_9.Awakening.RESIST_POISON) +
-                    5 * this.countAwakening(common_9.Awakening.RESIST_POISON_PLUS));
-                counts.set(common_9.Awakening.RESIST_BLIND, this.countAwakening(common_9.Awakening.RESIST_BLIND) +
-                    5 * this.countAwakening(common_9.Awakening.RESIST_BLIND_PLUS));
-                counts.set(common_9.Awakening.RESIST_JAMMER, this.countAwakening(common_9.Awakening.RESIST_JAMMER) +
-                    5 * this.countAwakening(common_9.Awakening.RESIST_JAMMER_PLUS));
-                counts.set(common_9.Awakening.RESIST_CLOUD, this.countAwakening(common_9.Awakening.RESIST_CLOUD));
-                counts.set(common_9.Awakening.RESIST_TAPE, this.countAwakening(common_9.Awakening.RESIST_TAPE));
-                counts.set(common_9.Awakening.OE_FIRE, this.countAwakening(common_9.Awakening.OE_FIRE));
-                counts.set(common_9.Awakening.OE_WATER, this.countAwakening(common_9.Awakening.OE_WATER));
-                counts.set(common_9.Awakening.OE_WOOD, this.countAwakening(common_9.Awakening.OE_WOOD));
-                counts.set(common_9.Awakening.OE_LIGHT, this.countAwakening(common_9.Awakening.OE_LIGHT));
-                counts.set(common_9.Awakening.OE_DARK, this.countAwakening(common_9.Awakening.OE_DARK));
-                counts.set(common_9.Awakening.OE_HEART, this.countAwakening(common_9.Awakening.OE_HEART));
+                counts.set(common_7.Awakening.SKILL_BOOST, this.countAwakening(common_7.Awakening.SKILL_BOOST) +
+                    2 * this.countAwakening(common_7.Awakening.SKILL_BOOST_PLUS));
+                counts.set(common_7.Awakening.TIME, this.countAwakening(common_7.Awakening.TIME) +
+                    2 * this.countAwakening(common_7.Awakening.TIME_PLUS));
+                counts.set(common_7.Awakening.SOLOBOOST, this.countAwakening(common_7.Awakening.SOLOBOOST));
+                counts.set(common_7.Awakening.BONUS_ATTACK, this.countAwakening(common_7.Awakening.BONUS_ATTACK));
+                counts.set(common_7.Awakening.BONUS_ATTACK_SUPER, this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER));
+                counts.set(common_7.Awakening.SBR, this.countAwakening(common_7.Awakening.SBR));
+                counts.set(common_7.Awakening.RESIST_POISON, this.countAwakening(common_7.Awakening.RESIST_POISON) +
+                    5 * this.countAwakening(common_7.Awakening.RESIST_POISON_PLUS));
+                counts.set(common_7.Awakening.RESIST_BLIND, this.countAwakening(common_7.Awakening.RESIST_BLIND) +
+                    5 * this.countAwakening(common_7.Awakening.RESIST_BLIND_PLUS));
+                counts.set(common_7.Awakening.RESIST_JAMMER, this.countAwakening(common_7.Awakening.RESIST_JAMMER) +
+                    5 * this.countAwakening(common_7.Awakening.RESIST_JAMMER_PLUS));
+                counts.set(common_7.Awakening.RESIST_CLOUD, this.countAwakening(common_7.Awakening.RESIST_CLOUD));
+                counts.set(common_7.Awakening.RESIST_TAPE, this.countAwakening(common_7.Awakening.RESIST_TAPE));
+                counts.set(common_7.Awakening.OE_FIRE, this.countAwakening(common_7.Awakening.OE_FIRE));
+                counts.set(common_7.Awakening.OE_WATER, this.countAwakening(common_7.Awakening.OE_WATER));
+                counts.set(common_7.Awakening.OE_WOOD, this.countAwakening(common_7.Awakening.OE_WOOD));
+                counts.set(common_7.Awakening.OE_LIGHT, this.countAwakening(common_7.Awakening.OE_LIGHT));
+                counts.set(common_7.Awakening.OE_DARK, this.countAwakening(common_7.Awakening.OE_DARK));
+                counts.set(common_7.Awakening.OE_HEART, this.countAwakening(common_7.Awakening.OE_HEART));
                 return {
                     hps: this.getIndividualHp(),
                     atks: atks,
@@ -7579,10 +6861,918 @@
         }
         exports.Team = Team;
     });
+    define("custom_base64", ["require", "exports", "monster_instance"], function (require, exports, monster_instance_2) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        const CHAR_AT = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        const CHAR_TO_NUM = new Map(CHAR_AT.split('').map((c, i) => [c, i]));
+        class Encoding {
+            constructor(s = '') {
+                this.bitQueue = 0;
+                this.queueLength = 0;
+                this.dequeueLength = 0;
+                this.bitDequeue = 0;
+                this.composedString = s;
+            }
+            check() {
+                while (this.queueLength >= 6) {
+                    this.queueLength -= 6;
+                    this.composedString += CHAR_AT[this.bitQueue >> this.queueLength];
+                    this.bitQueue = this.bitQueue & ((1 << this.queueLength) - 1);
+                }
+            }
+            queueBits(n, l) {
+                if ((1 << l) <= n) {
+                    throw new Error(`Cannot queue a number ${n} of length ${l}`);
+                }
+                this.bitQueue = (this.bitQueue << l) | n;
+                this.queueLength += l;
+                this.check();
+            }
+            queueBit(on) {
+                this.queueLength++;
+                this.bitQueue = this.bitQueue << 1 | Number(on);
+                this.check();
+            }
+            dequeueBit() {
+                if (!this.dequeueLength) {
+                    this.dequeueLength = 6;
+                    this.bitDequeue = CHAR_TO_NUM.get(this.composedString[0]);
+                    this.composedString = this.composedString.substring(1);
+                }
+                this.dequeueLength--;
+                const val = this.bitDequeue >> this.dequeueLength;
+                this.bitDequeue = this.bitDequeue & ((1 << this.dequeueLength) - 1);
+                return val;
+            }
+            dequeueBits(l) {
+                let result = 0;
+                for (let i = 0; i < l; i++) {
+                    result = (result << 1) | this.dequeueBit();
+                }
+                return result;
+            }
+            getString() {
+                const padded = this.bitQueue << (6 - this.queueLength);
+                return this.composedString + CHAR_AT[padded];
+            }
+        }
+        exports.Encoding = Encoding;
+        /**
+         * Encoding is as follows:
+         * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
+         * For each team in mode:
+         *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
+         *     13 bits encode monster sub id.
+         *     If monster id is 0, there is no monster here. Go to next monster sub.
+         *     Else:
+         *       Next 13 bits is monster inherit.
+         *       If inherit id is 0, this monster has no inherit, go to monster stats.
+         *       Else:
+         *         Next 7 bits represents inherit level.
+         *         Next 1 bit represents if the inherit monster is +297.
+         *       Next 3 bits determine number of Latents
+         *       For each latent:
+         *         Next 6 bits represents latent.
+         *       Next 7 bits represents monster level.
+         *       Next 4 bits represents monster awakening level.
+         *       Next 1 bit represents if a monster is 297 or not.
+         *       If 297, set to 297
+         *       Else:
+         *         Next 7 bits represents +HP
+         *         Next 7 bits represents +ATK
+         *         Next 7 bits represents +RCV
+         *       Next 4 bits represents monsters Super Awakening.
+         */
+        function ValeriaEncode(team) {
+            const encoding = new Encoding();
+            const playerMode = team.playerMode;
+            encoding.queueBits(playerMode, 2);
+            const monstersPerTeam = playerMode == 2 ? 5 : 6;
+            for (let i = 0; i < playerMode; i++) {
+                for (let j = 0; j < monstersPerTeam; j++) {
+                    const monster = team.monsters[i * 6 + j];
+                    const id = monster.getId(true);
+                    if (id <= 0) {
+                        encoding.queueBits(0, 13);
+                        continue;
+                    }
+                    encoding.queueBits(id, 13);
+                    const inheritId = monster.inheritId;
+                    if (inheritId <= 0) {
+                        encoding.queueBits(0, 13);
+                    }
+                    else {
+                        encoding.queueBits(inheritId, 13);
+                        encoding.queueBits(monster.inheritLevel, 7);
+                        encoding.queueBit(monster.inheritPlussed);
+                    }
+                    encoding.queueBits(monster.latents.length, 3);
+                    for (const latent of monster.latents) {
+                        encoding.queueBits(latent, 6);
+                    }
+                    encoding.queueBits(monster.level, 7);
+                    encoding.queueBits(monster.awakenings, 4);
+                    if (monster.hpPlus + monster.atkPlus + monster.rcvPlus == 297) {
+                        encoding.queueBit(true);
+                    }
+                    else {
+                        encoding.queueBit(false);
+                        encoding.queueBits(monster.hpPlus, 7);
+                        encoding.queueBits(monster.atkPlus, 7);
+                        encoding.queueBits(monster.rcvPlus, 7);
+                    }
+                    encoding.queueBits(monster.superAwakeningIdx + 1, 4);
+                }
+            }
+            return encoding.getString();
+        }
+        exports.ValeriaEncode = ValeriaEncode;
+        function ValeriaDecodeToPdchu(s) {
+            let pdchu = '';
+            const encoding = new Encoding(s);
+            const playerMode = encoding.dequeueBits(2);
+            const monstersPerTeam = playerMode == 2 ? 5 : 6;
+            for (let i = 0; i < playerMode; i++) {
+                let teamString = '';
+                for (let j = 0; j < monstersPerTeam; j++) {
+                    const id = encoding.dequeueBits(13);
+                    if (id == 0) {
+                        teamString += ' / ';
+                        continue;
+                    }
+                    teamString += `${id} `;
+                    const inheritId = encoding.dequeueBits(13);
+                    if (inheritId != 0) {
+                        teamString += `(${inheritId}| lv${encoding.dequeueBits(7)}${encoding.dequeueBit() ? ' +297' : ''})`;
+                    }
+                    const latentCount = encoding.dequeueBits(3);
+                    if (latentCount) {
+                        teamString += '[';
+                        for (let k = 0; k < latentCount; k++) {
+                            teamString += `${monster_instance_2.LatentToPdchu.get(encoding.dequeueBits(6))},`;
+                        }
+                        teamString = teamString.substring(0, teamString.length - 1);
+                        teamString += '] ';
+                    }
+                    teamString += `| lv${encoding.dequeueBits(7)} awk${encoding.dequeueBits(4)} `;
+                    const is297 = encoding.dequeueBit();
+                    if (is297) {
+                    }
+                    else {
+                        teamString += `+H${encoding.dequeueBits(7)} +A${encoding.dequeueBits(7)} +R${encoding.dequeueBits(7)} `;
+                    }
+                    const sa = encoding.dequeueBits(4);
+                    if (sa) {
+                        teamString += `sa${sa} `;
+                    }
+                    teamString += '/ ';
+                }
+                pdchu += teamString.substring(0, teamString.length - 2) + '; ';
+            }
+            return pdchu.substring(0, pdchu.length - 2);
+        }
+        exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
+    });
+    define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_8, ilmina_stripped_7) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        var EnemySkillEffect;
+        (function (EnemySkillEffect) {
+            EnemySkillEffect["NONE"] = "None";
+            // MULTI_HIT: 'multi-hit', // #hits
+            // GRAVITY: 'gravity', // %Gravity
+            EnemySkillEffect["STATUS_SHIELD"] = "Status Shield";
+            EnemySkillEffect["DAMAGE_SHIELD"] = "Shield";
+            // SELF_HEAL: 'enemy-heal', // %heal (e.g. 10, 50, 100)
+            // PLAYER_HEAL: 'player-heal', // %heal
+            EnemySkillEffect["DAMAGE_ABSORB"] = "Damage Absorb";
+            EnemySkillEffect["ATTRIBUTE_ABSORB"] = "Attribute Absorb";
+            EnemySkillEffect["COMBO_ABSORB"] = "Combo Absorb";
+            // ENRAGE: 'enrage', // %Damage (e.g. 150, 200, 1000)
+            EnemySkillEffect["DAMAGE_VOID"] = "Damage Void";
+            // CLEAR_BUFFS: 'clear', // config unused.
+            // RCV_BUFF: 'rcv', // Percent RCV (e.g. 0, 25, 50, 300)
+            // TIME_BUFF_FLAT: 'time-flat', // Time delta (e.g. -5, -2, +1, +5)
+            // TIME_BUFF_SCALE: 'time-scale', // Time multiplier (e.g. 0.25, 0.5, 3)
+            // Not supporting.
+            // ORB_CHANGE: 'orb-change',
+            // BLIND: 'blind', // Unused config.
+            // STICKY_BLIND: 'sticky-blind', // Config is [positions], turns
+            // AWAKENING_BIND: 'awakening-bind',
+        })(EnemySkillEffect || (EnemySkillEffect = {}));
+        ;
+        function calcScaleStat(max, min, level, growth) {
+            const diff = max - min;
+            const frac = (level - 1) / 9;
+            const added = Math.round(Math.pow(frac, growth) * diff);
+            return min + added;
+        }
+        class EnemySkill {
+            constructor() {
+                this.name = '';
+                this.effect = EnemySkillEffect.NONE;
+                this.config = 0;
+                this.damagePercent = 0; // If 0, no attack.
+            }
+            // apply(idc, source) {
+            //   // console.warn('Enemy Skills not handled yet');
+            //   console.debug(idc);
+            //   switch(this.effect) {
+            //     case EnemySkillEffect.NONE:
+            //       break;
+            //     case EnemySkillEffect.STATUS_SHIELD:
+            //       source.statusShield = true;
+            //       break;
+            //     case EnemySkillEffect.DAMAGE_SHIELD:
+            //       source.shieldPercent = this.config;
+            //       break;
+            //     case EnemySkillEffect.DAMAGE_ABSORB:
+            //       source.damageAbsorb = this.config;
+            //       break;
+            //     case EnemySkillEffect.ATTRIBUTE_ABSORB:
+            //       source.attributeAbsorb = idxsFromBits(this.config);
+            //       break;
+            //     case EnemySkillEffect.DAMAGE_VOID:
+            //       source.damageVoid = this.config;
+            //       break;
+            //     case EnemySkillEffect.COMBO_ABSORB:
+            //       source.comboAbsorb = this.config;
+            //       break;
+            //     case EnemySkillEffect.ENRAGE:
+            //       source.enrage = this.config;
+            //       break;
+            //     // case EnemySkillEffect.MULTI_HIT:
+            //     // case EnemySkillEffect.GRAVITY:
+            //     // case EnemySkillEffect.SELF_HEAL:
+            //     // case EnemySkillEffect.PLAYER_HEAL:
+            //     // case EnemySkillEffect.CLEAR_BUFFS:
+            //     // case EnemySkillEffect.RCV_BUFF:
+            //     // case EnemySkillEffect.TIME_BUFF_FLAT:
+            //     // case EnemySkillEffect.TIME_BUFF_SCALE:
+            //     default:
+            //       console.warn('Unhandled type: ' + this.effect);
+            //   }
+            // }
+            toJson() {
+                const obj = {};
+                if (this.name) {
+                    obj.name = this.name;
+                }
+                if (this.effect != EnemySkillEffect.NONE) {
+                    obj.effect = this.effect;
+                }
+                if (this.config) {
+                    obj.config = this.config;
+                }
+                if (this.damagePercent) {
+                    obj.damagePercent = this.damagePercent;
+                }
+                return obj;
+            }
+            static fromJson(json) {
+                const skill = new EnemySkill();
+                skill.name = skill.name || '';
+                skill.damagePercent = json.damagePercent || 0;
+                skill.effect = json.effect || EnemySkillEffect.NONE;
+                skill.config = json.config || 0;
+                return skill;
+            }
+        }
+        class EnemySkillset {
+            constructor() {
+                this.skills = [];
+            }
+            // TODO
+            // applySkillset(idc, source) {
+            //   // console.warn('Enemy skillset application not supported yet.');
+            //   for (const skill of this.skills) {
+            //     skill.apply(idc, source);
+            //   }
+            // }
+            toJson() {
+                const obj = {};
+                if (this.skills.length) {
+                    obj.skills = this.skills.map((skill) => skill.toJson());
+                }
+                return obj;
+            }
+            static fromJson(json) {
+                const skillset = new EnemySkillset();
+                skillset.skills = (json.skills || []).map((j) => EnemySkill.fromJson(j));
+                return skillset;
+            }
+        }
+        class EnemyInstance {
+            constructor() {
+                this.id = 4014;
+                this.lv = 10;
+                this.hp = -1;
+                this.attack = -1;
+                this.defense = -1;
+                this.resolvePercent = 0;
+                this.turnCounter = 1; // Currently unused.
+                // Values that can change during battle.
+                this.currentHp = 1;
+                this.currentAttribute = -1; // -1 is main, -2 is sub.
+                this.statusShield = false;
+                this.shieldPercent = 0; // Damage is multiplied by (100 - shieldPercent) / 100
+                this.comboAbsorb = 0; // Combos of this or fewer are absorbed.
+                this.damageAbsorb = 0;
+                this.damageVoid = 0;
+                this.attackMultiplier = 1; // Enrage
+                this.turnsRemaining = 1; // Not to be used yet.
+                this.turnCounterOverride = -1; // Not to be used yet.
+                // Debuffs by players
+                this.ignoreDefensePercent = 0;
+                this.poison = 0;
+                this.delayed = false; // Not to be used yet.
+                // Passives that are always applied
+                this.attributesResisted = [];
+                this.typeResists = [];
+                this.preemptiveSkillset = new EnemySkillset(); // Used when loading the monster.
+                this.skillsets = [];
+                this.attributeAbsorb = [];
+            }
+            setLevel(lv) {
+                this.lv = lv;
+            }
+            getHp() {
+                // if (this.hp > 0) {
+                //   return this.hp;
+                // }
+                const c = this.getCard();
+                return calcScaleStat(c.enemyHpAtLv10, c.enemyHpAtLv1, this.lv, c.enemyHpCurve);
+            }
+            getAtk() {
+                // if (this.atk > 0) {
+                //   return this.atk;
+                // }
+                const c = this.getCard();
+                return calcScaleStat(c.enemyAtkAtLv10, c.enemyAtkAtLv1, this.lv, c.enemyAtkCurve);
+            }
+            getDef() {
+                // if (this.def > 0) {
+                //   return this.def;
+                // }
+                const c = this.getCard();
+                return calcScaleStat(c.enemyDefAtLv10, c.enemyDefAtLv1, this.lv, c.enemyDefCurve);
+            }
+            getResolve() {
+                const c = this.getCard();
+                const resolveSkills = c.enemySkills
+                    .map((skill) => skill.enemySkillId)
+                    .map((id) => ilmina_stripped_7.floof.model.enemySkills[id])
+                    .filter((skill) => skill.internalEffectId == 73);
+                if (!resolveSkills.length) {
+                    return 0;
+                }
+                if (resolveSkills.length > 1) {
+                    console.warn('Multiple resolve skills detected. Only using first');
+                }
+                return resolveSkills[0].skillArgs[0];
+            }
+            getTypeResists() {
+                const c = this.getCard();
+                const resistTypeSkills = c.enemySkills
+                    .map((skill) => skill.enemySkillId)
+                    .map((id) => ilmina_stripped_7.floof.model.enemySkills[id])
+                    .filter((skill) => skill.internalEffectId == 118);
+                if (!resistTypeSkills.length) {
+                    return { types: [], percent: 0 };
+                }
+                if (resistTypeSkills.length > 1) {
+                    console.warn('Multiple Type Resist skills detected. Only using first');
+                }
+                const [typeBits, percent] = resistTypeSkills[0].skillArgs;
+                return {
+                    types: common_8.idxsFromBits(typeBits),
+                    percent: percent,
+                };
+            }
+            getAttrResists() {
+                const c = this.getCard();
+                const resistAttrSkills = c.enemySkills
+                    .map((skill) => skill.enemySkillId)
+                    .map((id) => ilmina_stripped_7.floof.model.enemySkills[id])
+                    .filter((skill) => skill.internalEffectId == 72);
+                if (!resistAttrSkills.length) {
+                    return { attrs: [], percent: 0 };
+                }
+                if (resistAttrSkills.length > 1) {
+                    console.warn('Multiple Type Resist skills detected. Only using first');
+                }
+                const [attrBits, percent] = resistAttrSkills[0].skillArgs;
+                return {
+                    attrs: common_8.idxsFromBits(attrBits),
+                    percent: percent,
+                };
+            }
+            getCard() {
+                if (!ilmina_stripped_7.floof.model.cards[this.id]) {
+                    return common_8.DEFAULT_CARD;
+                }
+                return ilmina_stripped_7.floof.model.cards[this.id];
+            }
+            getAttribute() {
+                if (this.id in ilmina_stripped_7.floof.model.cards && this.currentAttribute == -1) {
+                    return ilmina_stripped_7.floof.model.cards[this.id].attribute;
+                }
+                if (this.id in ilmina_stripped_7.floof.model.cards && this.currentAttribute == -2) {
+                    return ilmina_stripped_7.floof.model.cards[this.id].subattribute > -1 ? ilmina_stripped_7.floof.model.cards[this.id].subattribute : ilmina_stripped_7.floof.model.cards[this.id].attribute;
+                }
+                return this.currentAttribute;
+            }
+            // calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
+            //   let currentDamage = ping.amount;
+            //   const types = floof.model.cards[this.id] ? floof.model.cards[this.id].types : [];
+            //   // Attribute Advantage
+            //   currentDamage *= attributeMultiplier(ping.attribute, this.getAttribute());
+            //   currentDamage = Math.ceil(currentDamage);
+            //
+            //   if (!ping.isActive) {
+            //     // Killers
+            //     const killerCount = ping.source.getAwakenings(isMultiplayer, new Set(types.map((type) => TypeToKiller[type]))).length;
+            //     currentDamage *= (3 ** killerCount);
+            //
+            //     // Latent Killers
+            //     const validLatents = types.map((type) => TypeToLatent[type]);
+            //     const latentCount = ping.source.latents.filter((latent) => validLatents.includes(latent)).length;
+            //     currentDamage *= (1.5 ** latentCount);
+            //     currentDamage = Math.ceil(currentDamage);
+            //     if (currentDamage >= 2147483648) {
+            //       currentDamage = 2147483647;
+            //     }
+            //   }
+            //
+            //   if (ping.attribute != -1) {
+            //     // Innate Resists (e.g. attribute and type)
+            //     if (this.attributesResisted.includes(ping.attribute)) {
+            //       currentDamage *= 0.5;
+            //       currentDamage = Math.ceil(currentDamage);
+            //     }
+            //     if (this.typeResists.some((type) => ping.source.getCard().types.includes(type))) {
+            //       currentDamage *= 0.5;
+            //       currentDamage = Math.ceil(currentDamage);
+            //     }
+            //
+            //     // Shield
+            //     currentDamage = currentDamage * (100 - this.shieldPercent) / 100
+            //     currentDamage = Math.ceil(currentDamage);
+            //
+            //     // Defense + Guard Break, Damage afterward is minimum 1.
+            //     if ((ping.source.countAwakening(Awakening.GUARD_BREAK) == 0 ||
+            //             (new Set(pings.map((ping) => ping.attribute))).size < 5)) {
+            //       const defense = this.defense * (100 - this.ignoreDefensePercent) / 100;
+            //       currentDamage -= defense;
+            //       currentDamage = Math.ceil(currentDamage);
+            //
+            //       currentDamage = Math.max(currentDamage, 1);
+            //     }
+            //   }
+            //
+            //   // Void
+            //   if (this.damageVoid
+            //       && currentDamage > this.damageVoid
+            //       && !voids.damageVoid
+            //       && (!(COLORS[ping.attribute] in comboContainer.combos) ||
+            //           comboContainer.combos[COLORS[ping.attribute]].every((combo) => combo.shape != Shape.BOX))) {
+            //     currentDamage = 0;
+            //   }
+            //
+            //   // Absorbs
+            //   if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb ||
+            //       this.damageAbsorb && currentDamage >= this.damageAbsorb && !voids.damageAbsorb ||
+            //       this.comboAbsorb && comboContainer.comboCount() <= this.comboAbsorb && !ping.isActive) {
+            //     currentDamage *= -1;
+            //   }
+            //
+            //   return currentDamage;
+            // }
+            setId(id) {
+                if (!(id in ilmina_stripped_7.floof.model.cards)) {
+                    return;
+                }
+                this.id = id;
+            }
+            getName() {
+                if (this.id < 0 || !(this.id in ilmina_stripped_7.floof.model.cards)) {
+                    return 'UNSET';
+                }
+                return ilmina_stripped_7.floof.model.cards[this.id].name;
+            }
+            reset( /** idc */) {
+                this.currentHp = this.getHp();
+                this.currentAttribute = -1;
+                this.statusShield = false;
+                this.shieldPercent = 0;
+                this.attributeAbsorb.length = 0;
+                this.comboAbsorb = 0;
+                this.damageAbsorb = 0;
+                this.damageVoid = 0;
+                this.attackMultiplier = 1;
+                this.turnsRemaining = this.turnCounter;
+                this.turnCounterOverride = -1;
+                this.ignoreDefensePercent = 0;
+                this.poison = 0;
+                this.delayed = false;
+                if (this.preemptiveSkillset) {
+                    //   this.preemptiveSkillset.applySkillset(idc, this);
+                }
+            }
+            // TODO
+            // useSkillset(skillIdx, idc) {
+            //   if (!skillIdx in this.skillsets) {
+            //     console.warn(`Invalid idx: ${skillIdx}, not performing any.`)
+            //     return;
+            //   }
+            //   this.skillsets[skillIdx].applySkillset(idc, this);
+            // }
+            toJson() {
+                const obj = {};
+                if (this.id in ilmina_stripped_7.floof.model.cards) {
+                    obj.id = this.id;
+                }
+                if (this.lv != 10) {
+                    obj.lv = this.lv;
+                }
+                if (this.hp > 0) {
+                    obj.hp = this.hp;
+                }
+                if (this.attack > 0) {
+                    obj.attack = this.attack;
+                }
+                if (this.defense >= 0) {
+                    obj.defense = this.defense;
+                }
+                if (this.resolvePercent > 0) {
+                    obj.resolvePercent = this.resolvePercent;
+                }
+                if (this.attributesResisted.length) {
+                    obj.attributesResisted = [...this.attributesResisted];
+                }
+                if (this.typeResists.length) {
+                    obj.typeResists = [...this.typeResists];
+                }
+                if (this.preemptiveSkillset) {
+                    const preemptiveJson = this.preemptiveSkillset.toJson();
+                    if (preemptiveJson.skills && preemptiveJson.skills.length) {
+                        obj.preemptiveSkillset = preemptiveJson;
+                    }
+                }
+                if (this.skillsets.length) {
+                    obj.skillsets = this.skillsets.map((skillset) => skillset.toJson());
+                }
+                if (this.turnCounter != 1) {
+                    obj.turnCounter = this.turnCounter;
+                }
+                return obj;
+            }
+            static fromJson(json) {
+                const enemy = new EnemyInstance();
+                enemy.id = Number(json.id) || -1;
+                enemy.lv = Number(json.lv) || 10;
+                if (enemy.id in ilmina_stripped_7.floof.model.cards) {
+                    // TODO: Preload Card with this information.
+                    enemy.hp = Number(json.hp) || -1;
+                    enemy.attack = Number(json.attack) || -1;
+                    enemy.defense = Number(json.defense) || -1;
+                }
+                else {
+                    enemy.hp = Number(json.hp) || 1;
+                    enemy.attack = Number(json.attack) || 1;
+                    enemy.defense = Number(json.defense) || 0;
+                }
+                enemy.resolvePercent = Number(json.resolvePercent) || 0;
+                enemy.attributesResisted = (json.attributesResisted || []).map((a) => Number(a));
+                enemy.typeResists = (json.typeResists || []).map((a) => Number(a));
+                enemy.preemptiveSkillset = json.preemptiveSkillset ?
+                    EnemySkillset.fromJson(json.preemptiveSkillset) : new EnemySkillset();
+                enemy.skillsets = (json.skillsets || []).map((skillsetJson) => EnemySkillset.fromJson(skillsetJson));
+                enemy.turnCounter = json.turnCounter || 1;
+                enemy.reset();
+                return enemy;
+            }
+        }
+        exports.EnemyInstance = EnemyInstance;
+    });
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates"], function (require, exports, common_9, ajax_2, enemy_instance_1, templates_4) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        class DungeonFloor {
+            // dungeonEditor: DungeonEditor;
+            // combinations: number[][];
+            constructor() {
+                this.activeEnemy = 0;
+                this.enemies = [new enemy_instance_1.EnemyInstance()];
+                this.activeEnemy = 0;
+            }
+            addEnemy() {
+                this.enemies.push(new enemy_instance_1.EnemyInstance());
+            }
+            deleteEnemy(idx) {
+                if (this.enemies.length <= 1 || !(idx in this.enemies)) {
+                    console.log('Unable to delete enemy from floor.');
+                    return;
+                }
+                this.enemies.splice(idx, 1);
+            }
+            getActiveEnemy() {
+                return this.enemies[this.activeEnemy];
+            }
+            getEnemyIds() {
+                return this.enemies.map((enemy) => enemy.id);
+            }
+            toJson() {
+                return {
+                    enemies: this.enemies.map((enemy) => enemy.toJson()),
+                };
+            }
+            static fromJson(json) {
+                const floor = new DungeonFloor();
+                floor.enemies = json.enemies.map((enemy) => enemy_instance_1.EnemyInstance.fromJson(enemy));
+                return floor;
+            }
+        }
+        class Rational {
+            constructor(numerator = 0, denominator = 1) {
+                this.numerator = 0;
+                this.denominator = 1;
+                this.numerator = numerator;
+                this.denominator = denominator;
+            }
+            multiply(n) {
+                return n * this.numerator / this.denominator;
+            }
+            reduce() {
+                // Cannot reduce if denominator already 1
+                if (this.denominator == 1) {
+                    return;
+                }
+                // Can only reduce integral pairs.
+                if (!Number.isInteger(this.numerator) || !Number.isInteger(this.denominator)) {
+                    return;
+                }
+                function divides(num, den) {
+                    return Number.isInteger(num / den);
+                }
+                function gcd(a, b) {
+                    while (!divides(a, b) && !divides(b, a)) {
+                        if (a > b) {
+                            a -= b;
+                        }
+                        else {
+                            b -= a;
+                        }
+                    }
+                    return Math.min(a, b);
+                }
+                const divisor = gcd(this.numerator, this.denominator);
+                if (divisor == 1) {
+                    return;
+                }
+                this.numerator /= divisor;
+                this.denominator /= divisor;
+            }
+            toString() {
+                this.reduce();
+                if (this.denominator == 1) {
+                    return String(this.numerator);
+                }
+                return `${this.numerator} / ${this.denominator}`;
+            }
+            static from(s) {
+                if (!s.includes('/')) {
+                    return new Rational(Number(s));
+                }
+                let match = s.match(Rational.matcher);
+                if (match && match[0] == s) {
+                    return new Rational(Number(match[1]), Number(match[2]));
+                }
+                return new Rational(NaN);
+            }
+        }
+        Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
+        const requestUrl = common_9.BASE_URL + 'assets/DungeonsAndEncounters.json';
+        const DUNGEON_DATA = new Map();
+        const dungeonSearchArray = [];
+        const request = ajax_2.ajax(requestUrl);
+        request.done((data) => {
+            console.log('Loading Dungeon JSON data...');
+            const rawData = JSON.parse(data);
+            for (const datum of rawData) {
+                for (const subDatum of datum.sub_dungeons) {
+                    const floorsJson = [];
+                    for (let i = 0; i < subDatum.floors; i++) {
+                        floorsJson.push({
+                            enemies: [],
+                        });
+                    }
+                    for (const encounter of subDatum.encounters) {
+                        if (encounter.stage <= 0) {
+                            encounter.stage = 1;
+                        }
+                        if (encounter.stage > floorsJson.length) {
+                            encounter.stage = floorsJson.length;
+                        }
+                        const floor = floorsJson[encounter.stage - 1];
+                        if (!floor) {
+                            console.warn('invalid floor count...');
+                            continue;
+                        }
+                        floor.enemies.push({
+                            id: encounter.enemy_id,
+                            lv: encounter.level,
+                            turnCounter: encounter.turns,
+                        });
+                    }
+                    const dungeonInstanceJson = {
+                        title: `${datum.name_na} - ${subDatum.name_na}`,
+                        floors: floorsJson,
+                        hp: String(subDatum.hp_mult),
+                        atk: String(subDatum.atk_mult),
+                        def: String(subDatum.def_mult),
+                    };
+                    DUNGEON_DATA.set(subDatum.sub_dungeon_id, dungeonInstanceJson);
+                    dungeonSearchArray.push({ s: dungeonInstanceJson.title, value: subDatum.sub_dungeon_id });
+                }
+            }
+            console.log('Dungeon Data loaded.');
+        });
+        class DungeonInstance {
+            constructor() {
+                this.title = '';
+                this.boardWidth = 6;
+                this.fixedTime = 0;
+                this.isRogue = false; // UNIMPLEMENTED
+                this.allAttributesRequired = false;
+                this.noDupes = false;
+                this.hpMultiplier = new Rational(1);
+                this.atkMultiplier = new Rational(1);
+                this.defMultiplier = new Rational(1);
+                this.activeFloor = 0;
+                this.activeEnemy = 0;
+                // Sets all of your monsters to level 1 temporarily.
+                this.floors = [new DungeonFloor()];
+                // this.editorElement = this.createEditorElement();
+                this.pane = new templates_4.DungeonPane(dungeonSearchArray, (ctx) => {
+                    console.log(ctx);
+                    if (ctx.loadDungeon != undefined) {
+                        this.loadDungeon(ctx.loadDungeon);
+                    }
+                    const old = {
+                        floor: this.activeFloor,
+                        enemy: this.activeEnemy,
+                    };
+                    if (ctx.activeFloor != undefined) {
+                        this.activeFloor = ctx.activeFloor;
+                        this.setActiveEnemy(0);
+                    }
+                    if (ctx.activeEnemy != undefined) {
+                        // TODO: Centralize definition of activeEnemy into either DungeonInstace or DungeonFloor.
+                        this.setActiveEnemy(ctx.activeEnemy);
+                    }
+                    if (ctx.addFloor) {
+                        this.addFloor();
+                        this.setActiveEnemy(0);
+                    }
+                    if (ctx.removeFloor != undefined) {
+                        if (ctx.removeFloor == 0) {
+                            // Do nothing for now?
+                        }
+                        else {
+                            this.deleteFloor(ctx.removeFloor);
+                        }
+                    }
+                    if (ctx.dungeonHpMultiplier != undefined) {
+                        this.hpMultiplier = Rational.from(ctx.dungeonHpMultiplier);
+                    }
+                    if (ctx.dungeonAtkMultiplier != undefined) {
+                        this.atkMultiplier = Rational.from(ctx.dungeonAtkMultiplier);
+                    }
+                    if (ctx.dungeonDefMultiplier != undefined) {
+                        this.defMultiplier = Rational.from(ctx.dungeonDefMultiplier);
+                    }
+                    if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
+                        // Update other dungeon info about dungeon editor.
+                    }
+                    if (ctx.addEnemy) {
+                        const floor = this.floors[this.activeFloor];
+                        floor.addEnemy();
+                        this.setActiveEnemy(floor.enemies.length - 1);
+                    }
+                    if (ctx.enemyLevel) {
+                        this.getActiveEnemy().setLevel(ctx.enemyLevel);
+                    }
+                    if (ctx.activeEnemyId != undefined) {
+                        this.getActiveEnemy().id = ctx.activeEnemyId;
+                    }
+                    if (ctx.addTypeResist != undefined) {
+                        this.getActiveEnemy().typeResists.push(ctx.addTypeResist);
+                    }
+                    if (ctx.removeTypeResist != undefined) {
+                        if (this.getActiveEnemy().typeResists.includes(ctx.removeTypeResist)) {
+                            this.getActiveEnemy().typeResists.splice(this.getActiveEnemy().typeResists.indexOf(ctx.removeTypeResist), 1);
+                        }
+                    }
+                    const updateActiveEnemy = old.floor != this.activeFloor || old.enemy != this.activeEnemy;
+                    this.update(updateActiveEnemy);
+                });
+            }
+            loadDungeon(subDungeonId) {
+                const data = DUNGEON_DATA.get(subDungeonId);
+                if (!data) {
+                    console.warn('invalid sub dungeon');
+                    return;
+                }
+                this.loadJson(data);
+            }
+            getPane() {
+                return this.pane.getElement();
+            }
+            update(updateActiveEnemy) {
+                this.pane.dungeonEditor.setEnemies(this.floors.map((floor) => floor.getEnemyIds()));
+                if (updateActiveEnemy) {
+                    this.pane.dungeonEditor.setActiveEnemy(this.activeFloor, this.activeEnemy);
+                }
+                const enemy = this.getActiveEnemy();
+                this.pane.dungeonEditor.setDungeonMultipliers(this.hpMultiplier.toString(), this.atkMultiplier.toString(), this.defMultiplier.toString());
+                this.pane.dungeonEditor.setEnemyStats(enemy.lv, Math.round(this.hpMultiplier.multiply(enemy.getHp())), Math.round(this.atkMultiplier.multiply(enemy.getAtk())), Math.round(this.defMultiplier.multiply(enemy.getDef())), Math.round(enemy.getResolve()), enemy.getTypeResists(), enemy.getAttrResists());
+            }
+            addFloor() {
+                this.floors.push(new DungeonFloor());
+                this.activeFloor = this.floors.length - 1;
+                // this.reloadEditorElement();
+            }
+            deleteFloor(idx) {
+                if (this.floors.length <= 1 || !(idx in this.floors)) {
+                    console.log('Unable to delete floor.');
+                    return;
+                }
+                this.floors.splice(idx, 1);
+                if (this.activeFloor >= idx) {
+                    this.activeFloor = idx - 1;
+                }
+            }
+            setActiveEnemy(idx) {
+                this.activeEnemy = idx;
+                this.floors[this.activeFloor].activeEnemy = idx;
+            }
+            getActiveEnemy() {
+                return this.floors[this.activeFloor].getActiveEnemy();
+            }
+            toJson() {
+                const obj = {
+                    title: this.title,
+                    floors: this.floors.map((floor) => floor.toJson()),
+                };
+                const hpString = this.hpMultiplier.toString();
+                if (hpString != '1' && hpString != 'NaN') {
+                    obj.hp = hpString;
+                }
+                const atkString = this.atkMultiplier.toString();
+                if (atkString != '1' && atkString != 'NaN') {
+                    obj.atk = atkString;
+                }
+                const defString = this.defMultiplier.toString();
+                if (defString != '1' && defString != 'NaN') {
+                    obj.def = defString;
+                }
+                return obj;
+            }
+            loadJson(json) {
+                this.title = json.title || '';
+                this.floors = json.floors.map((floor) => DungeonFloor.fromJson(floor));
+                if (!this.floors) {
+                    this.addFloor();
+                }
+                this.activeFloor = 0;
+                this.setActiveEnemy(0);
+                this.hpMultiplier = Rational.from(json.hp || '1');
+                this.atkMultiplier = Rational.from(json.atk || '1');
+                this.defMultiplier = Rational.from(json.def || '1');
+                this.update(true);
+            }
+        }
+        exports.DungeonInstance = DungeonInstance;
+    });
+    define("url_handler", ["require", "exports"], function (require, exports) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        // Copied from: https://davidwalsh.name/query-string-javascript
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const matcher = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = matcher.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+        exports.getUrlParameter = getUrlParameter;
+        ;
+    });
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "ilmina_stripped"], function (require, exports, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_5, ilmina_stripped_8) {
+    define("valeria", ["require", "exports", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "ilmina_stripped", "custom_base64", "url_handler"], function (require, exports, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_5, ilmina_stripped_8, custom_base64_1, url_handler_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         async function waitFor(conditionFn, waitMs = 50) {
@@ -7652,12 +7842,28 @@
                         el.select();
                     }
                 };
+                this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
+                    this.monsterEditor.pdchu.io.value = `${location.origin}/?team=${custom_base64_1.ValeriaEncode(this.team)}`;
+                    const els = document.getElementsByClassName(templates_5.ClassNames.PDCHU_IO);
+                    if (els.length) {
+                        const el = els[0];
+                        el.focus();
+                        el.select();
+                    }
+                };
                 this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
                 this.team = new player_team_1.Team();
                 this.team.updateIdxCb = () => {
                     this.updateMonsterEditor();
                 };
-                this.team.fromPdchu('5780 (5789)[sdr*4] / 5810 (5193)[sdr*4] / 5624 (4633)[sdr*4] | lv110 / 5157 (5783 | lv99)[sdr*4] | lv110 / 5798 (4143)[sdr*4] | lv110 ; 5844 (5069 | lv99)[sdr*4] / 3508 (4154 | lv99)[sdr*4] | lv110 / 5325 (4810)[sdr*4] | lv110 / 4379 (5193)[sdr*4] / 4747 (5417)[sdr*4] | lv110');
+                let team = url_handler_1.getUrlParameter('team');
+                if (team) {
+                    team = custom_base64_1.ValeriaDecodeToPdchu(team);
+                }
+                else {
+                    team = '';
+                }
+                this.team.fromPdchu(team);
                 this.display.panes[1].appendChild(this.team.teamPane.getElement());
                 this.dungeon = new dungeon_1.DungeonInstance();
                 this.display.panes[2].appendChild(this.dungeon.getPane());
