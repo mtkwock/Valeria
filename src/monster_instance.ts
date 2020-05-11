@@ -626,7 +626,6 @@ class MonsterInstance {
       return;
     }
     const maxSlots = c.inheritanceType & 32 ? 8 : 6;
-    console.log(maxSlots);
     let totalSlots = 0;
     for (const l of this.latents) {
       totalSlots += LatentSuper.has(l) ? 2 : 1;

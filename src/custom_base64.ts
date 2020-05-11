@@ -1,3 +1,42 @@
+/**
+ * Custom Base 64 encoding for Valeria's teams. This uses the 64 available
+ * characaters
+* Encoding is as follows:
+* First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
+* For each team in mode:
+*   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
+*     14 bits encode monster sub id.
+*     If monster id is 0, there is no monster here. Go to next monster sub.
+*     Else:
+*       Next 14 bits is monster inherit.
+*       If inherit id is 0, this monster has no inherit, go to monster stats.
+*       Else:
+*         Next 7 bits represents inherit level.
+*         Next 1 bit represents if the inherit monster is +297.
+*       Next 4 bits determine number of Latents
+*       For each latent:
+*         Next 6 bits represents latent.
+*       Next 7 bits represents monster level.
+*       Next 4 bits represents monster awakening level.
+*       Next 1 bit represents if a monster is 297 or not.
+*       If 297, set to 297
+*       Else:
+*         Next 7 bits represents +HP
+*         Next 7 bits represents +ATK
+*         Next 7 bits represents +RCV
+*       Next 4 bits represents monsters Super Awakening.
+ */
+
+enum Bits {
+  PLAYDER_MODE = 2, // Must hold up to 3.
+  ID = 14, // Can contain up to id ~16.2k.
+  LEVEL = 7, // Must contain up to 110.
+  LATENT_COUNT = 4, // Must be able to hit 8.
+  LATENT = 6, // Must be able to hold 33.
+  AWAKENING = 4, // Must be able to hold up to 9.
+  PLUS = 7, // Must be able to hold up to 99.
+};
+
 import { LatentToPdchu } from './monster_instance'
 import { Team } from './player_team';
 
@@ -65,68 +104,41 @@ class Encoding {
   }
 }
 
-/**
- * Encoding is as follows:
- * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
- * For each team in mode:
- *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
- *     13 bits encode monster sub id.
- *     If monster id is 0, there is no monster here. Go to next monster sub.
- *     Else:
- *       Next 13 bits is monster inherit.
- *       If inherit id is 0, this monster has no inherit, go to monster stats.
- *       Else:
- *         Next 7 bits represents inherit level.
- *         Next 1 bit represents if the inherit monster is +297.
- *       Next 3 bits determine number of Latents
- *       For each latent:
- *         Next 6 bits represents latent.
- *       Next 7 bits represents monster level.
- *       Next 4 bits represents monster awakening level.
- *       Next 1 bit represents if a monster is 297 or not.
- *       If 297, set to 297
- *       Else:
- *         Next 7 bits represents +HP
- *         Next 7 bits represents +ATK
- *         Next 7 bits represents +RCV
- *       Next 4 bits represents monsters Super Awakening.
- */
-
 function ValeriaEncode(team: Team): string {
   const encoding = new Encoding();
   const playerMode = team.playerMode;
-  encoding.queueBits(playerMode, 2);
+  encoding.queueBits(playerMode, Bits.PLAYDER_MODE);
   const monstersPerTeam = playerMode == 2 ? 5 : 6;
   for (let i = 0; i < playerMode; i++) {
     for (let j = 0; j < monstersPerTeam; j++) {
       const monster = team.monsters[i * 6 + j];
       const id = monster.getId(true);
       if (id <= 0) {
-        encoding.queueBits(0, 13);
+        encoding.queueBits(0, Bits.ID);
         continue;
       }
-      encoding.queueBits(id, 13);
+      encoding.queueBits(id, Bits.ID);
       const inheritId = monster.inheritId;
       if (inheritId <= 0) {
-        encoding.queueBits(0, 13);
+        encoding.queueBits(0, Bits.ID);
       } else {
-        encoding.queueBits(inheritId, 13);
-        encoding.queueBits(monster.inheritLevel, 7);
+        encoding.queueBits(inheritId, Bits.ID);
+        encoding.queueBits(monster.inheritLevel, Bits.LEVEL);
         encoding.queueBit(monster.inheritPlussed);
       }
-      encoding.queueBits(monster.latents.length, 3);
+      encoding.queueBits(monster.latents.length, Bits.LATENT_COUNT);
       for (const latent of monster.latents) {
-        encoding.queueBits(latent, 6);
+        encoding.queueBits(latent, Bits.LATENT);
       }
-      encoding.queueBits(monster.level, 7);
-      encoding.queueBits(monster.awakenings, 4);
+      encoding.queueBits(monster.level, Bits.LEVEL);
+      encoding.queueBits(monster.awakenings, Bits.AWAKENING);
       if (monster.hpPlus + monster.atkPlus + monster.rcvPlus == 297) {
         encoding.queueBit(true);
       } else {
         encoding.queueBit(false);
-        encoding.queueBits(monster.hpPlus, 7);
-        encoding.queueBits(monster.atkPlus, 7);
-        encoding.queueBits(monster.rcvPlus, 7);
+        encoding.queueBits(monster.hpPlus, Bits.PLUS);
+        encoding.queueBits(monster.atkPlus, Bits.PLUS);
+        encoding.queueBits(monster.rcvPlus, Bits.PLUS);
       }
       encoding.queueBits(monster.superAwakeningIdx + 1, 4);
     }
@@ -142,32 +154,32 @@ function ValeriaDecodeToPdchu(s: string): string {
   for (let i = 0; i < playerMode; i++) {
     let teamString = '';
     for (let j = 0; j < monstersPerTeam; j++) {
-      const id = encoding.dequeueBits(13);
+      const id = encoding.dequeueBits(Bits.ID);
       if (id == 0) {
         teamString += ' / ';
         continue;
       }
       teamString += `${id} `;
-      const inheritId = encoding.dequeueBits(13);
+      const inheritId = encoding.dequeueBits(Bits.ID);
       if (inheritId != 0) {
-        teamString += `(${inheritId}| lv${encoding.dequeueBits(7)}${encoding.dequeueBit() ? ' +297' : ''})`;
+        teamString += `(${inheritId}| lv${encoding.dequeueBits(Bits.LEVEL)}${encoding.dequeueBit() ? ' +297' : ''})`;
       }
-      const latentCount = encoding.dequeueBits(3);
+      const latentCount = encoding.dequeueBits(Bits.LATENT_COUNT);
       if (latentCount) {
         teamString += '[';
         for (let k = 0; k < latentCount; k++) {
-          teamString += `${LatentToPdchu.get(encoding.dequeueBits(6))},`;
+          teamString += `${LatentToPdchu.get(encoding.dequeueBits(Bits.LATENT))},`;
         }
         teamString = teamString.substring(0, teamString.length - 1);
         teamString += '] ';
       }
-      teamString += `| lv${encoding.dequeueBits(7)} awk${encoding.dequeueBits(4)} `;
+      teamString += `| lv${encoding.dequeueBits(Bits.LEVEL)} awk${encoding.dequeueBits(Bits.AWAKENING)} `;
       const is297 = encoding.dequeueBit();
       if (is297) {
       } else {
-        teamString += `+H${encoding.dequeueBits(7)} +A${encoding.dequeueBits(7)} +R${encoding.dequeueBits(7)} `;
+        teamString += `+H${encoding.dequeueBits(Bits.PLUS)} +A${encoding.dequeueBits(Bits.PLUS)} +R${encoding.dequeueBits(Bits.PLUS)} `;
       }
-      const sa = encoding.dequeueBits(4);
+      const sa = encoding.dequeueBits(Bits.AWAKENING);
       if (sa) {
         teamString += `sa${sa} `;
       }
