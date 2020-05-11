@@ -4,7 +4,7 @@ function getUrlParameter(name: string) {
   name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
   const matcher = new RegExp('[\\?&]' + name + '=([^&#]*)');
   const results = matcher.exec(location.search);
-  return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+  return results === null ? '' : decodeURIComponent(results[1]);
 };
 
 export {
