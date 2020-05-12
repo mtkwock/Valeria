@@ -692,6 +692,8 @@ class Team {
     const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.isMultiplayer(), this.state.awakenings));
 
     const counts: Map<Awakening, number> = new Map();
+
+    // General
     counts.set(Awakening.SKILL_BOOST,
       this.countAwakening(Awakening.SKILL_BOOST) +
       2 * this.countAwakening(Awakening.SKILL_BOOST_PLUS));
@@ -700,6 +702,9 @@ class Team {
     counts.set(Awakening.SOLOBOOST, this.countAwakening(Awakening.SOLOBOOST));
     counts.set(Awakening.BONUS_ATTACK, this.countAwakening(Awakening.BONUS_ATTACK));
     counts.set(Awakening.BONUS_ATTACK_SUPER, this.countAwakening(Awakening.BONUS_ATTACK_SUPER));
+    counts.set(Awakening.L_GUARD, this.countAwakening(Awakening.L_GUARD));
+
+    // Resists
     counts.set(Awakening.SBR, this.countAwakening(Awakening.SBR));
     counts.set(Awakening.RESIST_POISON,
       this.countAwakening(Awakening.RESIST_POISON) +
@@ -712,12 +717,22 @@ class Team {
       5 * this.countAwakening(Awakening.RESIST_JAMMER_PLUS));
     counts.set(Awakening.RESIST_CLOUD, this.countAwakening(Awakening.RESIST_CLOUD));
     counts.set(Awakening.RESIST_TAPE, this.countAwakening(Awakening.RESIST_TAPE));
+
+    // OE
     counts.set(Awakening.OE_FIRE, this.countAwakening(Awakening.OE_FIRE));
     counts.set(Awakening.OE_WATER, this.countAwakening(Awakening.OE_WATER));
     counts.set(Awakening.OE_WOOD, this.countAwakening(Awakening.OE_WOOD));
     counts.set(Awakening.OE_LIGHT, this.countAwakening(Awakening.OE_LIGHT));
     counts.set(Awakening.OE_DARK, this.countAwakening(Awakening.OE_DARK));
     counts.set(Awakening.OE_HEART, this.countAwakening(Awakening.OE_HEART));
+
+    // Rows
+    counts.set(Awakening.ROW_FIRE, this.countAwakening(Awakening.ROW_FIRE));
+    counts.set(Awakening.ROW_WATER, this.countAwakening(Awakening.ROW_WATER));
+    counts.set(Awakening.ROW_WOOD, this.countAwakening(Awakening.ROW_WOOD));
+    counts.set(Awakening.ROW_LIGHT, this.countAwakening(Awakening.ROW_LIGHT));
+    counts.set(Awakening.ROW_DARK, this.countAwakening(Awakening.ROW_DARK));
+    counts.set(Awakening.RECOVER_BIND, this.countAwakening(Awakening.RECOVER_BIND));
 
     return {
       hps: this.getIndividualHp(),
