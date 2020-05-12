@@ -195,6 +195,9 @@ class MonsterIcon {
           if (className == ClassNames.ICON_SUPER) {
             el = create('a', className);
           }
+          if (this.hideInfoTable && i * 2 + j != 5) {
+            superHide(el);
+          }
           cell.appendChild(el);
         }
         row.appendChild(cell);
@@ -221,6 +224,10 @@ class MonsterIcon {
     transformElement.classList.add(ClassNames.TRANSFORM_ICON);
     this.element.appendChild(transformElement);
     hide(transformElement);
+    if (this.hideInfoTable) {
+      superHide(swapElement);
+      superHide(transformElement);
+    }
     this.onUpdate = () => { };
   }
 
@@ -1543,7 +1550,7 @@ class TeamPane {
   battleEl: HTMLDivElement = create('div') as HTMLDivElement;
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
   private metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load']);
-  private detailTabs: TabbedComponent = new TabbedComponent(['Description', 'Stats', 'Battle']);
+  private detailTabs: TabbedComponent = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
   private onTeamUpdate: (ctx: TeamUpdate) => any;
   private hpBar: HpBar;
   private leadSwapInput = create('input') as HTMLInputElement;
@@ -1581,6 +1588,7 @@ class TeamPane {
     }
 
     const descriptionTab = this.detailTabs.getTab('Description');
+    this.descriptionEl.placeholder = 'Team Description';
     this.descriptionEl.spellcheck = false;
     this.descriptionEl.onchange = () => {
       this.onTeamUpdate({
@@ -3032,16 +3040,21 @@ class DungeonEditor {
 
   constructor(dungeonNames: { s: string, value: number }[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
-    this.element.appendChild(document.createTextNode('Dungeon Editor Area Placeholder'));
     this.dungeonSelector = new GenericSelector<number>(dungeonNames, (id: number) => {
       this.onUpdate({ loadDungeon: id });
     });
-    this.element.appendChild(this.dungeonSelector.getElement());
+    const selectorEl = this.dungeonSelector.getElement();
+    this.dungeonSelector.selector.placeholder = 'Dungeon Search';
+    selectorEl.style.padding = '6px';
+    this.element.appendChild(selectorEl);
 
     const dungeonFloorContainer = create('div', ClassNames.FLOOR_CONTAINER) as HTMLDivElement;
     dungeonFloorContainer.appendChild(this.dungeonFloorTable);
     this.element.appendChild(dungeonFloorContainer);
     this.element.appendChild(create('br'));
+    // TODO: Remove line when dungeon customization is necessary.
+    superHide(this.addFloorBtn);
+
     this.addFloorBtn.innerText = 'Add Floor';
     this.addFloorBtn.onclick = () => {
       this.onUpdate({ addFloor: true });
@@ -3299,10 +3312,13 @@ class DungeonEditor {
     const floorIdx = this.dungeonFloorEls.length;
     const floor = create('tr') as HTMLTableRowElement;
     const label = create('td') as HTMLTableCellElement;
+    const floorMonsters = create('td') as HTMLTableCellElement;
     const floorName = create('div') as HTMLDivElement;
     floorName.innerText = `F${this.dungeonFloorEls.length + 1}`;
     label.appendChild(floorName);
     const deleteFloorBtn = create('button', ClassNames.FLOOR_DELETE) as HTMLButtonElement;
+    // TODO: Remove line when dungeon customization is necessary.
+    superHide(deleteFloorBtn);
     deleteFloorBtn.innerText = '[-]';
     deleteFloorBtn.onclick = () => {
       this.onUpdate({ removeFloor: floorIdx });
@@ -3311,13 +3327,16 @@ class DungeonEditor {
     label.appendChild(deleteFloorBtn);
 
     const addEnemyBtn = create('button', ClassNames.FLOOR_ENEMY_ADD) as HTMLButtonElement;
+    // TODO: Remove line when dungeon customization is necessary.
+    superHide(addEnemyBtn);
     addEnemyBtn.innerText = '+';
     addEnemyBtn.onclick = () => {
       this.onUpdate({ activeFloor: floorIdx, addEnemy: true });
     }
     this.addEnemyBtns.push(addEnemyBtn);
-    floor.appendChild(addEnemyBtn);
+    floorMonsters.appendChild(addEnemyBtn);
     this.addEnemy(this.dungeonFloorEls.length);
+    floor.appendChild(floorMonsters);
     this.dungeonFloorTable.appendChild(floor);
     this.dungeonFloorEls.push(floor);
   }
@@ -3425,7 +3444,7 @@ class BattleDisplay {
 class DungeonPane {
   dungeonEditor: DungeonEditor;
   battleDisplay: BattleDisplay;
-  tabs: TabbedComponent = new TabbedComponent(['Dungeon', 'Editor', 'Save/Load']);
+  tabs: TabbedComponent = new TabbedComponent(['Dungeon', 'Editor', 'Save/Load'], 'Editor');
   onUpdate: OnDungeonUpdate;
 
   constructor(dungeonNames: { s: string, value: number }[], onUpdate: OnDungeonUpdate) {
