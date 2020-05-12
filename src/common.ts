@@ -240,6 +240,12 @@ const ShapeToLetter: Record<Shape, string> = {
 
 const BASE_URL = (document.getElementById('valeria-referenceable-img') as HTMLImageElement).src.replace('assets/UIPAT1.PNG', '');
 
+async function waitFor(conditionFn: () => boolean, waitMs = 50) {
+  while (!conditionFn()) {
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
+}
+
 export {
   Attribute,
   AttributeToName,
@@ -260,4 +266,5 @@ export {
   idxsFromBits,
   numberWithCommas,
   Round,
+  waitFor,
 };

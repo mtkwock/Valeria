@@ -87,7 +87,7 @@ class Valeria {
     }
     this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
       const searchlessUrl = location.href.replace(location.search, '');
-      this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${ValeriaEncode(this.team)}`;
+      this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${ValeriaEncode(this.team)}&dungeon=${this.dungeon.id}`;
       const els = document.getElementsByClassName(ClassNames.PDCHU_IO);
       if (els.length) {
         const el = els[0] as HTMLInputElement;
@@ -112,6 +112,10 @@ class Valeria {
     this.display.panes[1].appendChild(this.team.teamPane.getElement());
 
     this.dungeon = new DungeonInstance();
+    let dungeonId = getUrlParameter('dungeon');
+    if (dungeonId) {
+      this.dungeon.loadDungeon(Number(dungeonId));
+    }
     this.display.panes[2].appendChild(this.dungeon.getPane());
   }
 

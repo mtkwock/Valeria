@@ -1,4 +1,4 @@
-import { BASE_URL } from './common';
+import { BASE_URL, waitFor } from './common';
 import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
 import { DungeonPane, DungeonUpdate } from './templates';
@@ -207,6 +207,7 @@ const requestUrl = BASE_URL + 'assets/DungeonsAndEncounters.json';
 const DUNGEON_DATA: Map<number, DungeonInstanceJson> = new Map();
 const dungeonSearchArray: { s: string, value: number }[] = [];
 const request = ajax(requestUrl);
+let dungeonsLoaded = false;
 request.done((data) => {
   console.log('Loading Dungeon JSON data...');
   const rawData = JSON.parse(data) as DungeonDataRaw[];
@@ -247,10 +248,12 @@ request.done((data) => {
       dungeonSearchArray.push({ s: dungeonInstanceJson.title, value: subDatum.sub_dungeon_id });
     }
   }
+  dungeonsLoaded = true;
   console.log('Dungeon Data loaded.');
 });
 
 class DungeonInstance {
+  id: number = -1;
   title: string = '';
   boardWidth: number = 6;
   fixedTime: number = 0;
@@ -266,12 +269,14 @@ class DungeonInstance {
 
   pane: DungeonPane;
 
-  loadDungeon(subDungeonId: number) {
+  async loadDungeon(subDungeonId: number) {
+    await waitFor(() => dungeonsLoaded);
     const data = DUNGEON_DATA.get(subDungeonId);
     if (!data) {
       console.warn('invalid sub dungeon');
       return;
     }
+    this.id = subDungeonId;
 
     this.loadJson(data);
   }
@@ -279,7 +284,6 @@ class DungeonInstance {
   constructor() {
     // Sets all of your monsters to level 1 temporarily.
     this.floors = [new DungeonFloor()];
-    // this.editorElement = this.createEditorElement();
     this.pane = new DungeonPane(dungeonSearchArray, (ctx: DungeonUpdate) => {
       console.log(ctx);
       if (ctx.loadDungeon != undefined) {
