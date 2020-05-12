@@ -6900,30 +6900,30 @@
     /**
      * Custom Base 64 encoding for Valeria's teams. This uses the 64 available
      * characaters
-    * Encoding is as follows:
-    * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
-    * For each team in mode:
-    *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
-    *     14 bits encode monster sub id.
-    *     If monster id is 0, there is no monster here. Go to next monster sub.
-    *     Else:
-    *       Next 14 bits is monster inherit.
-    *       If inherit id is 0, this monster has no inherit, go to monster stats.
-    *       Else:
-    *         Next 7 bits represents inherit level.
-    *         Next 1 bit represents if the inherit monster is +297.
-    *       Next 4 bits determine number of Latents
-    *       For each latent:
-    *         Next 6 bits represents latent.
-    *       Next 7 bits represents monster level.
-    *       Next 4 bits represents monster awakening level.
-    *       Next 1 bit represents if a monster is 297 or not.
-    *       If 297, set to 297
-    *       Else:
-    *         Next 7 bits represents +HP
-    *         Next 7 bits represents +ATK
-    *         Next 7 bits represents +RCV
-    *       Next 4 bits represents monsters Super Awakening.
+     * Encoding is as follows:
+     * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
+     * For each team in mode:
+     *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
+     *     14 bits encode monster sub id.
+     *     If monster id is 0, there is no monster here. Go to next monster sub.
+     *     Else:
+     *       Next 14 bits is monster inherit.
+     *       If inherit id is 0, this monster has no inherit, go to monster stats.
+     *       Else:
+     *         Next 7 bits represents inherit level.
+     *         Next 1 bit represents if the inherit monster is +297.
+     *       Next 4 bits determine number of Latents
+     *       For each latent:
+     *         Next 6 bits represents latent.
+     *       Next 7 bits represents monster level.
+     *       Next 4 bits represents monster awakening level.
+     *       Next 1 bit represents if a monster is 297 or not.
+     *       If 297, set to 297
+     *       Else:
+     *         Next 7 bits represents +HP
+     *         Next 7 bits represents +ATK
+     *         Next 7 bits represents +RCV
+     *       Next 4 bits represents monsters Super Awakening.
      */
     define("custom_base64", ["require", "exports", "monster_instance"], function (require, exports, monster_instance_2) {
         "use strict";
@@ -7031,7 +7031,7 @@
                         encoding.queueBits(monster.atkPlus, Bits.PLUS);
                         encoding.queueBits(monster.rcvPlus, Bits.PLUS);
                     }
-                    encoding.queueBits(monster.superAwakeningIdx + 1, 4);
+                    encoding.queueBits(monster.superAwakeningIdx + 1, Bits.AWAKENING);
                 }
             }
             return encoding.getString();
