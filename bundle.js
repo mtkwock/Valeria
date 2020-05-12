@@ -1651,6 +1651,12 @@
         exports.ShapeToLetter = ShapeToLetter;
         const BASE_URL = document.getElementById('valeria-referenceable-img').src.replace('assets/UIPAT1.PNG', '');
         exports.BASE_URL = BASE_URL;
+        async function waitFor(conditionFn, waitMs = 50) {
+            while (!conditionFn()) {
+                await new Promise((resolve) => setTimeout(resolve, waitMs));
+            }
+        }
+        exports.waitFor = waitFor;
     });
     define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_1, ilmina_stripped_2) {
         "use strict";
@@ -7624,6 +7630,7 @@
         const DUNGEON_DATA = new Map();
         const dungeonSearchArray = [];
         const request = ajax_2.ajax(requestUrl);
+        let dungeonsLoaded = false;
         request.done((data) => {
             console.log('Loading Dungeon JSON data...');
             const rawData = JSON.parse(data);
@@ -7664,10 +7671,12 @@
                     dungeonSearchArray.push({ s: dungeonInstanceJson.title, value: subDatum.sub_dungeon_id });
                 }
             }
+            dungeonsLoaded = true;
             console.log('Dungeon Data loaded.');
         });
         class DungeonInstance {
             constructor() {
+                this.id = -1;
                 this.title = '';
                 this.boardWidth = 6;
                 this.fixedTime = 0;
@@ -7681,7 +7690,6 @@
                 this.activeEnemy = 0;
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
-                // this.editorElement = this.createEditorElement();
                 this.pane = new templates_4.DungeonPane(dungeonSearchArray, (ctx) => {
                     console.log(ctx);
                     if (ctx.loadDungeon != undefined) {
@@ -7746,12 +7754,14 @@
                     this.update(updateActiveEnemy);
                 });
             }
-            loadDungeon(subDungeonId) {
+            async loadDungeon(subDungeonId) {
+                await common_9.waitFor(() => dungeonsLoaded);
                 const data = DUNGEON_DATA.get(subDungeonId);
                 if (!data) {
                     console.warn('invalid sub dungeon');
                     return;
                 }
+                this.id = subDungeonId;
                 this.loadJson(data);
             }
             getPane() {
@@ -7911,7 +7921,7 @@
                 };
                 this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
                     const searchlessUrl = location.href.replace(location.search, '');
-                    this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${custom_base64_1.ValeriaEncode(this.team)}`;
+                    this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${custom_base64_1.ValeriaEncode(this.team)}&dungeon=${this.dungeon.id}`;
                     const els = document.getElementsByClassName(templates_5.ClassNames.PDCHU_IO);
                     if (els.length) {
                         const el = els[0];
@@ -7934,6 +7944,10 @@
                 this.team.fromPdchu(team);
                 this.display.panes[1].appendChild(this.team.teamPane.getElement());
                 this.dungeon = new dungeon_1.DungeonInstance();
+                let dungeonId = url_handler_1.getUrlParameter('dungeon');
+                if (dungeonId) {
+                    this.dungeon.loadDungeon(Number(dungeonId));
+                }
                 this.display.panes[2].appendChild(this.dungeon.getPane());
             }
             updateMonsterEditor() {
