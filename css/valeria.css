@@ -82,18 +82,6 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   float: right;
 }
 
-.valeria-monster-icon-sa-inactive {
-  opacity: 0.5;
-  display: inline-block;
-  width: 18;
-  height: 18;
-  background-size: 200px 290px;
-  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
-  background-repeat: no-repeat;
-  position: relative;
-  float: right;
-}
-
 .valeria-monster-type {
   display: inline-block;
   background-repeat: no-repeat;
@@ -304,17 +292,40 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 }
 
 .valeria-team-stat-table {
-  width: 385.2px;
-  font-size: small;
+  margin: 0 2px 10px 0;
 }
 
-.valeria-team-stat-label {
-  font-size: xx-small;
+.valeria-team-stat-table td {
+  width: 60.2;
 }
 
 .valeria-team-stat-value {
   text-align: right;
   font-size: small;
+  float: right;
+}
+
+.valeria-team-stat-label {
+  font-size: xx-small;
+  padding-top: 3px;
+  display: inline-block;
+}
+
+.valeria-team-stat-value {
+  text-align: right;
+  font-size: small;
+}
+
+.valeria-team-stat-total-value {
+  padding: 0 20px 0 10px;
+}
+
+.valeria-team-awakening-table {
+  margin: 10px 0 10px 10px;
+}
+
+.valeria-team-awakening-table td {
+  width: 60px;
 }
 
 .valeria-hp {

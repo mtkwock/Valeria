@@ -2049,6 +2049,8 @@
             ClassNames["STAT_TABLE"] = "valeria-team-stat-table";
             ClassNames["STAT_LABEL"] = "valeria-team-stat-label";
             ClassNames["STAT_VALUE"] = "valeria-team-stat-value";
+            ClassNames["STAT_TOTAL_VALUE"] = "valeria-team-stat-total-value";
+            ClassNames["AWAKENING_TABLE"] = "valeria-team-awakening-table";
             ClassNames["HP_DIV"] = "valeria-hp";
             ClassNames["HP_SLIDER"] = "valeria-hp-slider";
             ClassNames["HP_INPUT"] = "valeria-hp-input";
@@ -2092,6 +2094,13 @@
         (function (Ids) {
             Ids["COMBO_TABLE_PREFIX"] = "valeria-combo-table-";
         })(Ids || (Ids = {}));
+        var StatIndex;
+        (function (StatIndex) {
+            StatIndex[StatIndex["HP"] = 0] = "HP";
+            StatIndex[StatIndex["ATK"] = 1] = "ATK";
+            StatIndex[StatIndex["RCV"] = 2] = "RCV";
+            StatIndex[StatIndex["CD"] = 3] = "CD";
+        })(StatIndex || (StatIndex = {}));
         const TEAM_SCALING = 0.6;
         // const AWAKENING_NUMBERS = '0123456789';
         // const MONSTER_AWAKENING_SCALE = 0.43;
@@ -3276,10 +3285,10 @@
                 this.descriptionEl = create('textarea', ClassNames.TEAM_DESCRIPTION);
                 this.statsEl = create('div');
                 this.statsByIdxByIdx = [];
+                this.totalHpValue = create('span', ClassNames.STAT_TOTAL_VALUE);
+                this.totalRcvValue = create('span', ClassNames.STAT_TOTAL_VALUE);
+                this.totalTimeValue = create('span', ClassNames.STAT_TOTAL_VALUE);
                 this.battleEl = create('div');
-                this.totalHpValue = create('span');
-                this.totalRcvValue = create('span');
-                this.totalTimeValue = create('span');
                 this.aggregatedAwakeningCounts = new Map();
                 this.metaTabs = new TabbedComponent(['Team', 'Save/Load']);
                 this.detailTabs = new TabbedComponent(['Description', 'Stats', 'Battle']);
@@ -3345,49 +3354,37 @@
             goToTab(s) {
                 this.metaTabs.setActiveTab(s);
             }
+            createStatRow(labelText, statIndex) {
+                const row = create('tr');
+                for (let i = 0; i < 6; i++) {
+                    const cell = create('td');
+                    // Label the first column
+                    if (i == 0) {
+                        const label = create('div', ClassNames.STAT_LABEL);
+                        label.innerText = labelText + ':';
+                        cell.appendChild(label);
+                    }
+                    const value = create('div', ClassNames.STAT_VALUE);
+                    cell.appendChild(value);
+                    row.appendChild(cell);
+                    // Save a reference to the value div for easy access
+                    if (!this.statsByIdxByIdx[i]) {
+                        this.statsByIdxByIdx[i] = [];
+                    }
+                    this.statsByIdxByIdx[i][statIndex] = value;
+                }
+                return row;
+            }
             populateStats() {
                 const statsTable = create('table', ClassNames.STAT_TABLE);
-                const baseStatRow = create('tr');
-                for (let i = 0; i < 6; i++) {
-                    const statCell = create('td');
-                    const statContainer = create('div');
-                    const miniStatTable = create('table');
-                    const hpRow = create('tr');
-                    const atkRow = create('tr');
-                    const rcvRow = create('tr');
-                    const cdRow = create('tr');
-                    if (i == 0) {
-                        const hpLabel = create('td', ClassNames.STAT_LABEL);
-                        const atkLabel = create('td', ClassNames.STAT_LABEL);
-                        const rcvLabel = create('td', ClassNames.STAT_LABEL);
-                        const cdLabel = create('td', ClassNames.STAT_LABEL);
-                        hpLabel.innerText = 'HP:';
-                        atkLabel.innerText = 'ATK:';
-                        rcvLabel.innerText = 'RCV:';
-                        cdLabel.innerText = 'CD:';
-                        hpRow.appendChild(hpLabel);
-                        atkRow.appendChild(atkLabel);
-                        rcvRow.appendChild(rcvLabel);
-                        cdRow.appendChild(cdLabel);
-                    }
-                    const hpValue = create('td', ClassNames.STAT_VALUE);
-                    const atkValue = create('td', ClassNames.STAT_VALUE);
-                    const rcvValue = create('td', ClassNames.STAT_VALUE);
-                    const cdValue = create('td', ClassNames.STAT_VALUE);
-                    this.statsByIdxByIdx.push([hpValue, atkValue, rcvValue, cdValue]);
-                    hpRow.appendChild(hpValue);
-                    atkRow.appendChild(atkValue);
-                    rcvRow.appendChild(rcvValue);
-                    cdRow.appendChild(cdValue);
-                    miniStatTable.appendChild(hpRow);
-                    miniStatTable.appendChild(atkRow);
-                    miniStatTable.appendChild(rcvRow);
-                    miniStatTable.appendChild(cdRow);
-                    statContainer.appendChild(miniStatTable);
-                    statCell.appendChild(statContainer);
-                    baseStatRow.appendChild(statCell);
-                }
-                statsTable.appendChild(baseStatRow);
+                const hpRow = this.createStatRow('HP', StatIndex.HP);
+                const atkRow = this.createStatRow('ATK', StatIndex.ATK);
+                const rcvRow = this.createStatRow('RCV', StatIndex.RCV);
+                const cdRow = this.createStatRow('CD', StatIndex.CD);
+                statsTable.appendChild(hpRow);
+                statsTable.appendChild(atkRow);
+                statsTable.appendChild(rcvRow);
+                statsTable.appendChild(cdRow);
                 this.statsEl.appendChild(statsTable);
                 const totalBaseStatEl = create('div');
                 const totalHpLabel = create('span');
@@ -3404,36 +3401,57 @@
                 totalBaseStatEl.appendChild(this.totalTimeValue);
                 this.statsEl.appendChild(totalBaseStatEl);
                 const awakeningsToDisplay = [
-                    common_2.Awakening.SKILL_BOOST,
-                    common_2.Awakening.TIME,
-                    common_2.Awakening.SOLOBOOST,
-                    common_2.Awakening.BONUS_ATTACK,
-                    common_2.Awakening.BONUS_ATTACK_SUPER,
-                    common_2.Awakening.SBR,
-                    common_2.Awakening.RESIST_POISON,
-                    common_2.Awakening.RESIST_BLIND,
-                    common_2.Awakening.RESIST_JAMMER,
-                    common_2.Awakening.RESIST_CLOUD,
-                    common_2.Awakening.RESIST_TAPE,
-                    common_2.Awakening.OE_FIRE,
-                    common_2.Awakening.OE_WATER,
-                    common_2.Awakening.OE_WOOD,
-                    common_2.Awakening.OE_LIGHT,
-                    common_2.Awakening.OE_DARK,
-                    common_2.Awakening.OE_HEART,
+                    [
+                        common_2.Awakening.SKILL_BOOST,
+                        common_2.Awakening.TIME,
+                        common_2.Awakening.SOLOBOOST,
+                        common_2.Awakening.BONUS_ATTACK,
+                        common_2.Awakening.BONUS_ATTACK_SUPER,
+                        common_2.Awakening.L_GUARD
+                    ],
+                    [
+                        common_2.Awakening.SBR,
+                        common_2.Awakening.RESIST_POISON,
+                        common_2.Awakening.RESIST_BLIND,
+                        common_2.Awakening.RESIST_JAMMER,
+                        common_2.Awakening.RESIST_CLOUD,
+                        common_2.Awakening.RESIST_TAPE
+                    ],
+                    [
+                        common_2.Awakening.OE_FIRE,
+                        common_2.Awakening.OE_WATER,
+                        common_2.Awakening.OE_WOOD,
+                        common_2.Awakening.OE_LIGHT,
+                        common_2.Awakening.OE_DARK,
+                        common_2.Awakening.OE_HEART
+                    ],
+                    [
+                        common_2.Awakening.ROW_FIRE,
+                        common_2.Awakening.ROW_WATER,
+                        common_2.Awakening.ROW_WOOD,
+                        common_2.Awakening.ROW_LIGHT,
+                        common_2.Awakening.ROW_DARK,
+                        common_2.Awakening.RECOVER_BIND
+                    ]
                 ];
-                for (const awakening of awakeningsToDisplay) {
-                    const container = create('span');
-                    const awakeningIcon = create('span', ClassNames.AWAKENING);
-                    const [x, y] = getAwakeningOffsets(awakening);
-                    awakeningIcon.style.backgroundPosition = `${AwakeningEditor.SCALE * x}px ${AwakeningEditor.SCALE * y}px`;
-                    container.appendChild(awakeningIcon);
-                    const aggregatedAwakeningCount = create('span');
-                    aggregatedAwakeningCount.innerText = 'x0';
-                    this.aggregatedAwakeningCounts.set(awakening, aggregatedAwakeningCount);
-                    container.appendChild(aggregatedAwakeningCount);
-                    this.statsEl.appendChild(container);
+                const awakeningTable = create('table', ClassNames.AWAKENING_TABLE);
+                for (const awakeningSet of awakeningsToDisplay) {
+                    const awakeningRow = create('tr');
+                    for (const awakening of awakeningSet) {
+                        const container = create('td');
+                        const awakeningIcon = create('span', ClassNames.AWAKENING);
+                        const [x, y] = getAwakeningOffsets(awakening);
+                        awakeningIcon.style.backgroundPosition = `${AwakeningEditor.SCALE * x}px ${AwakeningEditor.SCALE * y}px`;
+                        container.appendChild(awakeningIcon);
+                        const aggregatedAwakeningCount = create('span');
+                        aggregatedAwakeningCount.innerText = 'x0';
+                        this.aggregatedAwakeningCounts.set(awakening, aggregatedAwakeningCount);
+                        container.appendChild(aggregatedAwakeningCount);
+                        awakeningRow.appendChild(container);
+                    }
+                    awakeningTable.appendChild(awakeningRow);
                 }
+                this.statsEl.appendChild(awakeningTable);
             }
             populateBattle() {
                 // HP Element
@@ -3477,10 +3495,10 @@
             updateStats(stats) {
                 for (let i = 0; i < 6; i++) {
                     const statsByIdx = this.statsByIdxByIdx[i];
-                    statsByIdx[0].innerText = stats.hps[i] ? String(stats.hps[i]) : '';
-                    statsByIdx[1].innerText = String(stats.atks[i]);
-                    statsByIdx[2].innerText = String(stats.rcvs[i]);
-                    statsByIdx[3].innerText = stats.cds[i];
+                    statsByIdx[StatIndex.HP].innerText = stats.hps[i] ? String(stats.hps[i]) : '';
+                    statsByIdx[StatIndex.ATK].innerText = String(stats.atks[i]);
+                    statsByIdx[StatIndex.RCV].innerText = String(stats.rcvs[i]);
+                    statsByIdx[StatIndex.CD].innerText = stats.cds[i];
                 }
                 this.totalHpValue.innerText = String(stats.totalHp);
                 this.totalRcvValue.innerText = String(stats.totalRcv);
@@ -3488,7 +3506,15 @@
                 for (const awakening of this.aggregatedAwakeningCounts.keys()) {
                     const val = this.aggregatedAwakeningCounts.get(awakening);
                     if (val) {
-                        val.innerText = `x${stats.counts.get(awakening) || 0}`;
+                        const count = stats.counts.get(awakening) || 0;
+                        val.innerText = `x${count}`;
+                        const awakeningCell = val.parentElement || val;
+                        if (count == 0) {
+                            awakeningCell.classList.add(ClassNames.HALF_OPACITY);
+                        }
+                        else {
+                            awakeningCell.classList.remove(ClassNames.HALF_OPACITY);
+                        }
                     }
                 }
             }
@@ -6824,6 +6850,7 @@
                 }
                 const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.isMultiplayer(), this.state.awakenings));
                 const counts = new Map();
+                // General
                 counts.set(common_7.Awakening.SKILL_BOOST, this.countAwakening(common_7.Awakening.SKILL_BOOST) +
                     2 * this.countAwakening(common_7.Awakening.SKILL_BOOST_PLUS));
                 counts.set(common_7.Awakening.TIME, this.countAwakening(common_7.Awakening.TIME) +
@@ -6831,6 +6858,8 @@
                 counts.set(common_7.Awakening.SOLOBOOST, this.countAwakening(common_7.Awakening.SOLOBOOST));
                 counts.set(common_7.Awakening.BONUS_ATTACK, this.countAwakening(common_7.Awakening.BONUS_ATTACK));
                 counts.set(common_7.Awakening.BONUS_ATTACK_SUPER, this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER));
+                counts.set(common_7.Awakening.L_GUARD, this.countAwakening(common_7.Awakening.L_GUARD));
+                // Resists
                 counts.set(common_7.Awakening.SBR, this.countAwakening(common_7.Awakening.SBR));
                 counts.set(common_7.Awakening.RESIST_POISON, this.countAwakening(common_7.Awakening.RESIST_POISON) +
                     5 * this.countAwakening(common_7.Awakening.RESIST_POISON_PLUS));
@@ -6840,12 +6869,20 @@
                     5 * this.countAwakening(common_7.Awakening.RESIST_JAMMER_PLUS));
                 counts.set(common_7.Awakening.RESIST_CLOUD, this.countAwakening(common_7.Awakening.RESIST_CLOUD));
                 counts.set(common_7.Awakening.RESIST_TAPE, this.countAwakening(common_7.Awakening.RESIST_TAPE));
+                // OE
                 counts.set(common_7.Awakening.OE_FIRE, this.countAwakening(common_7.Awakening.OE_FIRE));
                 counts.set(common_7.Awakening.OE_WATER, this.countAwakening(common_7.Awakening.OE_WATER));
                 counts.set(common_7.Awakening.OE_WOOD, this.countAwakening(common_7.Awakening.OE_WOOD));
                 counts.set(common_7.Awakening.OE_LIGHT, this.countAwakening(common_7.Awakening.OE_LIGHT));
                 counts.set(common_7.Awakening.OE_DARK, this.countAwakening(common_7.Awakening.OE_DARK));
                 counts.set(common_7.Awakening.OE_HEART, this.countAwakening(common_7.Awakening.OE_HEART));
+                // Rows
+                counts.set(common_7.Awakening.ROW_FIRE, this.countAwakening(common_7.Awakening.ROW_FIRE));
+                counts.set(common_7.Awakening.ROW_WATER, this.countAwakening(common_7.Awakening.ROW_WATER));
+                counts.set(common_7.Awakening.ROW_WOOD, this.countAwakening(common_7.Awakening.ROW_WOOD));
+                counts.set(common_7.Awakening.ROW_LIGHT, this.countAwakening(common_7.Awakening.ROW_LIGHT));
+                counts.set(common_7.Awakening.ROW_DARK, this.countAwakening(common_7.Awakening.ROW_DARK));
+                counts.set(common_7.Awakening.RECOVER_BIND, this.countAwakening(common_7.Awakening.RECOVER_BIND));
                 return {
                     hps: this.getIndividualHp(),
                     atks: atks,
