@@ -57,7 +57,7 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   font-size: 12;
   text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
   position: relative;
-  font-weight: 480;
+  font-weight: bold;
 }
 
 .valeria-monster-icon-awakening {
@@ -66,9 +66,9 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   text-align: right;
   font-size: 12;
   color: yellow;
-  font-weight: 480px;
   width: 90%;
   text-shadow: -1px 0 #000, 0 1px #000, 1px 0 #000, 0 -1px #000;
+  font-weight: bold;
 }
 
 .valeria-monster-icon-sa {
@@ -468,7 +468,7 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 }
 
 .valeria-floor-enemy-add {
-  vertical-align: super;
+  vertical-align: top;
 }
 
 .valeria-layered-asset {

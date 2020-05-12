@@ -2161,6 +2161,9 @@
                             if (className == ClassNames.ICON_SUPER) {
                                 el = create('a', className);
                             }
+                            if (this.hideInfoTable && i * 2 + j != 5) {
+                                superHide(el);
+                            }
                             cell.appendChild(el);
                         }
                         row.appendChild(cell);
@@ -2184,6 +2187,10 @@
                 transformElement.classList.add(ClassNames.TRANSFORM_ICON);
                 this.element.appendChild(transformElement);
                 hide(transformElement);
+                if (this.hideInfoTable) {
+                    superHide(swapElement);
+                    superHide(transformElement);
+                }
                 this.onUpdate = () => { };
             }
             getElement() {
@@ -3291,7 +3298,7 @@
                 this.battleEl = create('div');
                 this.aggregatedAwakeningCounts = new Map();
                 this.metaTabs = new TabbedComponent(['Team', 'Save/Load']);
-                this.detailTabs = new TabbedComponent(['Description', 'Stats', 'Battle']);
+                this.detailTabs = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
                 this.leadSwapInput = create('input');
                 this.onTeamUpdate = onTeamUpdate;
                 const teamTab = this.metaTabs.getTab('Team');
@@ -3318,6 +3325,7 @@
                     teamTab.appendChild(this.teamDivs[i]);
                 }
                 const descriptionTab = this.detailTabs.getTab('Description');
+                this.descriptionEl.placeholder = 'Team Description';
                 this.descriptionEl.spellcheck = false;
                 this.descriptionEl.onchange = () => {
                     this.onTeamUpdate({
@@ -3746,15 +3754,19 @@
                 this.activeFloorIdx = 0;
                 this.activeEnemyIdx = 0;
                 this.onUpdate = onUpdate;
-                this.element.appendChild(document.createTextNode('Dungeon Editor Area Placeholder'));
                 this.dungeonSelector = new GenericSelector(dungeonNames, (id) => {
                     this.onUpdate({ loadDungeon: id });
                 });
-                this.element.appendChild(this.dungeonSelector.getElement());
+                const selectorEl = this.dungeonSelector.getElement();
+                this.dungeonSelector.selector.placeholder = 'Dungeon Search';
+                selectorEl.style.padding = '6px';
+                this.element.appendChild(selectorEl);
                 const dungeonFloorContainer = create('div', ClassNames.FLOOR_CONTAINER);
                 dungeonFloorContainer.appendChild(this.dungeonFloorTable);
                 this.element.appendChild(dungeonFloorContainer);
                 this.element.appendChild(create('br'));
+                // TODO: Remove line when dungeon customization is necessary.
+                superHide(this.addFloorBtn);
                 this.addFloorBtn.innerText = 'Add Floor';
                 this.addFloorBtn.onclick = () => {
                     this.onUpdate({ addFloor: true });
@@ -3985,10 +3997,13 @@
                 const floorIdx = this.dungeonFloorEls.length;
                 const floor = create('tr');
                 const label = create('td');
+                const floorMonsters = create('td');
                 const floorName = create('div');
                 floorName.innerText = `F${this.dungeonFloorEls.length + 1}`;
                 label.appendChild(floorName);
                 const deleteFloorBtn = create('button', ClassNames.FLOOR_DELETE);
+                // TODO: Remove line when dungeon customization is necessary.
+                superHide(deleteFloorBtn);
                 deleteFloorBtn.innerText = '[-]';
                 deleteFloorBtn.onclick = () => {
                     this.onUpdate({ removeFloor: floorIdx });
@@ -3996,13 +4011,16 @@
                 floor.appendChild(label);
                 label.appendChild(deleteFloorBtn);
                 const addEnemyBtn = create('button', ClassNames.FLOOR_ENEMY_ADD);
+                // TODO: Remove line when dungeon customization is necessary.
+                superHide(addEnemyBtn);
                 addEnemyBtn.innerText = '+';
                 addEnemyBtn.onclick = () => {
                     this.onUpdate({ activeFloor: floorIdx, addEnemy: true });
                 };
                 this.addEnemyBtns.push(addEnemyBtn);
-                floor.appendChild(addEnemyBtn);
+                floorMonsters.appendChild(addEnemyBtn);
                 this.addEnemy(this.dungeonFloorEls.length);
+                floor.appendChild(floorMonsters);
                 this.dungeonFloorTable.appendChild(floor);
                 this.dungeonFloorEls.push(floor);
             }
@@ -4094,7 +4112,7 @@
         }
         class DungeonPane {
             constructor(dungeonNames, onUpdate) {
-                this.tabs = new TabbedComponent(['Dungeon', 'Editor', 'Save/Load']);
+                this.tabs = new TabbedComponent(['Dungeon', 'Editor', 'Save/Load'], 'Editor');
                 this.onUpdate = onUpdate;
                 this.dungeonEditor = new DungeonEditor(dungeonNames, onUpdate);
                 this.battleDisplay = new BattleDisplay(onUpdate);
