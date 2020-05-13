@@ -303,30 +303,42 @@ class Ilmina {
     const dataSource = new DataSource(this);
     dataSource.loadVersion(() => {
       const modelBuilder = new ModelBuilder();
+      let totalCounts = 0;
       let countRemaining = 0;
       const decrementCount = () => {
         countRemaining--;
+        const loadingBar = document.getElementById('valeria-loading');
+        if (loadingBar) {
+          const percentageCleared = `${Math.round(100 * (totalCounts - countRemaining) / totalCounts)}%`;
+          loadingBar.innerText = 'Ilmina Loading: ' + percentageCleared;
+          loadingBar.style.width = percentageCleared;
+        }
         if (countRemaining == 0) {
           this.finishedLoadingData(modelBuilder);
         }
       }
 
       countRemaining++; // Card groups
+      totalCounts++;
       dataSource.loadCardData((x) => {
         this.parseCardData(x, modelBuilder);
         decrementCount();
       });
 
       countRemaining++;
+      totalCounts++;
       dataSource.loadMonsMetadata((x) => { modelBuilder.buildMonsMetadata(x); decrementCount(); });
 
       countRemaining++;
+      totalCounts++;
       dataSource.loadApkMetadata((x) => { modelBuilder.buildApkMetadata(x); decrementCount(); });
 
       countRemaining++;
+      totalCounts++;
       dataSource.loadPlayerSkillData((x) => { this.parsePlayerSkillData(x, modelBuilder); decrementCount(); });
 
       countRemaining++;
+      totalCounts++;
       dataSource.loadEnemySkillData((x) => { modelBuilder.buildEnemySkillsData(x); decrementCount(); });
     });
   }

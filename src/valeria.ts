@@ -2,7 +2,7 @@
  * Main File for Valeria.
  */
 
-import { Latent } from './common';
+import { Latent, waitFor } from './common';
 import { ComboContainer } from './combo_container';
 import { DungeonInstance } from './dungeon';
 import { SearchInit } from './fuzzy_search';
@@ -11,12 +11,6 @@ import { MonsterEditor, ValeriaDisplay, MonsterUpdate, ClassNames } from './temp
 import { floof } from './ilmina_stripped';
 import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
 import { getUrlParameter } from './url_handler';
-
-async function waitFor(conditionFn: () => boolean, waitMs = 50) {
-  while (!conditionFn()) {
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
-  }
-}
 
 class Valeria {
   display: ValeriaDisplay = new ValeriaDisplay();
@@ -152,6 +146,10 @@ async function init() {
   SearchInit();
   const valeria = new Valeria();
 
+  const loadingEl = document.getElementById('valeria-load');
+  if (loadingEl) {
+    loadingEl.style.display = 'none';
+  }
   document.body.appendChild(valeria.getElement());
   for (const el of document.getElementsByClassName('main-site-div')) {
     (el as HTMLElement).style.display = 'none';

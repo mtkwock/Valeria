@@ -6,7 +6,7 @@
     "dev": "npm-run-all -p ts sass serve-dev",
     "ts": "tsc-bundle ./tsconfig.json --watch",
     "sass": "sass --watch ./scss/valeria.sass bin/css/valeria.css",
-    "serve-dev": "npx serve ./bin ./src -l 4800",
+    "serve-dev": "npx serve ./bin -l 4800",
     "serve-dist": "npx serve ./dist -l 4800",
     "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css && del-cli ./dist && ncp ./bin ./dist"
   },
