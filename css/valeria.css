@@ -1,3 +1,13 @@
+#valeria-load {
+  text-align: center;
+}
+
+#valeria-loading {
+  align-self: left;
+  background-color: darkred;
+  width: 0%;
+}
+
 .valeria-half-opacity {
   opacity: 0.5;
 }

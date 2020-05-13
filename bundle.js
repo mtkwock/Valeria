@@ -332,25 +332,37 @@
                 const dataSource = new DataSource(this);
                 dataSource.loadVersion(() => {
                     const modelBuilder = new ModelBuilder();
+                    let totalCounts = 0;
                     let countRemaining = 0;
                     const decrementCount = () => {
                         countRemaining--;
+                        const loadingBar = document.getElementById('valeria-loading');
+                        if (loadingBar) {
+                            const percentageCleared = `${Math.round(100 * (totalCounts - countRemaining) / totalCounts)}%`;
+                            loadingBar.innerText = 'Ilmina Loading: ' + percentageCleared;
+                            loadingBar.style.width = percentageCleared;
+                        }
                         if (countRemaining == 0) {
                             this.finishedLoadingData(modelBuilder);
                         }
                     };
                     countRemaining++; // Card groups
+                    totalCounts++;
                     dataSource.loadCardData((x) => {
                         this.parseCardData(x, modelBuilder);
                         decrementCount();
                     });
                     countRemaining++;
+                    totalCounts++;
                     dataSource.loadMonsMetadata((x) => { modelBuilder.buildMonsMetadata(x); decrementCount(); });
                     countRemaining++;
+                    totalCounts++;
                     dataSource.loadApkMetadata((x) => { modelBuilder.buildApkMetadata(x); decrementCount(); });
                     countRemaining++;
+                    totalCounts++;
                     dataSource.loadPlayerSkillData((x) => { this.parsePlayerSkillData(x, modelBuilder); decrementCount(); });
                     countRemaining++;
+                    totalCounts++;
                     dataSource.loadEnemySkillData((x) => { modelBuilder.buildEnemySkillsData(x); decrementCount(); });
                 });
             }
@@ -7849,14 +7861,9 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "ilmina_stripped", "custom_base64", "url_handler"], function (require, exports, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_5, ilmina_stripped_8, custom_base64_1, url_handler_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "ilmina_stripped", "custom_base64", "url_handler"], function (require, exports, common_10, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_5, ilmina_stripped_8, custom_base64_1, url_handler_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        async function waitFor(conditionFn, waitMs = 50) {
-            while (!conditionFn()) {
-                await new Promise((resolve) => setTimeout(resolve, waitMs));
-            }
-        }
         class Valeria {
             constructor() {
                 this.display = new templates_5.ValeriaDisplay();
@@ -7971,10 +7978,14 @@
             }
         }
         async function init() {
-            await waitFor(() => ilmina_stripped_8.floof.ready);
+            await common_10.waitFor(() => ilmina_stripped_8.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
+            const loadingEl = document.getElementById('valeria-load');
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
             document.body.appendChild(valeria.getElement());
             for (const el of document.getElementsByClassName('main-site-div')) {
                 el.style.display = 'none';
