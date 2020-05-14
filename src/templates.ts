@@ -1401,10 +1401,17 @@ class MonsterEditor {
     if (ctx.id in floof.model.cards) {
       latentKillers = floof.model.cards[ctx.id].latentKillers;
     }
+    const maybeCard = floof.model.cards[ctx.id];
+    let maxLatents = 6;
+    if (!maybeCard) {
+      maxLatents = 0;
+    } else if (maybeCard.inheritanceType & 32) {
+      maxLatents = 8;
+    }
     this.latentEditor.update(
       ctx.latents,
       latentKillers,
-      floof.model.cards[ctx.id].inheritanceType & 32 ? 8 : 6,
+      maxLatents,
     );
   }
 
