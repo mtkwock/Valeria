@@ -3204,7 +3204,15 @@
                 if (ctx.id in ilmina_stripped_3.floof.model.cards) {
                     latentKillers = ilmina_stripped_3.floof.model.cards[ctx.id].latentKillers;
                 }
-                this.latentEditor.update(ctx.latents, latentKillers, ilmina_stripped_3.floof.model.cards[ctx.id].inheritanceType & 32 ? 8 : 6);
+                const maybeCard = ilmina_stripped_3.floof.model.cards[ctx.id];
+                let maxLatents = 6;
+                if (!maybeCard) {
+                    maxLatents = 0;
+                }
+                else if (maybeCard.inheritanceType & 32) {
+                    maxLatents = 8;
+                }
+                this.latentEditor.update(ctx.latents, latentKillers, maxLatents);
             }
             getElement() {
                 return this.el;
