@@ -55,8 +55,7 @@ class Valeria {
         monster.superAwakeningIdx = ctx.superAwakeningIdx;
       }
       if (ctx.id != undefined) {
-        monster.setId(Number(ctx.id));
-        monster.transformedTo = -1;
+        monster.setId(ctx.id);
       }
       if (ctx.inheritId != undefined) {
         monster.inheritId = ctx.inheritId;

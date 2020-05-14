@@ -187,6 +187,7 @@ class MonsterInstance {
       return;
     }
     this.id = id;
+    this.transformedTo = -1;
     if (id == -1) {
       this.level = 1;
       this.awakenings = 0;
@@ -200,20 +201,11 @@ class MonsterInstance {
     }
     const c = this.getCard();
 
-    // If the level is above the max level of the new card OR
-    // the level is maxed out from previously, set the level to c's max level.
-    if (this.level > c.maxLevel && !c.isLimitBreakable ||
-      !c || this.level == c.maxLevel && this.level < c.maxLevel) {
-      this.setLevel(c.maxLevel);
-    }
+    // Change to monster's max level.
+    this.setLevel(c.isLimitBreakable ? 110 : c.maxLevel);
 
-    // If the awakening level is above the max level of the new card OR
-    // the awakening level is maxed out from previously, set awakening level to
-    // c's max awakening level.
-    if (this.awakenings > c.awakenings.length ||
-      !c || this.awakenings == c.awakenings.length) {
-      this.awakenings = c.awakenings.length;
-    }
+    // Change to monster's max awakening level.
+    this.awakenings = c.awakenings.length;
 
     // Attempt to copy the current latents.
     const latentCopy = this.latents;
@@ -552,16 +544,18 @@ class MonsterInstance {
     this.inheritPlussed = assistPlussed;
     this.inheritLevel = assistLevel;
     this.latents.length = 0;
-    this.awakenings = awakeningLevel;
     this.setId(bestGuessIds[0]);
     this.superAwakeningIdx = superAwakeningIdx;
     this.setLevel(level);
     for (const latent of latents) {
       this.addLatent(/** @type {!Latent}*/(latent));
     }
-    this.setHpPlus(hpPlus);
-    this.setAtkPlus(atkPlus);
-    this.setRcvPlus(rcvPlus);
+    if (bestGuessIds[0] != -1) {
+      this.setHpPlus(hpPlus);
+      this.setAtkPlus(atkPlus);
+      this.setRcvPlus(rcvPlus);
+      this.awakenings = Math.min(floof.model.cards[bestGuessIds[0]].awakenings.length, awakeningLevel);
+    }
     if (assistName) {
       const bestGuessInheritIds = fuzzyMonsterSearch(assistName, 20, prioritizedInheritSearch);
       if (bestGuessInheritIds.length == 0) {
@@ -669,6 +663,9 @@ class MonsterInstance {
   }
 
   getHp(isMultiplayer: boolean = true, awakeningsActive: boolean = true): number {
+    if (this.id == -1) {
+      return 0;
+    }
     const c = this.getCard();
     let hp = this.calcScaleStat(c.maxHp, c.minHp, c.hpGrowth);
     if (awakeningsActive) {
@@ -703,6 +700,9 @@ class MonsterInstance {
   }
 
   getAtk(isMultiplayer: boolean = true, awakeningsActive: boolean = true): number {
+    if (this.id == -1) {
+      return 0;
+    }
     const c = this.getCard();
     let atk = this.calcScaleStat(c.maxAtk, c.minAtk, c.atkGrowth);
     if (awakeningsActive) {

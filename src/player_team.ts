@@ -320,7 +320,7 @@ class Team {
       teamStrings.length = 3;
     }
     this.setPlayerMode(teamStrings.length);
-    const defaultMonster = '1929 | +0aw0lv1'
+    const defaultMonster = '-1 | +0aw0lv1'
     for (let i = 0; i < teamStrings.length; i++) {
       const multiplierRegex = /\*\s*\d$/;
       if (!teamStrings[i]) {

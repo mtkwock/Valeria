@@ -270,11 +270,13 @@ class MonsterIcon {
       hide(this.element);
       hide(this.attributeEl);
       hide(this.subattributeEl);
-      hide(this.infoTable);
+      superHide(this.infoTable);
       return;
     }
     show(this.element);
-    show(this.infoTable);
+    if (!this.hideInfoTable) {
+      superShow(this.infoTable);
+    }
 
     const card = floof.model.cards[d.id] || DEFAULT_CARD;
 
@@ -1820,8 +1822,8 @@ class TeamPane {
     for (let i = 0; i < 6; i++) {
       const statsByIdx = this.statsByIdxByIdx[i];
       statsByIdx[StatIndex.HP].innerText = stats.hps[i] ? String(stats.hps[i]) : '';
-      statsByIdx[StatIndex.ATK].innerText = String(stats.atks[i]);
-      statsByIdx[StatIndex.RCV].innerText = String(stats.rcvs[i]);
+      statsByIdx[StatIndex.ATK].innerText = stats.atks[i] ? String(stats.atks[i]) : '';
+      statsByIdx[StatIndex.RCV].innerText = stats.hps[i] ? String(stats.rcvs[i]) : '';
       statsByIdx[StatIndex.CD].innerText = stats.cds[i];
     }
     this.totalHpValue.innerText = String(stats.totalHp);
