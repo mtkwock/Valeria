@@ -1564,8 +1564,8 @@
             Awakening[Awakening["ATK_MINUS"] = 66] = "ATK_MINUS";
             Awakening[Awakening["RCV_MINUS"] = 67] = "RCV_MINUS";
             Awakening[Awakening["RESIST_BLIND_PLUS"] = 68] = "RESIST_BLIND_PLUS";
-            Awakening[Awakening["RESIST_POISON_PLUS"] = 69] = "RESIST_POISON_PLUS";
-            Awakening[Awakening["RESIST_JAMMER_PLUS"] = 70] = "RESIST_JAMMER_PLUS";
+            Awakening[Awakening["RESIST_JAMMER_PLUS"] = 69] = "RESIST_JAMMER_PLUS";
+            Awakening[Awakening["RESIST_POISON_PLUS"] = 70] = "RESIST_POISON_PLUS";
             Awakening[Awakening["JAMMER_BOOST"] = 71] = "JAMMER_BOOST";
             Awakening[Awakening["POISON_BOOST"] = 72] = "POISON_BOOST";
         })(Awakening || (Awakening = {}));
@@ -1577,6 +1577,7 @@
             [Awakening.RESIST_BIND, Awakening.RESIST_BIND_PLUS],
             [Awakening.RESIST_BLIND, Awakening.RESIST_BLIND_PLUS],
             [Awakening.RESIST_POISON, Awakening.RESIST_POISON_PLUS],
+            [Awakening.RESIST_JAMMER, Awakening.RESIST_JAMMER_PLUS],
         ]);
         exports.AwakeningToPlusAwakening = AwakeningToPlusAwakening;
         const PlusAwakeningMultiplier = new Map();
