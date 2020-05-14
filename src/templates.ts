@@ -1332,8 +1332,8 @@ class MonsterEditor {
         playerModeSelector.checked = true;
       }
       this.playerModeSelectors.push(playerModeSelector);
-      playerModeArea.appendChild(playerModeLabel);
       playerModeArea.appendChild(playerModeSelector);
+      playerModeArea.appendChild(playerModeLabel);
     }
     this.el.appendChild(playerModeArea);
 
