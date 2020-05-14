@@ -81,6 +81,7 @@ enum ClassNames {
   TEAM_DESCRIPTION = 'valeria-team-description',
 
   MONSTER_SELECTOR = 'valeria-monster-selector',
+  PLAYER_MODE_SELECTOR = 'valeria-player-mode-selector',
   SELECTOR_OPTIONS_CONTAINER = 'valeria-monster-selector-options-container',
   SELECTOR_OPTIONS_INACTIVE = 'valeria-monster-selector-options-inactive',
   SELECTOR_OPTIONS_ACTIVE = 'valeria-monster-selector-options-active',
@@ -616,6 +617,8 @@ class TabbedComponent {
 
 // Partial update values.
 interface MonsterUpdate {
+  playerMode?: number,
+
   id?: number,
   level?: number,
   hpPlus?: number,
@@ -1284,6 +1287,7 @@ class MonsterEditor {
     exportButton: HTMLElement;
     exportUrlButton: HTMLElement;
   }
+  playerModeSelectors: HTMLInputElement[] = [];
   monsterSelector: MonsterSelector;
   inheritSelector: MonsterSelector;
   levelEditor: LevelEditor;
@@ -1308,6 +1312,30 @@ class MonsterEditor {
     pdchuArea.appendChild(this.pdchu.exportButton);
     pdchuArea.appendChild(this.pdchu.exportUrlButton);
     this.el.appendChild(pdchuArea);
+
+    const playerModeArea = create('div', ClassNames.PLAYER_MODE_SELECTOR) as HTMLDivElement;
+    const playerModeName = 'valeria-player-mode';
+    for (let mode = 1; mode < 4; mode++) {
+      const modeId = `valeria-player-mode-${mode}`;
+      const playerModeLabel = create('label') as HTMLLabelElement;
+      playerModeLabel.innerText = `${mode}P`;
+      playerModeLabel.setAttribute('for', modeId);
+      const playerModeSelector = create('input') as HTMLInputElement;
+      playerModeSelector.id = modeId;
+      playerModeSelector.type = 'radio';
+      playerModeSelector.value = String(mode);
+      playerModeSelector.name = playerModeName;
+      playerModeSelector.onchange = () => {
+        onUpdate({ playerMode: mode });
+      }
+      if (mode == 1) {
+        playerModeSelector.checked = true;
+      }
+      this.playerModeSelectors.push(playerModeSelector);
+      playerModeArea.appendChild(playerModeLabel);
+      playerModeArea.appendChild(playerModeSelector);
+    }
+    this.el.appendChild(playerModeArea);
 
     this.monsterSelector = new MonsterSelector(prioritizedMonsterSearch, onUpdate);
     this.inheritSelector = new MonsterSelector(prioritizedInheritSearch, onUpdate, true);

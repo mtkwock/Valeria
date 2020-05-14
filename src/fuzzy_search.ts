@@ -40,7 +40,7 @@ function SearchInit() {
   });
 
   prioritizedInheritSearch = prioritizedMonsterSearch.filter((card) => {
-    // inheritanceType is defined with the flag &1..
+    // inheritanceType is defined with the flag &1.
     return Boolean(card);
   }).sort((card1, card2) => {
     if (card1.awakenings[0] != card2.awakenings[0]) {
@@ -51,9 +51,6 @@ function SearchInit() {
         return 1;
       }
     }
-    // if (card2.monsterPoints != card1.monsterPoints) {
-    //   return card2.monsterPoints - card1.monsterPoints;
-    // }
     return card2.id - card1.id;
   });
 

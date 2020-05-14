@@ -22,46 +22,50 @@ class Valeria {
     this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
 
     this.monsterEditor = new MonsterEditor((ctx: MonsterUpdate) => {
+      if (ctx.playerMode) {
+        console.log(ctx.playerMode);
+        this.team.setPlayerMode(ctx.playerMode);
+        this.team.update();
+        return;
+      }
       const monster = this.team.monsters[this.team.activeMonster];
 
-      if (ctx.hasOwnProperty('level')) {
-        let level = Number(ctx.level);
-        monster.level = level;
+      if (ctx.level) {
+        monster.level = ctx.level;
       }
-      if (ctx.hasOwnProperty('inheritLevel')) {
-        let level = Number(ctx.inheritLevel);
-        monster.inheritLevel = level;
+      if (ctx.inheritLevel) {
+        monster.inheritLevel = ctx.inheritLevel;
       }
-      if (ctx.hasOwnProperty('hpPlus')) {
-        monster.setHpPlus(Number(ctx.hpPlus));
+      if (ctx.hpPlus != undefined) {
+        monster.setHpPlus(ctx.hpPlus);
       }
-      if (ctx.hasOwnProperty('atkPlus')) {
-        monster.setAtkPlus(Number(ctx.atkPlus));
+      if (ctx.atkPlus != undefined) {
+        monster.setAtkPlus(ctx.atkPlus);
       }
-      if (ctx.hasOwnProperty('rcvPlus')) {
-        monster.setRcvPlus(Number(ctx.rcvPlus));
+      if (ctx.rcvPlus != undefined) {
+        monster.setRcvPlus(ctx.rcvPlus);
       }
-      if (ctx.hasOwnProperty('inheritPlussed')) {
-        monster.inheritPlussed = Boolean(ctx.inheritPlussed);
+      if (ctx.inheritPlussed != undefined) {
+        monster.inheritPlussed = ctx.inheritPlussed;
       }
-      if (ctx.hasOwnProperty('awakeningLevel')) {
-        monster.awakenings = Number(ctx.awakeningLevel);
+      if (ctx.awakeningLevel != undefined) {
+        monster.awakenings = ctx.awakeningLevel;
       }
-      if (ctx.hasOwnProperty('superAwakeningIdx')) {
-        monster.superAwakeningIdx = Number(ctx.superAwakeningIdx);
+      if (ctx.superAwakeningIdx != undefined) {
+        monster.superAwakeningIdx = ctx.superAwakeningIdx;
       }
-      if (ctx.hasOwnProperty('id')) {
+      if (ctx.id != undefined) {
         monster.setId(Number(ctx.id));
         monster.transformedTo = -1;
       }
-      if (ctx.hasOwnProperty('inheritId')) {
-        monster.inheritId = Number(ctx.inheritId);
+      if (ctx.inheritId != undefined) {
+        monster.inheritId = ctx.inheritId;
       }
-      if (ctx.hasOwnProperty('addLatent')) {
+      if (ctx.addLatent != undefined) {
         monster.addLatent(ctx.addLatent as Latent);
       }
-      if (ctx.hasOwnProperty('removeLatent')) {
-        monster.removeLatent(Number(ctx.removeLatent))
+      if (ctx.removeLatent != undefined) {
+        monster.removeLatent(ctx.removeLatent)
       }
       this.team.update();
       this.updateMonsterEditor();
@@ -151,9 +155,6 @@ async function init() {
     loadingEl.style.display = 'none';
   }
   document.body.appendChild(valeria.getElement());
-  for (const el of document.getElementsByClassName('main-site-div')) {
-    (el as HTMLElement).style.display = 'none';
-  }
   window.valeria = valeria;
 }
 
