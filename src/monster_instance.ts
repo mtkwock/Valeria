@@ -153,23 +153,21 @@ class MonsterInstance {
     this.icon.setOnUpdate(onUpdate);
     this.latentIcon = new MonsterLatent();
     const inheritIconEl = this.inheritIcon.getElement();
-    inheritIconEl.onclick = () => {
+    inheritIconEl.onclick = (e) => {
+      e.stopPropagation();
       const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
       if (els.length > 1) {
         const el = els[1] as HTMLInputElement;
         el.focus();
-        el.select();
       }
     }
     this.el.appendChild(inheritIconEl);
     this.el.appendChild(this.icon.getElement());
-    const iconEl = this.icon.getElement();
-    iconEl.onclick = () => {
+    this.el.onclick = () => {
       const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
       if (els.length) {
         const el = els[0] as HTMLInputElement;
         el.focus();
-        el.select();
       }
     }
     this.el.appendChild(this.latentIcon.getElement());

@@ -756,6 +756,7 @@ class GenericSelector<T> {
     this.selector.placeholder = 'Search';
     this.selector.onkeydown = this.onKeyDown();
     this.selector.onkeyup = this.onKeyUp();
+    this.selector.onfocus = () => { this.selector.select(); }
     this.el.appendChild(this.selector);
     const container = create('div', ClassNames.SELECTOR_OPTIONS_CONTAINER);
     container.appendChild(this.optionsContainer);
@@ -823,6 +824,9 @@ class MonsterSelector extends GenericSelector<number> {
   setId(id: number) {
     this.optionsContainer.style.display = 'none';
     this.selector.value = this.getName(id);
+    if (this.selector == document.activeElement) {
+      this.selector.select();
+    }
   }
 }
 
