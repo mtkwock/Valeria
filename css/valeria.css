@@ -296,9 +296,13 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   display: inline-block;
 }
 
+.valeria-monster-container:hover {
+  background: #444444;
+}
+
 .valeria-monster-container-selected {
   display: inline-block;
-  background: #333;
+  background: #222222;
 }
 
 .valeria-team-stat-table {

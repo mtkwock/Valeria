@@ -2235,11 +2235,13 @@
                     hide(this.element);
                     hide(this.attributeEl);
                     hide(this.subattributeEl);
-                    hide(this.infoTable);
+                    superHide(this.infoTable);
                     return;
                 }
                 show(this.element);
-                show(this.infoTable);
+                if (!this.hideInfoTable) {
+                    superShow(this.infoTable);
+                }
                 const card = ilmina_stripped_3.floof.model.cards[d.id] || common_2.DEFAULT_CARD;
                 const descriptor = ilmina_stripped_3.CardAssets.getIconImageData(card);
                 if (descriptor) {
@@ -3553,8 +3555,8 @@
                 for (let i = 0; i < 6; i++) {
                     const statsByIdx = this.statsByIdxByIdx[i];
                     statsByIdx[StatIndex.HP].innerText = stats.hps[i] ? String(stats.hps[i]) : '';
-                    statsByIdx[StatIndex.ATK].innerText = String(stats.atks[i]);
-                    statsByIdx[StatIndex.RCV].innerText = String(stats.rcvs[i]);
+                    statsByIdx[StatIndex.ATK].innerText = stats.atks[i] ? String(stats.atks[i]) : '';
+                    statsByIdx[StatIndex.RCV].innerText = stats.hps[i] ? String(stats.rcvs[i]) : '';
                     statsByIdx[StatIndex.CD].innerText = stats.cds[i];
                 }
                 this.totalHpValue.innerText = String(stats.totalHp);
@@ -4647,6 +4649,7 @@
                     return;
                 }
                 this.id = id;
+                this.transformedTo = -1;
                 if (id == -1) {
                     this.level = 1;
                     this.awakenings = 0;
@@ -4659,19 +4662,10 @@
                     return;
                 }
                 const c = this.getCard();
-                // If the level is above the max level of the new card OR
-                // the level is maxed out from previously, set the level to c's max level.
-                if (this.level > c.maxLevel && !c.isLimitBreakable ||
-                    !c || this.level == c.maxLevel && this.level < c.maxLevel) {
-                    this.setLevel(c.maxLevel);
-                }
-                // If the awakening level is above the max level of the new card OR
-                // the awakening level is maxed out from previously, set awakening level to
-                // c's max awakening level.
-                if (this.awakenings > c.awakenings.length ||
-                    !c || this.awakenings == c.awakenings.length) {
-                    this.awakenings = c.awakenings.length;
-                }
+                // Change to monster's max level.
+                this.setLevel(c.isLimitBreakable ? 110 : c.maxLevel);
+                // Change to monster's max awakening level.
+                this.awakenings = c.awakenings.length;
                 // Attempt to copy the current latents.
                 const latentCopy = this.latents;
                 this.latents = [];
@@ -4990,16 +4984,18 @@
                 this.inheritPlussed = assistPlussed;
                 this.inheritLevel = assistLevel;
                 this.latents.length = 0;
-                this.awakenings = awakeningLevel;
                 this.setId(bestGuessIds[0]);
                 this.superAwakeningIdx = superAwakeningIdx;
                 this.setLevel(level);
                 for (const latent of latents) {
                     this.addLatent(/** @type {!Latent}*/ (latent));
                 }
-                this.setHpPlus(hpPlus);
-                this.setAtkPlus(atkPlus);
-                this.setRcvPlus(rcvPlus);
+                if (bestGuessIds[0] != -1) {
+                    this.setHpPlus(hpPlus);
+                    this.setAtkPlus(atkPlus);
+                    this.setRcvPlus(rcvPlus);
+                    this.awakenings = Math.min(ilmina_stripped_4.floof.model.cards[bestGuessIds[0]].awakenings.length, awakeningLevel);
+                }
                 if (assistName) {
                     const bestGuessInheritIds = fuzzy_search_2.fuzzyMonsterSearch(assistName, 20, fuzzy_search_2.prioritizedInheritSearch);
                     if (bestGuessInheritIds.length == 0) {
@@ -5101,6 +5097,9 @@
                 this.rcvPlus = validatePlus(v);
             }
             getHp(isMultiplayer = true, awakeningsActive = true) {
+                if (this.id == -1) {
+                    return 0;
+                }
                 const c = this.getCard();
                 let hp = this.calcScaleStat(c.maxHp, c.minHp, c.hpGrowth);
                 if (awakeningsActive) {
@@ -5129,6 +5128,9 @@
                 return Math.max(Math.round(hp), 1);
             }
             getAtk(isMultiplayer = true, awakeningsActive = true) {
+                if (this.id == -1) {
+                    return 0;
+                }
                 const c = this.getCard();
                 let atk = this.calcScaleStat(c.maxAtk, c.minAtk, c.atkGrowth);
                 if (awakeningsActive) {
@@ -6574,7 +6576,7 @@
                     teamStrings.length = 3;
                 }
                 this.setPlayerMode(teamStrings.length);
-                const defaultMonster = '1929 | +0aw0lv1';
+                const defaultMonster = '-1 | +0aw0lv1';
                 for (let i = 0; i < teamStrings.length; i++) {
                     const multiplierRegex = /\*\s*\d$/;
                     if (!teamStrings[i]) {
@@ -7933,8 +7935,7 @@
                         monster.superAwakeningIdx = ctx.superAwakeningIdx;
                     }
                     if (ctx.id != undefined) {
-                        monster.setId(Number(ctx.id));
-                        monster.transformedTo = -1;
+                        monster.setId(ctx.id);
                     }
                     if (ctx.inheritId != undefined) {
                         monster.inheritId = ctx.inheritId;
