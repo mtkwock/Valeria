@@ -145,7 +145,7 @@ enum Awakening {
   VOICE = 63,
   SOLOBOOST = 64,
   HP_MINUS = 65, ATK_MINUS = 66, RCV_MINUS = 67,
-  RESIST_BLIND_PLUS = 68, RESIST_POISON_PLUS = 69, RESIST_JAMMER_PLUS = 70,
+  RESIST_BLIND_PLUS = 68, RESIST_JAMMER_PLUS = 69, RESIST_POISON_PLUS = 70,
   JAMMER_BOOST = 71, POISON_BOOST = 72,
 };
 
@@ -155,6 +155,7 @@ const AwakeningToPlusAwakening = new Map<Awakening, Awakening>([
   [Awakening.RESIST_BIND, Awakening.RESIST_BIND_PLUS],
   [Awakening.RESIST_BLIND, Awakening.RESIST_BLIND_PLUS],
   [Awakening.RESIST_POISON, Awakening.RESIST_POISON_PLUS],
+  [Awakening.RESIST_JAMMER, Awakening.RESIST_JAMMER_PLUS],
 ]);
 
 const PlusAwakeningMultiplier = new Map<Awakening, number>();
