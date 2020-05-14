@@ -2567,6 +2567,7 @@
                 this.selector.placeholder = 'Search';
                 this.selector.onkeydown = this.onKeyDown();
                 this.selector.onkeyup = this.onKeyUp();
+                this.selector.onfocus = () => { this.selector.select(); };
                 this.el.appendChild(this.selector);
                 const container = create('div', ClassNames.SELECTOR_OPTIONS_CONTAINER);
                 container.appendChild(this.optionsContainer);
@@ -2703,6 +2704,9 @@
             setId(id) {
                 this.optionsContainer.style.display = 'none';
                 this.selector.value = this.getName(id);
+                if (this.selector == document.activeElement) {
+                    this.selector.select();
+                }
             }
         }
         class LevelEditor {
@@ -4618,23 +4622,21 @@
                 this.icon.setOnUpdate(onUpdate);
                 this.latentIcon = new templates_2.MonsterLatent();
                 const inheritIconEl = this.inheritIcon.getElement();
-                inheritIconEl.onclick = () => {
+                inheritIconEl.onclick = (e) => {
+                    e.stopPropagation();
                     const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
                     if (els.length > 1) {
                         const el = els[1];
                         el.focus();
-                        el.select();
                     }
                 };
                 this.el.appendChild(inheritIconEl);
                 this.el.appendChild(this.icon.getElement());
-                const iconEl = this.icon.getElement();
-                iconEl.onclick = () => {
+                this.el.onclick = () => {
                     const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
                     if (els.length) {
                         const el = els[0];
                         el.focus();
-                        el.select();
                     }
                 };
                 this.el.appendChild(this.latentIcon.getElement());
