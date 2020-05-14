@@ -370,6 +370,14 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   padding: 5px;
 }
 
+.valeria-player-mode-selector {
+  margin-top: 5px;
+}
+
+.valeria-player-mode-selector > input {
+  margin-right: 4px;
+}
+
 .valeria-monster-selector {
   font-size: small;
   width: 98%;

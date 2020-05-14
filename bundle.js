@@ -1713,7 +1713,7 @@
                 return card2.id - card1.id;
             });
             exports.prioritizedInheritSearch = prioritizedInheritSearch = prioritizedMonsterSearch.filter((card) => {
-                // inheritanceType is defined with the flag &1..
+                // inheritanceType is defined with the flag &1.
                 return Boolean(card);
             }).sort((card1, card2) => {
                 if (card1.awakenings[0] != card2.awakenings[0]) {
@@ -1724,9 +1724,6 @@
                         return 1;
                     }
                 }
-                // if (card2.monsterPoints != card1.monsterPoints) {
-                //   return card2.monsterPoints - card1.monsterPoints;
-                // }
                 return card2.id - card1.id;
             });
             for (const group of ilmina_stripped_2.floof.model.cardGroups) {
@@ -2081,6 +2078,7 @@
             ClassNames["TEAM_TITLE"] = "valeria-team-title";
             ClassNames["TEAM_DESCRIPTION"] = "valeria-team-description";
             ClassNames["MONSTER_SELECTOR"] = "valeria-monster-selector";
+            ClassNames["PLAYER_MODE_SELECTOR"] = "valeria-player-mode-selector";
             ClassNames["SELECTOR_OPTIONS_CONTAINER"] = "valeria-monster-selector-options-container";
             ClassNames["SELECTOR_OPTIONS_INACTIVE"] = "valeria-monster-selector-options-inactive";
             ClassNames["SELECTOR_OPTIONS_ACTIVE"] = "valeria-monster-selector-options-active";
@@ -3117,6 +3115,7 @@
         class MonsterEditor {
             constructor(onUpdate) {
                 this.el = create('div', ClassNames.MONSTER_EDITOR);
+                this.playerModeSelectors = [];
                 const pdchuArea = create('div');
                 this.pdchu = {
                     io: create('textarea', ClassNames.PDCHU_IO),
@@ -3133,6 +3132,29 @@
                 pdchuArea.appendChild(this.pdchu.exportButton);
                 pdchuArea.appendChild(this.pdchu.exportUrlButton);
                 this.el.appendChild(pdchuArea);
+                const playerModeArea = create('div', ClassNames.PLAYER_MODE_SELECTOR);
+                const playerModeName = 'valeria-player-mode';
+                for (let mode = 1; mode < 4; mode++) {
+                    const modeId = `valeria-player-mode-${mode}`;
+                    const playerModeLabel = create('label');
+                    playerModeLabel.innerText = `${mode}P`;
+                    playerModeLabel.setAttribute('for', modeId);
+                    const playerModeSelector = create('input');
+                    playerModeSelector.id = modeId;
+                    playerModeSelector.type = 'radio';
+                    playerModeSelector.value = String(mode);
+                    playerModeSelector.name = playerModeName;
+                    playerModeSelector.onchange = () => {
+                        onUpdate({ playerMode: mode });
+                    };
+                    if (mode == 1) {
+                        playerModeSelector.checked = true;
+                    }
+                    this.playerModeSelectors.push(playerModeSelector);
+                    playerModeArea.appendChild(playerModeLabel);
+                    playerModeArea.appendChild(playerModeSelector);
+                }
+                this.el.appendChild(playerModeArea);
                 this.monsterSelector = new MonsterSelector(fuzzy_search_1.prioritizedMonsterSearch, onUpdate);
                 this.inheritSelector = new MonsterSelector(fuzzy_search_1.prioritizedInheritSearch, onUpdate, true);
                 this.inheritSelector.selector.placeholder = 'Inherit Search';
@@ -7871,45 +7893,49 @@
                 this.comboContainer = new combo_container_1.ComboContainer();
                 this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
                 this.monsterEditor = new templates_5.MonsterEditor((ctx) => {
+                    if (ctx.playerMode) {
+                        console.log(ctx.playerMode);
+                        this.team.setPlayerMode(ctx.playerMode);
+                        this.team.update();
+                        return;
+                    }
                     const monster = this.team.monsters[this.team.activeMonster];
-                    if (ctx.hasOwnProperty('level')) {
-                        let level = Number(ctx.level);
-                        monster.level = level;
+                    if (ctx.level) {
+                        monster.level = ctx.level;
                     }
-                    if (ctx.hasOwnProperty('inheritLevel')) {
-                        let level = Number(ctx.inheritLevel);
-                        monster.inheritLevel = level;
+                    if (ctx.inheritLevel) {
+                        monster.inheritLevel = ctx.inheritLevel;
                     }
-                    if (ctx.hasOwnProperty('hpPlus')) {
-                        monster.setHpPlus(Number(ctx.hpPlus));
+                    if (ctx.hpPlus != undefined) {
+                        monster.setHpPlus(ctx.hpPlus);
                     }
-                    if (ctx.hasOwnProperty('atkPlus')) {
-                        monster.setAtkPlus(Number(ctx.atkPlus));
+                    if (ctx.atkPlus != undefined) {
+                        monster.setAtkPlus(ctx.atkPlus);
                     }
-                    if (ctx.hasOwnProperty('rcvPlus')) {
-                        monster.setRcvPlus(Number(ctx.rcvPlus));
+                    if (ctx.rcvPlus != undefined) {
+                        monster.setRcvPlus(ctx.rcvPlus);
                     }
-                    if (ctx.hasOwnProperty('inheritPlussed')) {
-                        monster.inheritPlussed = Boolean(ctx.inheritPlussed);
+                    if (ctx.inheritPlussed != undefined) {
+                        monster.inheritPlussed = ctx.inheritPlussed;
                     }
-                    if (ctx.hasOwnProperty('awakeningLevel')) {
-                        monster.awakenings = Number(ctx.awakeningLevel);
+                    if (ctx.awakeningLevel != undefined) {
+                        monster.awakenings = ctx.awakeningLevel;
                     }
-                    if (ctx.hasOwnProperty('superAwakeningIdx')) {
-                        monster.superAwakeningIdx = Number(ctx.superAwakeningIdx);
+                    if (ctx.superAwakeningIdx != undefined) {
+                        monster.superAwakeningIdx = ctx.superAwakeningIdx;
                     }
-                    if (ctx.hasOwnProperty('id')) {
+                    if (ctx.id != undefined) {
                         monster.setId(Number(ctx.id));
                         monster.transformedTo = -1;
                     }
-                    if (ctx.hasOwnProperty('inheritId')) {
-                        monster.inheritId = Number(ctx.inheritId);
+                    if (ctx.inheritId != undefined) {
+                        monster.inheritId = ctx.inheritId;
                     }
-                    if (ctx.hasOwnProperty('addLatent')) {
+                    if (ctx.addLatent != undefined) {
                         monster.addLatent(ctx.addLatent);
                     }
-                    if (ctx.hasOwnProperty('removeLatent')) {
-                        monster.removeLatent(Number(ctx.removeLatent));
+                    if (ctx.removeLatent != undefined) {
+                        monster.removeLatent(ctx.removeLatent);
                     }
                     this.team.update();
                     this.updateMonsterEditor();
@@ -7988,9 +8014,6 @@
                 loadingEl.style.display = 'none';
             }
             document.body.appendChild(valeria.getElement());
-            for (const el of document.getElementsByClassName('main-site-div')) {
-                el.style.display = 'none';
-            }
             window.valeria = valeria;
         }
         init();
