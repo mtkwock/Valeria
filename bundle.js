@@ -5757,7 +5757,7 @@
             atk: ([attr1bit, attr2bit, attr3bit, attr4bit, attr5bit, minMatch, atk100base, atk100scale], { comboContainer }) => {
                 atk100scale = atk100scale || 0;
                 const maxCounts = {
-                    0: 0, 1: 0, 2: 0, 3: 0, 4: 0, '-1': 0,
+                    0: 0, 1: 0, 2: 0, 3: 0, 4: 0,
                 };
                 for (const attrBit of [attr1bit, attr2bit, attr3bit, attr4bit, attr5bit].filter((a) => a > 0)) {
                     const attr = common_6.idxsFromBits(attrBit)[0];
