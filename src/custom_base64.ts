@@ -35,7 +35,7 @@ enum Bits {
   LATENT = 6, // Must be able to hold 33.
   AWAKENING = 4, // Must be able to hold up to 9.
   PLUS = 7, // Must be able to hold up to 99.
-};
+}
 
 import { LatentToPdchu } from './monster_instance'
 import { Team } from './player_team';
@@ -175,8 +175,7 @@ function ValeriaDecodeToPdchu(s: string): string {
       }
       teamString += `| lv${encoding.dequeueBits(Bits.LEVEL)} awk${encoding.dequeueBits(Bits.AWAKENING)} `;
       const is297 = encoding.dequeueBit();
-      if (is297) {
-      } else {
+      if (!is297) {
         teamString += `+H${encoding.dequeueBits(Bits.PLUS)} +A${encoding.dequeueBits(Bits.PLUS)} +R${encoding.dequeueBits(Bits.PLUS)} `;
       }
       const sa = encoding.dequeueBits(Bits.AWAKENING);

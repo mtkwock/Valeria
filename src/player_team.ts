@@ -443,6 +443,7 @@ class Team {
         this.monsters[5].copyFrom(this.monsters[6]);
       }
     } else if (this.playerMode == 3) {
+      //Todo, ps maybe filler text to pass eslint
     } else { // Handle 1P
       if (newMode == 2) {
         this.monsters[6].copyFrom(this.monsters[5]);

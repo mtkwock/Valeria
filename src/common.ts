@@ -109,7 +109,7 @@ enum Latent {
   RESIST_WOOD_PLUS = 30,
   RESIST_LIGHT_PLUS = 31,
   RESIST_DARK_PLUS = 32,
-};
+}
 
 enum Awakening {
   HP = 1, ATK = 2, RCV = 3,
@@ -148,7 +148,7 @@ enum Awakening {
   HP_MINUS = 65, ATK_MINUS = 66, RCV_MINUS = 67,
   RESIST_BLIND_PLUS = 68, RESIST_JAMMER_PLUS = 69, RESIST_POISON_PLUS = 70,
   JAMMER_BOOST = 71, POISON_BOOST = 72,
-};
+}
 
 const AwakeningToPlusAwakening = new Map<Awakening, Awakening>([
   [Awakening.SKILL_BOOST, Awakening.SKILL_BOOST_PLUS],
@@ -220,7 +220,7 @@ enum Shape {
   CROSS = 3,
   BOX = 4,
   ROW = 5,
-};
+}
 
 const LetterToShape: Record<string, Shape> = {
   'A': Shape.AMORPHOUS,

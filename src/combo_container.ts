@@ -81,8 +81,7 @@ class ComboContainer {
           let count = 0;
           let shape = 'A';
 
-          if (v.length == 0 || v == '0') {
-          } else if (letter == 'R') {
+          if (letter == 'R') {
             count = this.boardWidth;
             shape = 'R';
             if (v.length > 1 && Number(v.substring(1)) > count) {
@@ -95,7 +94,7 @@ class ComboContainer {
           } else if ('LXB'.indexOf(letter) >= 0) {
             shape = letter;
             count = letter == 'B' ? 9 : 5;
-          } else if (Number(v) != NaN) {
+          } else if (!isNaN(Number(v))) {
             count = Number(v);
           }
 
@@ -124,7 +123,7 @@ class ComboContainer {
         enhanceEl.onblur = () => {
           const combos = this.combos[c];
           const v = Number(enhanceEl.value);
-          if (v != NaN && idx < combos.length) {
+          if (!isNaN(v) && idx < combos.length) {
             combos[i].enhanced = v;
             combos[i].recount();
             this.update();

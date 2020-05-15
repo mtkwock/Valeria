@@ -7,7 +7,7 @@ import { floof } from './ilmina_stripped';
 // TODO: Figure out enemies.
 interface EnemyInstance {
   getAttribute: () => Attribute,
-};
+}
 
 export interface AttackContext {
   ping: DamagePing;
