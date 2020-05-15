@@ -194,7 +194,6 @@ class MonsterInstance {
       this.setHpPlus(0);
       this.setAtkPlus(0);
       this.setRcvPlus(0);
-      // this.card = floof.model.cards[4014];
       return;
     }
     const c = this.getCard();
