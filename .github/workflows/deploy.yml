@@ -7,7 +7,7 @@ on:
     branches: [ master ]
     
 jobs:
-  Install_Node:
+  build_and_deploy:
 
     runs-on: ubuntu-latest
 
@@ -18,28 +18,12 @@ jobs:
       with:
         node-version: 12.x
     - run: npm ci
+    - run: npm run eslint
+    - run: npm run build
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/master'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
       
-  Linter:
-    needs: [Install_Node]
-    runs-on: ubuntu-latest
-    steps:
-      - run: npm run eslint
-
-         
-  Build:
-    needs: [Install_Node]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Build Valeira
-        run: npm run build
-            
-  Deploy:
-    needs: [Install_Node, Build]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    steps:
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
