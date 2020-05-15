@@ -1997,9 +1997,11 @@ class TeamPane {
 
   updateDamage(pings: { attribute: Attribute, damage: number }[], healing: number) {
     for (let i = 0; i < 12; i++) {
-      const { attribute, damage } = pings[i];
-      this.pingCells[i].innerText = addCommas(damage);
-      this.pingCells[i].style.color = AttributeToFontColor[attribute];
+      if (pings[i] != null) {
+        const { attribute, damage } = pings[i];
+        this.pingCells[i].innerText = addCommas(damage);
+        this.pingCells[i].style.color = AttributeToFontColor[attribute];
+      }
     }
     this.hpDamage.innerText = `+${addCommas(healing)}`;
   }
