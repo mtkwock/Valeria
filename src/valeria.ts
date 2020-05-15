@@ -140,7 +140,7 @@ class Valeria {
   }
 
   updateDamage() {
-    const { pings, healing, trueBonusAttack } = this.team.getDamageCombos(this.comboContainer);
+    const { pings, healing } = this.team.getDamageCombos(this.comboContainer);
     this.team.teamPane.updateDamage(
       pings.map((ping) => ({ attribute: ping.attribute, damage: ping.damage })),
       healing,
