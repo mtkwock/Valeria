@@ -2,7 +2,7 @@
  * Main File for Valeria.
  */
 
-import { Latent, waitFor } from './common';
+import { Latent, Attribute, waitFor } from './common';
 import { ComboContainer } from './combo_container';
 import { DungeonInstance } from './dungeon';
 import { SearchInit } from './fuzzy_search';
@@ -142,7 +142,12 @@ class Valeria {
   updateDamage() {
     const { pings, healing } = this.team.getDamageCombos(this.comboContainer);
     this.team.teamPane.updateDamage(
-      pings.map((ping) => ({ attribute: ping.attribute, damage: ping.damage })),
+      pings.map((ping) => {
+        if (ping) {
+          return { attribute: ping.attribute, damage: ping.damage };
+        }
+        return { attribute: Attribute.NONE, damage: 0 };
+      }),
       healing,
     );
   }

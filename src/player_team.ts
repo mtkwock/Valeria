@@ -681,9 +681,11 @@ class Team {
       4: 0,
       5: 0,
       '-1': 0,
+      '-2': 0,
     };
     const rowAwakenings: Record<Attribute, number> = {
-      '-1': NaN,
+      '-2': 0,
+      '-1': 0,
       0: this.countAwakening(Awakening.ROW_FIRE),
       1: this.countAwakening(Awakening.ROW_WATER),
       2: this.countAwakening(Awakening.ROW_WOOD),
@@ -692,19 +694,21 @@ class Team {
       5: this.countAwakening(Awakening.RECOVER_BIND),
     };
 
-    monsters = monsters.filter((monster) => monster.getId() > 0);
+    // monsters = monsters.filter((monster) => monster.getId() > 0);
     let pings: DamagePing[] = Array(2 * monsters.length);
 
+    const NO_ONE = new MonsterInstance(-1, () => { });
+
     for (let i = 0; i < monsters.length; i++) {
-      if (monsters[i].bound) {
+      if (monsters[i].getId() <= 0 || monsters[i].bound) {
+        pings[i] = new DamagePing(NO_ONE, Attribute.NONE);
+        pings[i + 6] = new DamagePing(NO_ONE, Attribute.NONE);
         continue;
       }
       const m = monsters[i];
       pings[i] = new DamagePing(m, m.getAttribute());
-      if (m.getSubattribute() != Attribute.NONE) {
-        pings[i + monsters.length] = new DamagePing(m, m.getSubattribute());
-        pings[i + monsters.length].isSub = true;
-      }
+      pings[i + monsters.length] = new DamagePing(m, m.getSubattribute());
+      pings[i + monsters.length].isSub = true;
     }
 
     for (const c of 'rbgld') {

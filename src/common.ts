@@ -42,6 +42,7 @@ enum Attribute {
   LIGHT = 3,
   DARK = 4,
   HEART = 5,
+  FIXED = -2,
   NONE = -1,
 }
 
@@ -256,6 +257,7 @@ enum FontColor {
   DARK = 'fuschia',
   COLORLESS = 'gray',
   FIXED = 'white',
+  NONE = 'black',
 }
 
 const AttributeToFontColor: Record<Attribute, FontColor> = {
@@ -265,7 +267,8 @@ const AttributeToFontColor: Record<Attribute, FontColor> = {
   3: FontColor.LIGHT,
   4: FontColor.DARK,
   5: FontColor.COLORLESS,
-  '-1': FontColor.FIXED,
+  '-2': FontColor.FIXED,
+  '-1': FontColor.NONE,
 };
 
 export {

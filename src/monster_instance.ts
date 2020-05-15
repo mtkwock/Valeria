@@ -153,8 +153,7 @@ class MonsterInstance {
     this.icon.setOnUpdate(onUpdate);
     this.latentIcon = new MonsterLatent();
     const inheritIconEl = this.inheritIcon.getElement();
-    inheritIconEl.onclick = (e) => {
-      e.stopPropagation();
+    inheritIconEl.onclick = () => {
       const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
       if (els.length > 1) {
         const el = els[1] as HTMLInputElement;
