@@ -1678,7 +1678,7 @@
             FontColor["WATER"] = "cyan";
             FontColor["WOOD"] = "lawngreen";
             FontColor["LIGHT"] = "yellow";
-            FontColor["DARK"] = "fuschia";
+            FontColor["DARK"] = "fuchsia";
             FontColor["COLORLESS"] = "gray";
             FontColor["FIXED"] = "white";
             FontColor["NONE"] = "black";
@@ -7105,10 +7105,10 @@
                                 if (combo.count == 4) {
                                     multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.TPA, mp));
                                 }
-                                if (combo.shape == common_7.Shape.L) {
+                                else if (combo.shape == common_7.Shape.L) {
                                     multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.L_UNLOCK, mp));
                                 }
-                                if (combo.shape == common_7.Shape.BOX) {
+                                else if (combo.shape == common_7.Shape.BOX) {
                                     multiplier *= (2.5 ** ping.source.countAwakening(common_7.Awakening.VDP, mp));
                                     ping.ignoreVoid = true;
                                 }
