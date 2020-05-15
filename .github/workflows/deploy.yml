@@ -16,9 +16,7 @@ jobs:
       with:
         node-version: 12.x
     - run: npm ci
-
-    - run: npm run eslint
-    
+          
     - name: Build Valeira
       run: npm run build
             
