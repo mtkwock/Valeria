@@ -1410,6 +1410,7 @@
             Attribute[Attribute["LIGHT"] = 3] = "LIGHT";
             Attribute[Attribute["DARK"] = 4] = "DARK";
             Attribute[Attribute["HEART"] = 5] = "HEART";
+            Attribute[Attribute["FIXED"] = -2] = "FIXED";
             Attribute[Attribute["NONE"] = -1] = "NONE";
         })(Attribute || (Attribute = {}));
         exports.Attribute = Attribute;
@@ -1680,6 +1681,7 @@
             FontColor["DARK"] = "fuschia";
             FontColor["COLORLESS"] = "gray";
             FontColor["FIXED"] = "white";
+            FontColor["NONE"] = "black";
         })(FontColor || (FontColor = {}));
         exports.FontColor = FontColor;
         const AttributeToFontColor = {
@@ -1689,7 +1691,8 @@
             3: FontColor.LIGHT,
             4: FontColor.DARK,
             5: FontColor.COLORLESS,
-            '-1': FontColor.FIXED,
+            '-2': FontColor.FIXED,
+            '-1': FontColor.NONE,
         };
         exports.AttributeToFontColor = AttributeToFontColor;
     });
@@ -4758,8 +4761,7 @@
                 this.icon.setOnUpdate(onUpdate);
                 this.latentIcon = new templates_2.MonsterLatent();
                 const inheritIconEl = this.inheritIcon.getElement();
-                inheritIconEl.onclick = (e) => {
-                    e.stopPropagation();
+                inheritIconEl.onclick = () => {
                     const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
                     if (els.length > 1) {
                         const el = els[1];
@@ -7049,9 +7051,11 @@
                     4: 0,
                     5: 0,
                     '-1': 0,
+                    '-2': 0,
                 };
                 const rowAwakenings = {
-                    '-1': NaN,
+                    '-2': 0,
+                    '-1': 0,
                     0: this.countAwakening(common_7.Awakening.ROW_FIRE),
                     1: this.countAwakening(common_7.Awakening.ROW_WATER),
                     2: this.countAwakening(common_7.Awakening.ROW_WOOD),
@@ -7059,18 +7063,19 @@
                     4: this.countAwakening(common_7.Awakening.ROW_DARK),
                     5: this.countAwakening(common_7.Awakening.RECOVER_BIND),
                 };
-                monsters = monsters.filter((monster) => monster.getId() > 0);
+                // monsters = monsters.filter((monster) => monster.getId() > 0);
                 let pings = Array(2 * monsters.length);
+                const NO_ONE = new monster_instance_1.MonsterInstance(-1, () => { });
                 for (let i = 0; i < monsters.length; i++) {
-                    if (monsters[i].bound) {
+                    if (monsters[i].getId() <= 0 || monsters[i].bound) {
+                        pings[i] = new damage_ping_1.DamagePing(NO_ONE, common_7.Attribute.NONE);
+                        pings[i + 6] = new damage_ping_1.DamagePing(NO_ONE, common_7.Attribute.NONE);
                         continue;
                     }
                     const m = monsters[i];
                     pings[i] = new damage_ping_1.DamagePing(m, m.getAttribute());
-                    if (m.getSubattribute() != common_7.Attribute.NONE) {
-                        pings[i + monsters.length] = new damage_ping_1.DamagePing(m, m.getSubattribute());
-                        pings[i + monsters.length].isSub = true;
-                    }
+                    pings[i + monsters.length] = new damage_ping_1.DamagePing(m, m.getSubattribute());
+                    pings[i + monsters.length].isSub = true;
                 }
                 for (const c of 'rbgld') {
                     const attr = common_7.COLORS.indexOf(c);
@@ -8406,7 +8411,12 @@
             }
             updateDamage() {
                 const { pings, healing } = this.team.getDamageCombos(this.comboContainer);
-                this.team.teamPane.updateDamage(pings.map((ping) => ({ attribute: ping.attribute, damage: ping.damage })), healing);
+                this.team.teamPane.updateDamage(pings.map((ping) => {
+                    if (ping) {
+                        return { attribute: ping.attribute, damage: ping.damage };
+                    }
+                    return { attribute: common_10.Attribute.NONE, damage: 0 };
+                }), healing);
             }
             getElement() {
                 return this.display.getElement();
