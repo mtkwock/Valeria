@@ -739,11 +739,9 @@ class Team {
           if (awoke) {
             if (combo.count == 4) {
               multiplier *= (1.5 ** ping.source.countAwakening(Awakening.TPA, mp));
-            }
-            if (combo.shape == Shape.L) {
+            } else if (combo.shape == Shape.L) {
               multiplier *= (1.5 ** ping.source.countAwakening(Awakening.L_UNLOCK, mp));
-            }
-            if (combo.shape == Shape.BOX) {
+            } else if (combo.shape == Shape.BOX) {
               multiplier *= (2.5 ** ping.source.countAwakening(Awakening.VDP, mp));
               ping.ignoreVoid = true;
             }
@@ -765,7 +763,6 @@ class Team {
               multiplier *= burstMultiplier;
             }
           }
-
 
           ping.add(Round.UP(curAtk * multiplier))
         }

@@ -254,7 +254,7 @@ enum FontColor {
   WATER = 'cyan',
   WOOD = 'lawngreen',
   LIGHT = 'yellow',
-  DARK = 'fuschia',
+  DARK = 'fuchsia',
   COLORLESS = 'gray',
   FIXED = 'white',
   NONE = 'black',
