@@ -2091,6 +2091,7 @@
             ClassNames["PLUS_EDITOR"] = "valeria-plus-editor";
             ClassNames["AWAKENING"] = "valeria-monster-awakening";
             ClassNames["AWAKENING_SUPER"] = "valeria-monster-awakening-super";
+            ClassNames["CHANGE_AREA"] = "valeria-change-area";
             ClassNames["SWAP_ICON"] = "valeria-swap-icon";
             ClassNames["TRANSFORM_ICON"] = "valeria-transform-icon";
             ClassNames["ENEMY_PICTURE"] = "valeria-enemy-picture-container";
@@ -2190,20 +2191,24 @@
                 this.element.appendChild(this.attributeEl);
                 this.attributeEl.appendChild(this.subattributeEl);
                 this.element.appendChild(this.infoTable);
-                this.swapIcon = new LayeredAsset([AssetEnum.SWAP], (active) => { console.log(active); }, true);
+                const changeArea = create('div', ClassNames.CHANGE_AREA);
+                this.swapIcon = new LayeredAsset([AssetEnum.SWAP], (active) => { console.log(active); }, true, 0.75);
                 const swapElement = this.swapIcon.getElement();
                 swapElement.classList.add(ClassNames.SWAP_ICON);
-                this.element.appendChild(swapElement);
+                changeArea.appendChild(swapElement);
+                // this.element.appendChild(swapElement);
                 hide(swapElement);
                 this.transformIcon = new LayeredAsset([AssetEnum.TRANSFROM], (active) => {
                     this.onUpdate({
                         transformActive: active,
                     });
-                }, false);
+                }, false, 0.75);
                 const transformElement = this.transformIcon.getElement();
                 transformElement.classList.add(ClassNames.TRANSFORM_ICON);
-                this.element.appendChild(transformElement);
+                // this.element.appendChild(transformElement);
+                changeArea.appendChild(transformElement);
                 hide(transformElement);
+                this.element.appendChild(changeArea);
                 if (this.hideInfoTable) {
                     superHide(swapElement);
                     superHide(transformElement);
@@ -2706,6 +2711,7 @@
                 this.selector.value = this.getName(id);
                 if (this.selector == document.activeElement) {
                     this.selector.select();
+                    this.options[0].setAttribute('value', String(id));
                 }
             }
         }
@@ -3698,7 +3704,7 @@
         ]);
         const UI_ASSET_SRC = `url(${common_2.BASE_URL}assets/UIPAT1.PNG)`;
         class LayeredAsset {
-            constructor(assets, onClick, active = true) {
+            constructor(assets, onClick, active = true, scale = 1) {
                 this.element = create('div', ClassNames.LAYERED_ASSET);
                 this.active = true;
                 this.assets = assets;
@@ -3712,16 +3718,17 @@
                     const assetInfo = ASSET_INFO.get(asset);
                     const el = create('a');
                     if (assetInfo) {
-                        el.style.width = String(assetInfo.width);
-                        el.style.height = String(assetInfo.height);
-                        if (assetInfo.width > maxSizes.width) {
-                            maxSizes.width = assetInfo.width;
+                        el.style.width = String(assetInfo.width * scale);
+                        el.style.height = String(assetInfo.height * scale);
+                        el.style.backgroundSize = `${512 * scale}px ${512 * scale}px`;
+                        if (assetInfo.width > maxSizes.width * scale) {
+                            maxSizes.width = assetInfo.width * scale;
                         }
-                        if (assetInfo.height > maxSizes.height) {
-                            maxSizes.height = assetInfo.height;
+                        if (assetInfo.height > maxSizes.height * scale) {
+                            maxSizes.height = assetInfo.height * scale;
                         }
                         el.style.backgroundImage = UI_ASSET_SRC;
-                        el.style.backgroundPosition = `${-1 * assetInfo.offsetX} ${-1 * assetInfo.offsetY}`;
+                        el.style.backgroundPosition = `${-1 * assetInfo.offsetX * scale} ${-1 * assetInfo.offsetY * scale}`;
                     }
                     return el;
                 });
@@ -4660,7 +4667,6 @@
                     this.setHpPlus(0);
                     this.setAtkPlus(0);
                     this.setRcvPlus(0);
-                    // this.card = floof.model.cards[4014];
                     return;
                 }
                 const c = this.getCard();

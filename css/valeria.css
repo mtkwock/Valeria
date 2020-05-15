@@ -459,16 +459,19 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   background-position: 0px -226.8px;
 }
 
+.valeria-change-area {
+  position: relative;
+  bottom: 99px;
+}
+
 .valeria-swap-icon {
   position: relative;
-  bottom: 102px;
-  left: 1px;
+  left: 2px;
 }
 
 .valeria-transform-icon {
   position: relative;
-  bottom: 102px;
-  left: 13px;
+  left: 24px;
 }
 
 .valeria-floor-container {
