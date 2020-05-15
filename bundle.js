@@ -1409,6 +1409,7 @@
             Attribute[Attribute["WOOD"] = 2] = "WOOD";
             Attribute[Attribute["LIGHT"] = 3] = "LIGHT";
             Attribute[Attribute["DARK"] = 4] = "DARK";
+            Attribute[Attribute["HEART"] = 5] = "HEART";
             Attribute[Attribute["NONE"] = -1] = "NONE";
         })(Attribute || (Attribute = {}));
         exports.Attribute = Attribute;
@@ -1670,6 +1671,27 @@
             }
         }
         exports.waitFor = waitFor;
+        var FontColor;
+        (function (FontColor) {
+            FontColor["FIRE"] = "red";
+            FontColor["WATER"] = "cyan";
+            FontColor["WOOD"] = "lawngreen";
+            FontColor["LIGHT"] = "yellow";
+            FontColor["DARK"] = "fuschia";
+            FontColor["COLORLESS"] = "gray";
+            FontColor["FIXED"] = "white";
+        })(FontColor || (FontColor = {}));
+        exports.FontColor = FontColor;
+        const AttributeToFontColor = {
+            0: FontColor.FIRE,
+            1: FontColor.WATER,
+            2: FontColor.WOOD,
+            3: FontColor.LIGHT,
+            4: FontColor.DARK,
+            5: FontColor.COLORLESS,
+            '-1': FontColor.FIXED,
+        };
+        exports.AttributeToFontColor = AttributeToFontColor;
     });
     define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_1, ilmina_stripped_2) {
         "use strict";
@@ -2094,6 +2116,7 @@
             ClassNames["CHANGE_AREA"] = "valeria-change-area";
             ClassNames["SWAP_ICON"] = "valeria-swap-icon";
             ClassNames["TRANSFORM_ICON"] = "valeria-transform-icon";
+            ClassNames["DAMAGE_TABLE"] = "valeria-team-damage-table";
             ClassNames["ENEMY_PICTURE"] = "valeria-enemy-picture-container";
             ClassNames["DUNGEON_EDITOR_FLOORS"] = "valeria-dungeon-edit-floors";
             ClassNames["FLOOR_NAME"] = "valeria-floor-name";
@@ -3231,28 +3254,29 @@
             }
         }
         exports.MonsterEditor = MonsterEditor;
-        function addCommas(n, maxPrecision = 3) {
-            let decimalPart = '';
-            if (!Number.isInteger(n)) {
-                let fn = Math.floor;
-                if (n < 0) {
-                    fn = Math.ceil;
-                }
-                decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
-                while (decimalPart[decimalPart.length - 1] == '0') {
-                    decimalPart = decimalPart.substring(0, decimalPart.length - 1);
-                }
-                n = fn(n);
-            }
-            const reversed = String(n).split('').reverse().join('');
-            const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
-            if (forwardCommaArray[0] == ',') {
-                forwardCommaArray.splice(0, 1);
-            }
-            else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
-                forwardCommaArray.splice(1, 1);
-            }
-            return forwardCommaArray.join('') + decimalPart;
+        // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
+        function addCommas(n) {
+            return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            // let decimalPart = '';
+            // if (!Number.isInteger(n)) {
+            //   let fn = Math.floor;
+            //   if (n < 0) {
+            //     fn = Math.ceil;
+            //   }
+            //   decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
+            //   while (decimalPart[decimalPart.length - 1] == '0') {
+            //     decimalPart = decimalPart.substring(0, decimalPart.length - 1);
+            //   }
+            //   n = fn(n);
+            // }
+            // const reversed = String(n).split('').reverse().join('');
+            // const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
+            // if (forwardCommaArray[0] == ',') {
+            //   forwardCommaArray.splice(0, 1);
+            // } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
+            //   forwardCommaArray.splice(1, 1);
+            // }
+            // return forwardCommaArray.join('') + decimalPart;
         }
         function removeCommas(s) {
             return Number(s.replace(/,/g, ''));
@@ -3288,7 +3312,7 @@
                     this.maxHp = maxHp;
                     this.sliderEl.max = String(maxHp);
                 }
-                this.hpMaxEl.innerText = String(this.maxHp);
+                this.hpMaxEl.innerText = addCommas(this.maxHp);
                 if (currentHp <= this.maxHp) {
                     this.currentHp = currentHp;
                 }
@@ -3360,7 +3384,12 @@
                 this.aggregatedAwakeningCounts = new Map();
                 this.metaTabs = new TabbedComponent(['Team', 'Save/Load']);
                 this.detailTabs = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
-                this.leadSwapInput = create('input');
+                this.fixedHpEl = new LayeredAsset([], () => { });
+                this.fixedHpInput = create('input');
+                this.leadSwapInput = create('select');
+                this.voidEls = [];
+                this.pingCells = [];
+                this.hpDamage = create('span');
                 this.onTeamUpdate = onTeamUpdate;
                 const teamTab = this.metaTabs.getTab('Team');
                 this.titleEl.placeholder = 'Team Name';
@@ -3524,13 +3553,33 @@
             }
             populateBattle() {
                 // HP Element
-                this.battleEl.appendChild(this.hpBar.getElement());
+                const hpEl = this.hpBar.getElement();
+                hpEl.appendChild(this.hpDamage);
+                this.battleEl.appendChild(hpEl);
+                this.fixedHpEl = new LayeredAsset([AssetEnum.FIXED_HP], () => {
+                    this.fixedHpInput.value = '0';
+                    this.onTeamUpdate({ fixedHp: 0 });
+                }, false, 0.7);
+                this.fixedHpInput.onchange = () => {
+                    console.log('Fixed HP');
+                    this.onTeamUpdate({ fixedHp: removeCommas(this.fixedHpInput.value) });
+                };
+                this.battleEl.appendChild(this.fixedHpEl.getElement());
+                this.battleEl.appendChild(this.fixedHpInput);
                 // Choose combos or active.
                 const leadSwapLabel = create('span');
-                leadSwapLabel.innerText = 'Current Lead Index: ';
+                leadSwapLabel.innerText = 'Lead Swap: ';
                 this.battleEl.appendChild(leadSwapLabel);
-                this.leadSwapInput.type = 'number';
-                this.leadSwapInput.value = '0';
+                for (let i = 0; i < 5; i++) {
+                    const option = create('option');
+                    option.value = String(i);
+                    option.innerText = `Sub ${i}`;
+                    if (i == 0) {
+                        option.selected = true;
+                        option.innerText = 'Lead';
+                    }
+                    this.leadSwapInput.appendChild(option);
+                }
                 this.leadSwapInput.onchange = () => {
                     let pos = Number(this.leadSwapInput.value);
                     if (pos < 0) {
@@ -3544,6 +3593,62 @@
                 this.battleEl.appendChild(this.leadSwapInput);
                 // Player State including
                 // * Void Attr, Void
+                const voidDamageAbsorb = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.ABSORB_OVERLAY, AssetEnum.VOID], (active) => {
+                    console.log(`Setting Void Damage Absorb to ${active}`);
+                    this.onTeamUpdate({ voidDamageAbsorb: active });
+                }, true, 1);
+                const voidAttributeAbsorb = new LayeredAsset([AssetEnum.COLOR_WHEEL, AssetEnum.VOID], (active) => {
+                    console.log(`Setting Void Attribute Absorb to ${active}`);
+                    this.onTeamUpdate({ voidAttributeAbsorb: active });
+                }, true, 1);
+                const voidDamageVoid = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.VOID_OVERLAY, AssetEnum.VOID], (active) => {
+                    console.log(`Setting Void Damage Void to ${active}`);
+                    this.onTeamUpdate({ voidDamageVoid: active });
+                }, true, 1);
+                const voidAwakenings = new LayeredAsset([AssetEnum.AWOKEN_BIND], (active) => {
+                    this.onTeamUpdate({ voidAwakenings: active });
+                });
+                this.voidEls.push(voidDamageAbsorb);
+                this.voidEls.push(voidAttributeAbsorb);
+                this.voidEls.push(voidDamageVoid);
+                this.voidEls.push(voidAwakenings);
+                const elsToManageOpacity = [
+                    voidDamageAbsorb.getAssetPart(2),
+                    voidAttributeAbsorb.getAssetPart(1),
+                    voidDamageVoid.getAssetPart(2),
+                ];
+                // Make the x blink.
+                setInterval(() => {
+                    const d = new Date();
+                    const time = d.getSeconds() + d.getMilliseconds() / 1000;
+                    const opacity = 0.5 * (Math.sin(3.14 * time) + 1);
+                    for (const idx in elsToManageOpacity) {
+                        elsToManageOpacity[idx].style.opacity = String(this.voidEls[idx].active ? opacity : opacity * 0.5);
+                    }
+                }, 75);
+                const toggleArea = create('div');
+                toggleArea.appendChild(voidDamageAbsorb.getElement());
+                toggleArea.appendChild(voidAttributeAbsorb.getElement());
+                toggleArea.appendChild(voidDamageVoid.getElement());
+                toggleArea.appendChild(voidAwakenings.getElement());
+                this.battleEl.appendChild(toggleArea);
+                const damageTable = create('table', ClassNames.DAMAGE_TABLE);
+                const mainRow = create('tr');
+                const subRow = create('tr');
+                this.pingCells = Array(12);
+                for (let i = 0; i < 6; i++) {
+                    const mainPingCell = create('td');
+                    const subPingCell = create('td');
+                    mainPingCell.id = `valeria-ping-main-${i}`;
+                    subPingCell.id = `valeria-ping-sub-${i}`;
+                    mainRow.appendChild(mainPingCell);
+                    subRow.appendChild(subPingCell);
+                    this.pingCells[i] = mainPingCell;
+                    this.pingCells[i + 6] = subPingCell;
+                }
+                damageTable.appendChild(mainRow);
+                damageTable.appendChild(subRow);
+                this.battleEl.appendChild(damageTable);
             }
             // TODO
             update(playerMode, title, description) {
@@ -3590,6 +3695,19 @@
             updateBattle(teamBattle) {
                 this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
                 this.leadSwapInput.value = `${teamBattle.leadSwap}`;
+                for (const idx in teamBattle.voids) {
+                    this.voidEls[idx].setActive(teamBattle.voids[idx]);
+                }
+                this.fixedHpEl.setActive(teamBattle.fixedHp > 0);
+                this.fixedHpInput.value = addCommas(teamBattle.fixedHp);
+            }
+            updateDamage(pings, healing) {
+                for (let i = 0; i < 12; i++) {
+                    const { attribute, damage } = pings[i];
+                    this.pingCells[i].innerText = addCommas(damage);
+                    this.pingCells[i].style.color = common_2.AttributeToFontColor[attribute];
+                }
+                this.hpDamage.innerText = `+${addCommas(healing)}`;
             }
         }
         exports.TeamPane = TeamPane;
@@ -3667,6 +3785,9 @@
             // DAMAGE_NULL,
             AssetEnum[AssetEnum["SWAP"] = 38] = "SWAP";
             AssetEnum[AssetEnum["TRANSFROM"] = 39] = "TRANSFROM";
+            // Overlays absorbs and voids as player buffs..
+            AssetEnum[AssetEnum["VOID"] = 40] = "VOID";
+            AssetEnum[AssetEnum["COLOR_WHEEL"] = 41] = "COLOR_WHEEL";
         })(AssetEnum || (AssetEnum = {}));
         exports.AssetEnum = AssetEnum;
         const ASSET_INFO = new Map([
@@ -3690,17 +3811,19 @@
             [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
             [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
             [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 326, width: 36, height: 36 }],
-            [AssetEnum.FIRE_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 0, width: 32, height: 32 }],
-            [AssetEnum.WATER_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 1, width: 32, height: 32 }],
-            [AssetEnum.WOOD_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 2, width: 32, height: 32 }],
-            [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 3, width: 32, height: 32 }],
-            [AssetEnum.DARK_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 4, width: 32, height: 32 }],
+            [AssetEnum.FIRE_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 0, width: 32, height: 32 }],
+            [AssetEnum.WATER_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 1, width: 32, height: 32 }],
+            [AssetEnum.WOOD_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 2, width: 32, height: 32 }],
+            [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 3, width: 32, height: 32 }],
+            [AssetEnum.DARK_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 4, width: 32, height: 32 }],
             [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36 }],
             [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
             [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
             [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
             [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
             [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
+            [AssetEnum.VOID, { offsetY: 90, offsetX: 416, width: 19, height: 18 }],
+            [AssetEnum.COLOR_WHEEL, { offsetY: 208, offsetX: 131, width: 32, height: 32 }],
         ]);
         const UI_ASSET_SRC = `url(${common_2.BASE_URL}assets/UIPAT1.PNG)`;
         class LayeredAsset {
@@ -3732,10 +3855,13 @@
                     }
                     return el;
                 });
+                if (this.elements.length == 3) {
+                    console.log('here');
+                }
                 // Manually center each of these.
                 for (const el of this.elements) {
-                    const elHeight = Number(el.style.height);
-                    const elWidth = Number(el.style.width);
+                    const elHeight = Number(el.style.height.replace('px', ''));
+                    const elWidth = Number(el.style.width.replace('px', ''));
                     if (elHeight < maxSizes.height) {
                         el.style.marginTop = String((maxSizes.height - elHeight) / 2);
                     }
@@ -3756,6 +3882,9 @@
             }
             getElement() {
                 return this.element;
+            }
+            getAssetPart(idx) {
+                return this.elements[idx];
             }
             setActive(active) {
                 this.active = active;
@@ -5275,6 +5404,8 @@
         class DamagePing {
             constructor(source, attribute, isSub = false) {
                 this.isSub = false;
+                this.ignoreVoid = false;
+                this.ignoreDefense = false;
                 this.damage = 0;
                 this.rawDamage = 0;
                 this.actualDamage = 0;
@@ -6351,7 +6482,7 @@
         }
         exports.awokenBindClear = awokenBindClear;
     });
-    define("player_team", ["require", "exports", "common", "monster_instance", "templates", "ilmina_stripped", "leaders"], function (require, exports, common_7, monster_instance_1, templates_3, ilmina_stripped_6, leaders) {
+    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_3, ilmina_stripped_6, leaders) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const DEFAULT_STATE = {
@@ -6370,9 +6501,9 @@
                 multiplier: 1,
                 awakeningScale: 0,
             },
-            ignoreDamageAbsorb: false,
-            ignoreAttributeAbsorb: false,
-            ignoreDamageVoid: false,
+            voidDamageAbsorb: false,
+            voidAttributeAbsorb: false,
+            voidDamageVoid: false,
             timeBonus: 0,
             timeIsMult: false,
             rcvMult: 0,
@@ -6500,12 +6631,27 @@
                             this.state.currentHp = ctx.currentHp;
                         }
                     }
+                    if (ctx.fixedHp != undefined) {
+                        this.state.fixedHp = ctx.fixedHp;
+                    }
                     if (ctx.leadSwap != undefined) {
                         this.updateState({ leadSwap: ctx.leadSwap });
                     }
+                    if (ctx.voidDamageAbsorb != undefined) {
+                        this.state.voidDamageAbsorb = ctx.voidDamageAbsorb;
+                    }
+                    if (ctx.voidAttributeAbsorb != undefined) {
+                        this.state.voidAttributeAbsorb = ctx.voidAttributeAbsorb;
+                    }
+                    if (ctx.voidDamageVoid != undefined) {
+                        this.state.voidDamageVoid = ctx.voidDamageVoid;
+                    }
+                    if (ctx.voidAwakenings != undefined) {
+                        this.state.awakenings = !ctx.voidAwakenings;
+                    }
                     this.update();
                 });
-                this.updateIdxCb = () => null;
+                this.updateCb = () => null;
                 // TODO: Battle Display - Different Class?
             }
             updateState(ctx) {
@@ -6542,7 +6688,7 @@
                     }
                 }
                 this.activeMonster = idx;
-                this.updateIdxCb(idx);
+                this.updateCb(idx);
             }
             resetState(partial = false) {
                 const state = this.state;
@@ -6870,6 +7016,239 @@
                 // All teams have bigBoard.
                 return 7;
             }
+            getDamageCombos(comboContainer) {
+                comboContainer.bonusCombosLeader = 0;
+                const mp = this.isMultiplayer();
+                const awoke = this.state.awakenings;
+                const percentHp = this.getHpPercent();
+                let monsters = this.getActiveTeam();
+                const leadId = monsters[0].bound ? -1 : monsters[0].getCard().leaderSkillId;
+                const helpId = monsters[5].bound ? -1 : monsters[5].getCard().leaderSkillId;
+                const partialAtk = (id, ping, healing) => leaders.atk(id, {
+                    ping,
+                    team: monsters,
+                    percentHp,
+                    comboContainer,
+                    skillUsed: this.state.skillUsed,
+                    isMultiplayer: mp,
+                    healing,
+                });
+                const enhancedCounts = {
+                    r: this.countAwakening(common_7.Awakening.OE_FIRE),
+                    b: this.countAwakening(common_7.Awakening.OE_WATER),
+                    g: this.countAwakening(common_7.Awakening.OE_WOOD),
+                    l: this.countAwakening(common_7.Awakening.OE_LIGHT),
+                    d: this.countAwakening(common_7.Awakening.OE_DARK),
+                    h: this.countAwakening(common_7.Awakening.OE_HEART),
+                };
+                const rowTotals = {
+                    0: 0,
+                    1: 0,
+                    2: 0,
+                    3: 0,
+                    4: 0,
+                    5: 0,
+                    '-1': 0,
+                };
+                const rowAwakenings = {
+                    '-1': NaN,
+                    0: this.countAwakening(common_7.Awakening.ROW_FIRE),
+                    1: this.countAwakening(common_7.Awakening.ROW_WATER),
+                    2: this.countAwakening(common_7.Awakening.ROW_WOOD),
+                    3: this.countAwakening(common_7.Awakening.ROW_LIGHT),
+                    4: this.countAwakening(common_7.Awakening.ROW_DARK),
+                    5: this.countAwakening(common_7.Awakening.RECOVER_BIND),
+                };
+                monsters = monsters.filter((monster) => monster.getId() > 0);
+                let pings = Array(2 * monsters.length);
+                for (let i = 0; i < monsters.length; i++) {
+                    if (monsters[i].bound) {
+                        continue;
+                    }
+                    const m = monsters[i];
+                    pings[i] = new damage_ping_1.DamagePing(m, m.getAttribute());
+                    if (m.getSubattribute() != common_7.Attribute.NONE) {
+                        pings[i + monsters.length] = new damage_ping_1.DamagePing(m, m.getSubattribute());
+                        pings[i + monsters.length].isSub = true;
+                    }
+                }
+                for (const c of 'rbgld') {
+                    const attr = common_7.COLORS.indexOf(c);
+                    for (const combo of comboContainer.combos[c]) {
+                        let baseMultiplier = (combo.count + 1) * 0.25;
+                        if (combo.enhanced) {
+                            baseMultiplier *= (1 + 0.06 * combo.enhanced);
+                            if (awoke && enhancedCounts[c]) {
+                                baseMultiplier *= (1 + enhancedCounts[c] * 0.07);
+                            }
+                        }
+                        if (combo.shape == common_7.Shape.ROW) {
+                            rowTotals[attr] += rowAwakenings[attr];
+                        }
+                        for (const ping of pings) {
+                            if (!ping || ping.attribute != attr) {
+                                continue;
+                            }
+                            let curAtk = ping.source.getAtk(mp, awoke);
+                            curAtk = common_7.Round.UP(curAtk * baseMultiplier);
+                            if (ping.isSub) {
+                                const divisor = ping.attribute == ping.source.getAttribute() ? 10 : 3;
+                                curAtk = common_7.Round.UP(curAtk / divisor);
+                            }
+                            let multiplier = 1;
+                            if (awoke) {
+                                if (combo.count == 4) {
+                                    multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.TPA, mp));
+                                }
+                                if (combo.shape == common_7.Shape.L) {
+                                    multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.L_UNLOCK, mp));
+                                }
+                                if (combo.shape == common_7.Shape.BOX) {
+                                    multiplier *= (2.5 ** ping.source.countAwakening(common_7.Awakening.VDP, mp));
+                                    ping.ignoreVoid = true;
+                                }
+                            }
+                            // Handle burst.
+                            const burst = this.state.burst;
+                            if (!burst.typeRestrictions.length || ping.source.anyTypes(burst.typeRestrictions)) {
+                                if (!burst.attrRestrictions.length || burst.attrRestrictions.includes(ping.attribute)) {
+                                    let burstMultiplier = burst.multiplier;
+                                    for (const awakening of burst.awakenings) {
+                                        burstMultiplier += this.countAwakening(awakening) * burst.awakeningScale;
+                                        if (common_7.AwakeningToPlusAwakening.has(awakening)) {
+                                            const plusAwakening = common_7.AwakeningToPlusAwakening.get(awakening);
+                                            const perAwakening = Number(common_7.PlusAwakeningMultiplier.get(plusAwakening));
+                                            burstMultiplier += perAwakening * this.countAwakening(plusAwakening) * burst.awakeningScale;
+                                        }
+                                    }
+                                    multiplier *= burstMultiplier;
+                                }
+                            }
+                            ping.add(common_7.Round.UP(curAtk * multiplier));
+                        }
+                    }
+                }
+                let healing = 0;
+                const teamRcvAwakenings = this.countAwakening(common_7.Awakening.TEAM_RCV);
+                let trueBonusAttack = 0;
+                const partialRcv = (id, monster) => leaders.rcv(id, {
+                    monster,
+                    team: monsters,
+                    isMultiplayer: mp,
+                });
+                for (const combo of comboContainer.combos['h']) {
+                    let multiplier = (combo.count + 1) * 0.25;
+                    if (combo.enhanced) {
+                        multiplier *= (1 + 0.06 * combo.enhanced);
+                        if (awoke && enhancedCounts[common_7.Attribute.HEART]) {
+                            multiplier *= (1 + enhancedCounts[common_7.Attribute.HEART] * 0.07);
+                        }
+                    }
+                    multiplier *= this.state.rcvMult;
+                    if (awoke) {
+                        if (combo.shape == common_7.Shape.COLUMN) {
+                            trueBonusAttack += this.countAwakening(common_7.Awakening.BONUS_ATTACK);
+                        }
+                        if (combo.shape == common_7.Shape.BOX) {
+                            trueBonusAttack += (99 * this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER));
+                        }
+                        multiplier *= (1 + 0.1 * teamRcvAwakenings);
+                    }
+                    for (const monster of monsters) {
+                        let rcv = monster.getRcv(mp, awoke);
+                        if (awoke && combo.count == 4) {
+                            rcv *= (1.5 ** monster.countAwakening(common_7.Awakening.OE_HEART, mp));
+                        }
+                        const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
+                        healing += common_7.Round.UP(rcv * multiplier * rcvMult);
+                    }
+                }
+                comboContainer.bonusCombosLeader = leaders.plusCombo(leadId, { team: monsters, comboContainer }) +
+                    leaders.plusCombo(helpId, { team: monsters, comboContainer });
+                const comboCount = comboContainer.comboCount();
+                const comboMultiplier = comboCount * 0.25 + 0.75;
+                for (const ping of pings) {
+                    if (ping) {
+                        ping.multiply(comboMultiplier, common_7.Round.UP);
+                    }
+                }
+                healing = common_7.Round.UP(healing * comboMultiplier);
+                // Apply awakenings.
+                // Known order according to PDC:
+                // (7c/10c), (80%/50%), Rows, Sfua, L-Guard
+                // Poison Blessing occurs after rows.  Unknown relative to L-Guard as it's impossible to get both.
+                // Jammer applies after Sfua.
+                // Assuming:
+                // (7c/10c), (80%/50%), Rows, Sfua, L-Guard, JammerBless, PoisonBless
+                if (awoke) {
+                    for (const ping of pings) {
+                        if (!ping || ping.damage == 0) {
+                            continue;
+                        }
+                        const apply = (awakening, multiplier) => {
+                            const count = ping.source.countAwakening(awakening, mp);
+                            if (count) {
+                                ping.multiply(multiplier ** ping.source.countAwakening(awakening, mp), common_7.Round.NEAREST);
+                            }
+                        };
+                        if (comboCount >= 7) {
+                            apply(common_7.Awakening.COMBO_7, 2);
+                        }
+                        if (comboCount >= 10) {
+                            apply(common_7.Awakening.COMBO_10, 5);
+                        }
+                        if (percentHp <= 50) {
+                            apply(common_7.Awakening.HP_LESSER, 2);
+                        }
+                        if (percentHp >= 80) {
+                            apply(common_7.Awakening.HP_GREATER, 1.5);
+                        }
+                        if (rowTotals[ping.attribute]) {
+                            ping.multiply(1 + 0.15 * rowTotals[ping.attribute], common_7.Round.NEAREST);
+                        }
+                        if (comboContainer.combos['h'].some((combo) => combo.shape == common_7.Shape.BOX)) {
+                            apply(common_7.Awakening.BONUS_ATTACK_SUPER, 2);
+                        }
+                        if (comboContainer.combos['h'].some((combo) => combo.shape == common_7.Shape.L)) {
+                            apply(common_7.Awakening.L_GUARD, 1.5);
+                        }
+                        if (comboContainer.combos['j'].length) {
+                            // TODO: Change when Jammer Boost is buffed.
+                            apply(common_7.Awakening.JAMMER_BOOST, 1.5);
+                        }
+                        if (comboContainer.combos['p'].length || comboContainer.combos['m'].length) {
+                            apply(common_7.Awakening.POISON_BOOST, 2);
+                        }
+                    }
+                }
+                for (const ping of pings) {
+                    if (!ping || !ping.damage) {
+                        continue;
+                    }
+                    let val = ping.damage;
+                    // val = val * partialAtk(leadId, ping, healing);
+                    // val = val * partialAtk(helpId, ping, healing);
+                    val = Math.fround(val) * Math.fround(partialAtk(leadId, ping, healing) * 100) / Math.fround(100);
+                    val = Math.fround(val) * Math.fround(partialAtk(helpId, ping, healing) * 100) / Math.fround(100);
+                    ping.damage = Math.round(val);
+                }
+                healing += this.countAwakening(common_7.Awakening.AUTOHEAL) * 1000;
+                trueBonusAttack += leaders.trueBonusAttack(leadId, {
+                    team: monsters, comboContainer
+                }) + leaders.trueBonusAttack(helpId, {
+                    team: monsters, comboContainer
+                });
+                for (const ping of pings) {
+                    if (ping && ping.damage > 2 ** 31) {
+                        ping.damage = 2 ** 31 - 1;
+                    }
+                }
+                return {
+                    pings,
+                    healing,
+                    trueBonusAttack,
+                };
+            }
             update() {
                 this.teamPane.update(this.playerMode, this.teamName, this.description);
                 for (let teamIdx = 0; teamIdx < 3; teamIdx++) {
@@ -6886,7 +7265,10 @@
                     currentHp: this.state.currentHp,
                     maxHp: this.getHp(),
                     leadSwap: this.state.leadSwaps[this.activeTeamIdx],
+                    voids: [this.state.voidDamageAbsorb, this.state.voidAttributeAbsorb, this.state.voidDamageVoid, !this.state.awakenings],
+                    fixedHp: this.state.fixedHp,
                 });
+                this.updateCb(this.activeMonster);
             }
             countAwakening(awakening) {
                 const monsters = this.getActiveTeam();
@@ -7910,6 +8292,9 @@
                 this.display = new templates_5.ValeriaDisplay();
                 this.comboContainer = new combo_container_1.ComboContainer();
                 this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
+                this.comboContainer.onUpdate.push(() => {
+                    this.updateDamage();
+                });
                 this.monsterEditor = new templates_5.MonsterEditor((ctx) => {
                     if (ctx.playerMode) {
                         console.log(ctx.playerMode);
@@ -7956,7 +8341,6 @@
                     }
                     this.team.update();
                     this.updateMonsterEditor();
-                    console.log(ctx);
                 });
                 this.monsterEditor.pdchu.importButton.onclick = () => {
                     this.team.fromPdchu(this.monsterEditor.pdchu.io.value);
@@ -7982,8 +8366,11 @@
                 };
                 this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
                 this.team = new player_team_1.Team();
-                this.team.updateIdxCb = () => {
+                this.team.updateCb = () => {
                     this.updateMonsterEditor();
+                    this.updateDamage();
+                    // console.log(healing);
+                    // console.log(trueBonusAttack);
                 };
                 let team = url_handler_1.getUrlParameter('team');
                 if (team) {
@@ -8016,6 +8403,10 @@
                     latents: monster.latents,
                     superAwakeningIdx: monster.superAwakeningIdx,
                 });
+            }
+            updateDamage() {
+                const { pings, healing } = this.team.getDamageCombos(this.comboContainer);
+                this.team.teamPane.updateDamage(pings.map((ping) => ({ attribute: ping.attribute, damage: ping.damage })), healing);
             }
             getElement() {
                 return this.display.getElement();
