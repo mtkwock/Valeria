@@ -1,6 +1,8 @@
-import { Attribute, MonsterType, Awakening, Latent } from './common';
+import { Attribute, MonsterType, Awakening, Latent, Round, Shape, COLORS, AwakeningToPlusAwakening, PlusAwakeningMultiplier } from './common';
 import { MonsterInstance, MonsterJson } from './monster_instance';
+import { DamagePing } from './damage_ping';
 import { StoredTeamDisplay, TeamPane, TeamUpdate, Stats, MonsterUpdate } from './templates';
+import { ComboContainer } from './combo_container';
 import { floof, compress, decompress } from './ilmina_stripped';
 import * as leaders from './leaders';
 
@@ -19,9 +21,9 @@ interface TeamState {
   shieldPercent: number;
   attributesShielded: Attribute[];
   burst: Burst;
-  ignoreDamageAbsorb: boolean;
-  ignoreAttributeAbsorb: boolean;
-  ignoreDamageVoid: boolean;
+  voidDamageAbsorb: boolean;
+  voidAttributeAbsorb: boolean;
+  voidDamageVoid: boolean;
 
   timeBonus: number;
   timeIsMult: boolean;
@@ -42,9 +44,9 @@ interface TeamStateContext {
   shieldPercent?: number;
   attributesShielded?: Attribute[];
   burst?: Burst;
-  ignoreDamageAbsorb?: boolean;
-  ignoreAttributeAbsorb?: boolean;
-  ignoreDamageVoid?: boolean;
+  voidDamageAbsorb?: boolean;
+  voidAttributeAbsorb?: boolean;
+  voidDamageVoid?: boolean;
 
   timeBonus?: number;
   timeIsMult?: boolean;
@@ -69,9 +71,9 @@ const DEFAULT_STATE: TeamState = {
     multiplier: 1,
     awakeningScale: 0,
   },
-  ignoreDamageAbsorb: false,
-  ignoreAttributeAbsorb: false,
-  ignoreDamageVoid: false,
+  voidDamageAbsorb: false,
+  voidAttributeAbsorb: false,
+  voidDamageVoid: false,
 
   timeBonus: 0,
   timeIsMult: false,
@@ -176,7 +178,8 @@ class Team {
   storage: StoredTeams;
   state: TeamState = Object.assign({}, DEFAULT_STATE);
   teamPane: TeamPane;
-  updateIdxCb: (idx: number) => any;
+  // On change monster selection.
+  updateCb: (idx: number) => any;
 
   constructor() {
     /**
@@ -226,14 +229,31 @@ class Team {
             this.state.currentHp = ctx.currentHp;
           }
         }
+        if (ctx.fixedHp != undefined) {
+          this.state.fixedHp = ctx.fixedHp;
+        }
         if (ctx.leadSwap != undefined) {
           this.updateState({ leadSwap: ctx.leadSwap });
         }
+
+        if (ctx.voidDamageAbsorb != undefined) {
+          this.state.voidDamageAbsorb = ctx.voidDamageAbsorb;
+        }
+        if (ctx.voidAttributeAbsorb != undefined) {
+          this.state.voidAttributeAbsorb = ctx.voidAttributeAbsorb;
+        }
+        if (ctx.voidDamageVoid != undefined) {
+          this.state.voidDamageVoid = ctx.voidDamageVoid;
+        }
+        if (ctx.voidAwakenings != undefined) {
+          this.state.awakenings = !ctx.voidAwakenings;
+        }
+
         this.update();
       }
     );
 
-    this.updateIdxCb = () => null;
+    this.updateCb = () => null;
 
     // TODO: Battle Display - Different Class?
   }
@@ -273,7 +293,7 @@ class Team {
       }
     }
     this.activeMonster = idx;
-    this.updateIdxCb(idx);
+    this.updateCb(idx);
   }
 
   resetState(partial: boolean = false): void {
@@ -625,6 +645,266 @@ class Team {
     return 7;
   }
 
+  getDamageCombos(comboContainer: ComboContainer): { pings: DamagePing[], healing: number, trueBonusAttack: number } {
+    comboContainer.bonusCombosLeader = 0;
+
+    const mp = this.isMultiplayer();
+    const awoke = this.state.awakenings;
+    const percentHp = this.getHpPercent();
+    let monsters = this.getActiveTeam();
+    const leadId = monsters[0].bound ? -1 : monsters[0].getCard().leaderSkillId;
+    const helpId = monsters[5].bound ? -1 : monsters[5].getCard().leaderSkillId;
+    const partialAtk = (id: number, ping: DamagePing, healing: number) => leaders.atk(id, {
+      ping,
+      team: monsters,
+      percentHp,
+      comboContainer,
+      skillUsed: this.state.skillUsed,
+      isMultiplayer: mp,
+      healing,
+    });
+
+    const enhancedCounts: Record<string, number> = {
+      r: this.countAwakening(Awakening.OE_FIRE),
+      b: this.countAwakening(Awakening.OE_WATER),
+      g: this.countAwakening(Awakening.OE_WOOD),
+      l: this.countAwakening(Awakening.OE_LIGHT),
+      d: this.countAwakening(Awakening.OE_DARK),
+      h: this.countAwakening(Awakening.OE_HEART),
+    };
+
+    const rowTotals: Record<Attribute, number> = {
+      0: 0,
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+      '-1': 0,
+    };
+    const rowAwakenings: Record<Attribute, number> = {
+      '-1': NaN,
+      0: this.countAwakening(Awakening.ROW_FIRE),
+      1: this.countAwakening(Awakening.ROW_WATER),
+      2: this.countAwakening(Awakening.ROW_WOOD),
+      3: this.countAwakening(Awakening.ROW_LIGHT),
+      4: this.countAwakening(Awakening.ROW_DARK),
+      5: this.countAwakening(Awakening.RECOVER_BIND),
+    };
+
+    monsters = monsters.filter((monster) => monster.getId() > 0);
+    let pings: DamagePing[] = Array(2 * monsters.length);
+
+    for (let i = 0; i < monsters.length; i++) {
+      if (monsters[i].bound) {
+        continue;
+      }
+      const m = monsters[i];
+      pings[i] = new DamagePing(m, m.getAttribute());
+      if (m.getSubattribute() != Attribute.NONE) {
+        pings[i + monsters.length] = new DamagePing(m, m.getSubattribute());
+        pings[i + monsters.length].isSub = true;
+      }
+    }
+
+    for (const c of 'rbgld') {
+      const attr = COLORS.indexOf(c) as Attribute;
+      for (const combo of comboContainer.combos[c]) {
+        let baseMultiplier = (combo.count + 1) * 0.25;
+        if (combo.enhanced) {
+          baseMultiplier *= (1 + 0.06 * combo.enhanced);
+          if (awoke && enhancedCounts[c]) {
+            baseMultiplier *= (1 + enhancedCounts[c] * 0.07);
+          }
+        }
+        if (combo.shape == Shape.ROW) {
+          rowTotals[attr] += rowAwakenings[attr];
+        }
+        for (const ping of pings) {
+          if (!ping || ping.attribute != attr) {
+            continue;
+          }
+          let curAtk = ping.source.getAtk(mp, awoke);
+          curAtk = Round.UP(curAtk * baseMultiplier);
+          if (ping.isSub) {
+            const divisor = ping.attribute == ping.source.getAttribute() ? 10 : 3;
+            curAtk = Round.UP(curAtk / divisor);
+          }
+
+          let multiplier = 1;
+          if (awoke) {
+            if (combo.count == 4) {
+              multiplier *= (1.5 ** ping.source.countAwakening(Awakening.TPA, mp));
+            }
+            if (combo.shape == Shape.L) {
+              multiplier *= (1.5 ** ping.source.countAwakening(Awakening.L_UNLOCK, mp));
+            }
+            if (combo.shape == Shape.BOX) {
+              multiplier *= (2.5 ** ping.source.countAwakening(Awakening.VDP, mp));
+              ping.ignoreVoid = true;
+            }
+          }
+
+          // Handle burst.
+          const burst = this.state.burst;
+          if (!burst.typeRestrictions.length || ping.source.anyTypes(burst.typeRestrictions)) {
+            if (!burst.attrRestrictions.length || burst.attrRestrictions.includes(ping.attribute)) {
+              let burstMultiplier = burst.multiplier;
+              for (const awakening of burst.awakenings) {
+                burstMultiplier += this.countAwakening(awakening) * burst.awakeningScale;
+                if (AwakeningToPlusAwakening.has(awakening)) {
+                  const plusAwakening = AwakeningToPlusAwakening.get(awakening) as Awakening;
+                  const perAwakening = Number(PlusAwakeningMultiplier.get(plusAwakening));
+                  burstMultiplier += perAwakening * this.countAwakening(plusAwakening) * burst.awakeningScale;
+                }
+              }
+              multiplier *= burstMultiplier;
+            }
+          }
+
+
+          ping.add(Round.UP(curAtk * multiplier))
+        }
+      }
+    }
+
+    let healing = 0;
+    const teamRcvAwakenings = this.countAwakening(Awakening.TEAM_RCV);
+    let trueBonusAttack = 0;
+
+    const partialRcv = (id: number, monster: MonsterInstance) => leaders.rcv(id, {
+      monster,
+      team: monsters,
+      isMultiplayer: mp,
+    });
+
+    for (const combo of comboContainer.combos['h']) {
+      let multiplier = (combo.count + 1) * 0.25;
+      if (combo.enhanced) {
+        multiplier *= (1 + 0.06 * combo.enhanced);
+        if (awoke && enhancedCounts[Attribute.HEART]) {
+          multiplier *= (1 + enhancedCounts[Attribute.HEART] * 0.07);
+        }
+      }
+      multiplier *= this.state.rcvMult;
+
+      if (awoke) {
+        if (combo.shape == Shape.COLUMN) {
+          trueBonusAttack += this.countAwakening(Awakening.BONUS_ATTACK);
+        }
+        if (combo.shape == Shape.BOX) {
+          trueBonusAttack += (99 * this.countAwakening(Awakening.BONUS_ATTACK_SUPER));
+        }
+        multiplier *= (1 + 0.1 * teamRcvAwakenings);
+      }
+
+      for (const monster of monsters) {
+        let rcv = monster.getRcv(mp, awoke);
+        if (awoke && combo.count == 4) {
+          rcv *= (1.5 ** monster.countAwakening(Awakening.OE_HEART, mp));
+        }
+        const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
+        healing += Round.UP(rcv * multiplier * rcvMult);
+      }
+    }
+
+    comboContainer.bonusCombosLeader = leaders.plusCombo(
+      leadId, { team: monsters, comboContainer }) +
+      leaders.plusCombo(helpId, { team: monsters, comboContainer });
+
+    const comboCount = comboContainer.comboCount();
+    const comboMultiplier = comboCount * 0.25 + 0.75;
+
+    for (const ping of pings) {
+      if (ping) {
+        ping.multiply(comboMultiplier, Round.UP);
+      }
+    }
+    healing = Round.UP(healing * comboMultiplier);
+
+    // Apply awakenings.
+    // Known order according to PDC:
+    // (7c/10c), (80%/50%), Rows, Sfua, L-Guard
+    // Poison Blessing occurs after rows.  Unknown relative to L-Guard as it's impossible to get both.
+    // Jammer applies after Sfua.
+    // Assuming:
+    // (7c/10c), (80%/50%), Rows, Sfua, L-Guard, JammerBless, PoisonBless
+    if (awoke) {
+      for (const ping of pings) {
+        if (!ping || ping.damage == 0) {
+          continue;
+        }
+        const apply = (awakening: Awakening, multiplier: number) => {
+          const count = ping.source.countAwakening(awakening, mp);
+          if (count) {
+            ping.multiply(multiplier ** ping.source.countAwakening(awakening, mp), Round.NEAREST);
+          }
+        }
+        if (comboCount >= 7) {
+          apply(Awakening.COMBO_7, 2);
+        }
+        if (comboCount >= 10) {
+          apply(Awakening.COMBO_10, 5);
+        }
+        if (percentHp <= 50) {
+          apply(Awakening.HP_LESSER, 2);
+        }
+        if (percentHp >= 80) {
+          apply(Awakening.HP_GREATER, 1.5);
+        }
+        if (rowTotals[ping.attribute]) {
+          ping.multiply(1 + 0.15 * rowTotals[ping.attribute], Round.NEAREST);
+        }
+        if (comboContainer.combos['h'].some((combo) => combo.shape == Shape.BOX)) {
+          apply(Awakening.BONUS_ATTACK_SUPER, 2);
+        }
+        if (comboContainer.combos['h'].some((combo) => combo.shape == Shape.L)) {
+          apply(Awakening.L_GUARD, 1.5);
+        }
+        if (comboContainer.combos['j'].length) {
+          // TODO: Change when Jammer Boost is buffed.
+          apply(Awakening.JAMMER_BOOST, 1.5);
+        }
+        if (comboContainer.combos['p'].length || comboContainer.combos['m'].length) {
+          apply(Awakening.POISON_BOOST, 2);
+        }
+      }
+    }
+
+    for (const ping of pings) {
+      if (!ping || !ping.damage) {
+        continue;
+      }
+
+      let val = ping.damage;
+      // val = val * partialAtk(leadId, ping, healing);
+      // val = val * partialAtk(helpId, ping, healing);
+      val = Math.fround(val) * Math.fround(partialAtk(leadId, ping, healing) * 100) / Math.fround(100);
+      val = Math.fround(val) * Math.fround(partialAtk(helpId, ping, healing) * 100) / Math.fround(100);
+      ping.damage = Math.round(val);
+    }
+
+    healing += this.countAwakening(Awakening.AUTOHEAL) * 1000;
+
+    trueBonusAttack += leaders.trueBonusAttack(leadId, {
+      team: monsters, comboContainer
+    }) + leaders.trueBonusAttack(helpId, {
+      team: monsters, comboContainer
+    });
+
+    for (const ping of pings) {
+      if (ping && ping.damage > 2 ** 31) {
+        ping.damage = 2 ** 31 - 1;
+      }
+    }
+
+    return {
+      pings,
+      healing,
+      trueBonusAttack,
+    };
+  }
+
   update(): void {
     this.teamPane.update(this.playerMode, this.teamName, this.description);
     for (let teamIdx = 0; teamIdx < 3; teamIdx++) {
@@ -644,7 +924,10 @@ class Team {
       currentHp: this.state.currentHp,
       maxHp: this.getHp(),
       leadSwap: this.state.leadSwaps[this.activeTeamIdx],
+      voids: [this.state.voidDamageAbsorb, this.state.voidAttributeAbsorb, this.state.voidDamageVoid, !this.state.awakenings],
+      fixedHp: this.state.fixedHp,
     });
+    this.updateCb(this.activeMonster);
   }
 
   countAwakening(awakening: Awakening): number {

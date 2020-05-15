@@ -11,7 +11,7 @@ import { Card } from './ilmina_stripped';
 // 128 poison
 // 256 mortal poison
 // const COLOR_ORDER = 'rbgldhjpmou';
-const COLORS = [
+const COLORS: string[] = [
   'r',
   'b',
   'g',
@@ -41,6 +41,7 @@ enum Attribute {
   WOOD = 2,
   LIGHT = 3,
   DARK = 4,
+  HEART = 5,
   NONE = -1,
 }
 
@@ -247,6 +248,26 @@ async function waitFor(conditionFn: () => boolean, waitMs = 50) {
   }
 }
 
+enum FontColor {
+  FIRE = 'red',
+  WATER = 'cyan',
+  WOOD = 'lawngreen',
+  LIGHT = 'yellow',
+  DARK = 'fuschia',
+  COLORLESS = 'gray',
+  FIXED = 'white',
+}
+
+const AttributeToFontColor: Record<Attribute, FontColor> = {
+  0: FontColor.FIRE,
+  1: FontColor.WATER,
+  2: FontColor.WOOD,
+  3: FontColor.LIGHT,
+  4: FontColor.DARK,
+  5: FontColor.COLORLESS,
+  '-1': FontColor.FIXED,
+};
+
 export {
   Attribute,
   AttributeToName,
@@ -268,4 +289,5 @@ export {
   numberWithCommas,
   Round,
   waitFor,
+  FontColor, AttributeToFontColor,
 };

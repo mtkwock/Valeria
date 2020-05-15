@@ -7,7 +7,7 @@
  * compiling them here so that the structure is more consistent.
  */
 
-import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType } from './common';
+import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType, AttributeToFontColor } from './common';
 import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
 import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
 
@@ -98,6 +98,7 @@ enum ClassNames {
   CHANGE_AREA = 'valeria-change-area',
   SWAP_ICON = 'valeria-swap-icon',
   TRANSFORM_ICON = 'valeria-transform-icon',
+  DAMAGE_TABLE = 'valeria-team-damage-table',
 
   ENEMY_PICTURE = 'valeria-enemy-picture-container',
   DUNGEON_EDITOR_FLOORS = 'valeria-dungeon-edit-floors',
@@ -1437,27 +1438,29 @@ class MonsterEditor {
   }
 }
 
-function addCommas(n: number, maxPrecision = 3): string {
-  let decimalPart = '';
-  if (!Number.isInteger(n)) {
-    let fn = Math.floor;
-    if (n < 0) {
-      fn = Math.ceil;
-    }
-    decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
-    while (decimalPart[decimalPart.length - 1] == '0') {
-      decimalPart = decimalPart.substring(0, decimalPart.length - 1);
-    }
-    n = fn(n);
-  }
-  const reversed = String(n).split('').reverse().join('');
-  const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
-  if (forwardCommaArray[0] == ',') {
-    forwardCommaArray.splice(0, 1);
-  } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
-    forwardCommaArray.splice(1, 1);
-  }
-  return forwardCommaArray.join('') + decimalPart;
+// https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
+function addCommas(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  // let decimalPart = '';
+  // if (!Number.isInteger(n)) {
+  //   let fn = Math.floor;
+  //   if (n < 0) {
+  //     fn = Math.ceil;
+  //   }
+  //   decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
+  //   while (decimalPart[decimalPart.length - 1] == '0') {
+  //     decimalPart = decimalPart.substring(0, decimalPart.length - 1);
+  //   }
+  //   n = fn(n);
+  // }
+  // const reversed = String(n).split('').reverse().join('');
+  // const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
+  // if (forwardCommaArray[0] == ',') {
+  //   forwardCommaArray.splice(0, 1);
+  // } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
+  //   forwardCommaArray.splice(1, 1);
+  // }
+  // return forwardCommaArray.join('') + decimalPart;
 }
 
 function removeCommas(s: string): number {
@@ -1499,7 +1502,7 @@ class HpBar {
       this.maxHp = maxHp;
       this.sliderEl.max = String(maxHp);
     }
-    this.hpMaxEl.innerText = String(this.maxHp);
+    this.hpMaxEl.innerText = addCommas(this.maxHp);
     if (currentHp <= this.maxHp) {
       this.currentHp = currentHp;
     } else {
@@ -1575,7 +1578,10 @@ interface Stats {
 interface TeamBattle {
   maxHp: number,
   currentHp: number,
+  fixedHp: number,
   leadSwap: number,
+
+  voids: boolean[],
 }
 
 interface TeamUpdate {
@@ -1585,7 +1591,13 @@ interface TeamUpdate {
   description?: string,
 
   currentHp?: number,
+  fixedHp?: number,
   leadSwap?: number,
+
+  voidDamageAbsorb?: boolean,
+  voidAttributeAbsorb?: boolean,
+  voidDamageVoid?: boolean,
+  voidAwakenings?: boolean,
 }
 
 class TeamPane {
@@ -1605,7 +1617,12 @@ class TeamPane {
   private detailTabs: TabbedComponent = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
   private onTeamUpdate: (ctx: TeamUpdate) => any;
   private hpBar: HpBar;
-  private leadSwapInput = create('input') as HTMLInputElement;
+  private fixedHpEl: LayeredAsset = new LayeredAsset([], () => { });
+  private fixedHpInput: HTMLInputElement = create('input') as HTMLInputElement;
+  private leadSwapInput = create('select') as HTMLSelectElement;
+  private voidEls: LayeredAsset[] = [];
+  private pingCells: HTMLTableCellElement[] = [];
+  private hpDamage: HTMLSpanElement = create('span') as HTMLSpanElement;
 
   constructor(
     storageDisplay: HTMLElement,
@@ -1793,13 +1810,35 @@ class TeamPane {
 
   private populateBattle() {
     // HP Element
-    this.battleEl.appendChild(this.hpBar.getElement());
+    const hpEl = this.hpBar.getElement();
+    hpEl.appendChild(this.hpDamage);
+    this.battleEl.appendChild(hpEl);
+
+    this.fixedHpEl = new LayeredAsset([AssetEnum.FIXED_HP], () => {
+      this.fixedHpInput.value = '0';
+      this.onTeamUpdate({ fixedHp: 0 });
+    }, false, 0.7);
+    this.fixedHpInput.onchange = () => {
+      console.log('Fixed HP');
+      this.onTeamUpdate({ fixedHp: removeCommas(this.fixedHpInput.value) });
+    }
+    this.battleEl.appendChild(this.fixedHpEl.getElement());
+    this.battleEl.appendChild(this.fixedHpInput);
+
     // Choose combos or active.
-    const leadSwapLabel = create('span') as HTMLSpanElement;
-    leadSwapLabel.innerText = 'Current Lead Index: ';
+    const leadSwapLabel = create('span') as HTMLDivElement;
+    leadSwapLabel.innerText = 'Lead Swap: ';
     this.battleEl.appendChild(leadSwapLabel);
-    this.leadSwapInput.type = 'number';
-    this.leadSwapInput.value = '0';
+    for (let i = 0; i < 5; i++) {
+      const option = create('option') as HTMLOptionElement;
+      option.value = String(i);
+      option.innerText = `Sub ${i}`;
+      if (i == 0) {
+        option.selected = true;
+        option.innerText = 'Lead';
+      }
+      this.leadSwapInput.appendChild(option);
+    }
     this.leadSwapInput.onchange = () => {
       let pos = Number(this.leadSwapInput.value);
       if (pos < 0) {
@@ -1811,9 +1850,94 @@ class TeamPane {
       this.onTeamUpdate({ leadSwap: pos });
     }
     this.battleEl.appendChild(this.leadSwapInput);
+
+
     // Player State including
     // * Void Attr, Void
+    const voidDamageAbsorb = new LayeredAsset(
+      [AssetEnum.SHIELD_BASE, AssetEnum.ABSORB_OVERLAY, AssetEnum.VOID],
+      (active: boolean) => {
+        console.log(`Setting Void Damage Absorb to ${active}`);
+        this.onTeamUpdate({ voidDamageAbsorb: active });
+      },
+      true,
+      1
+    );
+    const voidAttributeAbsorb = new LayeredAsset(
+      [AssetEnum.COLOR_WHEEL, AssetEnum.VOID],
+      (active: boolean) => {
+        console.log(`Setting Void Attribute Absorb to ${active}`);
+        this.onTeamUpdate({ voidAttributeAbsorb: active });
+      },
+      true,
+      1
+    );
+    const voidDamageVoid = new LayeredAsset(
+      [AssetEnum.SHIELD_BASE, AssetEnum.VOID_OVERLAY, AssetEnum.VOID],
+      (active: boolean) => {
+        console.log(`Setting Void Damage Void to ${active}`);
+        this.onTeamUpdate({ voidDamageVoid: active });
+      },
+      true,
+      1
+    );
+    const voidAwakenings = new LayeredAsset(
+      [AssetEnum.AWOKEN_BIND],
+      (active: boolean) => {
+        this.onTeamUpdate({ voidAwakenings: active });
+      }
+    )
+    this.voidEls.push(voidDamageAbsorb);
+    this.voidEls.push(voidAttributeAbsorb);
+    this.voidEls.push(voidDamageVoid);
+    this.voidEls.push(voidAwakenings);
 
+    const elsToManageOpacity = [
+      voidDamageAbsorb.getAssetPart(2),
+      voidAttributeAbsorb.getAssetPart(1),
+      voidDamageVoid.getAssetPart(2),
+    ];
+
+    // Make the x blink.
+    setInterval(() => {
+      const d = new Date();
+      const time = d.getSeconds() + d.getMilliseconds() / 1000;
+      const opacity = 0.5 * (Math.sin(3.14 * time) + 1);
+      for (const idx in elsToManageOpacity) {
+        elsToManageOpacity[idx].style.opacity = String(
+          this.voidEls[idx].active ? opacity : opacity * 0.5);
+      }
+    }, 75);
+    const toggleArea = create('div') as HTMLDivElement;
+    toggleArea.appendChild(voidDamageAbsorb.getElement());
+    toggleArea.appendChild(voidAttributeAbsorb.getElement());
+    toggleArea.appendChild(voidDamageVoid.getElement());
+    toggleArea.appendChild(voidAwakenings.getElement());
+
+    this.battleEl.appendChild(toggleArea);
+
+    const damageTable = create('table', ClassNames.DAMAGE_TABLE) as HTMLTableElement;
+    const mainRow = create('tr') as HTMLTableRowElement;
+    const subRow = create('tr') as HTMLTableRowElement;
+
+    this.pingCells = Array(12);
+
+    for (let i = 0; i < 6; i++) {
+      const mainPingCell = create('td') as HTMLTableCellElement;
+      const subPingCell = create('td') as HTMLTableCellElement;
+
+      mainPingCell.id = `valeria-ping-main-${i}`;
+      subPingCell.id = `valeria-ping-sub-${i}`;
+
+      mainRow.appendChild(mainPingCell);
+      subRow.appendChild(subPingCell);
+      this.pingCells[i] = mainPingCell;
+      this.pingCells[i + 6] = subPingCell;
+    }
+
+    damageTable.appendChild(mainRow);
+    damageTable.appendChild(subRow);
+    this.battleEl.appendChild(damageTable);
   }
 
   // TODO
@@ -1862,6 +1986,22 @@ class TeamPane {
   updateBattle(teamBattle: TeamBattle) {
     this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
     this.leadSwapInput.value = `${teamBattle.leadSwap}`;
+
+    for (const idx in teamBattle.voids) {
+      this.voidEls[idx].setActive(teamBattle.voids[idx]);
+    }
+
+    this.fixedHpEl.setActive(teamBattle.fixedHp > 0);
+    this.fixedHpInput.value = addCommas(teamBattle.fixedHp);
+  }
+
+  updateDamage(pings: { attribute: Attribute, damage: number }[], healing: number) {
+    for (let i = 0; i < 12; i++) {
+      const { attribute, damage } = pings[i];
+      this.pingCells[i].innerText = addCommas(damage);
+      this.pingCells[i].style.color = AttributeToFontColor[attribute];
+    }
+    this.hpDamage.innerText = `+${addCommas(healing)}`;
   }
 }
 
@@ -2922,6 +3062,9 @@ enum AssetEnum {
 
   SWAP,
   TRANSFROM,
+  // Overlays absorbs and voids as player buffs..
+  VOID,
+  COLOR_WHEEL,
 }
 
 const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
@@ -2945,17 +3088,19 @@ const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
   [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
   [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
   [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 326, width: 36, height: 36 }],
-  [AssetEnum.FIRE_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 0, width: 32, height: 32 }],
-  [AssetEnum.WATER_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 1, width: 32, height: 32 }],
-  [AssetEnum.WOOD_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 2, width: 32, height: 32 }],
-  [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 3, width: 32, height: 32 }],
-  [AssetEnum.DARK_TRANSPARENT, { offsetY: 288, offsetX: -2 + 32 * 4, width: 32, height: 32 }],
+  [AssetEnum.FIRE_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 0, width: 32, height: 32 }],
+  [AssetEnum.WATER_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 1, width: 32, height: 32 }],
+  [AssetEnum.WOOD_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 2, width: 32, height: 32 }],
+  [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 3, width: 32, height: 32 }],
+  [AssetEnum.DARK_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 4, width: 32, height: 32 }],
   [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36 }],
   [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
   [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
   [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
   [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
   [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
+  [AssetEnum.VOID, { offsetY: 90, offsetX: 416, width: 19, height: 18 }],
+  [AssetEnum.COLOR_WHEEL, { offsetY: 208, offsetX: 131, width: 32, height: 32 }],
   // [AssetEnum., {offsetY: , offsetX: , width: , height: }],
 ]);
 
@@ -2996,10 +3141,13 @@ class LayeredAsset {
         }
         return el;
       });
+    if (this.elements.length == 3) {
+      console.log('here');
+    }
     // Manually center each of these.
     for (const el of this.elements) {
-      const elHeight = Number(el.style.height);
-      const elWidth = Number(el.style.width);
+      const elHeight = Number(el.style.height.replace('px', ''));
+      const elWidth = Number(el.style.width.replace('px', ''));
       if (elHeight < maxSizes.height) {
         el.style.marginTop = String((maxSizes.height - elHeight) / 2);
       }
@@ -3024,6 +3172,10 @@ class LayeredAsset {
 
   getElement(): HTMLDivElement {
     return this.element;
+  }
+
+  getAssetPart(idx: number): HTMLAnchorElement {
+    return this.elements[idx];
   }
 
   setActive(active: boolean) {

@@ -21,6 +21,10 @@ class Valeria {
   constructor() {
     this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
 
+    this.comboContainer.onUpdate.push(() => {
+      this.updateDamage();
+    });
+
     this.monsterEditor = new MonsterEditor((ctx: MonsterUpdate) => {
       if (ctx.playerMode) {
         console.log(ctx.playerMode);
@@ -68,7 +72,6 @@ class Valeria {
       }
       this.team.update();
       this.updateMonsterEditor();
-      console.log(ctx);
     });
     this.monsterEditor.pdchu.importButton.onclick = () => {
       this.team.fromPdchu(this.monsterEditor.pdchu.io.value);
@@ -95,8 +98,11 @@ class Valeria {
     this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
 
     this.team = new Team();
-    this.team.updateIdxCb = () => {
+    this.team.updateCb = () => {
       this.updateMonsterEditor();
+      this.updateDamage();
+      // console.log(healing);
+      // console.log(trueBonusAttack);
     }
     let team = getUrlParameter('team');
     if (team) {
@@ -131,6 +137,14 @@ class Valeria {
       latents: monster.latents,
       superAwakeningIdx: monster.superAwakeningIdx,
     });
+  }
+
+  updateDamage() {
+    const { pings, healing, trueBonusAttack } = this.team.getDamageCombos(this.comboContainer);
+    this.team.teamPane.updateDamage(
+      pings.map((ping) => ({ attribute: ping.attribute, damage: ping.damage })),
+      healing,
+    );
   }
 
   getElement(): HTMLElement {
