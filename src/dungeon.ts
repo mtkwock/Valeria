@@ -284,7 +284,11 @@ class DungeonInstance {
   constructor() {
     // Sets all of your monsters to level 1 temporarily.
     this.floors = [new DungeonFloor()];
-    this.pane = new DungeonPane(dungeonSearchArray, (ctx: DungeonUpdate) => {
+    this.pane = new DungeonPane(dungeonSearchArray, this.getUpdateFunction());
+  }
+
+  getUpdateFunction(): (ctx: DungeonUpdate) => void {
+    return (ctx: DungeonUpdate) => {
       console.log(ctx);
       if (ctx.loadDungeon != undefined) {
         this.loadDungeon(ctx.loadDungeon);
@@ -347,7 +351,7 @@ class DungeonInstance {
       }
       const updateActiveEnemy = old.floor != this.activeFloor || old.enemy != this.activeEnemy;
       this.update(updateActiveEnemy);
-    });
+    };
   }
 
   getPane(): HTMLElement {
