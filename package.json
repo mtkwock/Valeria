@@ -8,7 +8,8 @@
     "sass": "sass --watch ./scss/valeria.sass bin/css/valeria.css",
     "serve-dev": "npx serve ./bin -l 4800",
     "serve-dist": "npx serve ./dist -l 4800",
-    "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css && del-cli ./dist && ncp ./bin ./dist"
+    "build": "tsc-bundle ./tsconfig.json && sass ./scss/valeria.sass bin/css/valeria.css && del-cli ./dist && ncp ./bin ./dist",
+    "eslint": "eslint src/**"
   },
   "dependencies": {
     "@types/jquery": "^3.3.38",
@@ -17,7 +18,10 @@
     "typescript-bundle": "^1.0.16"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.33.0",
+    "@typescript-eslint/parser": "^2.33.0",
     "del-cli": "^3.0.0",
+    "eslint": "^7.0.0",
     "ncp": "^2.0.0",
     "npm-run-all": "^4.1.5"
   }

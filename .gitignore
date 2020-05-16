@@ -3,7 +3,6 @@ dist
 bin/*
 !bin/assets
 !bin/index.html
-!bin/require.min.js
 !bin/favicon.ico
 *.js.map
 .bazelignore

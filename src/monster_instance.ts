@@ -414,8 +414,8 @@ class MonsterInstance {
     let superAwakeningIdx = -1;
     let level = 99;
 
-    const MONSTER_NAME_REGEX = /^\s*((\"[^"]+\")|[^\(\[\|]*)/;
-    const ASSIST_REGEX = /\(\s*("[^"]*")?[^\)]+\)/;
+    const MONSTER_NAME_REGEX = /^\s*(("[^"]+")|[^([|]*)/;
+    const ASSIST_REGEX = /\(\s*("[^"]*")?[^)]+\)/;
     const ASSIST_NAME_REGEX = /^\s*("[^"]+"|[^|]+)/;
     const LATENT_REGEX = /\[[^\]]*\]/;
 

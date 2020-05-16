@@ -23,7 +23,7 @@ enum EnemySkillEffect {
   // BLIND: 'blind', // Unused config.
   // STICKY_BLIND: 'sticky-blind', // Config is [positions], turns
   // AWAKENING_BIND: 'awakening-bind',
-};
+}
 
 
 function calcScaleStat(max: number, min: number, level: number, growth: number): number {
