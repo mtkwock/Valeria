@@ -1495,7 +1495,6 @@
             Latent[Latent["RESIST_DARK_PLUS"] = 32] = "RESIST_DARK_PLUS";
         })(Latent || (Latent = {}));
         exports.Latent = Latent;
-        ;
         var Awakening;
         (function (Awakening) {
             Awakening[Awakening["HP"] = 1] = "HP";
@@ -1572,7 +1571,6 @@
             Awakening[Awakening["POISON_BOOST"] = 72] = "POISON_BOOST";
         })(Awakening || (Awakening = {}));
         exports.Awakening = Awakening;
-        ;
         const AwakeningToPlusAwakening = new Map([
             [Awakening.SKILL_BOOST, Awakening.SKILL_BOOST_PLUS],
             [Awakening.TIME, Awakening.TIME_PLUS],
@@ -1645,7 +1643,6 @@
             Shape[Shape["ROW"] = 5] = "ROW";
         })(Shape || (Shape = {}));
         exports.Shape = Shape;
-        ;
         const LetterToShape = {
             'A': Shape.AMORPHOUS,
             'L': Shape.L,
@@ -4406,9 +4403,7 @@
                             let letter = v[0] || 'NaN';
                             let count = 0;
                             let shape = 'A';
-                            if (v.length == 0 || v == '0') {
-                            }
-                            else if (letter == 'R') {
+                            if (letter == 'R') {
                                 count = this.boardWidth;
                                 shape = 'R';
                                 if (v.length > 1 && Number(v.substring(1)) > count) {
@@ -4424,7 +4419,7 @@
                                 shape = letter;
                                 count = letter == 'B' ? 9 : 5;
                             }
-                            else if (Number(v) != NaN) {
+                            else if (!isNaN(Number(v))) {
                                 count = Number(v);
                             }
                             const combos = this.combos[c];
@@ -4453,7 +4448,7 @@
                         enhanceEl.onblur = () => {
                             const combos = this.combos[c];
                             const v = Number(enhanceEl.value);
-                            if (v != NaN && idx < combos.length) {
+                            if (!isNaN(v) && idx < combos.length) {
                                 combos[i].enhanced = v;
                                 combos[i].recount();
                                 this.update();
@@ -5005,8 +5000,8 @@
                 let awakeningLevel = 9;
                 let superAwakeningIdx = -1;
                 let level = 99;
-                const MONSTER_NAME_REGEX = /^\s*((\"[^"]+\")|[^\(\[\|]*)/;
-                const ASSIST_REGEX = /\(\s*("[^"]*")?[^\)]+\)/;
+                const MONSTER_NAME_REGEX = /^\s*(("[^"]+")|[^([|]*)/;
+                const ASSIST_REGEX = /\(\s*("[^"]*")?[^)]+\)/;
                 const ASSIST_NAME_REGEX = /^\s*("[^"]+"|[^|]+)/;
                 const LATENT_REGEX = /\[[^\]]*\]/;
                 const monsterNameMatch = s.match(MONSTER_NAME_REGEX);
@@ -5427,7 +5422,6 @@
     define("leaders", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_6, ilmina_stripped_5) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        ;
         const atkFromAttr = {
             atk: ([attr, atk100], { ping }) => {
                 return ping.source.isAttribute(attr) ? atk100 / 100 : 1;
@@ -6830,6 +6824,7 @@
                     }
                 }
                 else if (this.playerMode == 3) {
+                    //Todo, ps maybe filler text to pass eslint
                 }
                 else { // Handle 1P
                     if (newMode == 2) {
@@ -7402,7 +7397,6 @@
             Bits[Bits["AWAKENING"] = 4] = "AWAKENING";
             Bits[Bits["PLUS"] = 7] = "PLUS";
         })(Bits || (Bits = {}));
-        ;
         const CHAR_AT = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
         const CHAR_TO_NUM = new Map(CHAR_AT.split('').map((c, i) => [c, i]));
         class Encoding {
@@ -7530,9 +7524,7 @@
                     }
                     teamString += `| lv${encoding.dequeueBits(Bits.LEVEL)} awk${encoding.dequeueBits(Bits.AWAKENING)} `;
                     const is297 = encoding.dequeueBit();
-                    if (is297) {
-                    }
-                    else {
+                    if (!is297) {
                         teamString += `+H${encoding.dequeueBits(Bits.PLUS)} +A${encoding.dequeueBits(Bits.PLUS)} +R${encoding.dequeueBits(Bits.PLUS)} `;
                     }
                     const sa = encoding.dequeueBits(Bits.AWAKENING);
@@ -7574,7 +7566,6 @@
             // STICKY_BLIND: 'sticky-blind', // Config is [positions], turns
             // AWAKENING_BIND: 'awakening-bind',
         })(EnemySkillEffect || (EnemySkillEffect = {}));
-        ;
         function calcScaleStat(max, min, level, growth) {
             const diff = max - min;
             const frac = (level - 1) / 9;
@@ -8278,13 +8269,12 @@
         Object.defineProperty(exports, "__esModule", { value: true });
         // Copied from: https://davidwalsh.name/query-string-javascript
         function getUrlParameter(name) {
-            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            name = name.replace(/[[]/, '\\[').replace(/[\]]/, '\\]');
             const matcher = new RegExp('[\\?&]' + name + '=([^&#]*)');
             const results = matcher.exec(location.search);
             return results === null ? '' : decodeURIComponent(results[1]);
         }
         exports.getUrlParameter = getUrlParameter;
-        ;
     });
     /**
      * Main File for Valeria.
