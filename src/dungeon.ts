@@ -288,8 +288,6 @@ class DungeonInstance {
     this.floors = [new DungeonFloor()];
     this.pane = new DungeonPane(dungeonSearchArray, this.getUpdateFunction());
 
-    // debug.inputEl.value = '405179';
-
     debug.addButton('Print Preempt', () => {
       const enemy = this.getActiveEnemy();
       const cardId = enemy.id;
@@ -333,7 +331,6 @@ class DungeonInstance {
         debug.print(`${i + 1}: ${skillTexts[i]} `);
       }
     });
-
 
   }
 
@@ -449,16 +446,6 @@ class DungeonInstance {
   setActiveEnemy(idx: number) {
     this.activeEnemy = idx;
     this.floors[this.activeFloor].activeEnemy = idx;
-    console.log(this.getActiveEnemy().getCard().name);
-    const enemy = this.getActiveEnemy();
-    textifyEnemySkills({
-      id: enemy.id,
-      lv: enemy.id,
-      atk: enemy.getAtk(),
-      charges: enemy.charges,
-      flags: enemy.flags,
-      counter: enemy.counter,
-    });
   }
 
   getActiveEnemy(): EnemyInstance {

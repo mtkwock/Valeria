@@ -2,9 +2,6 @@ import { floof } from './ilmina_stripped';
 import { EnemyInstance } from './enemy_instance';
 import { idxsFromBits, AttributeToName, TypeToName, addCommas } from './common';
 import { Team } from './player_team';
-import { debug } from './debugger';
-
-floof.model.enemySkills;
 
 interface SkillContext {
   ai: number,
