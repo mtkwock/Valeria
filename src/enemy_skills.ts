@@ -393,7 +393,7 @@ const gotoIfLvLesser: EnemySkillEffect = {
   condition: () => true,
   aiEffect: () => { },
   effect: () => { },
-  goto: ({ ai, rnd }, { lv }) => lv < ai ? rnd : TO_NEXT,
+  goto: ({ ai, rnd }, { lv }) => lv < ai ? rnd - 1 : TO_NEXT,
 };
 
 // 34
@@ -402,7 +402,7 @@ const gotoIfLvEqual: EnemySkillEffect = {
   condition: () => true,
   aiEffect: () => { },
   effect: () => { },
-  goto: ({ ai, rnd }, { lv }) => lv == ai ? rnd : TO_NEXT,
+  goto: ({ ai, rnd }, { lv }) => lv == ai ? rnd - 1 : TO_NEXT,
 };
 
 // 35
@@ -411,7 +411,7 @@ const gotoIfLvGreater: EnemySkillEffect = {
   condition: () => true,
   aiEffect: () => { },
   effect: () => { },
-  goto: ({ ai, rnd }, { lv }) => lv > ai ? rnd : TO_NEXT,
+  goto: ({ ai, rnd }, { lv }) => lv > ai ? rnd - 1 : TO_NEXT,
 };
 
 // 36
@@ -1391,7 +1391,7 @@ const gotoIfComboMin: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: ({ ai, rnd }, { combo }) => {
-    return combo >= ai ? rnd : TO_NEXT;
+    return combo >= ai ? rnd - 1 : TO_NEXT;
   },
 };
 
