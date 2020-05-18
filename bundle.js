@@ -1410,6 +1410,10 @@
             Attribute[Attribute["LIGHT"] = 3] = "LIGHT";
             Attribute[Attribute["DARK"] = 4] = "DARK";
             Attribute[Attribute["HEART"] = 5] = "HEART";
+            Attribute[Attribute["JAMMER"] = 6] = "JAMMER";
+            Attribute[Attribute["POISON"] = 7] = "POISON";
+            Attribute[Attribute["MORTAL_POSION"] = 8] = "MORTAL_POSION";
+            Attribute[Attribute["BOMB"] = 9] = "BOMB";
             Attribute[Attribute["FIXED"] = -2] = "FIXED";
             Attribute[Attribute["NONE"] = -1] = "NONE";
         })(Attribute || (Attribute = {}));
@@ -1422,6 +1426,10 @@
         AttributeToName.set(Attribute.LIGHT, 'Light');
         AttributeToName.set(Attribute.DARK, 'Dark');
         AttributeToName.set(Attribute.NONE, 'None');
+        AttributeToName.set(Attribute.HEART, 'Heart');
+        AttributeToName.set(Attribute.JAMMER, 'Jammer');
+        AttributeToName.set(Attribute.POISON, 'Poison');
+        AttributeToName.set(Attribute.MORTAL_POSION, 'Mortal Poison');
         var MonsterType;
         (function (MonsterType) {
             MonsterType[MonsterType["NONE"] = -1] = "NONE";
@@ -1676,6 +1684,11 @@
             FontColor["WOOD"] = "lawngreen";
             FontColor["LIGHT"] = "yellow";
             FontColor["DARK"] = "fuchsia";
+            FontColor["HEART"] = "pink";
+            FontColor["JAMMER"] = "lightgray";
+            FontColor["POISON"] = "purple";
+            FontColor["MORTAL_POSION"] = "darkpurple";
+            FontColor["BOMB"] = "brown";
             FontColor["COLORLESS"] = "gray";
             FontColor["FIXED"] = "white";
             FontColor["NONE"] = "black";
@@ -1687,11 +1700,44 @@
             2: FontColor.WOOD,
             3: FontColor.LIGHT,
             4: FontColor.DARK,
-            5: FontColor.COLORLESS,
+            5: FontColor.HEART,
+            6: FontColor.JAMMER,
+            7: FontColor.POISON,
+            8: FontColor.MORTAL_POSION,
+            9: FontColor.BOMB,
             '-2': FontColor.FIXED,
             '-1': FontColor.NONE,
         };
         exports.AttributeToFontColor = AttributeToFontColor;
+        // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
+        function addCommas(n) {
+            return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            // let decimalPart = '';
+            // if (!Number.isInteger(n)) {
+            //   let fn = Math.floor;
+            //   if (n < 0) {
+            //     fn = Math.ceil;
+            //   }
+            //   decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
+            //   while (decimalPart[decimalPart.length - 1] == '0') {
+            //     decimalPart = decimalPart.substring(0, decimalPart.length - 1);
+            //   }
+            //   n = fn(n);
+            // }
+            // const reversed = String(n).split('').reverse().join('');
+            // const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
+            // if (forwardCommaArray[0] == ',') {
+            //   forwardCommaArray.splice(0, 1);
+            // } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
+            //   forwardCommaArray.splice(1, 1);
+            // }
+            // return forwardCommaArray.join('') + decimalPart;
+        }
+        exports.addCommas = addCommas;
+        function removeCommas(s) {
+            return Number(s.replace(/,/g, ''));
+        }
+        exports.removeCommas = removeCommas;
     });
     define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_1, ilmina_stripped_2) {
         "use strict";
@@ -2143,8 +2189,6 @@
             StatIndex[StatIndex["CD"] = 3] = "CD";
         })(StatIndex || (StatIndex = {}));
         const TEAM_SCALING = 0.6;
-        // const AWAKENING_NUMBERS = '0123456789';
-        // const MONSTER_AWAKENING_SCALE = 0.43;
         function show(el) {
             el.style.visibility = 'visible';
         }
@@ -2175,6 +2219,169 @@
             el.style.opacity = `${unavailableReason ? 0.5 : 1}`;
             el.title = unavailableReason;
         }
+        var AssetEnum;
+        (function (AssetEnum) {
+            AssetEnum[AssetEnum["NUMBER_0"] = 0] = "NUMBER_0";
+            AssetEnum[AssetEnum["NUMBER_1"] = 1] = "NUMBER_1";
+            AssetEnum[AssetEnum["NUMBER_2"] = 2] = "NUMBER_2";
+            AssetEnum[AssetEnum["NUMBER_3"] = 3] = "NUMBER_3";
+            AssetEnum[AssetEnum["NUMBER_4"] = 4] = "NUMBER_4";
+            AssetEnum[AssetEnum["NUMBER_5"] = 5] = "NUMBER_5";
+            AssetEnum[AssetEnum["NUMBER_6"] = 6] = "NUMBER_6";
+            AssetEnum[AssetEnum["NUMBER_7"] = 7] = "NUMBER_7";
+            AssetEnum[AssetEnum["NUMBER_8"] = 8] = "NUMBER_8";
+            AssetEnum[AssetEnum["NUMBER_9"] = 9] = "NUMBER_9";
+            AssetEnum[AssetEnum["GUARD_BREAK"] = 10] = "GUARD_BREAK";
+            AssetEnum[AssetEnum["TIME"] = 11] = "TIME";
+            AssetEnum[AssetEnum["POISON"] = 12] = "POISON";
+            AssetEnum[AssetEnum["ENRAGE"] = 13] = "ENRAGE";
+            AssetEnum[AssetEnum["STATUS_SHIELD"] = 14] = "STATUS_SHIELD";
+            AssetEnum[AssetEnum["TIME_BUFF"] = 15] = "TIME_BUFF";
+            AssetEnum[AssetEnum["TIME_DEBUFF"] = 16] = "TIME_DEBUFF";
+            AssetEnum[AssetEnum["RESOLVE"] = 17] = "RESOLVE";
+            AssetEnum[AssetEnum["BURST"] = 18] = "BURST";
+            AssetEnum[AssetEnum["DEF_OVERLAY"] = 19] = "DEF_OVERLAY";
+            AssetEnum[AssetEnum["FIXED_HP"] = 20] = "FIXED_HP";
+            AssetEnum[AssetEnum["AWOKEN_BIND"] = 21] = "AWOKEN_BIND";
+            AssetEnum[AssetEnum["SKILL_BIND"] = 22] = "SKILL_BIND";
+            AssetEnum[AssetEnum["SHIELD_BASE"] = 23] = "SHIELD_BASE";
+            AssetEnum[AssetEnum["PLAYER_HP_LEFT"] = 24] = "PLAYER_HP_LEFT";
+            AssetEnum[AssetEnum["PLAYER_HP_MIDDLE"] = 25] = "PLAYER_HP_MIDDLE";
+            AssetEnum[AssetEnum["PLAYER_HP_RIGHT"] = 26] = "PLAYER_HP_RIGHT";
+            AssetEnum[AssetEnum["ENEMY_HP_LEFT"] = 27] = "ENEMY_HP_LEFT";
+            AssetEnum[AssetEnum["ENEMY_HP_MIDDLE"] = 28] = "ENEMY_HP_MIDDLE";
+            AssetEnum[AssetEnum["ENEMY_HP_RIGHT"] = 29] = "ENEMY_HP_RIGHT";
+            // Overlays SHIELD_BASE for attribute resists.
+            AssetEnum[AssetEnum["FIRE_TRANSPARENT"] = 30] = "FIRE_TRANSPARENT";
+            AssetEnum[AssetEnum["WATER_TRANSPARENT"] = 31] = "WATER_TRANSPARENT";
+            AssetEnum[AssetEnum["WOOD_TRANSPARENT"] = 32] = "WOOD_TRANSPARENT";
+            AssetEnum[AssetEnum["LIGHT_TRANSPARENT"] = 33] = "LIGHT_TRANSPARENT";
+            AssetEnum[AssetEnum["DARK_TRANSPARENT"] = 34] = "DARK_TRANSPARENT";
+            // Overlays [attr]_TRANSPARENT for attribute absorb.
+            AssetEnum[AssetEnum["TWINKLE"] = 35] = "TWINKLE";
+            // Overlays SHIELD_BASE for Damage Void.
+            AssetEnum[AssetEnum["VOID_OVERLAY"] = 36] = "VOID_OVERLAY";
+            // Overlays SHIELD_BASES for Damage Absorb.
+            AssetEnum[AssetEnum["ABSORB_OVERLAY"] = 37] = "ABSORB_OVERLAY";
+            // DAMAGE_NULL,
+            AssetEnum[AssetEnum["SWAP"] = 38] = "SWAP";
+            AssetEnum[AssetEnum["TRANSFROM"] = 39] = "TRANSFROM";
+            // Overlays absorbs and voids as player buffs..
+            AssetEnum[AssetEnum["VOID"] = 40] = "VOID";
+            AssetEnum[AssetEnum["COLOR_WHEEL"] = 41] = "COLOR_WHEEL";
+        })(AssetEnum || (AssetEnum = {}));
+        exports.AssetEnum = AssetEnum;
+        const ASSET_INFO = new Map([
+            [AssetEnum.NUMBER_0, { offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.NUMBER_1, { offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.NUMBER_2, { offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.NUMBER_3, { offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.NUMBER_4, { offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.NUMBER_5, { offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.NUMBER_6, { offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.NUMBER_7, { offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.NUMBER_8, { offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.NUMBER_9, { offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26 }],
+            [AssetEnum.GUARD_BREAK, { offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36 }],
+            [AssetEnum.TIME, { offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36 }],
+            [AssetEnum.POISON, { offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36 }],
+            [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 114, width: 36, height: 36 }],
+            [AssetEnum.STATUS_SHIELD, { offsetY: 0, offsetX: 154, width: 36, height: 36 }],
+            [AssetEnum.SKILL_BIND, { offsetY: 40, offsetX: 141, width: 32, height: 32 }],
+            [AssetEnum.AWOKEN_BIND, { offsetY: 73, offsetX: 140, width: 32, height: 32 }],
+            [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
+            [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
+            [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 326, width: 36, height: 36 }],
+            [AssetEnum.FIRE_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 0, width: 32, height: 32 }],
+            [AssetEnum.WATER_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 1, width: 32, height: 32 }],
+            [AssetEnum.WOOD_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 2, width: 32, height: 32 }],
+            [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 3, width: 32, height: 32 }],
+            [AssetEnum.DARK_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 4, width: 32, height: 32 }],
+            [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36 }],
+            [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
+            [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
+            [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
+            [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
+            [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
+            [AssetEnum.VOID, { offsetY: 90, offsetX: 416, width: 19, height: 18 }],
+            [AssetEnum.COLOR_WHEEL, { offsetY: 208, offsetX: 131, width: 32, height: 32 }],
+        ]);
+        const UI_ASSET_SRC = `url(${common_2.BASE_URL}assets/UIPAT1.PNG)`;
+        class LayeredAsset {
+            constructor(assets, onClick, active = true, scale = 1) {
+                this.element = create('div', ClassNames.LAYERED_ASSET);
+                this.active = true;
+                this.assets = assets;
+                const maxSizes = {
+                    width: 0,
+                    height: 0,
+                };
+                this.elements = assets
+                    .filter((asset) => ASSET_INFO.has(asset))
+                    .map((asset) => {
+                    const assetInfo = ASSET_INFO.get(asset);
+                    const el = create('a');
+                    if (assetInfo) {
+                        el.style.width = String(assetInfo.width * scale);
+                        el.style.height = String(assetInfo.height * scale);
+                        el.style.backgroundSize = `${512 * scale}px ${512 * scale}px`;
+                        if (assetInfo.width > maxSizes.width * scale) {
+                            maxSizes.width = assetInfo.width * scale;
+                        }
+                        if (assetInfo.height > maxSizes.height * scale) {
+                            maxSizes.height = assetInfo.height * scale;
+                        }
+                        el.style.backgroundImage = UI_ASSET_SRC;
+                        el.style.backgroundPosition = `${-1 * assetInfo.offsetX * scale} ${-1 * assetInfo.offsetY * scale}`;
+                    }
+                    return el;
+                });
+                if (this.elements.length == 3) {
+                    console.log('here');
+                }
+                // Manually center each of these.
+                for (const el of this.elements) {
+                    const elHeight = Number(el.style.height.replace('px', ''));
+                    const elWidth = Number(el.style.width.replace('px', ''));
+                    if (elHeight < maxSizes.height) {
+                        el.style.marginTop = String((maxSizes.height - elHeight) / 2);
+                    }
+                    if (elWidth < maxSizes.width) {
+                        el.style.marginLeft = String((maxSizes.width - elWidth) / 2);
+                    }
+                }
+                for (const el of this.elements) {
+                    this.element.appendChild(el);
+                }
+                this.element.style.width = String(maxSizes.width);
+                this.element.style.height = String(maxSizes.height);
+                this.onClick = onClick;
+                this.element.onclick = () => {
+                    this.onClick(!this.active);
+                };
+                this.setActive(active);
+            }
+            getElement() {
+                return this.element;
+            }
+            getAssetPart(idx) {
+                return this.elements[idx];
+            }
+            setActive(active) {
+                this.active = active;
+                if (active) {
+                    for (const element of this.elements) {
+                        element.classList.remove(ClassNames.HALF_OPACITY);
+                    }
+                }
+                else {
+                    for (const element of this.elements) {
+                        element.classList.add(ClassNames.HALF_OPACITY);
+                    }
+                }
+            }
+        }
+        exports.LayeredAsset = LayeredAsset;
         class MonsterIcon {
             constructor(hideInfoTable = false) {
                 this.element = create('a', ClassNames.ICON);
@@ -2670,7 +2877,7 @@
                             continue;
                         }
                         this.options[i].className = ClassNames.SELECTOR_OPTION_ACTIVE;
-                        this.options[i].innerText = `${fuzzyMatches[i]} - ${this.getName(fuzzyMatches[i])}`;
+                        this.options[i].innerText = `${fuzzyMatches[i]} - ${this.getName(Number(fuzzyMatches[i]))}`;
                         this.options[i].setAttribute('value', String(fuzzyMatches[i]));
                     }
                     this.activeOptions = Math.min(fuzzyMatches.length, this.options.length);
@@ -3254,33 +3461,6 @@
             }
         }
         exports.MonsterEditor = MonsterEditor;
-        // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
-        function addCommas(n) {
-            return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            // let decimalPart = '';
-            // if (!Number.isInteger(n)) {
-            //   let fn = Math.floor;
-            //   if (n < 0) {
-            //     fn = Math.ceil;
-            //   }
-            //   decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
-            //   while (decimalPart[decimalPart.length - 1] == '0') {
-            //     decimalPart = decimalPart.substring(0, decimalPart.length - 1);
-            //   }
-            //   n = fn(n);
-            // }
-            // const reversed = String(n).split('').reverse().join('');
-            // const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
-            // if (forwardCommaArray[0] == ',') {
-            //   forwardCommaArray.splice(0, 1);
-            // } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
-            //   forwardCommaArray.splice(1, 1);
-            // }
-            // return forwardCommaArray.join('') + decimalPart;
-        }
-        function removeCommas(s) {
-            return Number(s.replace(/,/g, ''));
-        }
         class HpBar {
             constructor(onUpdate) {
                 this.element = create('div', ClassNames.HP_DIV);
@@ -3297,7 +3477,7 @@
                 };
                 this.element.appendChild(this.sliderEl);
                 this.hpInput.onchange = () => {
-                    this.onUpdate(removeCommas(this.hpInput.value));
+                    this.onUpdate(common_2.removeCommas(this.hpInput.value));
                 };
                 this.element.appendChild(this.hpInput);
                 const divisionSpan = create('span');
@@ -3312,14 +3492,14 @@
                     this.maxHp = maxHp;
                     this.sliderEl.max = String(maxHp);
                 }
-                this.hpMaxEl.innerText = addCommas(this.maxHp);
+                this.hpMaxEl.innerText = common_2.addCommas(this.maxHp);
                 if (currentHp <= this.maxHp) {
                     this.currentHp = currentHp;
                 }
                 else {
                     this.currentHp = this.maxHp;
                 }
-                this.hpInput.value = addCommas(this.currentHp);
+                this.hpInput.value = common_2.addCommas(this.currentHp);
                 this.sliderEl.value = String(this.currentHp);
                 this.percentEl.innerText = `${Math.round(100 * this.currentHp / this.maxHp)}%`;
             }
@@ -3562,7 +3742,7 @@
                 }, false, 0.7);
                 this.fixedHpInput.onchange = () => {
                     console.log('Fixed HP');
-                    this.onTeamUpdate({ fixedHp: removeCommas(this.fixedHpInput.value) });
+                    this.onTeamUpdate({ fixedHp: common_2.removeCommas(this.fixedHpInput.value) });
                 };
                 this.battleEl.appendChild(this.fixedHpEl.getElement());
                 this.battleEl.appendChild(this.fixedHpInput);
@@ -3699,15 +3879,15 @@
                     this.voidEls[idx].setActive(teamBattle.voids[idx]);
                 }
                 this.fixedHpEl.setActive(teamBattle.fixedHp > 0);
-                this.fixedHpInput.value = addCommas(teamBattle.fixedHp);
+                this.fixedHpInput.value = common_2.addCommas(teamBattle.fixedHp);
             }
             updateDamage(pings, healing) {
                 for (let i = 0; i < 12; i++) {
                     const { attribute, damage } = pings[i];
-                    this.pingCells[i].innerText = addCommas(damage);
+                    this.pingCells[i].innerText = common_2.addCommas(damage);
                     this.pingCells[i].style.color = common_2.AttributeToFontColor[attribute];
                 }
-                this.hpDamage.innerText = `+${addCommas(healing)}`;
+                this.hpDamage.innerText = `+${common_2.addCommas(healing)}`;
             }
         }
         exports.TeamPane = TeamPane;
@@ -3738,169 +3918,6 @@
                 }
             }
         }
-        var AssetEnum;
-        (function (AssetEnum) {
-            AssetEnum[AssetEnum["NUMBER_0"] = 0] = "NUMBER_0";
-            AssetEnum[AssetEnum["NUMBER_1"] = 1] = "NUMBER_1";
-            AssetEnum[AssetEnum["NUMBER_2"] = 2] = "NUMBER_2";
-            AssetEnum[AssetEnum["NUMBER_3"] = 3] = "NUMBER_3";
-            AssetEnum[AssetEnum["NUMBER_4"] = 4] = "NUMBER_4";
-            AssetEnum[AssetEnum["NUMBER_5"] = 5] = "NUMBER_5";
-            AssetEnum[AssetEnum["NUMBER_6"] = 6] = "NUMBER_6";
-            AssetEnum[AssetEnum["NUMBER_7"] = 7] = "NUMBER_7";
-            AssetEnum[AssetEnum["NUMBER_8"] = 8] = "NUMBER_8";
-            AssetEnum[AssetEnum["NUMBER_9"] = 9] = "NUMBER_9";
-            AssetEnum[AssetEnum["GUARD_BREAK"] = 10] = "GUARD_BREAK";
-            AssetEnum[AssetEnum["TIME"] = 11] = "TIME";
-            AssetEnum[AssetEnum["POISON"] = 12] = "POISON";
-            AssetEnum[AssetEnum["ENRAGE"] = 13] = "ENRAGE";
-            AssetEnum[AssetEnum["STATUS_SHIELD"] = 14] = "STATUS_SHIELD";
-            AssetEnum[AssetEnum["TIME_BUFF"] = 15] = "TIME_BUFF";
-            AssetEnum[AssetEnum["TIME_DEBUFF"] = 16] = "TIME_DEBUFF";
-            AssetEnum[AssetEnum["RESOLVE"] = 17] = "RESOLVE";
-            AssetEnum[AssetEnum["BURST"] = 18] = "BURST";
-            AssetEnum[AssetEnum["DEF_OVERLAY"] = 19] = "DEF_OVERLAY";
-            AssetEnum[AssetEnum["FIXED_HP"] = 20] = "FIXED_HP";
-            AssetEnum[AssetEnum["AWOKEN_BIND"] = 21] = "AWOKEN_BIND";
-            AssetEnum[AssetEnum["SKILL_BIND"] = 22] = "SKILL_BIND";
-            AssetEnum[AssetEnum["SHIELD_BASE"] = 23] = "SHIELD_BASE";
-            AssetEnum[AssetEnum["PLAYER_HP_LEFT"] = 24] = "PLAYER_HP_LEFT";
-            AssetEnum[AssetEnum["PLAYER_HP_MIDDLE"] = 25] = "PLAYER_HP_MIDDLE";
-            AssetEnum[AssetEnum["PLAYER_HP_RIGHT"] = 26] = "PLAYER_HP_RIGHT";
-            AssetEnum[AssetEnum["ENEMY_HP_LEFT"] = 27] = "ENEMY_HP_LEFT";
-            AssetEnum[AssetEnum["ENEMY_HP_MIDDLE"] = 28] = "ENEMY_HP_MIDDLE";
-            AssetEnum[AssetEnum["ENEMY_HP_RIGHT"] = 29] = "ENEMY_HP_RIGHT";
-            // Overlays SHIELD_BASE for attribute resists.
-            AssetEnum[AssetEnum["FIRE_TRANSPARENT"] = 30] = "FIRE_TRANSPARENT";
-            AssetEnum[AssetEnum["WATER_TRANSPARENT"] = 31] = "WATER_TRANSPARENT";
-            AssetEnum[AssetEnum["WOOD_TRANSPARENT"] = 32] = "WOOD_TRANSPARENT";
-            AssetEnum[AssetEnum["LIGHT_TRANSPARENT"] = 33] = "LIGHT_TRANSPARENT";
-            AssetEnum[AssetEnum["DARK_TRANSPARENT"] = 34] = "DARK_TRANSPARENT";
-            // Overlays [attr]_TRANSPARENT for attribute absorb.
-            AssetEnum[AssetEnum["TWINKLE"] = 35] = "TWINKLE";
-            // Overlays SHIELD_BASE for Damage Void.
-            AssetEnum[AssetEnum["VOID_OVERLAY"] = 36] = "VOID_OVERLAY";
-            // Overlays SHIELD_BASES for Damage Absorb.
-            AssetEnum[AssetEnum["ABSORB_OVERLAY"] = 37] = "ABSORB_OVERLAY";
-            // DAMAGE_NULL,
-            AssetEnum[AssetEnum["SWAP"] = 38] = "SWAP";
-            AssetEnum[AssetEnum["TRANSFROM"] = 39] = "TRANSFROM";
-            // Overlays absorbs and voids as player buffs..
-            AssetEnum[AssetEnum["VOID"] = 40] = "VOID";
-            AssetEnum[AssetEnum["COLOR_WHEEL"] = 41] = "COLOR_WHEEL";
-        })(AssetEnum || (AssetEnum = {}));
-        exports.AssetEnum = AssetEnum;
-        const ASSET_INFO = new Map([
-            [AssetEnum.NUMBER_0, { offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_1, { offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_2, { offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_3, { offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_4, { offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_5, { offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_6, { offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_7, { offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_8, { offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_9, { offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.GUARD_BREAK, { offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36 }],
-            [AssetEnum.TIME, { offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36 }],
-            [AssetEnum.POISON, { offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36 }],
-            [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 114, width: 36, height: 36 }],
-            [AssetEnum.STATUS_SHIELD, { offsetY: 0, offsetX: 154, width: 36, height: 36 }],
-            [AssetEnum.SKILL_BIND, { offsetY: 40, offsetX: 141, width: 32, height: 32 }],
-            [AssetEnum.AWOKEN_BIND, { offsetY: 73, offsetX: 140, width: 32, height: 32 }],
-            [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
-            [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
-            [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 326, width: 36, height: 36 }],
-            [AssetEnum.FIRE_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 0, width: 32, height: 32 }],
-            [AssetEnum.WATER_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 1, width: 32, height: 32 }],
-            [AssetEnum.WOOD_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 2, width: 32, height: 32 }],
-            [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 3, width: 32, height: 32 }],
-            [AssetEnum.DARK_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 4, width: 32, height: 32 }],
-            [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36 }],
-            [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
-            [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
-            [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
-            [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
-            [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
-            [AssetEnum.VOID, { offsetY: 90, offsetX: 416, width: 19, height: 18 }],
-            [AssetEnum.COLOR_WHEEL, { offsetY: 208, offsetX: 131, width: 32, height: 32 }],
-        ]);
-        const UI_ASSET_SRC = `url(${common_2.BASE_URL}assets/UIPAT1.PNG)`;
-        class LayeredAsset {
-            constructor(assets, onClick, active = true, scale = 1) {
-                this.element = create('div', ClassNames.LAYERED_ASSET);
-                this.active = true;
-                this.assets = assets;
-                const maxSizes = {
-                    width: 0,
-                    height: 0,
-                };
-                this.elements = assets
-                    .filter((asset) => ASSET_INFO.has(asset))
-                    .map((asset) => {
-                    const assetInfo = ASSET_INFO.get(asset);
-                    const el = create('a');
-                    if (assetInfo) {
-                        el.style.width = String(assetInfo.width * scale);
-                        el.style.height = String(assetInfo.height * scale);
-                        el.style.backgroundSize = `${512 * scale}px ${512 * scale}px`;
-                        if (assetInfo.width > maxSizes.width * scale) {
-                            maxSizes.width = assetInfo.width * scale;
-                        }
-                        if (assetInfo.height > maxSizes.height * scale) {
-                            maxSizes.height = assetInfo.height * scale;
-                        }
-                        el.style.backgroundImage = UI_ASSET_SRC;
-                        el.style.backgroundPosition = `${-1 * assetInfo.offsetX * scale} ${-1 * assetInfo.offsetY * scale}`;
-                    }
-                    return el;
-                });
-                if (this.elements.length == 3) {
-                    console.log('here');
-                }
-                // Manually center each of these.
-                for (const el of this.elements) {
-                    const elHeight = Number(el.style.height.replace('px', ''));
-                    const elWidth = Number(el.style.width.replace('px', ''));
-                    if (elHeight < maxSizes.height) {
-                        el.style.marginTop = String((maxSizes.height - elHeight) / 2);
-                    }
-                    if (elWidth < maxSizes.width) {
-                        el.style.marginLeft = String((maxSizes.width - elWidth) / 2);
-                    }
-                }
-                for (const el of this.elements) {
-                    this.element.appendChild(el);
-                }
-                this.element.style.width = String(maxSizes.width);
-                this.element.style.height = String(maxSizes.height);
-                this.onClick = onClick;
-                this.element.onclick = () => {
-                    this.onClick(!this.active);
-                };
-                this.setActive(active);
-            }
-            getElement() {
-                return this.element;
-            }
-            getAssetPart(idx) {
-                return this.elements[idx];
-            }
-            setActive(active) {
-                this.active = active;
-                if (active) {
-                    for (const element of this.elements) {
-                        element.classList.remove(ClassNames.HALF_OPACITY);
-                    }
-                }
-                else {
-                    for (const element of this.elements) {
-                        element.classList.add(ClassNames.HALF_OPACITY);
-                    }
-                }
-            }
-        }
-        exports.LayeredAsset = LayeredAsset;
         class MonsterTypeEl {
             constructor(monsterType) {
                 this.element = create('a', ClassNames.MONSTER_TYPE);
@@ -4234,7 +4251,7 @@
             setActiveEnemy(floor, monster) {
                 for (let i = 0; i < this.dungeonEnemies.length; i++) {
                     for (let j = 0; j < this.dungeonEnemies[i].length; j++) {
-                        let el = this.dungeonEnemies[i][j].getElement();
+                        const el = this.dungeonEnemies[i][j].getElement();
                         if (i == floor && j == monster) {
                             el.className = ClassNames.ICON_SELECTED;
                             el.scrollIntoView({ block: 'nearest' });
@@ -4259,8 +4276,8 @@
                         continue;
                     }
                     superShow(this.dungeonFloorEls[i]);
-                    let enemyIds = enemyIdsByFloor[i];
-                    let floorEnemies = this.dungeonEnemies[i];
+                    const enemyIds = enemyIdsByFloor[i];
+                    const floorEnemies = this.dungeonEnemies[i];
                     while (floorEnemies.length < enemyIds.length) {
                         this.addEnemy(i);
                     }
@@ -5422,6 +5439,9 @@
     define("leaders", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_6, ilmina_stripped_5) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
+        function subs(team) {
+            return team.slice(1, team.length - 1).filter((sub) => sub.getId() >= 0);
+        }
         const atkFromAttr = {
             atk: ([attr, atk100], { ping }) => {
                 return ping.source.isAttribute(attr) ? atk100 / 100 : 1;
@@ -6009,40 +6029,25 @@
             atk: ([attrBits, minMatch, atk100], { comboContainer, team }) => atk100 && countMatchedColors(attrBits, comboContainer, team) >= minMatch ? atk100 / 100 : 1,
             damageMult: ([attrBits, minMatch, _, shield], { comboContainer, team }) => shield && countMatchedColors(attrBits, comboContainer, team) >= minMatch ? 1 - shield / 100 : 1,
         };
+        function countColorMatches(cbits, comboContainer) {
+            const counts = {};
+            for (const attr of cbits.filter(Boolean).map((v) => common_6.idxsFromBits(v)[0])) {
+                counts[attr] = counts[attr] ? counts[attr] + 1 : 1;
+            }
+            let total = 0;
+            for (const attr in counts) {
+                total += Math.min(counts[attr], comboContainer.combos[common_6.COLORS[attr]].length);
+            }
+            return total;
+        }
         const atkShieldFromColorMatches2 = {
-            atk: ([a, b, c, d, minMatch, atk100], { comboContainer }) => {
-                if (!atk100) {
-                    return 1;
-                }
-                const counts = {};
-                for (const attr of [a, b, c, d].filter(Boolean).map((v) => common_6.idxsFromBits(v)[0])) {
-                    counts[attr] = counts[attr] ? counts[attr] + 1 : 1;
-                }
-                let total = 0;
-                for (const attr in counts) {
-                    total += Math.min(counts[attr], comboContainer.combos[common_6.COLORS[attr]].length);
-                }
-                return total >= minMatch ? atk100 : 1;
-            },
-            damageMult: ([a, b, c, d, minMatch, _, shield], { comboContainer }) => {
-                if (!shield) {
-                    return 1;
-                }
-                const counts = {};
-                for (const attr of [a, b, c, d].filter(Boolean).map((v) => common_6.idxsFromBits(v)[0])) {
-                    counts[attr] = counts[attr] ? counts[attr] + 1 : 1;
-                }
-                let total = 0;
-                for (const attr in counts) {
-                    total += Math.min(counts[attr], comboContainer.combos[common_6.COLORS[attr]].length);
-                }
-                return total >= minMatch ? shield : 1;
-            },
+            atk: ([a, b, c, d, minMatch, atk100], { comboContainer }) => atk100 && countColorMatches([a, b, c, d], comboContainer) >= minMatch ? atk100 / 100 : 1,
+            damageMult: ([a, b, c, d, minMatch, _, shield100], { comboContainer }) => shield100 && countColorMatches([a, b, c, d], comboContainer) >= minMatch ? (1 - shield100 / 100) : 1,
         };
         const baseStatFromCollab = {
-            hp: ([c1, c2, c3, hp100], { team }) => hp100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? hp100 / 100 : 1,
-            atk: ([c1, c2, c3, _, atk100], { team }) => atk100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? atk100 / 100 : 1,
-            rcv: ([c1, c2, c3, _, _a, rcv100], { team }) => rcv100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? rcv100 / 100 : 1,
+            hp: ([c1, c2, c3, hp100], { team }) => hp100 && subs(team).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? hp100 / 100 : 1,
+            atk: ([c1, c2, c3, _, atk100], { team }) => atk100 && subs(team).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? atk100 / 100 : 1,
+            rcv: ([c1, c2, c3, _, _a, rcv100], { team }) => rcv100 && subs(team).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? rcv100 / 100 : 1,
         };
         const atkScalingFromOrbsRemaining = {
             atk: ([a, b, c, d, e, maxRemaining, atk100base, atk100scale], { comboContainer }) => {
@@ -6175,7 +6180,7 @@
             damageMult: ([thresh, _, damageMult], { healing }) => damageMult && healing >= thresh ? damageMult / 100 : 1,
             awokenBindClear: ([thresh, _, _a, awokenBindClear], { healing }) => awokenBindClear && healing >= thresh ? awokenBindClear : 0,
         };
-        const trueBonusFromColorMatches = {
+        const trueBonusFromRainbowMatches = {
             trueBonusAttack: ([attrBits, minMatch, trueDamage], { team, comboContainer }) => countMatchedColors(attrBits, comboContainer, team) >= minMatch ? trueDamage : 0,
         };
         const trueBonusFromLinkedOrbs = {
@@ -6184,6 +6189,29 @@
                     .some((attr) => comboContainer.combos[common_6.COLORS[attr]]
                     .some((c) => c.count >= minLinked)) ? trueDamage : 1;
             },
+        };
+        const trueBonusFromColorMatches = {
+            trueBonusAttack: ([c1, c2, c3, c4, minColors, trueDamage], { comboContainer }) => countColorMatches([c1, c2, c3, c4], comboContainer) >= minColors ? trueDamage : 0,
+        };
+        const GROUP_CHECK = {
+            0: (m) => m.getCard().evoMaterials.includes(3826),
+            2: (m) => Boolean(m.getCard().inheritanceType & 32),
+        };
+        function checkSubsMatchGroup(groupId, team) {
+            const groupCheck = GROUP_CHECK[groupId];
+            if (!groupCheck) {
+                console.error(`Unhandled Group ID: ${groupId}`);
+                return false;
+            }
+            return subs(team).every(groupCheck);
+        }
+        const baseStatFromGroup = {
+            hp: ([groupId, hpMult100], { team }) => hpMult100 && checkSubsMatchGroup(groupId, team) ? hpMult100 / 100 : 1,
+            atk: ([groupId, _, atkMult100], { team }) => atkMult100 && checkSubsMatchGroup(groupId, team) ? atkMult100 / 100 : 1,
+            rcv: ([groupId, _, _a, rcvMult100], { team }) => rcvMult100 && checkSubsMatchGroup(groupId, team) ? rcvMult100 / 100 : 1,
+        };
+        const plusComboFromColorMatches = {
+            plusCombo: ([a, b, c, d, e, minMatch, bonusCombo], { comboContainer }) => countColorMatches([a, b, c, d, e], comboContainer) >= minMatch ? bonusCombo : 0,
         };
         const LEADER_SKILL_GENERATORS = {
             0: {},
@@ -6288,8 +6316,11 @@
             194: atkPlusCombosFromRainbow,
             197: disablePoisonDamage,
             198: atkShieldAwokenClearFromHealing,
-            199: trueBonusFromColorMatches,
+            199: trueBonusFromRainbowMatches,
             200: trueBonusFromLinkedOrbs,
+            201: trueBonusFromColorMatches,
+            203: baseStatFromGroup,
+            206: plusComboFromColorMatches,
         };
         // Functions for libraries to call directly.
         function bigBoard(id) {
@@ -6484,6 +6515,7 @@
         const DEFAULT_STATE = {
             awakenings: true,
             currentHp: 0,
+            skills: true,
             skillUsed: true,
             shieldPercent: 0,
             attributesShielded: [
@@ -6505,6 +6537,7 @@
             rcvMult: 0,
             fixedHp: 0,
             leadSwaps: [0, 0, 0],
+            bigBoard: false,
         };
         class StoredTeams {
             constructor(team) {
@@ -6647,7 +6680,7 @@
                     }
                     this.update();
                 });
-                this.updateCb = () => null;
+                this.updateCb = () => { };
                 // TODO: Battle Display - Different Class?
             }
             updateState(ctx) {
@@ -6660,6 +6693,15 @@
                     }
                 }
                 this.update();
+            }
+            skillBind() {
+                const count = this.countAwakening(common_7.Awakening.SBR);
+                if (count >= 5) {
+                    return;
+                }
+                if (Math.random() * 5 > count) {
+                    this.state.skills = false;
+                }
             }
             openTeamTab() {
                 this.teamPane.goToTab('Team');
@@ -6732,7 +6774,7 @@
                     if (!teamStrings[i]) {
                         teamStrings[i] = defaultMonster;
                     }
-                    let monsterStrings = teamStrings[i].split('/')
+                    const monsterStrings = teamStrings[i].split('/')
                         .map((s) => s.trim())
                         .reduce((allStrings, monsterString) => {
                         const multiply = monsterString.match(multiplierRegex);
@@ -6823,10 +6865,7 @@
                         this.monsters[5].copyFrom(this.monsters[6]);
                     }
                 }
-                else if (this.playerMode == 3) {
-                    //Todo, ps maybe filler text to pass eslint
-                }
-                else { // Handle 1P
+                else if (this.playerMode == 1) {
                     if (newMode == 2) {
                         this.monsters[6].copyFrom(this.monsters[5]);
                     }
@@ -6903,7 +6942,7 @@
                 if (!includeLeaderSkill) {
                     return monsters.map((monster) => monster.getHp(this.isMultiplayer(), this.state.awakenings));
                 }
-                let hps = [];
+                const hps = [];
                 const teamHpAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_HP), 0) * 0.05) : 0);
                 for (const monster of monsters) {
                     if (!monster.id || monster.id <= 0) {
@@ -6924,7 +6963,7 @@
                 return individualHps.reduce((total, next) => total + next, 0);
             }
             getIndividualRcv(includeLeaderSkill = false) {
-                let rcvs = [];
+                const rcvs = [];
                 const monsters = this.getActiveTeam();
                 if (!includeLeaderSkill) {
                     return monsters.map((monster) => monster.getRcv(this.isMultiplayer(), this.state.awakenings));
@@ -7018,7 +7057,7 @@
                 const mp = this.isMultiplayer();
                 const awoke = this.state.awakenings;
                 const percentHp = this.getHpPercent();
-                let monsters = this.getActiveTeam();
+                const monsters = this.getActiveTeam();
                 const leadId = monsters[0].bound ? -1 : monsters[0].getCard().leaderSkillId;
                 const helpId = monsters[5].bound ? -1 : monsters[5].getCard().leaderSkillId;
                 const partialAtk = (id, ping, healing) => leaders.atk(id, {
@@ -7045,12 +7084,20 @@
                     3: 0,
                     4: 0,
                     5: 0,
+                    6: 0,
+                    7: 0,
+                    8: 0,
+                    9: 0,
                     '-1': 0,
                     '-2': 0,
                 };
                 const rowAwakenings = {
                     '-2': 0,
                     '-1': 0,
+                    6: 0,
+                    7: 0,
+                    8: 0,
+                    9: 0,
                     0: this.countAwakening(common_7.Awakening.ROW_FIRE),
                     1: this.countAwakening(common_7.Awakening.ROW_WATER),
                     2: this.countAwakening(common_7.Awakening.ROW_WOOD),
@@ -7059,8 +7106,8 @@
                     5: this.countAwakening(common_7.Awakening.RECOVER_BIND),
                 };
                 // monsters = monsters.filter((monster) => monster.getId() > 0);
-                let pings = Array(2 * monsters.length);
-                const NO_ONE = new monster_instance_1.MonsterInstance(-1, () => { });
+                const pings = Array(2 * monsters.length);
+                const NO_ONE = new monster_instance_1.MonsterInstance(-1, () => null);
                 for (let i = 0; i < monsters.length; i++) {
                     if (monsters[i].getId() <= 0 || monsters[i].bound) {
                         pings[i] = new damage_ping_1.DamagePing(NO_ONE, common_7.Attribute.NONE);
@@ -7271,6 +7318,9 @@
                 this.updateCb(this.activeMonster);
             }
             countAwakening(awakening) {
+                if (!this.state.awakenings) {
+                    return 0;
+                }
                 const monsters = this.getActiveTeam();
                 if (this.playerMode == 2 && SHARED_AWAKENINGS.has(awakening)) {
                     const p2Monsters = this.getTeamAt(this.activeTeamIdx ^ 1);
@@ -7279,6 +7329,10 @@
                     }
                 }
                 return monsters.reduce((total, monster) => total + monster.countAwakening(awakening, this.isMultiplayer()), 0);
+            }
+            damage(amount, _attr) {
+                // TODO: Account for leader skills and buffs;
+                this.state.currentHp -= amount;
             }
             getStats() {
                 const team = this.getActiveTeam();
@@ -7539,6 +7593,45 @@
         }
         exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
     });
+    define("debugger", ["require", "exports", "templates"], function (require, exports, templates_4) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        class DebuggerEl {
+            constructor() {
+                this.el = templates_4.create('div');
+                this.inputEl = templates_4.create('input');
+                this.buttons = [];
+                this.textarea = templates_4.create('textarea');
+                this.text = '';
+                this.el.appendChild(this.inputEl);
+                this.el.appendChild(this.textarea);
+                this.addButton('Clear', () => {
+                    this.text = '';
+                    this.textarea.value = '';
+                });
+                this.textarea.style.width = `100%`;
+                this.textarea.style.fontSize = 'small';
+                this.textarea.style.height = '250px';
+                this.textarea.style.fontFamily = 'monospace';
+            }
+            addButton(text, onclick) {
+                const button = templates_4.create('button');
+                button.innerText = text;
+                button.onclick = onclick;
+                this.el.insertBefore(button, this.textarea);
+                this.buttons.push(button);
+            }
+            getElement() {
+                return this.el;
+            }
+            print(text) {
+                this.text += `\n${text}`;
+                this.textarea.value = this.text;
+            }
+        }
+        const debug = new DebuggerEl();
+        exports.debug = debug;
+    });
     define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_8, ilmina_stripped_7) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
@@ -7675,7 +7768,12 @@
                 this.attack = -1;
                 this.defense = -1;
                 this.resolvePercent = 0;
-                this.turnCounter = 1; // Currently unused.
+                this.turnCounter = 0; // Currently unused.
+                // Used for determining moveset.
+                this.charges = 0;
+                this.flags = 0;
+                this.counter = 0;
+                this.forceAttack = false; // If true, next attack must be basic.
                 // Values that can change during battle.
                 this.currentHp = 1;
                 this.currentAttribute = -1; // -1 is main, -2 is sub.
@@ -7687,6 +7785,7 @@
                 this.attackMultiplier = 1; // Enrage
                 this.turnsRemaining = 1; // Not to be used yet.
                 this.turnCounterOverride = -1; // Not to be used yet.
+                this.invincible = false;
                 // Debuffs by players
                 this.ignoreDefensePercent = 0;
                 this.poison = 0;
@@ -7880,6 +7979,9 @@
                 this.ignoreDefensePercent = 0;
                 this.poison = 0;
                 this.delayed = false;
+                this.charges = ilmina_stripped_7.floof.model.cards[this.id].charges;
+                this.counter = 0;
+                this.flags = 0;
                 if (this.preemptiveSkillset) {
                     //   this.preemptiveSkillset.applySkillset(idc, this);
                 }
@@ -7960,7 +8062,1710 @@
         }
         exports.EnemyInstance = EnemyInstance;
     });
-    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates"], function (require, exports, common_9, ajax_2, enemy_instance_1, templates_4) {
+    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common", "debugger"], function (require, exports, ilmina_stripped_8, common_9, debugger_1) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        ilmina_stripped_8.floof.model.enemySkills;
+        const TO_NEXT = -1;
+        const TERMINATE = 0;
+        // 1
+        const bindRandom = {
+            textify: ({ skillArgs }) => {
+                const [count, min, max] = skillArgs;
+                return `Binds ${count} of all monsters for ${min} to ${max} turns`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => {
+                // let [count, min, max] = skillArgs;
+                console.warn('Bind not yet supported');
+                // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+            },
+            goto: () => TERMINATE,
+        };
+        // 2
+        const bindColor = {
+            textify: ({ skillArgs }) => {
+                const [color, min, max] = skillArgs;
+                return `Binds ${common_9.AttributeToName.get(color)} monsters for ${min} to ${max} turns`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team }) => {
+                let [color, min, max] = skillArgs;
+                console.warn('Bind not yet supported');
+                // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+            },
+            goto: () => TERMINATE,
+        };
+        // 3
+        const bindType = {
+            textify: ({ skillArgs }) => {
+                const [type, min, max] = skillArgs;
+                return `Binds ${common_9.TypeToName.get(type)} monsters for ${min} to ${max} turns`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => {
+                // let [type, min, max] = skillArgs;
+                console.warn('Bind not yet supported');
+                // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+            },
+            goto: () => TERMINATE,
+        };
+        // 5
+        const blindBoard = {
+            textify: () => 'Blind board.',
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 6
+        const dispelBuffs = {
+            textify: () => 'Dispel player buffs',
+            condition: () => true,
+            aiEffect: () => { },
+            effect: (_, { team }) => {
+                team.resetState();
+            },
+            goto: () => TERMINATE,
+        };
+        // 7
+        const healOrAttack = {
+            textify: ({ skillArgs }, { atk }) => `If player health less than ${common_9.addCommas(atk)}, deal ${common_9.addCommas(atk)}, otherwise heal for ${skillArgs[0]}-${skillArgs[1]}%`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                if (team.state.currentHp <= enemy.getAtk()) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    return;
+                }
+                const [min, max] = skillArgs;
+                const healAmount = Math.ceil((Math.random() * (max - min) + min) * enemy.getHp() / 100);
+                if (enemy.currentHp + healAmount > enemy.getHp()) {
+                    enemy.currentHp = enemy.getHp();
+                }
+                else {
+                    enemy.currentHp += healAmount;
+                }
+            },
+            goto: () => TERMINATE,
+        };
+        // 8
+        const enhanceBasicAttack = {
+            textify: ({ skillArgs }) => `Force next move to be a ${100 + skillArgs[0]}-${100 + skillArgs[1]}% basic attack`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                const [min, max] = skillArgs;
+                const enhance = Math.ceil(Math.random() * (max - min)) + min;
+                enemy.attackMultiplier = enhance / 100 + 1;
+                enemy.forceAttack = true;
+            },
+            goto: () => TERMINATE,
+        };
+        // 12
+        const singleOrbToJammer = {
+            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_9.AttributeToName.get(skillArgs[0])} color into Jammer`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 13
+        const multiOrbToJammer = {
+            textify: ({ skillArgs }) => `Randomly convert ${skillArgs[0]} colors into Jammer`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 14
+        const skillBind = {
+            textify: ({ skillArgs }) => `Skill bind for ${skillArgs[0]}-${skillArgs[1]} turns`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: (_, { team }) => {
+                team.skillBind();
+            },
+            goto: () => TERMINATE,
+        };
+        // 15
+        const multihit = {
+            textify: ({ skillArgs }, { atk }) => {
+                const [min, max, percent] = skillArgs;
+                if (min == max) {
+                    return `Hit ${max}x${percent}% for ${common_9.addCommas(max * Math.ceil(percent / 100 * atk))}`;
+                }
+                return `Hit ${min}-${max}x${percent}% for ${common_9.addCommas(min * Math.ceil(percent / 100 * atk))}-${common_9.addCommas(max * Math.ceil(percent / 100 * atk))}`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy, team }) => {
+                const [min, max, percent] = skillArgs;
+                const hitTimes = Math.floor(Math.random() * (max - min)) + min;
+                const damage = Math.ceil(percent / 100 * enemy.getAtk());
+                for (let i = 0; i < hitTimes; i++) {
+                    team.damage(damage, enemy.getAttribute());
+                }
+            },
+            goto: () => TERMINATE,
+        };
+        // 17
+        const enrage = {
+            textify: ({ skillArgs }) => {
+                return `Attack set to ${skillArgs[2]}% for ${skillArgs[1]} when alone.`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                enemy.attackMultiplier = skillArgs[2] / 100;
+            },
+            goto: () => {
+                // TODO: Add enrage status because it skips it if already buffed.
+                return TERMINATE;
+            },
+        };
+        // 18
+        const enrageFromStatusAilment = {
+            textify: ({ skillArgs }) => {
+                return `Attack set to ${skillArgs[1]}% for ${skillArgs[0]} turns when afflicted with status ailment.`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                enemy.attackMultiplier = skillArgs[1] / 100;
+            },
+            goto: () => {
+                // TODO: Determine if monster already buffed or monster afflicted with status.
+                return TERMINATE;
+            },
+        };
+        // 17
+        const enrageFromMinimumAttacks = {
+            textify: ({ skillArgs }) => {
+                return `Attack set to ${skillArgs[2]}% for ${skillArgs[1]} after ${skillArgs[0]} turns. Unclear`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                enemy.attackMultiplier = skillArgs[2] / 100;
+            },
+            goto: () => {
+                // TODO: Determine if monster already buffed and if condition has happened.
+                return TERMINATE;
+            },
+        };
+        // 20
+        const statusShield = {
+            textify: ({ skillArgs }) => `Void status ailments for ${skillArgs[0]} turns`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: (_, { enemy }) => {
+                enemy.statusShield = true;
+            },
+            goto: () => TERMINATE,
+        };
+        // 22
+        const setFlagAndContinue = {
+            textify: (skillCtx) => {
+                const flagPositions = common_9.idxsFromBits(skillCtx.ai);
+                return `Set Flag(s) ${flagPositions} and Continue.`;
+            },
+            condition: () => true,
+            aiEffect: (skillCtx, ctx) => {
+                ctx.flags |= skillCtx.ai;
+            },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 23
+        const goto0IndexIfFlag = {
+            textify: ({ ai, rnd }) => {
+                return `If Flag ${common_9.idxsFromBits(ai)}, go to skill at index ${rnd - 1}`;
+            },
+            condition: ({ ai }, { flags }) => {
+                return Boolean(flags & ai);
+            },
+            aiEffect: () => { },
+            effect: () => { },
+            goto: (skillCtx, ctx) => {
+                return gotoIfFlag.condition(skillCtx, ctx) ? skillCtx.rnd : TO_NEXT;
+            },
+        };
+        // 24
+        const unsetFlagAndContinue = {
+            textify: (skillCtx) => {
+                const flagPositions = common_9.idxsFromBits(skillCtx.ai);
+                return `Unset Flag(s) ${flagPositions} and Continue.`;
+            },
+            condition: () => true,
+            aiEffect: (skillCtx, ctx) => {
+                ctx.flags &= ~skillCtx.ai;
+            },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 25
+        const setCounterToAiAndContinue = {
+            textify: ({ ai }) => `Set counter to ${ai} and Continue.`,
+            condition: () => true,
+            aiEffect: ({ ai }, ctx) => {
+                ctx.counter = ai;
+            },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 26
+        const incrementCounterAndContinue = {
+            textify: () => `Increment counter and continue`,
+            condition: () => true,
+            aiEffect: (_, ctx) => {
+                ctx.counter++;
+            },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 27
+        const decrementCounterAndContinue = {
+            textify: () => `Decrement counter and continue`,
+            condition: () => true,
+            aiEffect: (_, ctx) => {
+                ctx.counter--;
+            },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 28
+        const gotoIfHpBelow = {
+            textify: ({ ai, rnd }) => `If HP <= ${ai}, go to skill ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }, { hpPercent }) => hpPercent < ai ? rnd - 1 : TO_NEXT,
+        };
+        // 29
+        const gotoIfHpAbove = {
+            textify: ({ ai, rnd }) => `If HP >= ${ai}, go to skill ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }, { hpPercent }) => hpPercent >= ai ? rnd - 1 : TO_NEXT,
+        };
+        // 30
+        const gotoIfCounterLesser = {
+            textify: ({ ai, rnd }) => `If counter < ${ai}, go to skillset ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }, { counter }) => counter <= ai ? rnd - 1 : TO_NEXT,
+        };
+        // 31
+        const gotoIfCounterEqual = {
+            textify: ({ ai, rnd }) => `If counter = ${ai}, go to skillset ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }, { counter }) => counter == ai ? rnd - 1 : TO_NEXT,
+        };
+        // 32
+        const gotoIfCounterGreater = {
+            textify: ({ ai, rnd }) => `If counter >= ${ai}, go to skillset ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }, { counter }) => counter >= ai ? rnd - 1 : TO_NEXT,
+        };
+        // 33
+        const gotoIfLvLesser = {
+            textify: ({ ai, rnd }) => `If enemy level <${ai}, go to skill at ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }, { lv }) => lv < ai ? rnd : TO_NEXT,
+        };
+        // 34
+        const gotoIfLvEqual = {
+            textify: ({ ai, rnd }) => `If enemy level is ${ai}, go to skill at ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }, { lv }) => lv == ai ? rnd : TO_NEXT,
+        };
+        // 35
+        const gotoIfLvGreater = {
+            textify: ({ ai, rnd }) => `If enemy level >${ai}, go to skill at ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }, { lv }) => lv > ai ? rnd : TO_NEXT,
+        };
+        // 36
+        const fallbackAttack = {
+            textify: (_, { atk }) => {
+                return `Attack of ${common_9.addCommas(atk)} used if none of the above are available.`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 37
+        const displayCounterOrContinue = {
+            textify: () => 'Decrement counter by 1. If positive, display and terminate, else if 0, continue.',
+            condition: () => true,
+            aiEffect: () => { },
+            effect: (_, { enemy }) => {
+                if (enemy.counter) {
+                    console.log(enemy.counter);
+                }
+            },
+            goto: (_, { counter }) => {
+                return counter > 0 ? TERMINATE : TO_NEXT;
+            },
+        };
+        // 38
+        const setCounterAndContinue = {
+            textify: ({ rnd }) => `If counter = 0, set counter to ${rnd}`,
+            condition: () => true,
+            aiEffect: ({ rnd }, ctx) => {
+                if (!ctx.counter) {
+                    ctx.counter = rnd;
+                }
+            },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 39
+        const timeDebuff = {
+            textify: ({ skillArgs }) => {
+                const [turns, flatDebuff, timePercent] = skillArgs;
+                if (flatDebuff) {
+                    if (flatDebuff > 0) {
+                        return `Reduce time by ${flatDebuff / 10}s for ${turns} turns`;
+                    }
+                    else {
+                        return `Increase time by ${flatDebuff / -10}s for ${turns} turns`;
+                    }
+                }
+                return `Time set to ${timePercent}% for ${turns} turns`;
+            },
+            // Determine if already debuffed by opponent?!
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team }) => {
+                const [_, flatDebuff, timePercent] = skillArgs;
+                team.state.timeBonus = flatDebuff ? flatDebuff / -0.1 : timePercent / 100;
+                team.state.timeIsMult = !flatDebuff;
+            },
+            goto: () => TERMINATE,
+        };
+        // 40
+        const suicide = {
+            textify: () => `Set own health to 0.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: (_, { enemy }) => {
+                enemy.currentHp = 0;
+            },
+            // Currently never occurs in simulations.
+            goto: () => TO_NEXT,
+        };
+        // 43
+        const gotoIfFlag = {
+            textify: ({ ai, rnd }) => {
+                return `If Flag ${common_9.idxsFromBits(ai)}, go to skill at index ${rnd}`;
+            },
+            condition: ({ ai }, { flags }) => {
+                return Boolean(flags & ai);
+            },
+            aiEffect: () => { },
+            effect: () => { },
+            goto: (skillCtx, ctx) => {
+                return gotoIfFlag.condition(skillCtx, ctx) ? skillCtx.rnd - 1 : TO_NEXT;
+            },
+        };
+        // 44
+        const orFlagsAndContinue = {
+            textify: ({ ai }) => {
+                return `OR flags ${common_9.idxsFromBits(ai)}, and Continue.`;
+            },
+            condition: () => true,
+            aiEffect: ({ ai }, ctx) => {
+                ctx.flags |= ai;
+            },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 45
+        const toggleFlagsAndContinue = {
+            textify: ({ ai }) => {
+                return `Toggle flags ${common_9.idxsFromBits(ai)}, and Continue.`;
+            },
+            condition: ({ ai }, { flags }) => {
+                return Boolean(flags & ai);
+            },
+            aiEffect: ({ ai }, ctx) => {
+                ctx.flags ^= ai;
+            },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 46
+        const changeAttribute = {
+            textify: ({ skillArgs }) => {
+                if (!skillArgs.length) {
+                    skillArgs.push(0);
+                }
+                if (!skillArgs.every(Boolean)) {
+                    skillArgs = skillArgs.filter(Boolean);
+                    skillArgs.push(0);
+                }
+                const attrs = [...(new Set(skillArgs))].map(i => common_9.AttributeToName.get(i)).join(',');
+                return `Change attribute to one of [${attrs}]`;
+            },
+            condition: (skillCtx, ctx) => {
+                return ctx.attribute != skillCtx.skillArgs[0];
+            },
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                if (!skillArgs.length) {
+                    skillArgs.push(0);
+                }
+                if (!skillArgs.every(Boolean)) {
+                    skillArgs = skillArgs.filter(Boolean);
+                    skillArgs.push(0);
+                }
+                const available = skillArgs.filter((c) => c != enemy.getAttribute());
+                enemy.currentAttribute = available[Math.floor(Math.random() * available.length)];
+            },
+            goto: () => TERMINATE,
+        };
+        // 47
+        const oldPreemptiveAttack = {
+            textify: ({ skillArgs }, { atk }) => {
+                return `Preemptive: Do ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
+            },
+            condition: () => true,
+            effect: ({ skillArgs }, { team, enemy }) => {
+                team.damage(Math.ceil(enemy.getAtk() * skillArgs[1] / 100), enemy.getAttribute());
+            },
+            aiEffect: () => { },
+            goto: (_, ctx) => ctx.isPreempt ? TERMINATE : TO_NEXT,
+        };
+        // 48
+        const attackAndSingleOrbChange = {
+            textify: ({ skillArgs }, { atk }) => {
+                const [percent, from, to] = skillArgs;
+                const damage = common_9.addCommas(Math.ceil(percent / 100 * atk));
+                const fromString = from == -1 ? 'Random Color' : common_9.AttributeToName.get(from);
+                const toString = to == -1 ? 'Random Color' : common_9.AttributeToName.get(to);
+                return `Hit for ${skillArgs[0]}% (${damage}) and convert ${fromString} to ${toString}`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+                // Convert orbs?!
+            },
+            goto: () => TERMINATE,
+        };
+        // 49
+        const preemptiveMarker = {
+            condition: (skillCtx, conditionContext) => {
+                return conditionContext.lv >= skillCtx.skillArgs[0];
+            },
+            effect: () => { },
+            aiEffect: () => { },
+            textify: ({ skillArgs }) => {
+                return `Preemptive: If level at least ${skillArgs[0]}, do next skillset.`;
+            },
+            goto: (skillCtx, ctx) => {
+                if (!ctx.isPreempt || preemptiveMarker.condition(skillCtx, ctx)) {
+                    return TO_NEXT;
+                }
+                return TERMINATE;
+            },
+        };
+        // 50
+        const gravity = {
+            textify: ({ skillArgs }) => `${skillArgs[0]}% gravity of player's current health (rounded down)`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                team.damage(Math.floor(team.state.currentHp * skillArgs[0] / 100), enemy.getAttribute());
+            },
+            goto: () => TERMINATE,
+        };
+        // 52
+        const resurrect = {
+            textify: ({ skillArgs }) => `Revive ally with ${skillArgs[0]}% HP.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            // Currently never occurs in simulations.
+            goto: () => TO_NEXT,
+        };
+        // 53
+        const attributeAbsorb = {
+            textify: ({ skillArgs }) => {
+                const [minTurns, maxTurns, attrIdxs] = skillArgs;
+                const attrs = common_9.idxsFromBits(attrIdxs).map((c) => common_9.AttributeToName.get(c)).join(', ');
+                return `For ${minTurns} to ${maxTurns} turns, absorb ${attrs}.`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                enemy.attributeAbsorb = common_9.idxsFromBits(skillArgs[2]);
+            },
+            goto: () => TERMINATE,
+        };
+        // 54
+        const directedBindAll = {
+            textify: ({ skillArgs }) => {
+                const [positionMask, min, max] = skillArgs;
+                let text = ['All Monsters'];
+                if (positionMask) {
+                    text = [];
+                    if (positionMask & 1) {
+                        text.push('Leader');
+                    }
+                    if (positionMask & 2) {
+                        text.push('Helper');
+                    }
+                    if (positionMask & 4) {
+                        text.push('Subs');
+                    }
+                }
+                return `Binds ${text.join(' and ')} for ${min} to ${max} turns`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                let [positionMask, min, max] = skillArgs;
+                console.warn('Bind not yet supported');
+                positionMask = positionMask || 7;
+                // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+            },
+            goto: () => TERMINATE,
+        };
+        // 55
+        const healPlayer = {
+            textify: ({ skillArgs }) => {
+                const [min, max] = skillArgs;
+                return `Heal player for ${min}-${max}% HP`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team }) => {
+                const [min, max] = skillArgs;
+                const percent = Math.floor(Math.random() * (max - min)) + min;
+                const maxHp = team.getHp();
+                const toHp = (maxHp * percent / 100 + team.state.currentHp);
+                team.state.currentHp = toHp < maxHp ? toHp : maxHp;
+            },
+            goto: () => TERMINATE,
+        };
+        // 56
+        const singleOrbToPoison = {
+            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_9.AttributeToName.get(skillArgs[0])} color into Poison`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 57
+        const multiOrbToPoison = {
+            textify: ({ skillArgs }) => `Randomly convert ${skillArgs[0]} colors into Poison`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 60
+        const randomPoisonSpawn = {
+            textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x Poison orbs${skillArgs[1] ? ' excluding hearts' : ''}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 62
+        const attackAndBlind = {
+            textify: ({ skillArgs }, { atk }) => {
+                return `Hits once for ${skillArgs[0]} % (${common_9.addCommas(Math.ceil(skillArgs[0] / 100 * atk))}) and blinds the board.`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                let [percent] = skillArgs;
+                team.damage(Math.ceil(enemy.getAtk() * percent / 100), enemy.getAttribute());
+            },
+            goto: () => TERMINATE,
+        };
+        // 63
+        const attackAndBind = {
+            textify: ({ skillArgs }, { atk }) => {
+                const [percent, min, max, positionMask, count] = skillArgs;
+                let text = ['All Monsters'];
+                if (positionMask) {
+                    text = [];
+                    if (positionMask & 1) {
+                        text.push('Leader');
+                    }
+                    if (positionMask & 2) {
+                        text.push('Helper');
+                    }
+                    if (positionMask & 4) {
+                        text.push('Subs');
+                    }
+                }
+                return `Hits once for ${percent} % (${common_9.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${min} to ${max} turns`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                let [percent, _min, _max, positionMask, count] = skillArgs;
+                team.damage(Math.ceil(enemy.getAtk() * percent / 100), enemy.getAttribute());
+                console.warn('Bind not yet supported');
+                positionMask = positionMask || 7;
+                // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+            },
+            goto: () => TERMINATE,
+        };
+        // 64
+        const attackAndPoisonSpawn = {
+            textify: ({ skillArgs }, { atk }) => {
+                const [percent, count, excludeHearts] = skillArgs;
+                const damage = common_9.addCommas(Math.ceil(percent / 100 * atk));
+                return `Hit for ${skillArgs[0]}% (${damage}) and spawn ${count} Poison Orbs${excludeHearts ? ' ignoring hearts' : ''}`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+                // Convert orbs?!
+            },
+            goto: () => TERMINATE,
+        };
+        // 65
+        const bindSubs = {
+            textify: ({ skillArgs }) => `Binds ${skillArgs[0]} for ${skillArgs[1]}-${skillArgs[2]} turns`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team }) => {
+                console.warn('Binds not yet supported');
+            },
+            goto: () => TERMINATE,
+        };
+        // 66
+        const skipTurn = {
+            textify: () => 'Skip Turn',
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 67
+        const comboAbsorb = {
+            textify: ({ skillArgs }) => `Absorb ${skillArgs[2]} or fewer combos for ${skillArgs[0]} - ${skillArgs[1]} turns.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                enemy.comboAbsorb = skillArgs[2];
+            },
+            goto: () => TERMINATE,
+        };
+        // 68
+        const skyfall = {
+            textify: ({ skillArgs }) => {
+                const orbs = common_9.idxsFromBits(skillArgs[0]).map((c) => common_9.AttributeToName.get(c));
+                return `For ${skillArgs[1]} to ${skillArgs[2]} turns, set ${orbs} skyfall bonus to ${skillArgs[3]}% `;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 69
+        const transformAnimation = {
+            textify: () => `[Passive] On death, transform.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 71
+        const voidDamage = {
+            textify: ({ skillArgs }) => `Void Damage of >= ${common_9.addCommas(skillArgs[2])} for ${skillArgs[0]}} turns.`,
+            // Add conditional that this can't happen again.
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy, team }) => {
+                if (enemy.damageVoid) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    return;
+                }
+                enemy.damageVoid = skillArgs[2];
+            },
+            goto: () => TERMINATE,
+        };
+        // 72
+        const attributeResist = {
+            textify: ({ skillArgs }) => `[Passive] ${skillArgs[1]}% ${common_9.idxsFromBits(skillArgs[0]).map(c => common_9.AttributeToName.get(c))} Resist.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 73
+        const resolve = {
+            textify: ({ skillArgs }) => `[Passive] ${skillArgs[0]}% Resolve.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 74
+        const shield = {
+            textify: ({ skillArgs }) => `Damage reduced by ${skillArgs[1]}% for ${skillArgs[0]} turns`,
+            // TODO: skip if active.
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                enemy.shieldPercent = skillArgs[1];
+            },
+            goto: () => TERMINATE,
+        };
+        // 75
+        const leadSwap = {
+            textify: ({ skillArgs }) => `Lead swap for ${skillArgs[0]} turns`,
+            // TODO: skip if active.
+            condition: () => true,
+            aiEffect: () => { },
+            effect: (_, { team, enemy }) => {
+                // Cannot swap an already swapped team.
+                const subs = team.getActiveTeam().slice(1, 5).filter(m => m.getId() > 0).length;
+                if (team.state.leadSwaps[team.activeTeamIdx] || !subs) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    return;
+                }
+                team.updateState({
+                    leadSwap: 1 + Math.floor(Math.random() * subs),
+                });
+            },
+            goto: () => TERMINATE,
+        };
+        // 76
+        const columnChange = {
+            textify: ({ skillArgs }) => {
+                const [c1, o1, c2, o2, c3, o3, c4, o4, c5, o5] = skillArgs;
+                let text = 'Convert ';
+                let columns = [];
+                for (const [c, o] of [[c1, o1], [c2, o2], [c3, o3], [c4, o4], [c5, o5]]) {
+                    if (c == undefined) {
+                        continue;
+                    }
+                    columns.push(`column(s) ${common_9.idxsFromBits(c)} into ${common_9.idxsFromBits(o).map(i => common_9.AttributeToName.get(i))}`);
+                }
+                text += columns.join(' and ');
+                return text + '.';
+            }, condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 77
+        const attackAndColumnChange = {
+            textify: ({ skillArgs }, { atk }) => {
+                const [c1, o1, c2, o2, c3, o3, percent] = skillArgs;
+                let text = `Deal ${percent}% (${common_9.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
+                let columns = [];
+                for (const [c, o] of [[c1, o1], [c2, o2], [c3, o3]]) {
+                    if (c == undefined) {
+                        continue;
+                    }
+                    columns.push(`column(s) ${common_9.idxsFromBits(c)} into ${common_9.idxsFromBits(o).map(i => common_9.AttributeToName.get(i))}`);
+                }
+                text += columns.join(' and ');
+                return text + '.';
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                const damage = Math.ceil(enemy.getAtk() / 100 * skillArgs[6]);
+                team.damage(damage, enemy.getAttribute());
+            },
+            goto: () => TERMINATE,
+        };
+        // 78
+        const rowChange = {
+            textify: ({ skillArgs }) => {
+                const [r1, o1, r2, o2, r3, o3, r4, o4, r5, o5] = skillArgs;
+                let text = 'Convert ';
+                let columns = [];
+                for (const [r, o] of [[r1, o1], [r2, o2], [r3, o3], [r4, o4], [r5, o5]]) {
+                    if (r == undefined) {
+                        continue;
+                    }
+                    columns.push(`row(s) ${common_9.idxsFromBits(r)} into ${common_9.idxsFromBits(o).map(i => common_9.AttributeToName.get(i))}`);
+                }
+                text += columns.join(' and ');
+                return text + '.';
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 79
+        const attackAndRowChange = {
+            textify: ({ skillArgs }, { atk }) => {
+                const [r1, o1, r2, o2, r3, o3, percent] = skillArgs;
+                let text = `Deal ${percent}% (${common_9.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
+                let columns = [];
+                for (const [r, o] of [[r1, o1], [r2, o2], [r3, o3]]) {
+                    if (!r == undefined) {
+                        continue;
+                    }
+                    columns.push(`row(s) ${common_9.idxsFromBits(r)} into ${common_9.idxsFromBits(o).map(i => common_9.AttributeToName.get(i))}`);
+                }
+                text += columns.join(' and ');
+                return text + '.';
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                const damage = Math.ceil(enemy.getAtk() / 100 * skillArgs[6]);
+                team.damage(damage, enemy.getAttribute());
+            },
+            goto: () => TERMINATE,
+        };
+        // 81
+        const attackAndChangeBoardOld = {
+            textify: ({ skillArgs }, { atk }) => {
+                const colors = [];
+                for (let i = 1; i < skillArgs.length; i++) {
+                    if (skillArgs[i] == -1) {
+                        break;
+                    }
+                    colors.push(common_9.AttributeToName.get(skillArgs[i]));
+                }
+                return `Attack of ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${colors.join(', ')}`;
+            },
+            // TODO: Add conditional depending on board.
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy, team }) => {
+                const damage = Math.ceil(skillArgs[0] / 100 * enemy.getAtk());
+                team.damage(damage, enemy.getAttribute());
+            },
+            goto: () => TERMINATE,
+        };
+        // 82
+        const attackWithoutName = {
+            textify: (_, { atk }) => {
+                return `Attack of ${common_9.addCommas(atk)}.`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 83
+        const skillset = {
+            textify: (skillCtx, ctx) => {
+                const subEffects = skillCtx.skillArgs.map((skillId) => {
+                    const effect = ilmina_stripped_8.floof.model.enemySkills[skillId];
+                    const newContext = {
+                        id: skillId,
+                        ai: skillCtx.ai,
+                        rnd: skillCtx.rnd,
+                        ratio: effect.ratio,
+                        effectId: effect.internalEffectId,
+                        name: effect.name,
+                        text: effect.usageText,
+                        aiArgs: [...effect.aiArgs],
+                        skillArgs: [...effect.skillArgs],
+                    };
+                    return ` * ${textify(ctx, newContext)} `;
+                }).join('\n');
+                return `Use all of the following: \n` + subEffects;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: (skillCtx, ctx) => {
+                for (const skillId of skillCtx.skillArgs) {
+                    const eff = ilmina_stripped_8.floof.model.enemySkills[skillId];
+                    const newContext = {
+                        id: skillId,
+                        ai: skillCtx.ai,
+                        rnd: skillCtx.rnd,
+                        ratio: eff.ratio,
+                        effectId: eff.internalEffectId,
+                        name: eff.name,
+                        text: eff.usageText,
+                        aiArgs: [...eff.aiArgs],
+                        skillArgs: [...eff.skillArgs],
+                    };
+                    effect(newContext, ctx);
+                }
+            },
+            goto: () => TERMINATE,
+        };
+        // 84
+        const boardChange = {
+            textify: ({ skillArgs }) => {
+                return `Change board to ${common_9.idxsFromBits(skillArgs[0]).map(c => common_9.AttributeToName.get(c))} `;
+            },
+            // TODO: Add conditional depending on board.
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 85
+        const attackAndChangeBoard = {
+            textify: ({ skillArgs }, { atk }) => {
+                return `Attack of ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${common_9.idxsFromBits(skillArgs[1]).map(c => common_9.AttributeToName.get(c))} `;
+            },
+            // TODO: Add conditional depending on board.
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy, team }) => {
+                const damage = Math.ceil(skillArgs[0] / 100 * enemy.getAtk());
+                team.damage(damage, enemy.getAttribute());
+            },
+            goto: () => TERMINATE,
+        };
+        // 86
+        const healPercent = {
+            textify: ({ skillArgs }) => `Heal for ${skillArgs[0]}-${skillArgs[1]}% of max HP.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                const [min, max] = skillArgs;
+                const percentHealed = Math.floor(Math.random() * (max - min)) + min;
+                const healAmount = Math.ceil(percentHealed * enemy.getHp() / 100);
+                if (enemy.currentHp + healAmount > enemy.getHp()) {
+                    enemy.currentHp = enemy.getHp();
+                }
+                else {
+                    enemy.currentHp += healAmount;
+                }
+            },
+            goto: () => TERMINATE,
+        };
+        // 87
+        const damageAbsorb = {
+            textify: ({ skillArgs }) => `Absorb damage of ${common_9.addCommas(skillArgs[1])} or more for ${skillArgs[0]} turns`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                enemy.damageAbsorb = skillArgs[0];
+            },
+            goto: () => TERMINATE,
+        };
+        // 88
+        const awokenBind = {
+            textify: ({ skillArgs }) => {
+                return `Awoken Bind for ${skillArgs[0]} turn(s)`;
+            },
+            // TODO: Determine if team is awoken bound already.
+            condition: () => true,
+            aiEffect: () => { },
+            effect: (_, { team }) => {
+                if (team.state.awakenings) {
+                    team.state.awakenings = false;
+                }
+                else {
+                    // Should we do a basic attack here?
+                }
+            },
+            goto: () => TERMINATE,
+        };
+        // 89
+        const skillDelay = {
+            textify: ({ skillArgs }) => {
+                return `Skill Delay for ${skillArgs[0]}-${skillArgs[1]} turn(s)`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 90
+        const gotoIfCardOnTeam = {
+            textify: ({ rnd, skillArgs }) => {
+                return `If any of ${skillArgs.filter(Boolean).map(id => ilmina_stripped_8.floof.model.cards[id].name)} are on the team, go to skill at ${rnd}`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ skillArgs, rnd }, { teamIds }) => skillArgs.some((id) => teamIds.includes(id)) ? rnd - 1 : TO_NEXT,
+        };
+        // 92
+        const randomOrbSpawn = {
+            textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x ${common_9.idxsFromBits(skillArgs[1]).map(c => common_9.AttributeToName.get(c))} orbs from non-[${common_9.idxsFromBits(skillArgs[2]).map((c) => common_9.AttributeToName.get(c))}]`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 93
+        const finalFantasyAndContinue = {
+            textify: () => `Final Fantasy Nonsense according to Ilmina. Continue.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 94
+        const lockOrbs = {
+            textify: ({ skillArgs }) => {
+                const [attrBits, maxLocked] = skillArgs;
+                const lockedOrbs = common_9.idxsFromBits(attrBits).map((c) => common_9.AttributeToName.get(c)).join(', ');
+                return `Lock up to ${maxLocked} of the following orbs: ${lockedOrbs}.`;
+            },
+            condition: () => {
+                // Not applicable right now, but requires that one of the locked colors exists.
+                return true;
+            },
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 95
+        const onDeathSkillset = {
+            textify: (...args) => skillset.textify(...args).replace('U', 'On death, u'),
+            condition: () => false,
+            aiEffect: () => { },
+            effect: (...args) => skillset.effect(...args),
+            goto: () => TO_NEXT,
+        };
+        // 96
+        const lockSkyfall = {
+            textify: ({ skillArgs }) => {
+                const [attrBits, minTurns, maxTurns, percent] = skillArgs;
+                if (!attrBits || attrBits == -1) {
+                    return `Lock ${percent}% skyfall for ${minTurns}-${maxTurns} turns.`;
+                }
+                const lockedOrbs = common_9.idxsFromBits(attrBits).map((c) => common_9.AttributeToName.get(c)).join(', ');
+                return `Lock ${percent}% of ${lockedOrbs} skyfall for ${minTurns}-${maxTurns}`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 97
+        const randomStickyBlind = {
+            textify: ({ skillArgs }) => `Randomly sticky blind ${skillArgs[1]}-${skillArgs[2]} orbs for ${skillArgs[0]} turns.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 98
+        const patternStickyBlind = {
+            textify: ({ skillArgs }) => `Sticky blind a pattern for ${skillArgs[0]} turns: Pattern: ${skillArgs.slice(1)}.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 99
+        const tapeColumns = {
+            textify: ({ skillArgs }) => `Tape columns ${common_9.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 100
+        const tapeRows = {
+            textify: ({ skillArgs }) => `Tape rows ${common_9.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 101
+        const fixedStartingPoint = {
+            textify: ({ skillArgs }) => `Fixed starting point at ${skillArgs[0] ? 'Random Location' : `${skillArgs[2]}-${skillArgs[1]}`}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 102
+        const randomBombSpawn = {
+            textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[1]}x bomb orbs`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 103
+        const patternBombSpawn = {
+            textify: ({ skillArgs }) => `Spawn ${skillArgs[7] ? 'Locked ' : ''}Bomb orbs in a pattern: ${skillArgs.slice(1, 7)}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 104
+        const cloudRandom = {
+            textify: ({ skillArgs }) => `Randomly Cloud ${skillArgs[1]} x${skillArgs[2]} Rectangle for ${skillArgs[0]} turns.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 105
+        const rcv = {
+            textify: ({ skillArgs }) => {
+                const [turns, rcvPercent] = skillArgs;
+                return `Set Recovery to ${rcvPercent}% for ${turns} turns`;
+            },
+            // Determine if already debuffed by opponent?!
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                if (team.state.rcvMult != 1) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    return;
+                }
+                team.state.rcvMult = skillArgs[1] / 100;
+            },
+            goto: () => TERMINATE,
+        };
+        // 106
+        const changeTurnTimer = {
+            textify: ({ skillArgs }) => `[Pasive] When HP Drops below ${skillArgs[0]}%, change turn timer to ${skillArgs[1]}`,
+            condition: () => true,
+            aiEffect: () => { },
+            // This will occur in the damage step.
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 107
+        const unmatchable = {
+            textify: ({ skillArgs }) => `${common_9.idxsFromBits(skillArgs[1]).map(c => common_9.AttributeToName.get(c))} are unmatchable for ${skillArgs[0]} turn(s)`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 108
+        const attackAndMultiOrbChange = {
+            textify: ({ skillArgs }, { atk }) => {
+                const [percent, fromBits, toBits] = skillArgs;
+                const damage = common_9.addCommas(Math.ceil(percent / 100 * atk));
+                const fromString = common_9.idxsFromBits(fromBits).map(from => common_9.AttributeToName.get(from));
+                const toString = common_9.idxsFromBits(toBits).map(to => common_9.AttributeToName.get(to));
+                return `Hit for ${skillArgs[0]}% (${damage}) and convert ${fromString} to ${toString}`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team, enemy }) => {
+                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+                // Convert orbs?!
+            },
+            goto: () => TERMINATE,
+        };
+        // 109
+        const spinners = {
+            textify: ({ skillArgs }) => {
+                const [turns, period, count] = skillArgs;
+                return `Spawn ${count}x Spinners (${period / 100}s period) for ${turns} turns`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 110
+        const spinnerPattern = {
+            textify: ({ skillArgs }) => {
+                const [turns, period, r1, r2, r3, r4, r5] = skillArgs;
+                return `Spawn Spinners (${period / 100}s period) for ${turns} turns in a pattern: ${[r1, r2, r3, r4, r5]}`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 112
+        const fixedTarget = {
+            textify: () => `Fixed target on this monster`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 113
+        const gotoIfComboMin = {
+            textify: ({ ai, rnd }) => `If combo count >= ${ai}, go to skill ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }, { combo }) => {
+                return combo >= ai ? rnd : TO_NEXT;
+            },
+        };
+        // 118
+        const resistTypes = {
+            textify: ({ skillArgs }) => `[Passive] Resist ${skillArgs[1]}% of ${common_9.idxsFromBits(skillArgs[0]).map((v) => common_9.TypeToName.get(v)).join(' and ')} damage.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 119
+        const addInvincibility = {
+            textify: () => `Unable to receive damage.`,
+            condition: () => true,
+            aiEffect: () => { },
+            // This will occur in the damage step.
+            effect: (_, { enemy }) => {
+                enemy.invincible = true;
+            },
+            goto: () => TERMINATE,
+        };
+        // 120
+        const gotoIfEnemiesRemaining = {
+            textify: ({ ai, rnd }) => `If ${ai} enemies remaining, go to skill ${rnd}`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: ({ ai, rnd }) => {
+                console.warn(`Multiple enemies not supported, assuming ${ai} remaining`);
+                return rnd;
+            },
+        };
+        // 121
+        const removeInvincibility = {
+            textify: () => `Now able to receive damage.`,
+            condition: () => true,
+            aiEffect: () => { },
+            // This will occur in the damage step.
+            effect: (_, { enemy }) => {
+                enemy.invincible = false;
+            },
+            goto: () => TERMINATE,
+        };
+        // 122
+        const changeTurnTimerFromRemainingEnemies = {
+            textify: ({ skillArgs }) => `[Pasive] When ${skillArgs[0]} enemies, change turn timer to ${skillArgs[1]}`,
+            condition: () => true,
+            aiEffect: () => { },
+            // This will occur in the damage step.
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 124
+        const gachadra = {
+            textify: ({ skillArgs }) => `[Pasive] GACHADRA FEVER - Requires ${skillArgs[1]}x ${common_9.AttributeToName.get(skillArgs[0])} orbs to kill`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 125
+        const transformLead = {
+            textify: ({ skillArgs }) => `Transform player lead into ${ilmina_stripped_8.floof.model.cards[skillArgs[1]].name} for ${skillArgs[0]} turns.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team }) => {
+                team.getActiveTeam()[0].transformedTo = skillArgs[1];
+            },
+            goto: () => TERMINATE,
+        };
+        // 126
+        const bigBoardOrContinue = {
+            textify: ({ skillArgs }) => `Change board to 7x6 for ${skillArgs[0]} turns. If already 7x6, Continue.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: (_, { team }) => {
+                team.state.bigBoard = true;
+            },
+            goto: (_, { bigBoard }) => bigBoard ? TO_NEXT : TERMINATE,
+        };
+        // 127
+        const attackAndNoSkyfall = {
+            textify: ({ skillArgs }, { atk }) => `Attack of ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and no-skyfall for ${skillArgs[1]} turn(s).`,
+            condition: () => true,
+            aiEffect: () => { },
+            // This will occur in the damage step.
+            effect: ({ skillArgs }, { team, enemy }) => {
+                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+                // No skyfall?!
+            },
+            goto: (_, { bigBoard }) => bigBoard ? TO_NEXT : TERMINATE,
+        };
+        // 128
+        const stickyBlindSkyfall = {
+            textify: ({ skillArgs }) => `For ${skillArgs[0]} turns, set ${skillArgs[1]}% skyfall chance of Sticky Blinds`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 129
+        const superResolve = {
+            textify: ({ skillArgs }) => `[Passive] ${skillArgs[0]}% Super Resolve. [Unknown handling of parameter ${skillArgs[1]}]`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            goto: () => TO_NEXT,
+        };
+        // 130
+        const playerAtkDebuff = {
+            textify: ({ skillArgs }) => {
+                const [turns, debuffPercent] = skillArgs;
+                return `Player team attack reduced by ${debuffPercent} for ${turns} turns`;
+            },
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team }) => {
+                team.state.burst.attrRestrictions.length = 0;
+                team.state.burst.typeRestrictions.length = 0;
+                team.state.burst.awakenings.length = 0;
+                team.state.burst.awakeningScale = 0;
+                team.state.burst.multiplier = 1 - (skillArgs[1] / 100);
+            },
+            goto: () => TERMINATE,
+        };
+        const ENEMY_SKILL_GENERATORS = {
+            1: bindRandom,
+            2: bindColor,
+            3: bindType,
+            5: blindBoard,
+            6: dispelBuffs,
+            7: healOrAttack,
+            8: enhanceBasicAttack,
+            // 9: unused
+            // 10: unused
+            // 11: unused
+            12: singleOrbToJammer,
+            13: multiOrbToJammer,
+            14: skillBind,
+            15: multihit,
+            16: skipTurn,
+            17: enrage,
+            18: enrageFromStatusAilment,
+            19: enrageFromMinimumAttacks,
+            20: statusShield,
+            // 21: unused
+            22: setFlagAndContinue,
+            23: goto0IndexIfFlag,
+            24: unsetFlagAndContinue,
+            25: setCounterToAiAndContinue,
+            26: incrementCounterAndContinue,
+            27: decrementCounterAndContinue,
+            28: gotoIfHpBelow,
+            29: gotoIfHpAbove,
+            30: gotoIfCounterLesser,
+            31: gotoIfCounterEqual,
+            32: gotoIfCounterGreater,
+            33: gotoIfLvLesser,
+            34: gotoIfLvEqual,
+            35: gotoIfLvGreater,
+            36: fallbackAttack,
+            37: displayCounterOrContinue,
+            38: setCounterAndContinue,
+            39: timeDebuff,
+            40: suicide,
+            // 41: unused
+            // 42: unused
+            43: gotoIfFlag,
+            44: orFlagsAndContinue,
+            45: toggleFlagsAndContinue,
+            46: changeAttribute,
+            47: oldPreemptiveAttack,
+            48: attackAndSingleOrbChange,
+            49: preemptiveMarker,
+            50: gravity,
+            // 51: unused
+            52: resurrect,
+            53: attributeAbsorb,
+            54: directedBindAll,
+            55: healPlayer,
+            56: singleOrbToPoison,
+            57: multiOrbToPoison,
+            // 58: unused
+            // 59: unused
+            60: randomPoisonSpawn,
+            61: randomPoisonSpawn,
+            62: attackAndBlind,
+            63: attackAndBind,
+            64: attackAndPoisonSpawn,
+            65: bindSubs,
+            66: skipTurn,
+            67: comboAbsorb,
+            68: skyfall,
+            69: transformAnimation,
+            // 70: unused
+            71: voidDamage,
+            72: attributeResist,
+            73: resolve,
+            74: shield,
+            75: leadSwap,
+            76: columnChange,
+            77: attackAndColumnChange,
+            78: rowChange,
+            79: attackAndRowChange,
+            // 80: unused
+            81: attackAndChangeBoardOld,
+            82: attackWithoutName,
+            83: skillset,
+            84: boardChange,
+            85: attackAndChangeBoard,
+            86: healPercent,
+            87: damageAbsorb,
+            88: awokenBind,
+            89: skillDelay,
+            90: gotoIfCardOnTeam,
+            // 91: unused,
+            92: randomOrbSpawn,
+            93: finalFantasyAndContinue,
+            94: lockOrbs,
+            95: onDeathSkillset,
+            96: lockSkyfall,
+            97: randomStickyBlind,
+            98: patternStickyBlind,
+            99: tapeColumns,
+            100: tapeRows,
+            101: fixedStartingPoint,
+            102: randomBombSpawn,
+            103: patternBombSpawn,
+            104: cloudRandom,
+            105: rcv,
+            106: changeTurnTimer,
+            107: unmatchable,
+            108: attackAndMultiOrbChange,
+            109: spinners,
+            110: spinnerPattern,
+            112: fixedTarget,
+            113: gotoIfComboMin,
+            // 114: unused
+            // 115: unused
+            // 116: unused
+            // 117: unused
+            118: resistTypes,
+            119: addInvincibility,
+            120: gotoIfEnemiesRemaining,
+            121: removeInvincibility,
+            122: changeTurnTimerFromRemainingEnemies,
+            123: addInvincibility,
+            124: gachadra,
+            125: transformLead,
+            126: bigBoardOrContinue,
+            127: attackAndNoSkyfall,
+            128: stickyBlindSkyfall,
+            129: superResolve,
+            130: playerAtkDebuff,
+        };
+        function toSkillContext(id, skillIdx) {
+            const cardEnemySkill = ilmina_stripped_8.floof.model.cards[id].enemySkills[skillIdx];
+            const skill = {
+                id: -1,
+                ai: -1,
+                rnd: -1,
+                aiArgs: [0, 0, 0, 0, 0],
+                effectId: -1,
+                name: '',
+                text: '',
+                skillArgs: [],
+                ratio: 0,
+            };
+            if (!cardEnemySkill) {
+                return skill;
+            }
+            skill.id = cardEnemySkill.enemySkillId;
+            skill.ai = cardEnemySkill.ai;
+            skill.rnd = cardEnemySkill.rnd;
+            const enemySkill = ilmina_stripped_8.floof.model.enemySkills[skill.id];
+            if (!enemySkill) {
+                return skill;
+            }
+            skill.aiArgs = [...enemySkill.aiArgs];
+            skill.effectId = enemySkill.internalEffectId;
+            skill.name = enemySkill.name;
+            skill.text = enemySkill.usageText;
+            skill.skillArgs = [...enemySkill.skillArgs];
+            skill.ratio = enemySkill.ratio;
+            return skill;
+        }
+        /**
+         * Get the indexes of the skills to possibly use.
+         */
+        function determineSkillset(ctx) {
+            const skills = Array(ilmina_stripped_8.floof.model.cards[ctx.cardId].enemySkills.length);
+            if (!skills.length) {
+                return { aiEffects: [], finalEffects: [{ idx: -1, weight: 1 }] };
+            }
+            for (let i = 0; i < skills.length; i++) {
+                skills[i] = toSkillContext(ctx.cardId, i);
+            }
+            let idx = 0;
+            const aiEffects = [];
+            while (idx < skills.length) {
+                const skill = skills[idx];
+                // HP Conditional skills.
+                if (skill.aiArgs[3] > ctx.charges) {
+                    idx++;
+                    continue;
+                }
+                let next = goto(ctx, idx);
+                if (next == TERMINATE && skill.aiArgs[1] < ctx.hpPercent) {
+                    idx++;
+                    continue;
+                }
+                aiEffect(ctx, idx);
+                if (next == TERMINATE) {
+                    ctx.charges -= skill.aiArgs[3];
+                    // Handle termination
+                    if (!skills[idx].rnd) {
+                        return { aiEffects, finalEffects: [{ idx, weight: 1 }] };
+                    }
+                    if (ilmina_stripped_8.floof.model.cards[ctx.cardId].aiVersion == 1) {
+                        // Do new
+                        let remainingRnd = 100;
+                        const returns = [];
+                        for (let i = idx; i < skills.length && remainingRnd > 0; i++) {
+                            if (skills[i].rnd > remainingRnd) {
+                                returns.push({ idx: i, weight: remainingRnd });
+                                remainingRnd = 0;
+                                continue;
+                            }
+                            remainingRnd -= skills[i].rnd;
+                            returns.push({ idx: i, weight: skills[i].rnd });
+                        }
+                        return { aiEffects, finalEffects: returns };
+                    }
+                    else {
+                        let remainingRnd = 100;
+                        const returns = [];
+                        for (let i = idx; i < skills.length && remainingRnd; i++) {
+                            const localWeight = skills[i].rnd;
+                            const overallWeight = remainingRnd * localWeight / 100;
+                            remainingRnd -= overallWeight;
+                            returns.push({ idx: i, weight: overallWeight });
+                        }
+                        return { aiEffects, finalEffects: returns };
+                    }
+                }
+                aiEffects.push(idx);
+                if (next == TO_NEXT) {
+                    idx++;
+                    continue;
+                }
+                idx = next;
+            }
+            // No matching termination found.
+            return { aiEffects, finalEffects: [{ idx: -1, weight: 1 }] };
+        }
+        function effect(skillCtx, ctx) {
+            if (!ENEMY_SKILL_GENERATORS[skillCtx.effectId]) {
+                console.warn(`UNIMPLEMENTED EFFECT ID: ${skillCtx.effectId} `);
+                return;
+            }
+            ENEMY_SKILL_GENERATORS[skillCtx.effectId].effect(skillCtx, ctx);
+        }
+        exports.effect = effect;
+        function textify(ctx, skillCtx) {
+            if (!ENEMY_SKILL_GENERATORS[skillCtx.effectId]) {
+                return `UNIMPLEMENTED EFFECT ID: ${skillCtx.effectId} \n${JSON.stringify(skillCtx)} `;
+            }
+            let text = ENEMY_SKILL_GENERATORS[skillCtx.effectId].textify(skillCtx, ctx);
+            const next = ENEMY_SKILL_GENERATORS[skillCtx.effectId].goto(skillCtx, ctx);
+            if (next == TERMINATE && skillCtx.aiArgs[1] != 100) {
+                text = `(<= ${skillCtx.aiArgs[1]} % HP) ${text}`;
+            }
+            if (skillCtx.aiArgs[3]) {
+                text = `[Costs ${skillCtx.aiArgs[3]} charges to use] ${text}`;
+            }
+            if (skillCtx.name && !skillCtx.name.includes('ERROR')) {
+                text = `[${skillCtx.name}] ${text}`;
+            }
+            return text;
+        }
+        exports.textify = textify;
+        function aiEffect(ctx, skillIdx) {
+            const skill = toSkillContext(ctx.cardId, skillIdx);
+            const effect = ENEMY_SKILL_GENERATORS[skill.effectId];
+            if (!effect) {
+                console.error(`UNIMPLEMENTED EFFECT ID: ${skill.effectId} `);
+                return TERMINATE;
+            }
+            return effect.aiEffect(skill, ctx);
+        }
+        exports.aiEffect = aiEffect;
+        function goto(ctx, skillIdx) {
+            const skill = toSkillContext(ctx.cardId, skillIdx);
+            const effect = ENEMY_SKILL_GENERATORS[skill.effectId];
+            if (!effect) {
+                console.error(`UNIMPLEMENTED EFFECT ID: ${skill.effectId} `);
+                return TERMINATE;
+            }
+            return effect.goto(skill, ctx);
+        }
+        exports.goto = goto;
+        function textifyEnemySkills(enemy) {
+            const val = [];
+            for (let i = 0; i < ilmina_stripped_8.floof.model.cards[enemy.id].enemySkills.length; i++) {
+                const text = textify({
+                    cardId: enemy.id,
+                    attribute: 4,
+                    isPreempt: false,
+                    lv: enemy.lv,
+                    atk: enemy.atk,
+                    hpPercent: 100,
+                    combo: 1,
+                    teamIds: [],
+                    bigBoard: false,
+                    charges: enemy.charges,
+                    flags: enemy.flags,
+                    counter: enemy.counter,
+                }, toSkillContext(enemy.id, i));
+                val.push(text);
+                console.log(text);
+            }
+            return val;
+        }
+        exports.textifyEnemySkills = textifyEnemySkills;
+        debugger_1.debug.inputEl.value = '405179';
+        debugger_1.debug.addButton('Print Preempt', () => {
+            const cardId = Number(debugger_1.debug.inputEl.value);
+            const skillsets = determineSkillset({
+                cardId,
+                attribute: 4,
+                isPreempt: true,
+                lv: 12,
+                atk: 42356,
+                hpPercent: 100,
+                combo: 1,
+                teamIds: [],
+                bigBoard: true,
+                charges: ilmina_stripped_8.floof.model.cards[cardId].charges,
+                flags: 0,
+                counter: 0,
+            });
+            const printed = JSON.stringify(skillsets, null, 2);
+            debugger_1.debug.print(printed);
+        });
+        debugger_1.debug.addButton('Print Skills', () => {
+            const id = Number(debugger_1.debug.inputEl.value);
+            const skillTexts = textifyEnemySkills({ id, lv: 12, atk: 42356, charges: 1, flags: 0, counter: 0 });
+            for (let i = 0; i < skillTexts.length; i++) {
+                debugger_1.debug.print(`${i + 1}: ${skillTexts[i]} `);
+            }
+        });
+    });
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills"], function (require, exports, common_10, ajax_2, enemy_instance_1, templates_5, enemy_skills_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DungeonFloor {
@@ -8057,7 +9862,7 @@
             }
         }
         Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
-        const requestUrl = common_9.BASE_URL + 'assets/DungeonsAndEncounters.json';
+        const requestUrl = common_10.BASE_URL + 'assets/DungeonsAndEncounters.json';
         const DUNGEON_DATA = new Map();
         const dungeonSearchArray = [];
         const request = ajax_2.ajax(requestUrl);
@@ -8121,7 +9926,20 @@
                 this.activeEnemy = 0;
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
-                this.pane = new templates_4.DungeonPane(dungeonSearchArray, (ctx) => {
+                this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
+            }
+            async loadDungeon(subDungeonId) {
+                await common_10.waitFor(() => dungeonsLoaded);
+                const data = DUNGEON_DATA.get(subDungeonId);
+                if (!data) {
+                    console.warn('invalid sub dungeon');
+                    return;
+                }
+                this.id = subDungeonId;
+                this.loadJson(data);
+            }
+            getUpdateFunction() {
+                return (ctx) => {
                     console.log(ctx);
                     if (ctx.loadDungeon != undefined) {
                         this.loadDungeon(ctx.loadDungeon);
@@ -8183,17 +10001,7 @@
                     }
                     const updateActiveEnemy = old.floor != this.activeFloor || old.enemy != this.activeEnemy;
                     this.update(updateActiveEnemy);
-                });
-            }
-            async loadDungeon(subDungeonId) {
-                await common_9.waitFor(() => dungeonsLoaded);
-                const data = DUNGEON_DATA.get(subDungeonId);
-                if (!data) {
-                    console.warn('invalid sub dungeon');
-                    return;
-                }
-                this.id = subDungeonId;
-                this.loadJson(data);
+                };
             }
             getPane() {
                 return this.pane.getElement();
@@ -8225,6 +10033,16 @@
             setActiveEnemy(idx) {
                 this.activeEnemy = idx;
                 this.floors[this.activeFloor].activeEnemy = idx;
+                console.log(this.getActiveEnemy().getCard().name);
+                const enemy = this.getActiveEnemy();
+                enemy_skills_1.textifyEnemySkills({
+                    id: enemy.id,
+                    lv: enemy.id,
+                    atk: enemy.getAtk(),
+                    charges: enemy.charges,
+                    flags: enemy.flags,
+                    counter: enemy.counter,
+                });
             }
             getActiveEnemy() {
                 return this.floors[this.activeFloor].getActiveEnemy();
@@ -8279,18 +10097,18 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "ilmina_stripped", "custom_base64", "url_handler"], function (require, exports, common_10, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_5, ilmina_stripped_8, custom_base64_1, url_handler_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "url_handler"], function (require, exports, common_11, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_2, ilmina_stripped_9, custom_base64_1, url_handler_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
             constructor() {
-                this.display = new templates_5.ValeriaDisplay();
+                this.display = new templates_6.ValeriaDisplay();
                 this.comboContainer = new combo_container_1.ComboContainer();
                 this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
                 this.comboContainer.onUpdate.push(() => {
                     this.updateDamage();
                 });
-                this.monsterEditor = new templates_5.MonsterEditor((ctx) => {
+                this.monsterEditor = new templates_6.MonsterEditor((ctx) => {
                     if (ctx.playerMode) {
                         console.log(ctx.playerMode);
                         this.team.setPlayerMode(ctx.playerMode);
@@ -8342,7 +10160,7 @@
                 };
                 this.monsterEditor.pdchu.exportButton.onclick = () => {
                     this.monsterEditor.pdchu.io.value = this.team.toPdchu();
-                    const els = document.getElementsByClassName(templates_5.ClassNames.PDCHU_IO);
+                    const els = document.getElementsByClassName(templates_6.ClassNames.PDCHU_IO);
                     if (els.length) {
                         const el = els[0];
                         el.focus();
@@ -8352,7 +10170,7 @@
                 this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
                     const searchlessUrl = location.href.replace(location.search, '');
                     this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${custom_base64_1.ValeriaEncode(this.team)}&dungeon=${this.dungeon.id}`;
-                    const els = document.getElementsByClassName(templates_5.ClassNames.PDCHU_IO);
+                    const els = document.getElementsByClassName(templates_6.ClassNames.PDCHU_IO);
                     if (els.length) {
                         const el = els[0];
                         el.focus();
@@ -8377,7 +10195,7 @@
                 this.team.fromPdchu(team);
                 this.display.panes[1].appendChild(this.team.teamPane.getElement());
                 this.dungeon = new dungeon_1.DungeonInstance();
-                let dungeonId = url_handler_1.getUrlParameter('dungeon');
+                const dungeonId = url_handler_1.getUrlParameter('dungeon');
                 if (dungeonId) {
                     this.dungeon.loadDungeon(Number(dungeonId));
                 }
@@ -8401,19 +10219,17 @@
             }
             updateDamage() {
                 const { pings, healing } = this.team.getDamageCombos(this.comboContainer);
-                this.team.teamPane.updateDamage(pings.map((ping) => {
-                    if (ping) {
-                        return { attribute: ping.attribute, damage: ping.damage };
-                    }
-                    return { attribute: common_10.Attribute.NONE, damage: 0 };
-                }), healing);
+                this.team.teamPane.updateDamage(pings.map((ping) => ({
+                    attribute: ping ? ping.attribute : common_11.Attribute.NONE,
+                    damage: ping ? ping.damage : 0,
+                })), healing);
             }
             getElement() {
                 return this.display.getElement();
             }
         }
         async function init() {
-            await common_10.waitFor(() => ilmina_stripped_8.floof.ready);
+            await common_11.waitFor(() => ilmina_stripped_9.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
@@ -8422,6 +10238,9 @@
                 loadingEl.style.display = 'none';
             }
             document.body.appendChild(valeria.getElement());
+            if (localStorage.debug) {
+                document.body.appendChild(debugger_2.debug.getElement());
+            }
             window.valeria = valeria;
         }
         init();
