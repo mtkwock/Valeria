@@ -1847,37 +1847,7 @@ function textifyEnemySkills(enemy: {
   return val;
 }
 
-debug.inputEl.value = '405179';
-
-debug.addButton('Print Preempt', () => {
-  const cardId = Number(debug.inputEl.value);
-  const skillsets = determineSkillset({
-    cardId,
-    attribute: 4,
-    isPreempt: true,
-    lv: 12,
-    atk: 42356,
-    hpPercent: 100,
-    combo: 1,
-    teamIds: [],
-    bigBoard: true,
-
-    charges: floof.model.cards[cardId].charges,
-    flags: 0,
-    counter: 0,
-  });
-  const printed = JSON.stringify(skillsets, null, 2);
-  debug.print(printed);
-});
-
-debug.addButton('Print Skills', () => {
-  const id = Number(debug.inputEl.value);
-  const skillTexts = textifyEnemySkills({ id, lv: 12, atk: 42356, charges: 1, flags: 0, counter: 0 });
-  for (let i = 0; i < skillTexts.length; i++) {
-    debug.print(`${i + 1}: ${skillTexts[i]} `);
-  }
-});
-
 export {
   textifyEnemySkills,
+  determineSkillset,
 };

@@ -2,7 +2,8 @@ import { BASE_URL, waitFor } from './common';
 import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
 import { DungeonPane, DungeonUpdate } from './templates';
-import { textifyEnemySkills } from './enemy_skills';
+import { textifyEnemySkills, determineSkillset } from './enemy_skills';
+import { debug } from './debugger';
 // import {DungeonEditor} from './templates';
 
 // function createHpEl() {
@@ -286,6 +287,48 @@ class DungeonInstance {
     // Sets all of your monsters to level 1 temporarily.
     this.floors = [new DungeonFloor()];
     this.pane = new DungeonPane(dungeonSearchArray, this.getUpdateFunction());
+
+    // debug.inputEl.value = '405179';
+
+    debug.addButton('Print Preempt', () => {
+      const enemy = this.getActiveEnemy();
+      const cardId = enemy.id;
+      const skillsets = determineSkillset({
+        cardId,
+        attribute: enemy.getAttribute(),
+        isPreempt: true,
+        lv: enemy.lv,
+        atk: this.atkMultiplier.multiply(enemy.getAtk()),
+        hpPercent: Math.round(enemy.currentHp / enemy.getHp() * 100),
+        combo: 1,
+        teamIds: [],
+        bigBoard: true,
+
+        charges: enemy.getCard().charges,
+        flags: enemy.flags,
+        counter: enemy.counter,
+      });
+      const printed = JSON.stringify(skillsets, null, 2);
+      debug.print(printed);
+    });
+
+    debug.addButton('Print Skills', () => {
+      const enemy = this.getActiveEnemy();
+      const id = enemy.id;
+      const skillTexts = textifyEnemySkills({
+        id,
+        lv: enemy.lv,
+        atk: this.atkMultiplier.multiply(enemy.getAtk()),
+        charges: enemy.charges,
+        flags: enemy.flags,
+        counter: enemy.counter,
+      });
+      for (let i = 0; i < skillTexts.length; i++) {
+        debug.print(`${i + 1}: ${skillTexts[i]} `);
+      }
+    });
+
+
   }
 
   getUpdateFunction(): (ctx: DungeonUpdate) => void {
