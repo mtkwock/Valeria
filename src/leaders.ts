@@ -751,6 +751,9 @@ const atkRcvScalingFromLinkedOrbs: LeaderSkill = { // 167
     if (highest < minLinked) {
       return 1;
     }
+    if (highest > maxLinked) {
+      highest = maxLinked;
+    }
     return ((highest - minLinked) * atk100scale + atk100base) / 100;
   },
   rcvPost: ([attrBits, minLinked, _, rcv100base, _a, rcv100scale, maxLinked], { comboContainer }) => {
@@ -769,6 +772,9 @@ const atkRcvScalingFromLinkedOrbs: LeaderSkill = { // 167
     }
     if (highest < minLinked) {
       return 1;
+    }
+    if (highest > maxLinked) {
+      highest = maxLinked;
     }
     return ((highest - minLinked) * rcv100scale + rcv100base) / 100;
   },
@@ -875,6 +881,7 @@ const atkRcvShieldFromMultThresh: LeaderSkill = { // 183
     }
     maxThresh = maxThresh || 0;
     belowAtk100 = belowAtk100 || 100;
+    aboveAtk100 = aboveAtk100 || 100;
     let multiplier = 1;
     if (percentHp >= minThresh) {
       multiplier *= aboveAtk100 / 100;

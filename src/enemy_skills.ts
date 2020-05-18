@@ -80,8 +80,8 @@ const bindColor: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team }) => {
-    let [color, min, max] = skillArgs;
+  effect: () => {
+    // let [color, min, max] = skillArgs;
     console.warn('Bind not yet supported');
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
   },
@@ -473,7 +473,7 @@ const timeDebuff: EnemySkillEffect = {
   condition: () => true,
   aiEffect: () => { },
   effect: ({ skillArgs }, { team }) => {
-    const [_, flatDebuff, timePercent] = skillArgs;
+    const [flatDebuff, timePercent] = skillArgs.slice(1);
     team.state.timeBonus = flatDebuff ? flatDebuff / -0.1 : timePercent / 100;
     team.state.timeIsMult = !flatDebuff;
   },
@@ -672,10 +672,10 @@ const directedBindAll: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
-    let [positionMask, min, max] = skillArgs;
+  effect: () => {
+    // let [positionMask, min, max] = skillArgs;
     console.warn('Bind not yet supported');
-    positionMask = positionMask || 7;
+    // positionMask = positionMask || 7;
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
   },
   goto: () => TERMINATE,
@@ -762,10 +762,10 @@ const attackAndBind: EnemySkillEffect = {
   condition: () => true,
   aiEffect: () => { },
   effect: ({ skillArgs }, { team, enemy }) => {
-    let [percent, _min, _max, positionMask, count] = skillArgs;
-    team.damage(Math.ceil(enemy.getAtk() * percent / 100), enemy.getAttribute());
+    // let [percent, _min, _max, positionMask, count] = skillArgs;
+    team.damage(Math.ceil(enemy.getAtk() * skillArgs[0] / 100), enemy.getAttribute());
     console.warn('Bind not yet supported');
-    positionMask = positionMask || 7;
+    // positionMask = positionMask || 7;
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
   },
   goto: () => TERMINATE,
@@ -792,7 +792,7 @@ const bindSubs: EnemySkillEffect = {
   textify: ({ skillArgs }) => `Binds ${skillArgs[0]} for ${skillArgs[1]}-${skillArgs[2]} turns`,
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team }) => {
+  effect: () => {
     console.warn('Binds not yet supported');
   },
   goto: () => TERMINATE,
