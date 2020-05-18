@@ -1699,16 +1699,21 @@ function toSkillContext(id: number, skillIdx: number): SkillContext {
 /**
  * Get the indexes of the skills to possibly use.
  */
-function determineSkillset(ctx: AiContext): { aiEffects: number[], finalEffects: { idx: number, weight: number }[] } {
+function determineSkillset(ctx: AiContext): {
+  aiEffects: { idx: number; finalEffectConditional: number }[],
+  finalEffects: { idx: number; weight: number }[]
+} {
   const skills: SkillContext[] = Array(floof.model.cards[ctx.cardId].enemySkills.length);
   if (!skills.length) {
-    return { aiEffects: [], finalEffects: [{ idx: -1, weight: 1 }] };
+    return { aiEffects: [], finalEffects: [{ idx: -1, weight: 100 }] };
   }
   for (let i = 0; i < skills.length; i++) {
     skills[i] = toSkillContext(ctx.cardId, i);
   }
   let idx = 0;
-  const aiEffects: number[] = [];
+  let remainingChance = 100;
+  const aiEffects: { idx: number; finalEffectConditional: number }[] = [];
+  const finalEffects: { idx: number; weight: number }[] = [];
   while (idx < skills.length) {
     const skill = skills[idx];
     // HP Conditional skills.
@@ -1724,44 +1729,36 @@ function determineSkillset(ctx: AiContext): { aiEffects: number[], finalEffects:
 
     aiEffect(ctx, idx);
     if (next == TERMINATE) {
+      const chance = skills[idx].rnd || skills[idx].ai;
       ctx.charges -= skill.aiArgs[3];
-      // Handle termination
-      if (!skills[idx].rnd) {
-        return { aiEffects, finalEffects: [{ idx, weight: 1 }] };
-      }
       if (floof.model.cards[ctx.cardId].aiVersion == 1) {
         // Do new
-        let remainingRnd = 100;
-        const returns = [];
-        for (let i = idx; i < skills.length && remainingRnd > 0; i++) {
-          if (skills[i].rnd > remainingRnd) {
-            returns.push({ idx: i, weight: remainingRnd });
-            remainingRnd = 0;
-            continue;
-          }
-          remainingRnd -= skills[i].rnd;
-          returns.push({ idx: i, weight: skills[i].rnd });
+        if (chance >= remainingChance) {
+          finalEffects.push({ idx, weight: remainingChance })
+          return { aiEffects, finalEffects: finalEffects };
+        } else {
+          finalEffects.push({ idx, weight: chance });
+          remainingChance -= chance;
         }
-        return { aiEffects, finalEffects: returns };
       } else {
-        let remainingRnd = 100;
-        const returns = [];
-        for (let i = idx; i < skills.length && remainingRnd; i++) {
-          const localWeight = skills[i].rnd;
-          const overallWeight = remainingRnd * localWeight / 100;
-          remainingRnd -= overallWeight;
-          returns.push({ idx: i, weight: overallWeight });
+        const localWeight = chance;
+        const overallWeight = remainingChance * localWeight / 100;
+        remainingChance -= overallWeight;
+        finalEffects.push({ idx: idx, weight: overallWeight });
+        if (!remainingChance) {
+          return { aiEffects, finalEffects: finalEffects };
         }
-        return { aiEffects, finalEffects: returns };
       }
+      next = TO_NEXT;
+    } else {
+      aiEffects.push({ idx, finalEffectConditional: finalEffects.length });
     }
 
-    aiEffects.push(idx);
     if (next == TO_NEXT) {
       idx++;
-      continue;
+    } else {
+      idx = next;
     }
-    idx = next;
   }
   // No matching termination found.
   return { aiEffects, finalEffects: [{ idx: -1, weight: 1 }] };

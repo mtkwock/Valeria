@@ -291,13 +291,13 @@ class DungeonInstance {
     debug.addButton('Print Preempt', () => {
       const enemy = this.getActiveEnemy();
       const cardId = enemy.id;
-      const skillsets = determineSkillset({
+      const { finalEffects, aiEffects } = determineSkillset({
         cardId,
         attribute: enemy.getAttribute(),
         isPreempt: true,
         lv: enemy.lv,
         atk: this.atkMultiplier.multiply(enemy.getAtk()),
-        hpPercent: Math.round(enemy.currentHp / enemy.getHp() * 100),
+        hpPercent: 100,
         combo: 1,
         teamIds: [],
         bigBoard: true,
@@ -306,17 +306,17 @@ class DungeonInstance {
         flags: enemy.flags,
         counter: enemy.counter,
       });
-      for (let i = 0; i < skillsets.aiEffects.length; i++) {
-        debug.print(`Used logic skill: ${skillsets.aiEffects[i]}`);
+      for (let i = 0; i < aiEffects.length; i++) {
+        debug.print(`Used logic skill: ${aiEffects[i].idx} if final effect is >=${aiEffects[i].finalEffectConditional}`);
       }
-      if (skillsets.finalEffects.length > 1) {
+      if (finalEffects.length > 1) {
         debug.print('Multiple possible Preemptives:');
       }
-      for (let i = 0; i < skillsets.finalEffects.length; i++) {
-        debug.print(textifyEnemySkill({
+      for (let i = 0; i < finalEffects.length; i++) {
+        debug.print((finalEffects[i].weight != 100 ? `[${finalEffects[i].weight}%] ` : '') + textifyEnemySkill({
           id: enemy.id,
           atk: this.atkMultiplier.multiply(enemy.getAtk()),
-        }, skillsets.finalEffects[i].idx));
+        }, finalEffects[i].idx));
       }
     });
 
