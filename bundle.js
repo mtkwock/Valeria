@@ -8389,7 +8389,7 @@
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
-            goto: ({ ai, rnd }, { lv }) => lv < ai ? rnd : TO_NEXT,
+            goto: ({ ai, rnd }, { lv }) => lv < ai ? rnd - 1 : TO_NEXT,
         };
         // 34
         const gotoIfLvEqual = {
@@ -8397,7 +8397,7 @@
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
-            goto: ({ ai, rnd }, { lv }) => lv == ai ? rnd : TO_NEXT,
+            goto: ({ ai, rnd }, { lv }) => lv == ai ? rnd - 1 : TO_NEXT,
         };
         // 35
         const gotoIfLvGreater = {
@@ -8405,7 +8405,7 @@
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
-            goto: ({ ai, rnd }, { lv }) => lv > ai ? rnd : TO_NEXT,
+            goto: ({ ai, rnd }, { lv }) => lv > ai ? rnd - 1 : TO_NEXT,
         };
         // 36
         const fallbackAttack = {
@@ -9318,7 +9318,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ ai, rnd }, { combo }) => {
-                return combo >= ai ? rnd : TO_NEXT;
+                return combo >= ai ? rnd - 1 : TO_NEXT;
             },
         };
         // 118
