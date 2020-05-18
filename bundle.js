@@ -8069,7 +8069,7 @@
         }
         exports.EnemyInstance = EnemyInstance;
     });
-    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common", "debugger"], function (require, exports, ilmina_stripped_8, common_9, debugger_1) {
+    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common"], function (require, exports, ilmina_stripped_8, common_9) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         ilmina_stripped_8.floof.model.enemySkills;
@@ -9675,6 +9675,7 @@
             // No matching termination found.
             return { aiEffects, finalEffects: [{ idx: -1, weight: 1 }] };
         }
+        exports.determineSkillset = determineSkillset;
         function effect(skillCtx, ctx) {
             if (!ENEMY_SKILL_GENERATORS[skillCtx.effectId]) {
                 console.warn(`UNIMPLEMENTED EFFECT ID: ${skillCtx.effectId} `);
@@ -9744,35 +9745,8 @@
             return val;
         }
         exports.textifyEnemySkills = textifyEnemySkills;
-        debugger_1.debug.inputEl.value = '405179';
-        debugger_1.debug.addButton('Print Preempt', () => {
-            const cardId = Number(debugger_1.debug.inputEl.value);
-            const skillsets = determineSkillset({
-                cardId,
-                attribute: 4,
-                isPreempt: true,
-                lv: 12,
-                atk: 42356,
-                hpPercent: 100,
-                combo: 1,
-                teamIds: [],
-                bigBoard: true,
-                charges: ilmina_stripped_8.floof.model.cards[cardId].charges,
-                flags: 0,
-                counter: 0,
-            });
-            const printed = JSON.stringify(skillsets, null, 2);
-            debugger_1.debug.print(printed);
-        });
-        debugger_1.debug.addButton('Print Skills', () => {
-            const id = Number(debugger_1.debug.inputEl.value);
-            const skillTexts = textifyEnemySkills({ id, lv: 12, atk: 42356, charges: 1, flags: 0, counter: 0 });
-            for (let i = 0; i < skillTexts.length; i++) {
-                debugger_1.debug.print(`${i + 1}: ${skillTexts[i]} `);
-            }
-        });
     });
-    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills"], function (require, exports, common_10, ajax_2, enemy_instance_1, templates_5, enemy_skills_1) {
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills", "debugger"], function (require, exports, common_10, ajax_2, enemy_instance_1, templates_5, enemy_skills_1, debugger_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DungeonFloor {
@@ -9934,6 +9908,42 @@
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
                 this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
+                // debug.inputEl.value = '405179';
+                debugger_1.debug.addButton('Print Preempt', () => {
+                    const enemy = this.getActiveEnemy();
+                    const cardId = enemy.id;
+                    const skillsets = enemy_skills_1.determineSkillset({
+                        cardId,
+                        attribute: enemy.getAttribute(),
+                        isPreempt: true,
+                        lv: enemy.lv,
+                        atk: this.atkMultiplier.multiply(enemy.getAtk()),
+                        hpPercent: Math.round(enemy.currentHp / enemy.getHp() * 100),
+                        combo: 1,
+                        teamIds: [],
+                        bigBoard: true,
+                        charges: enemy.getCard().charges,
+                        flags: enemy.flags,
+                        counter: enemy.counter,
+                    });
+                    const printed = JSON.stringify(skillsets, null, 2);
+                    debugger_1.debug.print(printed);
+                });
+                debugger_1.debug.addButton('Print Skills', () => {
+                    const enemy = this.getActiveEnemy();
+                    const id = enemy.id;
+                    const skillTexts = enemy_skills_1.textifyEnemySkills({
+                        id,
+                        lv: enemy.lv,
+                        atk: this.atkMultiplier.multiply(enemy.getAtk()),
+                        charges: enemy.charges,
+                        flags: enemy.flags,
+                        counter: enemy.counter,
+                    });
+                    for (let i = 0; i < skillTexts.length; i++) {
+                        debugger_1.debug.print(`${i + 1}: ${skillTexts[i]} `);
+                    }
+                });
             }
             async loadDungeon(subDungeonId) {
                 await common_10.waitFor(() => dungeonsLoaded);
