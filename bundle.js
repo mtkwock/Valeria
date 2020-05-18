@@ -8072,7 +8072,6 @@
     define("enemy_skills", ["require", "exports", "ilmina_stripped", "common"], function (require, exports, ilmina_stripped_8, common_9) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        ilmina_stripped_8.floof.model.enemySkills;
         const TO_NEXT = -1;
         const TERMINATE = 0;
         // 1
@@ -9722,25 +9721,29 @@
             return effect.goto(skill, ctx);
         }
         exports.goto = goto;
+        function textifyEnemySkill(enemy, idx) {
+            const text = textify({
+                cardId: enemy.id,
+                atk: enemy.atk,
+                // Values needed to create context, all defaults.
+                attribute: -1,
+                isPreempt: false,
+                lv: 10,
+                hpPercent: 100,
+                combo: 1,
+                teamIds: [],
+                bigBoard: false,
+                charges: 0,
+                flags: 0,
+                counter: 0,
+            }, toSkillContext(enemy.id, idx));
+            return text;
+        }
+        exports.textifyEnemySkill = textifyEnemySkill;
         function textifyEnemySkills(enemy) {
             const val = [];
             for (let i = 0; i < ilmina_stripped_8.floof.model.cards[enemy.id].enemySkills.length; i++) {
-                const text = textify({
-                    cardId: enemy.id,
-                    attribute: 4,
-                    isPreempt: false,
-                    lv: enemy.lv,
-                    atk: enemy.atk,
-                    hpPercent: 100,
-                    combo: 1,
-                    teamIds: [],
-                    bigBoard: false,
-                    charges: enemy.charges,
-                    flags: enemy.flags,
-                    counter: enemy.counter,
-                }, toSkillContext(enemy.id, i));
-                val.push(text);
-                console.log(text);
+                val.push(textifyEnemySkill(enemy, i));
             }
             return val;
         }
@@ -9908,7 +9911,6 @@
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
                 this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
-                // debug.inputEl.value = '405179';
                 debugger_1.debug.addButton('Print Preempt', () => {
                     const enemy = this.getActiveEnemy();
                     const cardId = enemy.id;
@@ -9926,19 +9928,25 @@
                         flags: enemy.flags,
                         counter: enemy.counter,
                     });
-                    const printed = JSON.stringify(skillsets, null, 2);
-                    debugger_1.debug.print(printed);
+                    for (let i = 0; i < skillsets.aiEffects.length; i++) {
+                        debugger_1.debug.print(`Used logic skill: ${skillsets.aiEffects[i]}`);
+                    }
+                    if (skillsets.finalEffects.length > 1) {
+                        debugger_1.debug.print('Multiple possible Preemptives:');
+                    }
+                    for (let i = 0; i < skillsets.finalEffects.length; i++) {
+                        debugger_1.debug.print(enemy_skills_1.textifyEnemySkill({
+                            id: enemy.id,
+                            atk: this.atkMultiplier.multiply(enemy.getAtk()),
+                        }, skillsets.finalEffects[i].idx));
+                    }
                 });
                 debugger_1.debug.addButton('Print Skills', () => {
                     const enemy = this.getActiveEnemy();
                     const id = enemy.id;
                     const skillTexts = enemy_skills_1.textifyEnemySkills({
                         id,
-                        lv: enemy.lv,
                         atk: this.atkMultiplier.multiply(enemy.getAtk()),
-                        charges: enemy.charges,
-                        flags: enemy.flags,
-                        counter: enemy.counter,
                     });
                     for (let i = 0; i < skillTexts.length; i++) {
                         debugger_1.debug.print(`${i + 1}: ${skillTexts[i]} `);
@@ -10050,16 +10058,6 @@
             setActiveEnemy(idx) {
                 this.activeEnemy = idx;
                 this.floors[this.activeFloor].activeEnemy = idx;
-                console.log(this.getActiveEnemy().getCard().name);
-                const enemy = this.getActiveEnemy();
-                enemy_skills_1.textifyEnemySkills({
-                    id: enemy.id,
-                    lv: enemy.id,
-                    atk: enemy.getAtk(),
-                    charges: enemy.charges,
-                    flags: enemy.flags,
-                    counter: enemy.counter,
-                });
             }
             getActiveEnemy() {
                 return this.floors[this.activeFloor].getActiveEnemy();
