@@ -9611,13 +9611,15 @@
         function determineSkillset(ctx) {
             const skills = Array(ilmina_stripped_8.floof.model.cards[ctx.cardId].enemySkills.length);
             if (!skills.length) {
-                return { aiEffects: [], finalEffects: [{ idx: -1, weight: 1 }] };
+                return { aiEffects: [], finalEffects: [{ idx: -1, weight: 100 }] };
             }
             for (let i = 0; i < skills.length; i++) {
                 skills[i] = toSkillContext(ctx.cardId, i);
             }
             let idx = 0;
+            let remainingChance = 100;
             const aiEffects = [];
+            const finalEffects = [];
             while (idx < skills.length) {
                 const skill = skills[idx];
                 // HP Conditional skills.
@@ -9632,44 +9634,39 @@
                 }
                 aiEffect(ctx, idx);
                 if (next == TERMINATE) {
+                    const chance = skills[idx].rnd || skills[idx].ai;
                     ctx.charges -= skill.aiArgs[3];
-                    // Handle termination
-                    if (!skills[idx].rnd) {
-                        return { aiEffects, finalEffects: [{ idx, weight: 1 }] };
-                    }
                     if (ilmina_stripped_8.floof.model.cards[ctx.cardId].aiVersion == 1) {
                         // Do new
-                        let remainingRnd = 100;
-                        const returns = [];
-                        for (let i = idx; i < skills.length && remainingRnd > 0; i++) {
-                            if (skills[i].rnd > remainingRnd) {
-                                returns.push({ idx: i, weight: remainingRnd });
-                                remainingRnd = 0;
-                                continue;
-                            }
-                            remainingRnd -= skills[i].rnd;
-                            returns.push({ idx: i, weight: skills[i].rnd });
+                        if (chance >= remainingChance) {
+                            finalEffects.push({ idx, weight: remainingChance });
+                            return { aiEffects, finalEffects: finalEffects };
                         }
-                        return { aiEffects, finalEffects: returns };
+                        else {
+                            finalEffects.push({ idx, weight: chance });
+                            remainingChance -= chance;
+                        }
                     }
                     else {
-                        let remainingRnd = 100;
-                        const returns = [];
-                        for (let i = idx; i < skills.length && remainingRnd; i++) {
-                            const localWeight = skills[i].rnd;
-                            const overallWeight = remainingRnd * localWeight / 100;
-                            remainingRnd -= overallWeight;
-                            returns.push({ idx: i, weight: overallWeight });
+                        const localWeight = chance;
+                        const overallWeight = remainingChance * localWeight / 100;
+                        remainingChance -= overallWeight;
+                        finalEffects.push({ idx: idx, weight: overallWeight });
+                        if (!remainingChance) {
+                            return { aiEffects, finalEffects: finalEffects };
                         }
-                        return { aiEffects, finalEffects: returns };
                     }
+                    next = TO_NEXT;
                 }
-                aiEffects.push(idx);
+                else {
+                    aiEffects.push({ idx, finalEffectConditional: finalEffects.length });
+                }
                 if (next == TO_NEXT) {
                     idx++;
-                    continue;
                 }
-                idx = next;
+                else {
+                    idx = next;
+                }
             }
             // No matching termination found.
             return { aiEffects, finalEffects: [{ idx: -1, weight: 1 }] };
@@ -9914,13 +9911,13 @@
                 debugger_1.debug.addButton('Print Preempt', () => {
                     const enemy = this.getActiveEnemy();
                     const cardId = enemy.id;
-                    const skillsets = enemy_skills_1.determineSkillset({
+                    const { finalEffects, aiEffects } = enemy_skills_1.determineSkillset({
                         cardId,
                         attribute: enemy.getAttribute(),
                         isPreempt: true,
                         lv: enemy.lv,
                         atk: this.atkMultiplier.multiply(enemy.getAtk()),
-                        hpPercent: Math.round(enemy.currentHp / enemy.getHp() * 100),
+                        hpPercent: 100,
                         combo: 1,
                         teamIds: [],
                         bigBoard: true,
@@ -9928,17 +9925,17 @@
                         flags: enemy.flags,
                         counter: enemy.counter,
                     });
-                    for (let i = 0; i < skillsets.aiEffects.length; i++) {
-                        debugger_1.debug.print(`Used logic skill: ${skillsets.aiEffects[i]}`);
+                    for (let i = 0; i < aiEffects.length; i++) {
+                        debugger_1.debug.print(`Used logic skill: ${aiEffects[i].idx} if final effect is >=${aiEffects[i].finalEffectConditional}`);
                     }
-                    if (skillsets.finalEffects.length > 1) {
+                    if (finalEffects.length > 1) {
                         debugger_1.debug.print('Multiple possible Preemptives:');
                     }
-                    for (let i = 0; i < skillsets.finalEffects.length; i++) {
-                        debugger_1.debug.print(enemy_skills_1.textifyEnemySkill({
+                    for (let i = 0; i < finalEffects.length; i++) {
+                        debugger_1.debug.print((finalEffects[i].weight != 100 ? `[${finalEffects[i].weight}%] ` : '') + enemy_skills_1.textifyEnemySkill({
                             id: enemy.id,
                             atk: this.atkMultiplier.multiply(enemy.getAtk()),
-                        }, skillsets.finalEffects[i].idx));
+                        }, finalEffects[i].idx));
                     }
                 });
                 debugger_1.debug.addButton('Print Skills', () => {
