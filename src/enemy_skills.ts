@@ -1816,33 +1816,32 @@ export function goto(ctx: AiContext, skillIdx: number): number {
   return effect.goto(skill, ctx);
 }
 
+export function textifyEnemySkill(enemy: { id: number; atk: number }, idx: number) {
+  const text = textify({
+    cardId: enemy.id,
+    atk: enemy.atk,
+    // Values needed to create context, all defaults.
+    attribute: -1,
+    isPreempt: false,
+    lv: 10,
+    hpPercent: 100,
+    combo: 1,
+    teamIds: [],
+    bigBoard: false,
+    charges: 0,
+    flags: 0,
+    counter: 0,
+  }, toSkillContext(enemy.id, idx));
+  return text;
+}
+
 function textifyEnemySkills(enemy: {
   id: number,
-  lv: number,
   atk: number,
-  charges: number,
-  flags: number,
-  counter: number
 }): string[] {
   const val = [];
   for (let i = 0; i < floof.model.cards[enemy.id].enemySkills.length; i++) {
-    const text = textify({
-      cardId: enemy.id,
-      attribute: 4,
-      isPreempt: false,
-      lv: enemy.lv,
-      atk: enemy.atk,
-      hpPercent: 100,
-      combo: 1,
-      teamIds: [],
-      bigBoard: false,
-
-      charges: enemy.charges,
-      flags: enemy.flags,
-      counter: enemy.counter,
-    }, toSkillContext(enemy.id, i));
-    val.push(text);
-    console.log(text);
+    val.push(textifyEnemySkill(enemy, i));
   }
   return val;
 }

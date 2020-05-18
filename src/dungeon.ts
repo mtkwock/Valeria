@@ -2,7 +2,7 @@ import { BASE_URL, waitFor } from './common';
 import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
 import { DungeonPane, DungeonUpdate } from './templates';
-import { textifyEnemySkills, determineSkillset } from './enemy_skills';
+import { textifyEnemySkills, determineSkillset, textifyEnemySkill } from './enemy_skills';
 import { debug } from './debugger';
 // import {DungeonEditor} from './templates';
 
@@ -308,8 +308,18 @@ class DungeonInstance {
         flags: enemy.flags,
         counter: enemy.counter,
       });
-      const printed = JSON.stringify(skillsets, null, 2);
-      debug.print(printed);
+      for (let i = 0; i < skillsets.aiEffects.length; i++) {
+        debug.print(`Used logic skill: ${skillsets.aiEffects[i]}`);
+      }
+      if (skillsets.finalEffects.length > 1) {
+        debug.print('Multiple possible Preemptives:');
+      }
+      for (let i = 0; i < skillsets.finalEffects.length; i++) {
+        debug.print(textifyEnemySkill({
+          id: enemy.id,
+          atk: this.atkMultiplier.multiply(enemy.getAtk()),
+        }, skillsets.finalEffects[i].idx));
+      }
     });
 
     debug.addButton('Print Skills', () => {
@@ -317,11 +327,7 @@ class DungeonInstance {
       const id = enemy.id;
       const skillTexts = textifyEnemySkills({
         id,
-        lv: enemy.lv,
         atk: this.atkMultiplier.multiply(enemy.getAtk()),
-        charges: enemy.charges,
-        flags: enemy.flags,
-        counter: enemy.counter,
       });
       for (let i = 0; i < skillTexts.length; i++) {
         debug.print(`${i + 1}: ${skillTexts[i]} `);
