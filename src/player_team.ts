@@ -17,6 +17,7 @@ interface Burst {
 interface TeamState {
   awakenings: boolean;
   currentHp: number;
+  skills: boolean;
   skillUsed: boolean;
   shieldPercent: number;
   attributesShielded: Attribute[];
@@ -31,6 +32,7 @@ interface TeamState {
   rcvMult: number;
   fixedHp: number;
   leadSwaps: number[];
+  bigBoard: boolean;
 }
 
 interface TeamStateContext {
@@ -59,6 +61,7 @@ interface TeamStateContext {
 const DEFAULT_STATE: TeamState = {
   awakenings: true,
   currentHp: 0,
+  skills: true,
   skillUsed: true,
   shieldPercent: 0,
   attributesShielded: [
@@ -82,13 +85,14 @@ const DEFAULT_STATE: TeamState = {
   fixedHp: 0,
 
   leadSwaps: [0, 0, 0],
+  bigBoard: false,
 };
 
 interface TeamJson {
   title: string;
-  description: string,
-  playerMode: number,
-  monsters: MonsterJson[],
+  description: string;
+  playerMode: number;
+  monsters: MonsterJson[];
 }
 
 class StoredTeams {
@@ -140,13 +144,13 @@ class StoredTeams {
   }
 
   // TODO: Add confirmation if overriding.
-  saveTeam(teamJson: TeamJson) {
+  saveTeam(teamJson: TeamJson): void {
     this.teams[teamJson.title] = teamJson;
     window.localStorage.idcStoredTeams = compress(JSON.stringify(this.teams));
   }
 
   // TODO: Add confirmation.
-  deleteTeam(title: string) {
+  deleteTeam(title: string): void {
     delete this.teams[title];
     window.localStorage.idcStoredTeams = compress(JSON.stringify(this.teams));
   }
@@ -167,19 +171,19 @@ const SHARED_AWAKENINGS = new Set([
 ]);
 
 class Team {
-  teamName: string = '';
-  description: string = '';
+  teamName = '';
+  description = '';
   monsters: MonsterInstance[] = [];
-  playerMode: number = 1;
-  activeTeamIdx: number = 0;
-  activeMonster: number = 0;
-  lastMaxHp: number = 0;
+  playerMode = 1;
+  activeTeamIdx = 0;
+  activeMonster = 0;
+  lastMaxHp = 0;
 
   storage: StoredTeams;
   state: TeamState = Object.assign({}, DEFAULT_STATE);
   teamPane: TeamPane;
   // On change monster selection.
-  updateCb: (idx: number) => any;
+  updateCb: (idx: number) => void;
 
   constructor() {
     /**
@@ -253,7 +257,7 @@ class Team {
       }
     );
 
-    this.updateCb = () => null;
+    this.updateCb = () => { };
 
     // TODO: Battle Display - Different Class?
   }
@@ -268,6 +272,16 @@ class Team {
     }
 
     this.update();
+  }
+
+  skillBind(): void {
+    const count = this.countAwakening(Awakening.SBR);
+    if (count >= 5) {
+      return;
+    }
+    if (Math.random() * 5 > count) {
+      this.state.skills = false;
+    }
   }
 
   openTeamTab(): void {
@@ -296,7 +310,7 @@ class Team {
     this.updateCb(idx);
   }
 
-  resetState(partial: boolean = false): void {
+  resetState(partial = false): void {
     const state = this.state;
 
     if (partial) {
@@ -346,7 +360,7 @@ class Team {
       if (!teamStrings[i]) {
         teamStrings[i] = defaultMonster;
       }
-      let monsterStrings = teamStrings[i].split('/')
+      const monsterStrings = teamStrings[i].split('/')
         .map((s: string): string => s.trim())
         .reduce((allStrings: string[], monsterString: string) => {
           const multiply = monsterString.match(multiplierRegex);
@@ -442,9 +456,7 @@ class Team {
       if (newMode == 1) {
         this.monsters[5].copyFrom(this.monsters[6]);
       }
-    } else if (this.playerMode == 3) {
-      //Todo, ps maybe filler text to pass eslint
-    } else { // Handle 1P
+    } else if (this.playerMode == 1) {
       if (newMode == 2) {
         this.monsters[6].copyFrom(this.monsters[5]);
       }
@@ -500,7 +512,7 @@ class Team {
     return idx;
   }
 
-  getIndividualHp(includeLeaderSkill: boolean = false, includeP2: boolean = false): number[] {
+  getIndividualHp(includeLeaderSkill = false, includeP2 = false): number[] {
     const monsters = this.getActiveTeam();
     const partialLead = (monster: MonsterInstance): number => {
       return leaders.hp(monsters[0].getCard().leaderSkillId, {
@@ -525,7 +537,7 @@ class Team {
     if (!includeLeaderSkill) {
       return monsters.map((monster) => monster.getHp(this.isMultiplayer(), this.state.awakenings));
     }
-    let hps = [];
+    const hps = [];
     const teamHpAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(Awakening.TEAM_HP), 0) * 0.05) : 0);
     for (const monster of monsters) {
       if (!monster.id || monster.id <= 0) {
@@ -548,7 +560,7 @@ class Team {
   }
 
   getIndividualRcv(includeLeaderSkill: boolean = false): number[] {
-    let rcvs = [];
+    const rcvs = [];
     const monsters = this.getActiveTeam();
     if (!includeLeaderSkill) {
       return monsters.map((monster) => monster.getRcv(this.isMultiplayer(), this.state.awakenings));
@@ -646,13 +658,12 @@ class Team {
     return 7;
   }
 
-  getDamageCombos(comboContainer: ComboContainer): { pings: DamagePing[], healing: number, trueBonusAttack: number } {
+  getDamageCombos(comboContainer: ComboContainer): { pings: DamagePing[]; healing: number; trueBonusAttack: number } {
     comboContainer.bonusCombosLeader = 0;
-
     const mp = this.isMultiplayer();
     const awoke = this.state.awakenings;
     const percentHp = this.getHpPercent();
-    let monsters = this.getActiveTeam();
+    const monsters = this.getActiveTeam();
     const leadId = monsters[0].bound ? -1 : monsters[0].getCard().leaderSkillId;
     const helpId = monsters[5].bound ? -1 : monsters[5].getCard().leaderSkillId;
     const partialAtk = (id: number, ping: DamagePing, healing: number) => leaders.atk(id, {
@@ -681,12 +692,20 @@ class Team {
       3: 0,
       4: 0,
       5: 0,
+      6: 0,
+      7: 0,
+      8: 0,
+      9: 0,
       '-1': 0,
       '-2': 0,
     };
     const rowAwakenings: Record<Attribute, number> = {
       '-2': 0,
       '-1': 0,
+      6: 0,
+      7: 0,
+      8: 0,
+      9: 0,
       0: this.countAwakening(Awakening.ROW_FIRE),
       1: this.countAwakening(Awakening.ROW_WATER),
       2: this.countAwakening(Awakening.ROW_WOOD),
@@ -696,9 +715,9 @@ class Team {
     };
 
     // monsters = monsters.filter((monster) => monster.getId() > 0);
-    let pings: DamagePing[] = Array(2 * monsters.length);
+    const pings: DamagePing[] = Array(2 * monsters.length);
 
-    const NO_ONE = new MonsterInstance(-1, () => { });
+    const NO_ONE = new MonsterInstance(-1, () => null);
 
     for (let i = 0; i < monsters.length; i++) {
       if (monsters[i].getId() <= 0 || monsters[i].bound) {
@@ -933,6 +952,9 @@ class Team {
   }
 
   countAwakening(awakening: Awakening): number {
+    if (!this.state.awakenings) {
+      return 0;
+    }
     const monsters = this.getActiveTeam();
     if (this.playerMode == 2 && SHARED_AWAKENINGS.has(awakening)) {
       const p2Monsters = this.getTeamAt(this.activeTeamIdx ^ 1);
@@ -944,6 +966,11 @@ class Team {
     return monsters.reduce(
       (total, monster) => total + monster.countAwakening(awakening, this.isMultiplayer()),
       0);
+  }
+
+  damage(amount: number, _attr: Attribute) {
+    // TODO: Account for leader skills and buffs;
+    this.state.currentHp -= amount;
   }
 
   getStats(): Stats {
@@ -1034,4 +1061,4 @@ class Team {
 
 export {
   Team
-}
+};

@@ -849,34 +849,6 @@ class MonsterInstance {
   }
 }
 
-// class DamagePing {
-//   source: MonsterInstance;
-//   attribute: Attribute;
-//
-//   amount: number = 0;
-//
-//   ignoreVoid: boolean = false;
-//   ignoreDefense: boolean = false;
-//   isSub: boolean = false;
-//
-//   // Only makes sense when hitting an enemy.
-//   rawDamage: number = -1;
-//   actualDamage: number = -1;
-//
-//   constructor(source: MonsterInstance, attribute: Attribute) {
-//     this.source = source;
-//     this.attribute = attribute;
-//   }
-//
-//   add(amount: number) {
-//     this.amount += amount;
-//   }
-//
-//   multiply(multiplier: number, round = Round.NEAREST): void {
-//     this.amount = round(this.amount * multiplier);
-//   }
-// }
-
 export {
   LatentToPdchu,
   MonsterInstance,

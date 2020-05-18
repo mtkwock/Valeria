@@ -2,6 +2,7 @@ import { BASE_URL, waitFor } from './common';
 import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
 import { DungeonPane, DungeonUpdate } from './templates';
+import { textifyEnemySkills } from './enemy_skills';
 // import {DungeonEditor} from './templates';
 
 // function createHpEl() {
@@ -399,6 +400,16 @@ class DungeonInstance {
   setActiveEnemy(idx: number) {
     this.activeEnemy = idx;
     this.floors[this.activeFloor].activeEnemy = idx;
+    console.log(this.getActiveEnemy().getCard().name);
+    const enemy = this.getActiveEnemy();
+    textifyEnemySkills({
+      id: enemy.id,
+      lv: enemy.id,
+      atk: enemy.getAtk(),
+      charges: enemy.charges,
+      flags: enemy.flags,
+      counter: enemy.counter,
+    });
   }
 
   getActiveEnemy(): EnemyInstance {

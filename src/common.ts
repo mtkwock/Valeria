@@ -42,6 +42,10 @@ enum Attribute {
   LIGHT = 3,
   DARK = 4,
   HEART = 5,
+  JAMMER = 6,
+  POISON = 7,
+  MORTAL_POSION = 8,
+  BOMB = 9,
   FIXED = -2,
   NONE = -1,
 }
@@ -53,6 +57,11 @@ AttributeToName.set(Attribute.WOOD, 'Wood');
 AttributeToName.set(Attribute.LIGHT, 'Light');
 AttributeToName.set(Attribute.DARK, 'Dark');
 AttributeToName.set(Attribute.NONE, 'None');
+AttributeToName.set(Attribute.HEART, 'Heart');
+AttributeToName.set(Attribute.JAMMER, 'Jammer');
+AttributeToName.set(Attribute.POISON, 'Poison');
+AttributeToName.set(Attribute.MORTAL_POSION, 'Mortal Poison');
+
 
 enum MonsterType {
   NONE = -1,
@@ -255,6 +264,11 @@ enum FontColor {
   WOOD = 'lawngreen',
   LIGHT = 'yellow',
   DARK = 'fuchsia',
+  HEART = 'pink',
+  JAMMER = 'lightgray',
+  POISON = 'purple',
+  MORTAL_POSION = 'darkpurple',
+  BOMB = 'brown',
   COLORLESS = 'gray',
   FIXED = 'white',
   NONE = 'black',
@@ -266,10 +280,43 @@ const AttributeToFontColor: Record<Attribute, FontColor> = {
   2: FontColor.WOOD,
   3: FontColor.LIGHT,
   4: FontColor.DARK,
-  5: FontColor.COLORLESS,
+  5: FontColor.HEART,
+  6: FontColor.JAMMER,
+  7: FontColor.POISON,
+  8: FontColor.MORTAL_POSION,
+  9: FontColor.BOMB,
   '-2': FontColor.FIXED,
   '-1': FontColor.NONE,
 };
+
+// https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
+function addCommas(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  // let decimalPart = '';
+  // if (!Number.isInteger(n)) {
+  //   let fn = Math.floor;
+  //   if (n < 0) {
+  //     fn = Math.ceil;
+  //   }
+  //   decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
+  //   while (decimalPart[decimalPart.length - 1] == '0') {
+  //     decimalPart = decimalPart.substring(0, decimalPart.length - 1);
+  //   }
+  //   n = fn(n);
+  // }
+  // const reversed = String(n).split('').reverse().join('');
+  // const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
+  // if (forwardCommaArray[0] == ',') {
+  //   forwardCommaArray.splice(0, 1);
+  // } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
+  //   forwardCommaArray.splice(1, 1);
+  // }
+  // return forwardCommaArray.join('') + decimalPart;
+}
+
+function removeCommas(s: string): number {
+  return Number(s.replace(/,/g, ''));
+}
 
 export {
   Attribute,
@@ -293,4 +340,5 @@ export {
   Round,
   waitFor,
   FontColor, AttributeToFontColor,
+  addCommas, removeCommas,
 };

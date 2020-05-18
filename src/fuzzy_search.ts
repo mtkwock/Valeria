@@ -78,7 +78,11 @@ function SearchInit() {
  * @param searchArray
  * @param filtered
  */
-function fuzzyMonsterSearch(text: string, maxResults: number = 15, searchArray: Card[] | undefined = undefined, filtered = false): number[] {
+function fuzzyMonsterSearch(
+  text: string,
+  maxResults = 15,
+  searchArray: Card[] | undefined = undefined,
+  filtered = false): number[] {
   if (!text || text == '-1') {
     return [-1];
   }

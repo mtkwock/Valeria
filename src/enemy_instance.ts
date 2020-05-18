@@ -192,7 +192,13 @@ class EnemyInstance {
   typeResists: MonsterType[];
   preemptiveSkillset: EnemySkillset;
   skillsets: EnemySkillset[];
-  turnCounter: number = 1; // Currently unused.
+  turnCounter: number = 0; // Currently unused.
+
+  // Used for determining moveset.
+  charges: number = 0;
+  flags: number = 0;
+  counter: number = 0;
+  forceAttack: boolean = false; // If true, next attack must be basic.
 
   // Values that can change during battle.
   currentHp: number = 1;
@@ -206,6 +212,7 @@ class EnemyInstance {
   attackMultiplier: number = 1; // Enrage
   turnsRemaining: number = 1; // Not to be used yet.
   turnCounterOverride: number = -1; // Not to be used yet.
+  invincible: boolean = false;
 
   // Debuffs by players
   ignoreDefensePercent: number = 0;
@@ -431,6 +438,10 @@ class EnemyInstance {
     this.ignoreDefensePercent = 0;
     this.poison = 0;
     this.delayed = false;
+
+    this.charges = floof.model.cards[this.id].charges;
+    this.counter = 0;
+    this.flags = 0;
     if (this.preemptiveSkillset) {
       //   this.preemptiveSkillset.applySkillset(idc, this);
     }

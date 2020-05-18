@@ -8,6 +8,7 @@ import { DungeonInstance } from './dungeon';
 import { SearchInit } from './fuzzy_search';
 import { Team } from './player_team';
 import { MonsterEditor, ValeriaDisplay, MonsterUpdate, ClassNames } from './templates';
+import { debug } from './debugger';
 import { floof } from './ilmina_stripped';
 import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
 import { getUrlParameter } from './url_handler';
@@ -73,10 +74,10 @@ class Valeria {
       this.team.update();
       this.updateMonsterEditor();
     });
-    this.monsterEditor.pdchu.importButton.onclick = () => {
+    this.monsterEditor.pdchu.importButton.onclick = (): void => {
       this.team.fromPdchu(this.monsterEditor.pdchu.io.value);
     };
-    this.monsterEditor.pdchu.exportButton.onclick = () => {
+    this.monsterEditor.pdchu.exportButton.onclick = (): void => {
       this.monsterEditor.pdchu.io.value = this.team.toPdchu();
       const els = document.getElementsByClassName(ClassNames.PDCHU_IO);
       if (els.length) {
@@ -85,7 +86,7 @@ class Valeria {
         el.select();
       }
     }
-    this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
+    this.monsterEditor.pdchu.exportUrlButton.onclick = (): void => {
       const searchlessUrl = location.href.replace(location.search, '');
       this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${ValeriaEncode(this.team)}&dungeon=${this.dungeon.id}`;
       const els = document.getElementsByClassName(ClassNames.PDCHU_IO);
@@ -98,7 +99,7 @@ class Valeria {
     this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
 
     this.team = new Team();
-    this.team.updateCb = () => {
+    this.team.updateCb = (): void => {
       this.updateMonsterEditor();
       this.updateDamage();
       // console.log(healing);
@@ -115,14 +116,14 @@ class Valeria {
     this.display.panes[1].appendChild(this.team.teamPane.getElement());
 
     this.dungeon = new DungeonInstance();
-    let dungeonId = getUrlParameter('dungeon');
+    const dungeonId = getUrlParameter('dungeon');
     if (dungeonId) {
       this.dungeon.loadDungeon(Number(dungeonId));
     }
     this.display.panes[2].appendChild(this.dungeon.getPane());
   }
 
-  updateMonsterEditor() {
+  updateMonsterEditor(): void {
     const monster = this.team.monsters[this.team.activeMonster];
     this.monsterEditor.update({
       id: monster.getId(),
@@ -139,15 +140,13 @@ class Valeria {
     });
   }
 
-  updateDamage() {
+  updateDamage(): void {
     const { pings, healing } = this.team.getDamageCombos(this.comboContainer);
     this.team.teamPane.updateDamage(
-      pings.map((ping) => {
-        if (ping) {
-          return { attribute: ping.attribute, damage: ping.damage };
-        }
-        return { attribute: Attribute.NONE, damage: 0 };
-      }),
+      pings.map((ping) => ({
+        attribute: ping ? ping.attribute : Attribute.NONE,
+        damage: ping ? ping.damage : 0,
+      })),
       healing,
     );
   }
@@ -158,10 +157,10 @@ class Valeria {
 }
 
 declare global {
-  interface Window { valeria: Valeria; }
+  interface Window { valeria: Valeria }
 }
 
-async function init() {
+async function init(): Promise<void> {
   await waitFor(() => floof.ready);
   console.log('Valeria taking over.');
 
@@ -173,6 +172,9 @@ async function init() {
     loadingEl.style.display = 'none';
   }
   document.body.appendChild(valeria.getElement());
+  if (localStorage.debug) {
+    document.body.appendChild(debug.getElement());
+  }
   window.valeria = valeria;
 }
 

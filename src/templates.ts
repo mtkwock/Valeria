@@ -7,11 +7,11 @@
  * compiling them here so that the structure is more consistent.
  */
 
-import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType, AttributeToFontColor } from './common';
+import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType, AttributeToFontColor, addCommas, removeCommas } from './common';
 import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
 import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
 
-function create(tag: string, cls: string = ''): HTMLElement {
+function create(tag: string, cls = ''): HTMLElement {
   const el = document.createElement(tag);
   if (cls) {
     el.className = cls;
@@ -128,14 +128,12 @@ enum StatIndex {
 }
 
 const TEAM_SCALING = 0.6;
-// const AWAKENING_NUMBERS = '0123456789';
-// const MONSTER_AWAKENING_SCALE = 0.43;
 
-function show(el: HTMLElement) {
+function show(el: HTMLElement): void {
   el.style.visibility = 'visible';
 }
 
-function hide(el: HTMLElement) {
+function hide(el: HTMLElement): void {
   el.style.visibility = 'hidden';
 }
 
@@ -160,11 +158,195 @@ function getAwakeningOffsets(awakeningNumber: number): number[] {
   return result;
 }
 
-function updateAwakening(el: HTMLElement, awakening: number, scale: number, unavailableReason: string = ''): void {
+function updateAwakening(el: HTMLElement, awakening: number, scale: number, unavailableReason = ''): void {
   const [x, y] = getAwakeningOffsets(awakening);
   el.style.backgroundPosition = `${x * scale}px ${y * scale}px`;
   el.style.opacity = `${unavailableReason ? 0.5 : 1}`;
   el.title = unavailableReason;
+}
+
+type AssetInfoRecord = { offsetX: number, offsetY: number, width: number, height: number };
+enum AssetEnum {
+  NUMBER_0 = 0,
+  NUMBER_1,
+  NUMBER_2,
+  NUMBER_3,
+  NUMBER_4,
+  NUMBER_5,
+  NUMBER_6,
+  NUMBER_7,
+  NUMBER_8,
+  NUMBER_9,
+
+  GUARD_BREAK,
+  TIME,
+  POISON,
+  ENRAGE,
+  STATUS_SHIELD,
+  TIME_BUFF,
+  TIME_DEBUFF,
+  RESOLVE,
+  BURST,
+  DEF_OVERLAY,
+  FIXED_HP,
+  AWOKEN_BIND,
+  SKILL_BIND,
+
+  SHIELD_BASE,
+
+  PLAYER_HP_LEFT,
+  PLAYER_HP_MIDDLE,
+  PLAYER_HP_RIGHT,
+
+  ENEMY_HP_LEFT,
+  ENEMY_HP_MIDDLE,
+  ENEMY_HP_RIGHT,
+
+  // Overlays SHIELD_BASE for attribute resists.
+  FIRE_TRANSPARENT,
+  WATER_TRANSPARENT,
+  WOOD_TRANSPARENT,
+  LIGHT_TRANSPARENT,
+  DARK_TRANSPARENT,
+
+  // Overlays [attr]_TRANSPARENT for attribute absorb.
+  TWINKLE,
+  // Overlays SHIELD_BASE for Damage Void.
+  VOID_OVERLAY,
+  // Overlays SHIELD_BASES for Damage Absorb.
+  ABSORB_OVERLAY,
+  // DAMAGE_NULL,
+
+  SWAP,
+  TRANSFROM,
+  // Overlays absorbs and voids as player buffs..
+  VOID,
+  COLOR_WHEEL,
+}
+
+const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
+  [AssetEnum.NUMBER_0, { offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_1, { offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_2, { offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_3, { offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_4, { offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_5, { offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_6, { offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_7, { offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_8, { offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.NUMBER_9, { offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26 }],
+  [AssetEnum.GUARD_BREAK, { offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36 }],
+  [AssetEnum.TIME, { offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36 }],
+  [AssetEnum.POISON, { offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36 }],
+  [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 114, width: 36, height: 36 }],
+  [AssetEnum.STATUS_SHIELD, { offsetY: 0, offsetX: 154, width: 36, height: 36 }],
+  [AssetEnum.SKILL_BIND, { offsetY: 40, offsetX: 141, width: 32, height: 32 }],
+  [AssetEnum.AWOKEN_BIND, { offsetY: 73, offsetX: 140, width: 32, height: 32 }],
+  [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
+  [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
+  [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 326, width: 36, height: 36 }],
+  [AssetEnum.FIRE_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 0, width: 32, height: 32 }],
+  [AssetEnum.WATER_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 1, width: 32, height: 32 }],
+  [AssetEnum.WOOD_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 2, width: 32, height: 32 }],
+  [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 3, width: 32, height: 32 }],
+  [AssetEnum.DARK_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 4, width: 32, height: 32 }],
+  [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36 }],
+  [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
+  [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
+  [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
+  [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
+  [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
+  [AssetEnum.VOID, { offsetY: 90, offsetX: 416, width: 19, height: 18 }],
+  [AssetEnum.COLOR_WHEEL, { offsetY: 208, offsetX: 131, width: 32, height: 32 }],
+  // [AssetEnum., {offsetY: , offsetX: , width: , height: }],
+]);
+
+const UI_ASSET_SRC: string = `url(${BASE_URL}assets/UIPAT1.PNG)`;
+
+class LayeredAsset {
+  assets: AssetEnum[];
+  element: HTMLDivElement = create('div', ClassNames.LAYERED_ASSET) as HTMLDivElement;
+  private elements: HTMLAnchorElement[];
+  active: boolean = true;
+  onClick: (active: boolean) => void;
+
+  constructor(assets: AssetEnum[], onClick: (active: boolean) => void, active = true, scale: number = 1) {
+    this.assets = assets;
+
+    const maxSizes = {
+      width: 0,
+      height: 0,
+    };
+
+    this.elements = assets
+      .filter((asset) => ASSET_INFO.has(asset))
+      .map((asset) => {
+        const assetInfo = ASSET_INFO.get(asset);
+        const el = create('a') as HTMLAnchorElement;
+        if (assetInfo) {
+          el.style.width = String(assetInfo.width * scale);
+          el.style.height = String(assetInfo.height * scale);
+          el.style.backgroundSize = `${512 * scale}px ${512 * scale}px`;
+          if (assetInfo.width > maxSizes.width * scale) {
+            maxSizes.width = assetInfo.width * scale;
+          }
+          if (assetInfo.height > maxSizes.height * scale) {
+            maxSizes.height = assetInfo.height * scale;
+          }
+          el.style.backgroundImage = UI_ASSET_SRC;
+          el.style.backgroundPosition = `${-1 * assetInfo.offsetX * scale} ${-1 * assetInfo.offsetY * scale}`;
+        }
+        return el;
+      });
+    if (this.elements.length == 3) {
+      console.log('here');
+    }
+    // Manually center each of these.
+    for (const el of this.elements) {
+      const elHeight = Number(el.style.height.replace('px', ''));
+      const elWidth = Number(el.style.width.replace('px', ''));
+      if (elHeight < maxSizes.height) {
+        el.style.marginTop = String((maxSizes.height - elHeight) / 2);
+      }
+      if (elWidth < maxSizes.width) {
+        el.style.marginLeft = String((maxSizes.width - elWidth) / 2);
+      }
+    }
+    for (const el of this.elements) {
+      this.element.appendChild(el);
+    }
+    this.element.style.width = String(maxSizes.width);
+    this.element.style.height = String(maxSizes.height);
+
+    this.onClick = onClick;
+
+    this.element.onclick = () => {
+      this.onClick(!this.active);
+    };
+
+    this.setActive(active)
+  }
+
+  getElement(): HTMLDivElement {
+    return this.element;
+  }
+
+  getAssetPart(idx: number): HTMLAnchorElement {
+    return this.elements[idx];
+  }
+
+  setActive(active: boolean) {
+    this.active = active;
+    if (active) {
+      for (const element of this.elements) {
+        element.classList.remove(ClassNames.HALF_OPACITY);
+      }
+    } else {
+      for (const element of this.elements) {
+        element.classList.add(ClassNames.HALF_OPACITY);
+      }
+    }
+  }
 }
 
 class MonsterIcon {
@@ -172,13 +354,13 @@ class MonsterIcon {
   attributeEl: HTMLElement = create('a', ClassNames.ICON_ATTR);
   subattributeEl: HTMLElement = create('a', ClassNames.ICON_SUB);
   infoTable: HTMLElement = create('table', ClassNames.ICON_INFO);
-  hideInfoTable: boolean = false;
+  hideInfoTable = false;
   swapIcon: LayeredAsset;
   transformIcon: LayeredAsset;
-  id: number = -1;
+  id = -1;
   private onUpdate: OnMonsterUpdate;
 
-  constructor(hideInfoTable: boolean = false) {
+  constructor(hideInfoTable = false) {
     this.hideInfoTable = hideInfoTable;
     if (this.hideInfoTable) {
       hide(this.infoTable);
@@ -665,7 +847,7 @@ interface MonsterUpdateAll {
   latents: Latent[],
 }
 
-type OnMonsterUpdate = (ctx: MonsterUpdate) => any;
+type OnMonsterUpdate = (ctx: MonsterUpdate) => void;
 
 class GenericSelector<T> {
   static MAX_OPTIONS: number = 15;
@@ -675,10 +857,10 @@ class GenericSelector<T> {
   protected options: HTMLElement[] = [];
   protected selectedOption: number = 0;
   protected activeOptions: number = 0;
-  protected updateCb: (value: number) => any;
+  protected updateCb: (value: number) => void;
   protected searchArray: { s: string, value: T }[];
 
-  onKeyDown(): (e: KeyboardEvent) => any {
+  onKeyDown(): (e: KeyboardEvent) => void {
     return (e: KeyboardEvent) => {
       this.options[this.selectedOption].style.border = '';
       switch (e.keyCode) {
@@ -717,11 +899,11 @@ class GenericSelector<T> {
     return matches;
   }
 
-  getFuzzyMatches(text: string): any[] {
+  getFuzzyMatches(text: string): T[] {
     return fuzzySearch(text, GenericSelector.MAX_OPTIONS * 3, this.searchArray);
   }
 
-  onKeyUp(): (e: KeyboardEvent) => any {
+  onKeyUp(): (e: KeyboardEvent) => void {
     return (e: KeyboardEvent) => {
       this.options[this.selectedOption].style.border = '1px solid white';
       if ([27, 13, 38, 40].indexOf(e.keyCode) >= 0) {
@@ -743,14 +925,14 @@ class GenericSelector<T> {
           continue;
         }
         this.options[i].className = ClassNames.SELECTOR_OPTION_ACTIVE;
-        this.options[i].innerText = `${fuzzyMatches[i]} - ${this.getName(fuzzyMatches[i])}`;
+        this.options[i].innerText = `${fuzzyMatches[i]} - ${this.getName(Number(fuzzyMatches[i]))}`;
         this.options[i].setAttribute('value', String(fuzzyMatches[i]));
       }
       this.activeOptions = Math.min(fuzzyMatches.length, this.options.length);
     };
   }
 
-  optionOnClick(option: HTMLElement): () => any {
+  optionOnClick(option: HTMLElement): () => void {
     return () => {
       const id = Number(option.getAttribute('value'));
       this.updateCb(id);
@@ -760,7 +942,7 @@ class GenericSelector<T> {
     };
   }
 
-  constructor(searchArray: { s: string, value: T }[], updateCb: (value: number) => any) {
+  constructor(searchArray: { s: string, value: T }[], updateCb: (value: number) => void) {
     this.searchArray = searchArray;
     this.updateCb = updateCb;
 
@@ -807,7 +989,7 @@ class MonsterSelector extends GenericSelector<number> {
     }
   }
 
-  getFuzzyMatches(text: string): any[] {
+  getFuzzyMatches(text: string): number[] {
     return fuzzyMonsterSearch(text, GenericSelector.MAX_OPTIONS * 3, this.cardArray);
   }
 
@@ -1438,35 +1620,6 @@ class MonsterEditor {
   }
 }
 
-// https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
-function addCommas(n: number): string {
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  // let decimalPart = '';
-  // if (!Number.isInteger(n)) {
-  //   let fn = Math.floor;
-  //   if (n < 0) {
-  //     fn = Math.ceil;
-  //   }
-  //   decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
-  //   while (decimalPart[decimalPart.length - 1] == '0') {
-  //     decimalPart = decimalPart.substring(0, decimalPart.length - 1);
-  //   }
-  //   n = fn(n);
-  // }
-  // const reversed = String(n).split('').reverse().join('');
-  // const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
-  // if (forwardCommaArray[0] == ',') {
-  //   forwardCommaArray.splice(0, 1);
-  // } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
-  //   forwardCommaArray.splice(1, 1);
-  // }
-  // return forwardCommaArray.join('') + decimalPart;
-}
-
-function removeCommas(s: string): number {
-  return Number(s.replace(/,/g, ''));
-}
-
 class HpBar {
   private element: HTMLElement = create('div', ClassNames.HP_DIV) as HTMLElement;
   maxHp: number = 1;
@@ -1476,9 +1629,9 @@ class HpBar {
   private hpInput = create('input', ClassNames.HP_INPUT) as HTMLInputElement;
   private hpMaxEl = create('span', ClassNames.HP_MAX) as HTMLSpanElement;
   private percentEl = create('span', ClassNames.HP_PERCENT) as HTMLSpanElement;
-  private onUpdate: (hp: number) => any;
+  private onUpdate: (hp: number) => void;
 
-  constructor(onUpdate: (hp: number) => any) {
+  constructor(onUpdate: (hp: number) => void) {
     this.onUpdate = onUpdate;
     this.sliderEl.type = 'range';
     this.sliderEl.onchange = () => {
@@ -1523,10 +1676,10 @@ class StoredTeamDisplay {
   saveTeamEl: HTMLElement = create('div', ClassNames.TEAM_STORAGE_SAVE);
   private loadTable: HTMLTableElement = create('table', ClassNames.TEAM_STORAGE_LOAD_AREA) as HTMLTableElement;
   private teamRows: HTMLTableRowElement[] = [];
-  loadFn: (name: string) => any;
-  deleteFn: (name: string) => any;
+  loadFn: (name: string) => void;
+  deleteFn: (name: string) => void;
 
-  constructor(saveFn: () => any, loadFn: (name: string) => any, deleteFn: (name: string) => any) {
+  constructor(saveFn: () => void, loadFn: (name: string) => void, deleteFn: (name: string) => void) {
     this.saveTeamEl.innerText = 'Save Team';
     this.saveTeamEl.onclick = saveFn;
     this.element.appendChild(this.saveTeamEl);
@@ -1615,7 +1768,7 @@ class TeamPane {
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
   private metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load']);
   private detailTabs: TabbedComponent = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
-  private onTeamUpdate: (ctx: TeamUpdate) => any;
+  private onTeamUpdate: (ctx: TeamUpdate) => void;
   private hpBar: HpBar;
   private fixedHpEl: LayeredAsset = new LayeredAsset([], () => { });
   private fixedHpInput: HTMLInputElement = create('input') as HTMLInputElement;
@@ -1627,7 +1780,7 @@ class TeamPane {
   constructor(
     storageDisplay: HTMLElement,
     monsterDivs: HTMLElement[],
-    onTeamUpdate: (ctx: TeamUpdate) => any,
+    onTeamUpdate: (ctx: TeamUpdate) => void,
   ) {
     this.onTeamUpdate = onTeamUpdate;
     const teamTab = this.metaTabs.getTab('Team');
@@ -1686,7 +1839,7 @@ class TeamPane {
     this.element_.appendChild(this.metaTabs.getElement());
   }
 
-  selectMonster(position: number) {
+  selectMonster(position: number): void {
     for (let i = 0; i < this.monsterDivs.length; i++) {
       // TODO: Enable double highlighting of 2P leads.
       if (i != position || this.monsterDivs[i].className == ClassNames.MONSTER_CONTAINER_SELECTED) {
@@ -1697,10 +1850,11 @@ class TeamPane {
     }
   }
 
-  goToTab(s: string) {
+  goToTab(s: string): void {
     this.metaTabs.setActiveTab(s);
   }
-  private createStatRow(labelText: string, statIndex: number) {
+
+  private createStatRow(labelText: string, statIndex: number): HTMLTableRowElement {
     const row = create('tr') as HTMLTableRowElement;
     for (let i = 0; i < 6; i++) {
       const cell = create('td') as HTMLTableCellElement;
@@ -1726,7 +1880,7 @@ class TeamPane {
     return row;
   }
 
-  private populateStats() {
+  private populateStats(): void {
     const statsTable = create('table', ClassNames.STAT_TABLE) as HTMLTableElement;
     const hpRow = this.createStatRow('HP', StatIndex.HP);
     const atkRow = this.createStatRow('ATK', StatIndex.ATK);
@@ -1808,7 +1962,7 @@ class TeamPane {
     this.statsEl.appendChild(awakeningTable);
   }
 
-  private populateBattle() {
+  private populateBattle(): void {
     // HP Element
     const hpEl = this.hpBar.getElement();
     hpEl.appendChild(this.hpDamage);
@@ -1941,7 +2095,7 @@ class TeamPane {
   }
 
   // TODO
-  update(playerMode: number, title: string, description: string) {
+  update(playerMode: number, title: string, description: string): void {
     for (let i = 1; i < this.teamDivs.length; i++) {
       if (i < playerMode) {
         this.teamDivs[i].style.display = '';
@@ -1957,7 +2111,7 @@ class TeamPane {
     return this.element_;
   }
 
-  updateStats(stats: Stats) {
+  updateStats(stats: Stats): void {
     for (let i = 0; i < 6; i++) {
       const statsByIdx = this.statsByIdxByIdx[i];
       statsByIdx[StatIndex.HP].innerText = stats.hps[i] ? String(stats.hps[i]) : '';
@@ -1983,7 +2137,7 @@ class TeamPane {
     }
   }
 
-  updateBattle(teamBattle: TeamBattle) {
+  updateBattle(teamBattle: TeamBattle): void {
     this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
     this.leadSwapInput.value = `${teamBattle.leadSwap}`;
 
@@ -1995,7 +2149,7 @@ class TeamPane {
     this.fixedHpInput.value = addCommas(teamBattle.fixedHp);
   }
 
-  updateDamage(pings: { attribute: Attribute, damage: number }[], healing: number) {
+  updateDamage(pings: { attribute: Attribute; damage: number }[], healing: number): void {
     for (let i = 0; i < 12; i++) {
       const { attribute, damage } = pings[i];
       this.pingCells[i].innerText = addCommas(damage);
@@ -2939,54 +3093,54 @@ class TeamPane {
 **/
 
 interface DungeonUpdate {
-  loadDungeon?: number,
+  loadDungeon?: number;
 
   // Dungeon Editor updates
-  activeFloor?: number, // Set active floor index.
-  addFloor?: boolean,
-  removeFloor?: number,
+  activeFloor?: number; // Set active floor index.
+  addFloor?: boolean;
+  removeFloor?: number;
 
-  activeEnemy?: number, // Set active enemy index of active floor.
-  activeEnemyId?: number,
-  addEnemy?: boolean,
-  removeEnemy?: number,
+  activeEnemy?: number; // Set active enemy index of active floor.
+  activeEnemyId?: number;
+  addEnemy?: boolean;
+  removeEnemy?: number;
 
-  addPreemptiveSkill?: boolean,
-  removePreemptiveSkill?: number,
+  addPreemptiveSkill?: boolean;
+  removePreemptiveSkill?: number;
 
-  dungeonHpMultiplier?: string,
-  dungeonAtkMultiplier?: string,
-  dungeonDefMultiplier?: string,
+  dungeonHpMultiplier?: string;
+  dungeonAtkMultiplier?: string;
+  dungeonDefMultiplier?: string;
 
-  enemyLevel?: number,
-  enemyHp?: number,
-  enemyAtk?: number,
-  enemyDef?: number,
-  resolve?: number,
-  superResolve?: number,
-  addAttrResist?: Attribute,
-  removeAttrResist?: Attribute,
-  addTypeResist?: MonsterType,
-  removeTypeResist?: MonsterType,
-  resistPercent?: number,
+  enemyLevel?: number;
+  enemyHp?: number;
+  enemyAtk?: number;
+  enemyDef?: number;
+  resolve?: number;
+  superResolve?: number;
+  addAttrResist?: Attribute;
+  removeAttrResist?: Attribute;
+  addTypeResist?: MonsterType;
+  removeTypeResist?: MonsterType;
+  resistPercent?: number;
 }
 
-type OnDungeonUpdate = (ctx: DungeonUpdate) => any;
+type OnDungeonUpdate = (ctx: DungeonUpdate) => void;
 
 class ToggleableImage {
   element: HTMLElement;
   active: boolean = true;
-  onToggle: (active: boolean) => any;
+  onToggle: (active: boolean) => void;
 
   constructor(
     el: HTMLElement,
-    onToggle: (active: boolean) => any,
-    active: boolean = true) {
+    onToggle: (active: boolean) => void,
+    active = true) {
     this.element = el;
     this.onToggle = onToggle;
     this.setActive(active);
     const oldOnClick = el.onclick;
-    el.onclick = (ev) => {
+    el.onclick = (ev): void => {
       if (oldOnClick) {
         oldOnClick.apply(el, [ev]);
       }
@@ -2998,196 +3152,12 @@ class ToggleableImage {
     return this.active;
   }
 
-  setActive(active: boolean) {
+  setActive(active: boolean): void {
     this.active = active;
     if (this.active) {
       this.element.classList.remove(ClassNames.HALF_OPACITY);
     } else {
       this.element.classList.add(ClassNames.HALF_OPACITY);
-    }
-  }
-}
-
-type AssetInfoRecord = { offsetX: number, offsetY: number, width: number, height: number };
-enum AssetEnum {
-  NUMBER_0 = 0,
-  NUMBER_1,
-  NUMBER_2,
-  NUMBER_3,
-  NUMBER_4,
-  NUMBER_5,
-  NUMBER_6,
-  NUMBER_7,
-  NUMBER_8,
-  NUMBER_9,
-
-  GUARD_BREAK,
-  TIME,
-  POISON,
-  ENRAGE,
-  STATUS_SHIELD,
-  TIME_BUFF,
-  TIME_DEBUFF,
-  RESOLVE,
-  BURST,
-  DEF_OVERLAY,
-  FIXED_HP,
-  AWOKEN_BIND,
-  SKILL_BIND,
-
-  SHIELD_BASE,
-
-  PLAYER_HP_LEFT,
-  PLAYER_HP_MIDDLE,
-  PLAYER_HP_RIGHT,
-
-  ENEMY_HP_LEFT,
-  ENEMY_HP_MIDDLE,
-  ENEMY_HP_RIGHT,
-
-  // Overlays SHIELD_BASE for attribute resists.
-  FIRE_TRANSPARENT,
-  WATER_TRANSPARENT,
-  WOOD_TRANSPARENT,
-  LIGHT_TRANSPARENT,
-  DARK_TRANSPARENT,
-
-  // Overlays [attr]_TRANSPARENT for attribute absorb.
-  TWINKLE,
-  // Overlays SHIELD_BASE for Damage Void.
-  VOID_OVERLAY,
-  // Overlays SHIELD_BASES for Damage Absorb.
-  ABSORB_OVERLAY,
-  // DAMAGE_NULL,
-
-  SWAP,
-  TRANSFROM,
-  // Overlays absorbs and voids as player buffs..
-  VOID,
-  COLOR_WHEEL,
-}
-
-const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
-  [AssetEnum.NUMBER_0, { offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.NUMBER_1, { offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.NUMBER_2, { offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.NUMBER_3, { offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.NUMBER_4, { offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.NUMBER_5, { offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.NUMBER_6, { offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.NUMBER_7, { offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.NUMBER_8, { offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.NUMBER_9, { offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26 }],
-  [AssetEnum.GUARD_BREAK, { offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36 }],
-  [AssetEnum.TIME, { offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36 }],
-  [AssetEnum.POISON, { offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36 }],
-  [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 114, width: 36, height: 36 }],
-  [AssetEnum.STATUS_SHIELD, { offsetY: 0, offsetX: 154, width: 36, height: 36 }],
-  [AssetEnum.SKILL_BIND, { offsetY: 40, offsetX: 141, width: 32, height: 32 }],
-  [AssetEnum.AWOKEN_BIND, { offsetY: 73, offsetX: 140, width: 32, height: 32 }],
-  [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
-  [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
-  [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 326, width: 36, height: 36 }],
-  [AssetEnum.FIRE_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 0, width: 32, height: 32 }],
-  [AssetEnum.WATER_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 1, width: 32, height: 32 }],
-  [AssetEnum.WOOD_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 2, width: 32, height: 32 }],
-  [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 3, width: 32, height: 32 }],
-  [AssetEnum.DARK_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 4, width: 32, height: 32 }],
-  [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36 }],
-  [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
-  [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
-  [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
-  [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
-  [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
-  [AssetEnum.VOID, { offsetY: 90, offsetX: 416, width: 19, height: 18 }],
-  [AssetEnum.COLOR_WHEEL, { offsetY: 208, offsetX: 131, width: 32, height: 32 }],
-  // [AssetEnum., {offsetY: , offsetX: , width: , height: }],
-]);
-
-const UI_ASSET_SRC: string = `url(${BASE_URL}assets/UIPAT1.PNG)`;
-
-class LayeredAsset {
-  assets: AssetEnum[];
-  element: HTMLDivElement = create('div', ClassNames.LAYERED_ASSET) as HTMLDivElement;
-  private elements: HTMLAnchorElement[];
-  active: boolean = true;
-  onClick: (active: boolean) => any;
-
-  constructor(assets: AssetEnum[], onClick: (active: boolean) => any, active = true, scale: number = 1) {
-    this.assets = assets;
-
-    const maxSizes = {
-      width: 0,
-      height: 0,
-    };
-
-    this.elements = assets
-      .filter((asset) => ASSET_INFO.has(asset))
-      .map((asset) => {
-        const assetInfo = ASSET_INFO.get(asset);
-        const el = create('a') as HTMLAnchorElement;
-        if (assetInfo) {
-          el.style.width = String(assetInfo.width * scale);
-          el.style.height = String(assetInfo.height * scale);
-          el.style.backgroundSize = `${512 * scale}px ${512 * scale}px`;
-          if (assetInfo.width > maxSizes.width * scale) {
-            maxSizes.width = assetInfo.width * scale;
-          }
-          if (assetInfo.height > maxSizes.height * scale) {
-            maxSizes.height = assetInfo.height * scale;
-          }
-          el.style.backgroundImage = UI_ASSET_SRC;
-          el.style.backgroundPosition = `${-1 * assetInfo.offsetX * scale} ${-1 * assetInfo.offsetY * scale}`;
-        }
-        return el;
-      });
-    if (this.elements.length == 3) {
-      console.log('here');
-    }
-    // Manually center each of these.
-    for (const el of this.elements) {
-      const elHeight = Number(el.style.height.replace('px', ''));
-      const elWidth = Number(el.style.width.replace('px', ''));
-      if (elHeight < maxSizes.height) {
-        el.style.marginTop = String((maxSizes.height - elHeight) / 2);
-      }
-      if (elWidth < maxSizes.width) {
-        el.style.marginLeft = String((maxSizes.width - elWidth) / 2);
-      }
-    }
-    for (const el of this.elements) {
-      this.element.appendChild(el);
-    }
-    this.element.style.width = String(maxSizes.width);
-    this.element.style.height = String(maxSizes.height);
-
-    this.onClick = onClick;
-
-    this.element.onclick = () => {
-      this.onClick(!this.active);
-    };
-
-    this.setActive(active)
-  }
-
-  getElement(): HTMLDivElement {
-    return this.element;
-  }
-
-  getAssetPart(idx: number): HTMLAnchorElement {
-    return this.elements[idx];
-  }
-
-  setActive(active: boolean) {
-    this.active = active;
-    if (active) {
-      for (const element of this.elements) {
-        element.classList.remove(ClassNames.HALF_OPACITY);
-      }
-    } else {
-      for (const element of this.elements) {
-        element.classList.add(ClassNames.HALF_OPACITY);
-      }
     }
   }
 }
@@ -3200,12 +3170,12 @@ class MonsterTypeEl {
     this.setType(monsterType);
   }
 
-  private getTypeOffsets(): { offsetX: number, offsetY: number } {
+  private getTypeOffsets(): { offsetX: number; offsetY: number } {
     const { offsetX, offsetY } = CardAssets.getTypeImageData(Number(this.type));
     return { offsetX, offsetY };
   }
 
-  setType(type: MonsterType) {
+  setType(type: MonsterType): void {
     this.type = type;
     const { offsetX, offsetY } = this.getTypeOffsets();
     this.element.style.backgroundPosition = `-${offsetX} -${offsetY}`;
@@ -3239,11 +3209,11 @@ class DungeonEditor {
   enemyResistTypePercentInput: HTMLInputElement = create('input') as HTMLInputElement;
   enemyResistAttrInputs: Map<Attribute, LayeredAsset> = new Map();
   enemyResistAttrPercentInput: HTMLInputElement = create('input') as HTMLInputElement;
-  activeFloorIdx: number = 0;
-  activeEnemyIdx: number = 0;
+  activeFloorIdx = 0;
+  activeEnemyIdx = 0;
   dungeonSelector: GenericSelector<number>;
 
-  constructor(dungeonNames: { s: string, value: number }[], onUpdate: OnDungeonUpdate) {
+  constructor(dungeonNames: { s: string; value: number }[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
     this.dungeonSelector = new GenericSelector<number>(dungeonNames, (id: number) => {
       this.onUpdate({ loadDungeon: id });
@@ -3261,7 +3231,7 @@ class DungeonEditor {
     superHide(this.addFloorBtn);
 
     this.addFloorBtn.innerText = 'Add Floor';
-    this.addFloorBtn.onclick = () => {
+    this.addFloorBtn.onclick = (): void => {
       this.onUpdate({ addFloor: true });
     };
     this.element.appendChild(this.addFloorBtn);
@@ -3283,7 +3253,7 @@ class DungeonEditor {
     this.setupEnemyStatTable();
   }
 
-  private setupDungeonMultiplierTable() {
+  private setupDungeonMultiplierTable(): void {
     const multiplierTable = create('table', ClassNames.ENEMY_STAT_TABLE) as HTMLTableElement;
     const hpRow = create('tr') as HTMLTableRowElement;
     const atkRow = create('tr') as HTMLTableRowElement;
@@ -3305,13 +3275,13 @@ class DungeonEditor {
     atkRow.appendChild(this.dungeonAtkInput);
     defRow.appendChild(this.dungeonDefInput);
 
-    this.dungeonHpInput.onchange = () => {
+    this.dungeonHpInput.onchange = (): void => {
       this.onUpdate({ dungeonHpMultiplier: this.dungeonHpInput.value });
     };
-    this.dungeonAtkInput.onchange = () => {
+    this.dungeonAtkInput.onchange = (): void => {
       this.onUpdate({ dungeonAtkMultiplier: this.dungeonAtkInput.value });
     };
-    this.dungeonDefInput.onchange = () => {
+    this.dungeonDefInput.onchange = (): void => {
       this.onUpdate({ dungeonDefMultiplier: this.dungeonDefInput.value });
     };
 
@@ -3322,13 +3292,13 @@ class DungeonEditor {
     this.element.appendChild(multiplierTable);
   }
 
-  setDungeonMultipliers(hpMultText: string, atkMultText: string, defMultText: string) {
+  setDungeonMultipliers(hpMultText: string, atkMultText: string, defMultText: string): void {
     this.dungeonHpInput.value = hpMultText;
     this.dungeonAtkInput.value = atkMultText;
     this.dungeonDefInput.value = defMultText;
   }
 
-  private setupEnemyStatTable() {
+  private setupEnemyStatTable(): void {
     const statTable = create('table', ClassNames.ENEMY_STAT_TABLE) as HTMLTableElement;
     const lvRow = create('tr') as HTMLTableRowElement;
     const hpRow = create('tr') as HTMLTableRowElement;
@@ -3485,7 +3455,7 @@ class DungeonEditor {
     resistAttrRow.appendChild(resistAttrCell);
     resistAttrPercentRow.appendChild(resistAttrPercentCell);
 
-    this.enemyLevelInput.onchange = () => {
+    this.enemyLevelInput.onchange = (): void => {
       let v = Number(this.enemyLevelInput.value);
       if (isNaN(v)) {
         v = 10;
@@ -3525,7 +3495,7 @@ class DungeonEditor {
     // TODO: Remove line when dungeon customization is necessary.
     superHide(deleteFloorBtn);
     deleteFloorBtn.innerText = '[-]';
-    deleteFloorBtn.onclick = () => {
+    deleteFloorBtn.onclick = (): void => {
       this.onUpdate({ removeFloor: floorIdx });
     };
     floor.appendChild(label);
@@ -3535,7 +3505,7 @@ class DungeonEditor {
     // TODO: Remove line when dungeon customization is necessary.
     superHide(addEnemyBtn);
     addEnemyBtn.innerText = '+';
-    addEnemyBtn.onclick = () => {
+    addEnemyBtn.onclick = (): void => {
       this.onUpdate({ activeFloor: floorIdx, addEnemy: true });
     }
     this.addEnemyBtns.push(addEnemyBtn);
@@ -3546,7 +3516,7 @@ class DungeonEditor {
     this.dungeonFloorEls.push(floor);
   }
 
-  private addEnemy(floorIdx: number) {
+  private addEnemy(floorIdx: number): void {
     const enemy = new MonsterIcon(true);
     enemy.updateId(4014);
     if (floorIdx >= this.dungeonEnemies.length) {
@@ -3554,7 +3524,7 @@ class DungeonEditor {
     }
     this.dungeonEnemies[floorIdx].push(enemy);
     const enemyIdx = this.dungeonEnemies[floorIdx].length - 1;
-    enemy.getElement().onclick = () => {
+    enemy.getElement().onclick = (): void => {
       this.onUpdate({ activeFloor: floorIdx, activeEnemy: enemyIdx });
     }
     const node = this.addEnemyBtns[floorIdx].parentNode;
@@ -3563,10 +3533,10 @@ class DungeonEditor {
     }
   }
 
-  setActiveEnemy(floor: number, monster: number) {
+  setActiveEnemy(floor: number, monster: number): void {
     for (let i = 0; i < this.dungeonEnemies.length; i++) {
       for (let j = 0; j < this.dungeonEnemies[i].length; j++) {
-        let el = this.dungeonEnemies[i][j].getElement();
+        const el = this.dungeonEnemies[i][j].getElement();
         if (i == floor && j == monster) {
           el.className = ClassNames.ICON_SELECTED;
           el.scrollIntoView({ block: 'nearest' });
@@ -3580,7 +3550,7 @@ class DungeonEditor {
     }
   }
 
-  setEnemies(enemyIdsByFloor: number[][]) {
+  setEnemies(enemyIdsByFloor: number[][]): void {
     console.log(enemyIdsByFloor);
     while (this.dungeonFloorEls.length < enemyIdsByFloor.length) {
       this.addFloor();
@@ -3591,8 +3561,8 @@ class DungeonEditor {
         continue;
       }
       superShow(this.dungeonFloorEls[i]);
-      let enemyIds = enemyIdsByFloor[i];
-      let floorEnemies = this.dungeonEnemies[i];
+      const enemyIds = enemyIdsByFloor[i];
+      const floorEnemies = this.dungeonEnemies[i];
       while (floorEnemies.length < enemyIds.length) {
         this.addEnemy(i);
       }
@@ -3613,9 +3583,9 @@ class DungeonEditor {
     atk: number,
     def: number,
     resolve: number,
-    typeResists: { types: MonsterType[], percent: number },
-    attrResists: { attrs: Attribute[], percent: number },
-  ) {
+    typeResists: { types: MonsterType[]; percent: number },
+    attrResists: { attrs: Attribute[]; percent: number },
+  ): void {
     this.enemyLevelInput.value = String(lv);
     this.enemyHpInput.value = String(hp);
     this.enemyAtkInput.value = String(atk);
@@ -3637,7 +3607,7 @@ class DungeonEditor {
 }
 
 class BattleDisplay {
-  enemyPicture: HTMLElement = create('img');
+  enemyPicture: HTMLElement = create('img') as HTMLImageElement;
   enemySelectors: MonsterIcon[][] = [];
   onUpdate: OnDungeonUpdate;
 
@@ -3652,7 +3622,7 @@ class DungeonPane {
   tabs: TabbedComponent = new TabbedComponent(['Dungeon', 'Editor', 'Save/Load'], 'Editor');
   onUpdate: OnDungeonUpdate;
 
-  constructor(dungeonNames: { s: string, value: number }[], onUpdate: OnDungeonUpdate) {
+  constructor(dungeonNames: { s: string; value: number }[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
 
     this.dungeonEditor = new DungeonEditor(dungeonNames, onUpdate);
@@ -3692,7 +3662,7 @@ class ValeriaDisplay {
     this.element_.appendChild(table);
   }
 
-  getElement() {
+  getElement(): HTMLElement {
     return this.element_;
   }
 }

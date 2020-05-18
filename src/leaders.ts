@@ -89,6 +89,10 @@ interface LeaderSkill {
   awokenBindClear?: (params: number[], context: AwokenBindClearContext) => number;
 }
 
+function subs(team: MonsterInstance[]): MonsterInstance[] {
+  return team.slice(1, team.length - 1).filter((sub) => sub.getId() >= 0);
+}
+
 const atkFromAttr: LeaderSkill = { // 11
   atk: ([attr, atk100]: number[], { ping }: AttackContext): number => {
     return ping.source.isAttribute(attr) ? atk100 / 100 : 1;
@@ -780,41 +784,27 @@ const atkShieldFromColorMatches: LeaderSkill = { // 170
   damageMult: ([attrBits, minMatch, _, shield], { comboContainer, team }) => shield && countMatchedColors(attrBits, comboContainer, team) >= minMatch ? 1 - shield / 100 : 1,
 };
 
+function countColorMatches(cbits: number[], comboContainer: ComboContainer): number {
+  const counts: Record<number, number> = {};
+  for (const attr of cbits.filter(Boolean).map((v) => idxsFromBits(v)[0])) {
+    counts[attr] = counts[attr] ? counts[attr] + 1 : 1;
+  }
+  let total = 0;
+  for (const attr in counts) {
+    total += Math.min(counts[attr], comboContainer.combos[COLORS[attr]].length);
+  }
+  return total;
+}
+
 const atkShieldFromColorMatches2: LeaderSkill = { // 171
-  atk: ([a, b, c, d, minMatch, atk100], { comboContainer }) => {
-    if (!atk100) {
-      return 1;
-    }
-    const counts: Record<number, number> = {};
-    for (const attr of [a, b, c, d].filter(Boolean).map((v) => idxsFromBits(v)[0])) {
-      counts[attr] = counts[attr] ? counts[attr] + 1 : 1;
-    }
-    let total = 0;
-    for (const attr in counts) {
-      total += Math.min(counts[attr], comboContainer.combos[COLORS[attr]].length);
-    }
-    return total >= minMatch ? atk100 : 1;
-  },
-  damageMult: ([a, b, c, d, minMatch, _, shield], { comboContainer }) => {
-    if (!shield) {
-      return 1;
-    }
-    const counts: Record<number, number> = {};
-    for (const attr of [a, b, c, d].filter(Boolean).map((v) => idxsFromBits(v)[0])) {
-      counts[attr] = counts[attr] ? counts[attr] + 1 : 1;
-    }
-    let total = 0;
-    for (const attr in counts) {
-      total += Math.min(counts[attr], comboContainer.combos[COLORS[attr]].length);
-    }
-    return total >= minMatch ? shield : 1;
-  },
+  atk: ([a, b, c, d, minMatch, atk100], { comboContainer }) => atk100 && countColorMatches([a, b, c, d], comboContainer) >= minMatch ? atk100 / 100 : 1,
+  damageMult: ([a, b, c, d, minMatch, _, shield100], { comboContainer }) => shield100 && countColorMatches([a, b, c, d], comboContainer) >= minMatch ? (1 - shield100 / 100) : 1,
 };
 
 const baseStatFromCollab: LeaderSkill = { // 175
-  hp: ([c1, c2, c3, hp100], { team }) => hp100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? hp100 / 100 : 1,
-  atk: ([c1, c2, c3, _, atk100], { team }) => atk100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? atk100 / 100 : 1,
-  rcv: ([c1, c2, c3, _, _a, rcv100], { team }) => rcv100 && team.slice(1, team.length - 1).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? rcv100 / 100 : 1,
+  hp: ([c1, c2, c3, hp100], { team }) => hp100 && subs(team).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? hp100 / 100 : 1,
+  atk: ([c1, c2, c3, _, atk100], { team }) => atk100 && subs(team).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? atk100 / 100 : 1,
+  rcv: ([c1, c2, c3, _, _a, rcv100], { team }) => rcv100 && subs(team).every((sub) => [c1, c2, c3].filter(Boolean).some((c) => c == sub.getCard().collab)) ? rcv100 / 100 : 1,
 };
 
 const atkScalingFromOrbsRemaining: LeaderSkill = { // 177
@@ -959,7 +949,7 @@ const atkShieldAwokenClearFromHealing: LeaderSkill = { // 198
   awokenBindClear: ([thresh, _, _a, awokenBindClear], { healing }) => awokenBindClear && healing >= thresh ? awokenBindClear : 0,
 };
 
-const trueBonusFromColorMatches: LeaderSkill = { // 199
+const trueBonusFromRainbowMatches: LeaderSkill = { // 199
   trueBonusAttack: ([attrBits, minMatch, trueDamage], { team, comboContainer }) => countMatchedColors(attrBits, comboContainer, team) >= minMatch ? trueDamage : 0,
 };
 
@@ -969,6 +959,34 @@ const trueBonusFromLinkedOrbs: LeaderSkill = { // 200
       .some((attr) => comboContainer.combos[COLORS[attr]]
         .some((c) => c.count >= minLinked)) ? trueDamage : 1;
   },
+};
+
+const trueBonusFromColorMatches: LeaderSkill = { // 201
+  trueBonusAttack: ([c1, c2, c3, c4, minColors, trueDamage], { comboContainer }) => countColorMatches([c1, c2, c3, c4], comboContainer) >= minColors ? trueDamage : 0,
+};
+
+const GROUP_CHECK: Record<number, (m: MonsterInstance) => boolean> = {
+  0: (m) => m.getCard().evoMaterials.includes(3826),
+  2: (m) => Boolean(m.getCard().inheritanceType & 32),
+};
+
+function checkSubsMatchGroup(groupId: number, team: MonsterInstance[]): boolean {
+  const groupCheck = GROUP_CHECK[groupId];
+  if (!groupCheck) {
+    console.error(`Unhandled Group ID: ${groupId}`);
+    return false;
+  }
+  return subs(team).every(groupCheck);
+}
+
+const baseStatFromGroup: LeaderSkill = { // 203
+  hp: ([groupId, hpMult100], { team }) => hpMult100 && checkSubsMatchGroup(groupId, team) ? hpMult100 / 100 : 1,
+  atk: ([groupId, _, atkMult100], { team }) => atkMult100 && checkSubsMatchGroup(groupId, team) ? atkMult100 / 100 : 1,
+  rcv: ([groupId, _, _a, rcvMult100], { team }) => rcvMult100 && checkSubsMatchGroup(groupId, team) ? rcvMult100 / 100 : 1,
+};
+
+const plusComboFromColorMatches: LeaderSkill = { // 206
+  plusCombo: ([a, b, c, d, e, minMatch, bonusCombo], { comboContainer }) => countColorMatches([a, b, c, d, e], comboContainer) >= minMatch ? bonusCombo : 0,
 };
 
 const LEADER_SKILL_GENERATORS: Record<number, LeaderSkill> = {
@@ -1074,8 +1092,11 @@ const LEADER_SKILL_GENERATORS: Record<number, LeaderSkill> = {
   194: atkPlusCombosFromRainbow,
   197: disablePoisonDamage,
   198: atkShieldAwokenClearFromHealing,
-  199: trueBonusFromColorMatches,
+  199: trueBonusFromRainbowMatches,
   200: trueBonusFromLinkedOrbs,
+  201: trueBonusFromColorMatches,
+  203: baseStatFromGroup,
+  206: plusComboFromColorMatches,
 };
 
 // Functions for libraries to call directly.
