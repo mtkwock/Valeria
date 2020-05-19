@@ -882,6 +882,7 @@ const atkRcvShieldFromMultThresh: LeaderSkill = { // 183
     maxThresh = maxThresh || 0;
     belowAtk100 = belowAtk100 || 100;
     aboveAtk100 = aboveAtk100 || 100;
+
     let multiplier = 1;
     if (percentHp >= minThresh) {
       multiplier *= aboveAtk100 / 100;

@@ -1046,6 +1046,14 @@ class Team {
     counts.set(Awakening.ROW_DARK, this.countAwakening(Awakening.ROW_DARK));
     counts.set(Awakening.RECOVER_BIND, this.countAwakening(Awakening.RECOVER_BIND));
 
+    // Resists
+    counts.set(Awakening.RESIST_FIRE, this.countAwakening(Awakening.RESIST_FIRE));
+    counts.set(Awakening.RESIST_WATER, this.countAwakening(Awakening.RESIST_WATER));
+    counts.set(Awakening.RESIST_WOOD, this.countAwakening(Awakening.RESIST_WOOD));
+    counts.set(Awakening.RESIST_LIGHT, this.countAwakening(Awakening.RESIST_LIGHT));
+    counts.set(Awakening.RESIST_DARK, this.countAwakening(Awakening.RESIST_DARK));
+    counts.set(Awakening.AUTOHEAL, this.countAwakening(Awakening.AUTOHEAL));
+
     return {
       hps: this.getIndividualHp(),
       atks: atks,
