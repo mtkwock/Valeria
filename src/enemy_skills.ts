@@ -71,14 +71,18 @@ const bindRandom: EnemySkillEffect = {
 
 // 2
 const bindColor: EnemySkillEffect = {
-  textify: ({ skillArgs }) => {
+  textify: ({ skillArgs }, { atk }) => {
     const [color, min, max] = skillArgs;
-    return `Binds ${AttributeToName.get(color)} monsters for ${min} to ${max} turns`;
+    return `Binds ${AttributeToName.get(color)} monsters for ${min} to ${max} turns. If none exist, hits for ${addCommas(atk)}.`;
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: () => {
-    // let [color, min, max] = skillArgs;
+  effect: ({ skillArgs }, { team, enemy }) => {
+    const a = skillArgs[0];
+    if (team.getActiveTeam().every((m) => !m.isAttribute(a))) {
+      team.damage(enemy.getAtk(), enemy.getAttribute());
+      return;
+    }
     console.warn('Bind not yet supported');
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
   },
@@ -87,14 +91,18 @@ const bindColor: EnemySkillEffect = {
 
 // 3
 const bindType: EnemySkillEffect = {
-  textify: ({ skillArgs }) => {
+  textify: ({ skillArgs }, { atk }) => {
     const [type, min, max] = skillArgs;
-    return `Binds ${TypeToName.get(type)} monsters for ${min} to ${max} turns`;
+    return `Binds ${TypeToName.get(type)} monsters for ${min} to ${max} turns. If none exist, hits for ${addCommas(atk)}.`;
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: () => {
-    // let [type, min, max] = skillArgs;
+  effect: ({ skillArgs }, { enemy, team }) => {
+    const t = skillArgs[0];
+    if (team.getActiveTeam().every((m) => !m.isType(t))) {
+      team.damage(enemy.getAtk(), enemy.getAttribute());
+      return;
+    }
     console.warn('Bind not yet supported');
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
   },
@@ -1288,7 +1296,7 @@ const patternBombSpawn: EnemySkillEffect = {
 
 // 104
 const cloudRandom: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Randomly Cloud ${skillArgs[1]} x${skillArgs[2]} Rectangle for ${skillArgs[0]} turns.`,
+  textify: ({ skillArgs }) => `Randomly Cloud ${skillArgs[1]}x${skillArgs[2]} Rectangle for ${skillArgs[0]} turns.`,
   condition: () => true,
   aiEffect: () => { },
   effect: () => { },
@@ -1696,62 +1704,101 @@ function toSkillContext(id: number, skillIdx: number): SkillContext {
   return skill;
 }
 
+enum UnusedReason {
+  LOGIC = 0,
+  HP_NOT_MET = 1,
+  INSUFFICIENT_CHARGES = 2,
+  RNG = 3,
+}
+
+interface EnemyEffect {
+  // Idx of the skill to use.
+  idx: number;
+  // Chance of this occuring. Usually adds up to 100, but possible to be less.
+  chance: number;
+  // The final flags that this should be set to.
+  flags: number;
+  // The final counters that this should be set to.
+  counter: number;
+  // The path of skills to get to this point. unusedReason is nonzero if this
+  // was a terminating skill but was skipped for some reason.
+  // e.g. HP too high, charges too low, or Randomness says it's possible to skip.
+  path: {
+    idx: number;
+    unusedReason: UnusedReason;
+  }[];
+}
+
+const PREEMPTIVE_MARKERS = [47, 49];
+
 /**
  * Get the indexes of the skills to possibly use.
+ * The return value is kind of weird, but let's dig down into the meanings.
+ * aiEffects: The logic-based effects that occur in the order that they occur.
+ *   These can cause counter and flag changes.
+ *   If a final effect isn't deterministic, some of these may only occur if
+ *   the final effect that is used is >= finalEffectConditional.
+ * finalEffects: The final effects that the opponent does to the game state.
+ *   This is indexed 0 and is not always deterministic. The total weight usually
+ *   adds to 100, but may be any positive number.
+ *   If index is -1, that means that this monster has no skills.
  */
-function determineSkillset(ctx: AiContext): {
-  aiEffects: { idx: number; finalEffectConditional: number }[],
-  finalEffects: { idx: number; weight: number }[]
-} {
+function determineSkillset(ctx: AiContext): EnemyEffect[] {
+  const possibleEffects: EnemyEffect[] = [];
+
   const skills: SkillContext[] = Array(floof.model.cards[ctx.cardId].enemySkills.length);
   if (!skills.length) {
-    return { aiEffects: [], finalEffects: [{ idx: -1, weight: 100 }] };
+    return possibleEffects;
   }
   for (let i = 0; i < skills.length; i++) {
     skills[i] = toSkillContext(ctx.cardId, i);
   }
+  // Skip Preemptive checking if neither marker is a preemptive.
+  if (ctx.isPreempt && !PREEMPTIVE_MARKERS.includes(skills[0].effectId)) {
+    return possibleEffects;
+  }
   let idx = 0;
   let remainingChance = 100;
-  const aiEffects: { idx: number; finalEffectConditional: number }[] = [];
-  const finalEffects: { idx: number; weight: number }[] = [];
+  const path: { idx: number; unusedReason: UnusedReason }[] = [];
+  // const finalEffects: { idx: number; weight: number }[] = [];
+  // const skippedEffects: number[] = [];
   while (idx < skills.length) {
     const skill = skills[idx];
-    // HP Conditional skills.
+    // Remaining charge cost insufficient.
     if (skill.aiArgs[3] > ctx.charges) {
+      path.push({ idx, unusedReason: UnusedReason.INSUFFICIENT_CHARGES });
       idx++;
       continue;
     }
     let next = goto(ctx, idx);
+    // HP Conditional skills.
     if (next == TERMINATE && skill.aiArgs[1] < ctx.hpPercent) {
+      path.push({ idx, unusedReason: UnusedReason.HP_NOT_MET });
       idx++;
       continue;
     }
 
     aiEffect(ctx, idx);
     if (next == TERMINATE) {
-      const chance = skills[idx].rnd || skills[idx].ai;
+      let chance = skills[idx].rnd || skills[idx].ai;
       ctx.charges -= skill.aiArgs[3];
       if (floof.model.cards[ctx.cardId].aiVersion == 1) {
         // Do new
-        if (chance >= remainingChance) {
-          finalEffects.push({ idx, weight: remainingChance })
-          return { aiEffects, finalEffects: finalEffects };
-        } else {
-          finalEffects.push({ idx, weight: chance });
-          remainingChance -= chance;
-        }
+        chance = Math.min(chance, remainingChance);
+        remainingChance -= chance;
+        possibleEffects.push({ idx, chance: chance, flags: ctx.flags, counter: ctx.counter, path: path.slice() });
       } else {
-        const localWeight = chance;
-        const overallWeight = remainingChance * localWeight / 100;
-        remainingChance -= overallWeight;
-        finalEffects.push({ idx: idx, weight: overallWeight });
-        if (!remainingChance) {
-          return { aiEffects, finalEffects: finalEffects };
-        }
+        const overallChance = remainingChance * chance / 100;
+        remainingChance -= overallChance;
+        possibleEffects.push({ idx, chance: overallChance, flags: ctx.flags, counter: ctx.counter, path: path.slice() });
       }
+      if (!remainingChance) {
+        return possibleEffects;
+      }
+      path.push({ idx, unusedReason: UnusedReason.RNG })
       next = TO_NEXT;
     } else {
-      aiEffects.push({ idx, finalEffectConditional: finalEffects.length });
+      path.push({ idx, unusedReason: UnusedReason.LOGIC })
     }
 
     if (next == TO_NEXT) {
@@ -1760,8 +1807,8 @@ function determineSkillset(ctx: AiContext): {
       idx = next;
     }
   }
-  // No matching termination found.
-  return { aiEffects, finalEffects: [{ idx: -1, weight: 1 }] };
+  // Not all chance was used. Should still return.
+  return possibleEffects;
 }
 
 export function effect(skillCtx: SkillContext, ctx: GameContext) {

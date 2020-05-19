@@ -1,9 +1,10 @@
-import { BASE_URL, waitFor } from './common';
+import { BASE_URL, waitFor, Rational } from './common';
 import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
 import { DungeonPane, DungeonUpdate } from './templates';
 import { textifyEnemySkills, determineSkillset, textifyEnemySkill } from './enemy_skills';
 import { debug } from './debugger';
+import { floof } from './ilmina_stripped';
 // import {DungeonEditor} from './templates';
 
 // function createHpEl() {
@@ -99,77 +100,6 @@ interface DungeonInstanceJson {
   hp?: string,
   atk?: string,
   def?: string,
-}
-
-class Rational {
-  numerator: number = 0;
-  denominator: number = 1;
-
-  private static matcher: RegExp = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
-
-  constructor(numerator: number = 0, denominator: number = 1) {
-    this.numerator = numerator;
-    this.denominator = denominator;
-  }
-
-  multiply(n: number): number {
-    return n * this.numerator / this.denominator;
-  }
-
-  reduce() {
-    // Cannot reduce if denominator already 1
-    if (this.denominator == 1) {
-      return;
-    }
-    // Can only reduce integral pairs.
-    if (!Number.isInteger(this.numerator) || !Number.isInteger(this.denominator)) {
-      return;
-    }
-
-    function divides(num: number, den: number): boolean {
-      return Number.isInteger(num / den);
-    }
-
-    function gcd(a: number, b: number): number {
-      while (!divides(a, b) && !divides(b, a)) {
-        if (a > b) {
-          a -= b;
-        } else {
-          b -= a;
-        }
-      }
-
-      return Math.min(a, b);
-    }
-
-    const divisor = gcd(this.numerator, this.denominator);
-    if (divisor == 1) {
-      return;
-    }
-    this.numerator /= divisor;
-    this.denominator /= divisor;
-  }
-
-  toString(): string {
-    this.reduce();
-
-    if (this.denominator == 1) {
-      return String(this.numerator);
-    }
-    return `${this.numerator} / ${this.denominator}`;
-  }
-
-  static from(s: string): Rational {
-    if (!s.includes('/')) {
-      return new Rational(Number(s));
-    }
-
-    let match = s.match(Rational.matcher);
-    if (match && match[0] == s) {
-      return new Rational(Number(match[1]), Number(match[2]));
-    }
-    return new Rational(NaN);
-  }
 }
 
 type EncounterRaw = {
@@ -270,6 +200,7 @@ class DungeonInstance {
   activeEnemy: number = 0;
 
   pane: DungeonPane;
+  onEnemySkill: (skillIdx: number, otherSkills: number[]) => void = () => null;
 
   async loadDungeon(subDungeonId: number) {
     await waitFor(() => dungeonsLoaded);
@@ -288,50 +219,86 @@ class DungeonInstance {
     this.floors = [new DungeonFloor()];
     this.pane = new DungeonPane(dungeonSearchArray, this.getUpdateFunction());
 
-    debug.addButton('Print Preempt', () => {
-      const enemy = this.getActiveEnemy();
-      const cardId = enemy.id;
-      const { finalEffects, aiEffects } = determineSkillset({
-        cardId,
-        attribute: enemy.getAttribute(),
-        isPreempt: true,
-        lv: enemy.lv,
-        atk: this.atkMultiplier.multiply(enemy.getAtk()),
-        hpPercent: 100,
-        combo: 1,
-        teamIds: [],
-        bigBoard: true,
-
-        charges: enemy.getCard().charges,
-        flags: enemy.flags,
-        counter: enemy.counter,
-      });
-      for (let i = 0; i < aiEffects.length; i++) {
-        debug.print(`Used logic skill: ${aiEffects[i].idx} if final effect is >=${aiEffects[i].finalEffectConditional}`);
-      }
-      if (finalEffects.length > 1) {
-        debug.print('Multiple possible Preemptives:');
-      }
-      for (let i = 0; i < finalEffects.length; i++) {
-        debug.print((finalEffects[i].weight != 100 ? `[${finalEffects[i].weight}%] ` : '') + textifyEnemySkill({
-          id: enemy.id,
-          atk: this.atkMultiplier.multiply(enemy.getAtk()),
-        }, finalEffects[i].idx));
-      }
-    });
-
     debug.addButton('Print Skills', () => {
       const enemy = this.getActiveEnemy();
       const id = enemy.id;
       const skillTexts = textifyEnemySkills({
         id,
-        atk: this.atkMultiplier.multiply(enemy.getAtk()),
+        atk: enemy.getAtk(),
       });
       for (let i = 0; i < skillTexts.length; i++) {
         debug.print(`${i + 1}: ${skillTexts[i]} `);
       }
     });
 
+    debug.addButton('Use Preempt', () => {
+      this.useEnemySkill(
+        [], // teamIds
+        1, // combo
+        true, // bigBoard
+        true, // isPreempt
+      );
+    });
+
+    debug.addButton('Print next skill', () => {
+      this.useEnemySkill(
+        [], // teamIds
+        8, // combo
+        true, // bigBoard
+      );
+    });
+
+    this.onEnemySkill = (idx, otherIdxs) => {
+      if (idx < 0) {
+        debug.print('No skill to use');
+        return;
+      }
+      const enemy = this.getActiveEnemy();
+      if (otherIdxs.length) {
+        debug.print(`  * Not using potential skills: ${otherIdxs}`);
+      }
+      debug.print('** Using the following skill **');
+      debug.print(textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
+      enemy.charges -= floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
+    }
+  }
+
+  useEnemySkill(teamIds: number[], combo: number, bigBoard: boolean, isPreempt = false, skillIdx = -1): void {
+    const enemy = this.getActiveEnemy();
+    const otherSkills = [];
+    if (skillIdx < 0) {
+      const possibleEffects = determineSkillset({
+        cardId: enemy.id,
+        lv: enemy.lv,
+        attribute: enemy.getAttribute(),
+        atk: enemy.getAtk(),
+        hpPercent: Math.round(enemy.currentHp / enemy.getHp() * 100),
+        charges: enemy.charges,
+        flags: enemy.flags,
+        counter: enemy.counter,
+
+        isPreempt,
+        combo,
+        teamIds,
+        bigBoard,
+      });
+      if (possibleEffects.length) {
+        const totalWeight = possibleEffects.reduce((total, e) => total + e.chance, 0);
+        let roll = Math.random() * totalWeight;
+        for (const effect of possibleEffects) {
+          if (roll < effect.chance && skillIdx < 0) {
+            skillIdx = effect.idx;
+            enemy.counter = effect.counter;
+            enemy.flags = effect.flags;
+          } else {
+            otherSkills.push(effect.idx);
+          }
+          roll -= effect.chance;
+        }
+      }
+
+      this.onEnemySkill(skillIdx, otherSkills);
+    }
   }
 
   getUpdateFunction(): (ctx: DungeonUpdate) => void {
@@ -365,12 +332,15 @@ class DungeonInstance {
       }
       if (ctx.dungeonHpMultiplier != undefined) {
         this.hpMultiplier = Rational.from(ctx.dungeonHpMultiplier);
+        this.getActiveEnemy().dungeonMultipliers.hp = this.hpMultiplier;
       }
       if (ctx.dungeonAtkMultiplier != undefined) {
         this.atkMultiplier = Rational.from(ctx.dungeonAtkMultiplier);
+        this.getActiveEnemy().dungeonMultipliers.atk = this.atkMultiplier;
       }
       if (ctx.dungeonDefMultiplier != undefined) {
         this.defMultiplier = Rational.from(ctx.dungeonDefMultiplier);
+        this.getActiveEnemy().dungeonMultipliers.def = this.defMultiplier;
       }
       if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
         // Update other dungeon info about dungeon editor.
@@ -443,9 +413,16 @@ class DungeonInstance {
     }
   }
 
-  setActiveEnemy(idx: number) {
+  setActiveEnemy(idx: number): void {
     this.activeEnemy = idx;
     this.floors[this.activeFloor].activeEnemy = idx;
+    const enemy = this.getActiveEnemy();
+    enemy.reset();
+    enemy.dungeonMultipliers = {
+      hp: this.hpMultiplier,
+      atk: this.atkMultiplier,
+      def: this.defMultiplier,
+    };
   }
 
   getActiveEnemy(): EnemyInstance {
@@ -474,7 +451,7 @@ class DungeonInstance {
     return obj;
   }
 
-  loadJson(json: DungeonInstanceJson) {
+  loadJson(json: DungeonInstanceJson): void {
     this.title = json.title || '';
     this.floors = json.floors.map((floor) => DungeonFloor.fromJson(floor));
     if (!this.floors) {

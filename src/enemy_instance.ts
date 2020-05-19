@@ -1,4 +1,4 @@
-import { Attribute, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
+import { Attribute, MonsterType, DEFAULT_CARD, idxsFromBits, Rational } from './common';
 import { floof, Card } from './ilmina_stripped';
 
 enum EnemySkillEffect {
@@ -219,6 +219,12 @@ class EnemyInstance {
   poison: number = 0;
   delayed: boolean = false; // Not to be used yet.
 
+  dungeonMultipliers = {
+    hp: new Rational(),
+    atk: new Rational(),
+    def: new Rational(),
+  }
+
   constructor() {
     // Passives that are always applied
     this.attributesResisted = [];
@@ -233,16 +239,13 @@ class EnemyInstance {
   }
 
   getHp(): number {
-    // if (this.hp > 0) {
-    //   return this.hp;
-    // }
     const c = this.getCard();
-    return calcScaleStat(
+    return this.dungeonMultipliers.hp.multiply(calcScaleStat(
       c.enemyHpAtLv10,
       c.enemyHpAtLv1,
       this.lv,
       c.enemyHpCurve,
-    );
+    ), Math.ceil);
   }
 
   getAtk(): number {
@@ -250,12 +253,12 @@ class EnemyInstance {
     //   return this.atk;
     // }
     const c = this.getCard();
-    return calcScaleStat(
+    return this.dungeonMultipliers.atk.multiply(calcScaleStat(
       c.enemyAtkAtLv10,
       c.enemyAtkAtLv1,
       this.lv,
       c.enemyAtkCurve,
-    );
+    ), Math.ceil);
   }
 
   getDef(): number {
@@ -263,12 +266,12 @@ class EnemyInstance {
     //   return this.def;
     // }
     const c = this.getCard();
-    return calcScaleStat(
+    return this.dungeonMultipliers.def.multiply(calcScaleStat(
       c.enemyDefAtLv10,
       c.enemyDefAtLv1,
       this.lv,
       c.enemyDefCurve,
-    );
+    ), Math.ceil);
   }
 
   getResolve(): number {
@@ -442,9 +445,6 @@ class EnemyInstance {
     this.charges = floof.model.cards[this.id].charges;
     this.counter = 0;
     this.flags = 0;
-    if (this.preemptiveSkillset) {
-      //   this.preemptiveSkillset.applySkillset(idc, this);
-    }
   }
 
   // TODO

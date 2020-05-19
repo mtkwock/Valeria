@@ -318,6 +318,79 @@ function removeCommas(s: string): number {
   return Number(s.replace(/,/g, ''));
 }
 
+class Rational {
+  numerator: number = 0;
+  denominator: number = 1;
+
+  private static matcher: RegExp = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
+
+  constructor(numerator: number = 0, denominator: number = 1) {
+    this.numerator = numerator;
+    this.denominator = denominator;
+  }
+
+  multiply(n: number, roundingFn: (a: number) => number = (x) => x): number {
+    return roundingFn(n * this.numerator / this.denominator);
+  }
+
+  reduce() {
+    // Cannot reduce if denominator already 1
+    if (this.denominator == 1) {
+      return;
+    }
+    // Can only reduce integral pairs.
+    if (!Number.isInteger(this.numerator) || !Number.isInteger(this.denominator)) {
+      return;
+    }
+
+    function divides(num: number, den: number): boolean {
+      return Number.isInteger(num / den);
+    }
+
+    function gcd(a: number, b: number): number {
+      while (!divides(a, b) && !divides(b, a)) {
+        if (a > b) {
+          a -= b;
+        } else {
+          b -= a;
+        }
+      }
+
+      return Math.min(a, b);
+    }
+
+    const divisor = gcd(this.numerator, this.denominator);
+    if (divisor == 1) {
+      return;
+    }
+    this.numerator /= divisor;
+    this.denominator /= divisor;
+  }
+
+  toString(): string {
+    this.reduce();
+
+    if (this.denominator == 1) {
+      return String(this.numerator);
+    }
+    return `${this.numerator} / ${this.denominator}`;
+  }
+
+  static from(s: string): Rational {
+    if (!s.includes('/')) {
+      return new Rational(Number(s));
+    }
+
+    let match = s.match(Rational.matcher);
+    if (match && match[0] == s) {
+      return new Rational(Number(match[1]), Number(match[2]));
+    }
+    return new Rational(NaN);
+  }
+}
+
+
+
 export {
   Attribute,
   AttributeToName,
@@ -341,4 +414,5 @@ export {
   waitFor,
   FontColor, AttributeToFontColor,
   addCommas, removeCommas,
+  Rational,
 };
