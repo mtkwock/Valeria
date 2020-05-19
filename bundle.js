@@ -6944,7 +6944,7 @@
                 };
             }
             fromJson(json) {
-                this.playerMode = json.playerMode || 1;
+                this.setPlayerMode(json.playerMode || 1);
                 this.teamName = json.title || 'UNTITLED';
                 this.description = json.description || '';
                 for (let i = 0; i < this.monsters.length; i++) {
@@ -6960,6 +6960,10 @@
             setPlayerMode(newMode) {
                 if (newMode != 1 && newMode != 2 && newMode != 3) {
                     throw `Invalid player mode, must be 1, 2, or 3, got ${newMode}`;
+                }
+                const el = document.getElementById(`valeria-player-mode-${newMode}`);
+                if (el instanceof HTMLInputElement) {
+                    el.checked = true;
                 }
                 if (this.playerMode == 2) {
                     /**
@@ -10246,7 +10250,6 @@
                 });
                 this.monsterEditor = new templates_6.MonsterEditor((ctx) => {
                     if (ctx.playerMode) {
-                        console.log(ctx.playerMode);
                         this.team.setPlayerMode(ctx.playerMode);
                         this.team.update();
                         return;
@@ -10378,6 +10381,8 @@
                 document.body.appendChild(debugger_2.debug.getElement());
             }
             window.valeria = valeria;
+            const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`);
+            el.checked = true;
         }
         init();
     });
