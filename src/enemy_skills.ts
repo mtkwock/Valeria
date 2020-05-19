@@ -109,6 +109,16 @@ const bindType: EnemySkillEffect = {
   goto: () => TERMINATE,
 };
 
+// 4
+const orbChange: EnemySkillEffect = {
+  textify: ({ skillArgs }) => `Convert ${AttributeToName.get(skillArgs[0])} to ${AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
+  condition: () => true,
+  aiEffect: () => { },
+  effect: () => { },
+  // TODO: Change this to TO_NEXT if there are no convertible orbs.
+  goto: () => TERMINATE,
+}
+
 // 5
 const blindBoard: EnemySkillEffect = {
   textify: () => 'Blind board.',
@@ -1547,6 +1557,7 @@ const ENEMY_SKILL_GENERATORS: Record<number, EnemySkillEffect> = {
   1: bindRandom,
   2: bindColor,
   3: bindType,
+  4: orbChange,
   5: blindBoard,
   6: dispelBuffs,
   7: healOrAttack,
