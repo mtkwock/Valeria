@@ -1738,6 +1738,66 @@
             return Number(s.replace(/,/g, ''));
         }
         exports.removeCommas = removeCommas;
+        class Rational {
+            constructor(numerator = 0, denominator = 1) {
+                this.numerator = 0;
+                this.denominator = 1;
+                this.numerator = numerator;
+                this.denominator = denominator;
+            }
+            multiply(n, roundingFn = (x) => x) {
+                return roundingFn(n * this.numerator / this.denominator);
+            }
+            reduce() {
+                // Cannot reduce if denominator already 1
+                if (this.denominator == 1) {
+                    return;
+                }
+                // Can only reduce integral pairs.
+                if (!Number.isInteger(this.numerator) || !Number.isInteger(this.denominator)) {
+                    return;
+                }
+                function divides(num, den) {
+                    return Number.isInteger(num / den);
+                }
+                function gcd(a, b) {
+                    while (!divides(a, b) && !divides(b, a)) {
+                        if (a > b) {
+                            a -= b;
+                        }
+                        else {
+                            b -= a;
+                        }
+                    }
+                    return Math.min(a, b);
+                }
+                const divisor = gcd(this.numerator, this.denominator);
+                if (divisor == 1) {
+                    return;
+                }
+                this.numerator /= divisor;
+                this.denominator /= divisor;
+            }
+            toString() {
+                this.reduce();
+                if (this.denominator == 1) {
+                    return String(this.numerator);
+                }
+                return `${this.numerator} / ${this.denominator}`;
+            }
+            static from(s) {
+                if (!s.includes('/')) {
+                    return new Rational(Number(s));
+                }
+                let match = s.match(Rational.matcher);
+                if (match && match[0] == s) {
+                    return new Rational(Number(match[1]), Number(match[2]));
+                }
+                return new Rational(NaN);
+            }
+        }
+        exports.Rational = Rational;
+        Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
     });
     define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_1, ilmina_stripped_2) {
         "use strict";
@@ -3685,7 +3745,7 @@
                         common_2.Awakening.SOLOBOOST,
                         common_2.Awakening.BONUS_ATTACK,
                         common_2.Awakening.BONUS_ATTACK_SUPER,
-                        common_2.Awakening.L_GUARD
+                        common_2.Awakening.L_GUARD,
                     ],
                     [
                         common_2.Awakening.SBR,
@@ -3693,7 +3753,7 @@
                         common_2.Awakening.RESIST_BLIND,
                         common_2.Awakening.RESIST_JAMMER,
                         common_2.Awakening.RESIST_CLOUD,
-                        common_2.Awakening.RESIST_TAPE
+                        common_2.Awakening.RESIST_TAPE,
                     ],
                     [
                         common_2.Awakening.OE_FIRE,
@@ -3701,7 +3761,7 @@
                         common_2.Awakening.OE_WOOD,
                         common_2.Awakening.OE_LIGHT,
                         common_2.Awakening.OE_DARK,
-                        common_2.Awakening.OE_HEART
+                        common_2.Awakening.OE_HEART,
                     ],
                     [
                         common_2.Awakening.ROW_FIRE,
@@ -3709,8 +3769,16 @@
                         common_2.Awakening.ROW_WOOD,
                         common_2.Awakening.ROW_LIGHT,
                         common_2.Awakening.ROW_DARK,
-                        common_2.Awakening.RECOVER_BIND
-                    ]
+                        common_2.Awakening.RECOVER_BIND,
+                    ],
+                    [
+                        common_2.Awakening.RESIST_FIRE,
+                        common_2.Awakening.RESIST_WATER,
+                        common_2.Awakening.RESIST_WOOD,
+                        common_2.Awakening.RESIST_LIGHT,
+                        common_2.Awakening.RESIST_DARK,
+                        common_2.Awakening.AUTOHEAL,
+                    ],
                 ];
                 const awakeningTable = create('table', ClassNames.AWAKENING_TABLE);
                 for (const awakeningSet of awakeningsToDisplay) {
@@ -3905,6 +3973,9 @@
                     this.onToggle(!this.active);
                 };
             }
+            getElement() {
+                return this.element;
+            }
             getActive() {
                 return this.active;
             }
@@ -3936,6 +4007,12 @@
             getElement() {
                 return this.element;
             }
+        }
+        function grandparentEl(el) {
+            el = el;
+            const parent = el.parentElement;
+            const grandparent = parent.parentElement;
+            return grandparent;
         }
         class DungeonEditor {
             constructor(dungeonNames, onUpdate) {
@@ -3994,21 +4071,24 @@
             }
             setupDungeonMultiplierTable() {
                 const multiplierTable = create('table', ClassNames.ENEMY_STAT_TABLE);
-                const hpRow = create('tr');
-                const atkRow = create('tr');
-                const defRow = create('tr');
+                const row = create('tr');
+                // const atkRow = create('tr') as HTMLTableRowElement;
+                // const defRow = create('tr') as HTMLTableRowElement;
                 const hpLabel = create('td');
                 const atkLabel = create('td');
                 const defLabel = create('td');
-                hpLabel.innerText = 'HP multiplier';
-                atkLabel.innerText = 'Attack multiplier';
-                defLabel.innerText = 'Defense multiplier';
-                hpRow.appendChild(hpLabel);
-                atkRow.appendChild(atkLabel);
-                defRow.appendChild(defLabel);
-                hpRow.appendChild(this.dungeonHpInput);
-                atkRow.appendChild(this.dungeonAtkInput);
-                defRow.appendChild(this.dungeonDefInput);
+                hpLabel.innerText = 'HP';
+                atkLabel.innerText = 'Attack';
+                defLabel.innerText = 'Defense';
+                row.appendChild(hpLabel);
+                row.appendChild(this.dungeonHpInput);
+                row.appendChild(atkLabel);
+                row.appendChild(this.dungeonAtkInput);
+                row.appendChild(defLabel);
+                row.appendChild(this.dungeonDefInput);
+                this.dungeonHpInput.style.width = `40px`;
+                this.dungeonAtkInput.style.width = `40px`;
+                this.dungeonDefInput.style.width = `40px`;
                 this.dungeonHpInput.onchange = () => {
                     this.onUpdate({ dungeonHpMultiplier: this.dungeonHpInput.value });
                 };
@@ -4018,9 +4098,7 @@
                 this.dungeonDefInput.onchange = () => {
                     this.onUpdate({ dungeonDefMultiplier: this.dungeonDefInput.value });
                 };
-                multiplierTable.appendChild(hpRow);
-                multiplierTable.appendChild(atkRow);
-                multiplierTable.appendChild(defRow);
+                multiplierTable.appendChild(row);
                 this.element.appendChild(multiplierTable);
             }
             setDungeonMultipliers(hpMultText, atkMultText, defMultText) {
@@ -4040,9 +4118,9 @@
                 const resistAttrRow = create('tr');
                 const resistAttrPercentRow = create('tr');
                 this.enemyLevelInput.type = 'number';
-                this.enemyHpInput.type = 'number';
-                this.enemyAtkInput.type = 'number';
-                this.enemyDefInput.type = 'number';
+                // this.enemyHpInput.type = 'number';
+                // this.enemyAtkInput.type = 'number';
+                // this.enemyDefInput.type = 'number';
                 this.enemyResolveInput.type = 'number';
                 this.enemyResistTypePercentInput.type = 'number';
                 this.enemyResistAttrPercentInput.type = 'number';
@@ -4095,14 +4173,9 @@
                 resolveCell.appendChild(this.enemyResolveInput);
                 resistTypePercentCell.appendChild(this.enemyResistTypePercentInput);
                 resistAttrPercentCell.appendChild(this.enemyResistAttrPercentInput);
-                let added = 0;
                 for (let i = 0; i < 16; i++) {
                     if (i == 9 || i == 10 || i == 11 || i == 13) {
                         continue;
-                    }
-                    added++;
-                    if (added == 7) {
-                        resistTypesCell.appendChild(create('br'));
                     }
                     const t = i;
                     const typeImage = new MonsterTypeEl(t);
@@ -4293,18 +4366,52 @@
             }
             setEnemyStats(lv, hp, atk, def, resolve, typeResists, attrResists) {
                 this.enemyLevelInput.value = String(lv);
-                this.enemyHpInput.value = String(hp);
-                this.enemyAtkInput.value = String(atk);
-                this.enemyDefInput.value = String(def);
-                this.enemyResolveInput.value = String(resolve);
-                for (const [key, toggle] of [...this.enemyResistTypesInputs.entries()]) {
-                    toggle.setActive(typeResists.types.includes(key));
+                this.enemyHpInput.value = common_2.addCommas(hp);
+                this.enemyAtkInput.value = common_2.addCommas(atk);
+                this.enemyDefInput.value = common_2.addCommas(def);
+                if (resolve <= 0) {
+                    superHide(grandparentEl(this.enemyResolveInput));
                 }
-                this.enemyResistTypePercentInput.value = String(typeResists.percent);
-                for (const [key, asset] of [...this.enemyResistAttrInputs.entries()]) {
-                    asset.setActive(attrResists.attrs.includes(key));
+                else {
+                    superShow(grandparentEl(this.enemyResolveInput));
+                    this.enemyResolveInput.value = String(resolve);
                 }
-                this.enemyResistAttrPercentInput.value = String(attrResists.percent);
+                if (typeResists.types.length) {
+                    superShow(grandparentEl(this.enemyResistTypesInputs.get(0).getElement()));
+                    for (const [key, toggle] of [...this.enemyResistTypesInputs.entries()]) {
+                        if (typeResists.types.includes(key)) {
+                            superShow(toggle.getElement());
+                        }
+                        else {
+                            superHide(toggle.getElement());
+                        }
+                        toggle.setActive(typeResists.types.includes(key));
+                    }
+                    superShow(grandparentEl(this.enemyResistTypePercentInput));
+                    this.enemyResistTypePercentInput.value = String(typeResists.percent);
+                }
+                else {
+                    superHide(grandparentEl(this.enemyResistTypesInputs.get(0).getElement()));
+                    superHide(grandparentEl(this.enemyResistTypePercentInput));
+                }
+                if (attrResists.attrs.length) {
+                    superShow(grandparentEl(this.enemyResistAttrInputs.get(0).getElement()));
+                    superShow(grandparentEl(this.enemyResistAttrPercentInput));
+                    for (const [key, asset] of [...this.enemyResistAttrInputs.entries()]) {
+                        if (attrResists.attrs.includes(key)) {
+                            superShow(asset.getElement());
+                        }
+                        else {
+                            superHide(asset.getElement());
+                        }
+                        asset.setActive(attrResists.attrs.includes(key));
+                    }
+                    this.enemyResistAttrPercentInput.value = String(attrResists.percent);
+                }
+                else {
+                    superHide(grandparentEl(this.enemyResistAttrInputs.get(0).getElement()));
+                    superHide(grandparentEl(this.enemyResistAttrPercentInput));
+                }
             }
             getElement() {
                 return this.element;
@@ -7797,6 +7904,11 @@
                 this.ignoreDefensePercent = 0;
                 this.poison = 0;
                 this.delayed = false; // Not to be used yet.
+                this.dungeonMultipliers = {
+                    hp: new common_8.Rational(),
+                    atk: new common_8.Rational(),
+                    def: new common_8.Rational(),
+                };
                 // Passives that are always applied
                 this.attributesResisted = [];
                 this.typeResists = [];
@@ -7808,25 +7920,22 @@
                 this.lv = lv;
             }
             getHp() {
-                // if (this.hp > 0) {
-                //   return this.hp;
-                // }
                 const c = this.getCard();
-                return calcScaleStat(c.enemyHpAtLv10, c.enemyHpAtLv1, this.lv, c.enemyHpCurve);
+                return this.dungeonMultipliers.hp.multiply(calcScaleStat(c.enemyHpAtLv10, c.enemyHpAtLv1, this.lv, c.enemyHpCurve), Math.ceil);
             }
             getAtk() {
                 // if (this.atk > 0) {
                 //   return this.atk;
                 // }
                 const c = this.getCard();
-                return calcScaleStat(c.enemyAtkAtLv10, c.enemyAtkAtLv1, this.lv, c.enemyAtkCurve);
+                return this.dungeonMultipliers.atk.multiply(calcScaleStat(c.enemyAtkAtLv10, c.enemyAtkAtLv1, this.lv, c.enemyAtkCurve), Math.ceil);
             }
             getDef() {
                 // if (this.def > 0) {
                 //   return this.def;
                 // }
                 const c = this.getCard();
-                return calcScaleStat(c.enemyDefAtLv10, c.enemyDefAtLv1, this.lv, c.enemyDefCurve);
+                return this.dungeonMultipliers.def.multiply(calcScaleStat(c.enemyDefAtLv10, c.enemyDefAtLv1, this.lv, c.enemyDefCurve), Math.ceil);
             }
             getResolve() {
                 const c = this.getCard();
@@ -7989,9 +8098,6 @@
                 this.charges = ilmina_stripped_7.floof.model.cards[this.id].charges;
                 this.counter = 0;
                 this.flags = 0;
-                if (this.preemptiveSkillset) {
-                    //   this.preemptiveSkillset.applySkillset(idc, this);
-                }
             }
             // TODO
             // useSkillset(skillIdx, idc) {
@@ -8091,14 +8197,18 @@
         };
         // 2
         const bindColor = {
-            textify: ({ skillArgs }) => {
+            textify: ({ skillArgs }, { atk }) => {
                 const [color, min, max] = skillArgs;
-                return `Binds ${common_9.AttributeToName.get(color)} monsters for ${min} to ${max} turns`;
+                return `Binds ${common_9.AttributeToName.get(color)} monsters for ${min} to ${max} turns. If none exist, hits for ${common_9.addCommas(atk)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: () => {
-                // let [color, min, max] = skillArgs;
+            effect: ({ skillArgs }, { team, enemy }) => {
+                const a = skillArgs[0];
+                if (team.getActiveTeam().every((m) => !m.isAttribute(a))) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    return;
+                }
                 console.warn('Bind not yet supported');
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
             },
@@ -8106,14 +8216,18 @@
         };
         // 3
         const bindType = {
-            textify: ({ skillArgs }) => {
+            textify: ({ skillArgs }, { atk }) => {
                 const [type, min, max] = skillArgs;
-                return `Binds ${common_9.TypeToName.get(type)} monsters for ${min} to ${max} turns`;
+                return `Binds ${common_9.TypeToName.get(type)} monsters for ${min} to ${max} turns. If none exist, hits for ${common_9.addCommas(atk)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: () => {
-                // let [type, min, max] = skillArgs;
+            effect: ({ skillArgs }, { enemy, team }) => {
+                const t = skillArgs[0];
+                if (team.getActiveTeam().every((m) => !m.isType(t))) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    return;
+                }
                 console.warn('Bind not yet supported');
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
             },
@@ -9223,7 +9337,7 @@
         };
         // 104
         const cloudRandom = {
-            textify: ({ skillArgs }) => `Randomly Cloud ${skillArgs[1]} x${skillArgs[2]} Rectangle for ${skillArgs[0]} turns.`,
+            textify: ({ skillArgs }) => `Randomly Cloud ${skillArgs[1]}x${skillArgs[2]} Rectangle for ${skillArgs[0]} turns.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9605,61 +9719,82 @@
             skill.ratio = enemySkill.ratio;
             return skill;
         }
+        var UnusedReason;
+        (function (UnusedReason) {
+            UnusedReason[UnusedReason["LOGIC"] = 0] = "LOGIC";
+            UnusedReason[UnusedReason["HP_NOT_MET"] = 1] = "HP_NOT_MET";
+            UnusedReason[UnusedReason["INSUFFICIENT_CHARGES"] = 2] = "INSUFFICIENT_CHARGES";
+            UnusedReason[UnusedReason["RNG"] = 3] = "RNG";
+        })(UnusedReason || (UnusedReason = {}));
+        const PREEMPTIVE_MARKERS = [47, 49];
         /**
          * Get the indexes of the skills to possibly use.
+         * The return value is kind of weird, but let's dig down into the meanings.
+         * aiEffects: The logic-based effects that occur in the order that they occur.
+         *   These can cause counter and flag changes.
+         *   If a final effect isn't deterministic, some of these may only occur if
+         *   the final effect that is used is >= finalEffectConditional.
+         * finalEffects: The final effects that the opponent does to the game state.
+         *   This is indexed 0 and is not always deterministic. The total weight usually
+         *   adds to 100, but may be any positive number.
+         *   If index is -1, that means that this monster has no skills.
          */
         function determineSkillset(ctx) {
+            const possibleEffects = [];
             const skills = Array(ilmina_stripped_8.floof.model.cards[ctx.cardId].enemySkills.length);
             if (!skills.length) {
-                return { aiEffects: [], finalEffects: [{ idx: -1, weight: 100 }] };
+                return possibleEffects;
             }
             for (let i = 0; i < skills.length; i++) {
                 skills[i] = toSkillContext(ctx.cardId, i);
             }
+            // Skip Preemptive checking if neither marker is a preemptive.
+            if (ctx.isPreempt && !PREEMPTIVE_MARKERS.includes(skills[0].effectId)) {
+                return possibleEffects;
+            }
             let idx = 0;
             let remainingChance = 100;
-            const aiEffects = [];
-            const finalEffects = [];
+            const path = [];
+            // const finalEffects: { idx: number; weight: number }[] = [];
+            // const skippedEffects: number[] = [];
             while (idx < skills.length) {
                 const skill = skills[idx];
-                // HP Conditional skills.
+                // Remaining charge cost insufficient.
                 if (skill.aiArgs[3] > ctx.charges) {
+                    path.push({ idx, unusedReason: UnusedReason.INSUFFICIENT_CHARGES });
                     idx++;
                     continue;
                 }
                 let next = goto(ctx, idx);
+                // HP Conditional skills.
                 if (next == TERMINATE && skill.aiArgs[1] < ctx.hpPercent) {
+                    path.push({ idx, unusedReason: UnusedReason.HP_NOT_MET });
                     idx++;
                     continue;
                 }
                 aiEffect(ctx, idx);
                 if (next == TERMINATE) {
-                    const chance = skills[idx].rnd || skills[idx].ai;
+                    let chance = skills[idx].rnd || skills[idx].ai;
                     ctx.charges -= skill.aiArgs[3];
                     if (ilmina_stripped_8.floof.model.cards[ctx.cardId].aiVersion == 1) {
                         // Do new
-                        if (chance >= remainingChance) {
-                            finalEffects.push({ idx, weight: remainingChance });
-                            return { aiEffects, finalEffects: finalEffects };
-                        }
-                        else {
-                            finalEffects.push({ idx, weight: chance });
-                            remainingChance -= chance;
-                        }
+                        chance = Math.min(chance, remainingChance);
+                        remainingChance -= chance;
+                        possibleEffects.push({ idx, chance: chance, flags: ctx.flags, counter: ctx.counter, path: path.slice() });
                     }
                     else {
-                        const localWeight = chance;
-                        const overallWeight = remainingChance * localWeight / 100;
-                        remainingChance -= overallWeight;
-                        finalEffects.push({ idx: idx, weight: overallWeight });
-                        if (!remainingChance) {
-                            return { aiEffects, finalEffects: finalEffects };
-                        }
+                        const overallChance = remainingChance * chance / 100;
+                        remainingChance -= overallChance;
+                        possibleEffects.push({ idx, chance: overallChance, flags: ctx.flags, counter: ctx.counter, path: path.slice() });
                     }
+                    if (!remainingChance) {
+                        return possibleEffects;
+                    }
+                    path.push({ idx, unusedReason: UnusedReason.RNG });
                     next = TO_NEXT;
                 }
                 else {
-                    aiEffects.push({ idx, finalEffectConditional: finalEffects.length });
+                    path.push({ idx, unusedReason: UnusedReason.LOGIC });
                 }
                 if (next == TO_NEXT) {
                     idx++;
@@ -9668,8 +9803,8 @@
                     idx = next;
                 }
             }
-            // No matching termination found.
-            return { aiEffects, finalEffects: [{ idx: -1, weight: 1 }] };
+            // Not all chance was used. Should still return.
+            return possibleEffects;
         }
         exports.determineSkillset = determineSkillset;
         function effect(skillCtx, ctx) {
@@ -9746,7 +9881,7 @@
         }
         exports.textifyEnemySkills = textifyEnemySkills;
     });
-    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills", "debugger"], function (require, exports, common_10, ajax_2, enemy_instance_1, templates_5, enemy_skills_1, debugger_1) {
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills", "debugger", "ilmina_stripped"], function (require, exports, common_10, ajax_2, enemy_instance_1, templates_5, enemy_skills_1, debugger_1, ilmina_stripped_9) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DungeonFloor {
@@ -9784,65 +9919,6 @@
                 return floor;
             }
         }
-        class Rational {
-            constructor(numerator = 0, denominator = 1) {
-                this.numerator = 0;
-                this.denominator = 1;
-                this.numerator = numerator;
-                this.denominator = denominator;
-            }
-            multiply(n) {
-                return n * this.numerator / this.denominator;
-            }
-            reduce() {
-                // Cannot reduce if denominator already 1
-                if (this.denominator == 1) {
-                    return;
-                }
-                // Can only reduce integral pairs.
-                if (!Number.isInteger(this.numerator) || !Number.isInteger(this.denominator)) {
-                    return;
-                }
-                function divides(num, den) {
-                    return Number.isInteger(num / den);
-                }
-                function gcd(a, b) {
-                    while (!divides(a, b) && !divides(b, a)) {
-                        if (a > b) {
-                            a -= b;
-                        }
-                        else {
-                            b -= a;
-                        }
-                    }
-                    return Math.min(a, b);
-                }
-                const divisor = gcd(this.numerator, this.denominator);
-                if (divisor == 1) {
-                    return;
-                }
-                this.numerator /= divisor;
-                this.denominator /= divisor;
-            }
-            toString() {
-                this.reduce();
-                if (this.denominator == 1) {
-                    return String(this.numerator);
-                }
-                return `${this.numerator} / ${this.denominator}`;
-            }
-            static from(s) {
-                if (!s.includes('/')) {
-                    return new Rational(Number(s));
-                }
-                let match = s.match(Rational.matcher);
-                if (match && match[0] == s) {
-                    return new Rational(Number(match[1]), Number(match[2]));
-                }
-                return new Rational(NaN);
-            }
-        }
-        Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
         const requestUrl = common_10.BASE_URL + 'assets/DungeonsAndEncounters.json';
         const DUNGEON_DATA = new Map();
         const dungeonSearchArray = [];
@@ -9900,55 +9976,50 @@
                 this.isRogue = false; // UNIMPLEMENTED
                 this.allAttributesRequired = false;
                 this.noDupes = false;
-                this.hpMultiplier = new Rational(1);
-                this.atkMultiplier = new Rational(1);
-                this.defMultiplier = new Rational(1);
+                this.hpMultiplier = new common_10.Rational(1);
+                this.atkMultiplier = new common_10.Rational(1);
+                this.defMultiplier = new common_10.Rational(1);
                 this.activeFloor = 0;
                 this.activeEnemy = 0;
+                this.onEnemySkill = () => null;
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
                 this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
-                debugger_1.debug.addButton('Print Preempt', () => {
-                    const enemy = this.getActiveEnemy();
-                    const cardId = enemy.id;
-                    const { finalEffects, aiEffects } = enemy_skills_1.determineSkillset({
-                        cardId,
-                        attribute: enemy.getAttribute(),
-                        isPreempt: true,
-                        lv: enemy.lv,
-                        atk: this.atkMultiplier.multiply(enemy.getAtk()),
-                        hpPercent: 100,
-                        combo: 1,
-                        teamIds: [],
-                        bigBoard: true,
-                        charges: enemy.getCard().charges,
-                        flags: enemy.flags,
-                        counter: enemy.counter,
-                    });
-                    for (let i = 0; i < aiEffects.length; i++) {
-                        debugger_1.debug.print(`Used logic skill: ${aiEffects[i].idx} if final effect is >=${aiEffects[i].finalEffectConditional}`);
-                    }
-                    if (finalEffects.length > 1) {
-                        debugger_1.debug.print('Multiple possible Preemptives:');
-                    }
-                    for (let i = 0; i < finalEffects.length; i++) {
-                        debugger_1.debug.print((finalEffects[i].weight != 100 ? `[${finalEffects[i].weight}%] ` : '') + enemy_skills_1.textifyEnemySkill({
-                            id: enemy.id,
-                            atk: this.atkMultiplier.multiply(enemy.getAtk()),
-                        }, finalEffects[i].idx));
-                    }
-                });
                 debugger_1.debug.addButton('Print Skills', () => {
                     const enemy = this.getActiveEnemy();
                     const id = enemy.id;
                     const skillTexts = enemy_skills_1.textifyEnemySkills({
                         id,
-                        atk: this.atkMultiplier.multiply(enemy.getAtk()),
+                        atk: enemy.getAtk(),
                     });
                     for (let i = 0; i < skillTexts.length; i++) {
                         debugger_1.debug.print(`${i + 1}: ${skillTexts[i]} `);
                     }
                 });
+                debugger_1.debug.addButton('Use Preempt', () => {
+                    this.useEnemySkill([], // teamIds
+                    1, // combo
+                    true, // bigBoard
+                    true);
+                });
+                debugger_1.debug.addButton('Print next skill', () => {
+                    this.useEnemySkill([], // teamIds
+                    8, // combo
+                    true);
+                });
+                this.onEnemySkill = (idx, otherIdxs) => {
+                    if (idx < 0) {
+                        debugger_1.debug.print('No skill to use');
+                        return;
+                    }
+                    const enemy = this.getActiveEnemy();
+                    if (otherIdxs.length) {
+                        debugger_1.debug.print(`  * Not using potential skills: ${otherIdxs}`);
+                    }
+                    debugger_1.debug.print('** Using the following skill **');
+                    debugger_1.debug.print(enemy_skills_1.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
+                    enemy.charges -= ilmina_stripped_9.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
+                };
             }
             async loadDungeon(subDungeonId) {
                 await common_10.waitFor(() => dungeonsLoaded);
@@ -9959,6 +10030,42 @@
                 }
                 this.id = subDungeonId;
                 this.loadJson(data);
+            }
+            useEnemySkill(teamIds, combo, bigBoard, isPreempt = false, skillIdx = -1) {
+                const enemy = this.getActiveEnemy();
+                const otherSkills = [];
+                if (skillIdx < 0) {
+                    const possibleEffects = enemy_skills_1.determineSkillset({
+                        cardId: enemy.id,
+                        lv: enemy.lv,
+                        attribute: enemy.getAttribute(),
+                        atk: enemy.getAtk(),
+                        hpPercent: Math.round(enemy.currentHp / enemy.getHp() * 100),
+                        charges: enemy.charges,
+                        flags: enemy.flags,
+                        counter: enemy.counter,
+                        isPreempt,
+                        combo,
+                        teamIds,
+                        bigBoard,
+                    });
+                    if (possibleEffects.length) {
+                        const totalWeight = possibleEffects.reduce((total, e) => total + e.chance, 0);
+                        let roll = Math.random() * totalWeight;
+                        for (const effect of possibleEffects) {
+                            if (roll < effect.chance && skillIdx < 0) {
+                                skillIdx = effect.idx;
+                                enemy.counter = effect.counter;
+                                enemy.flags = effect.flags;
+                            }
+                            else {
+                                otherSkills.push(effect.idx);
+                            }
+                            roll -= effect.chance;
+                        }
+                    }
+                    this.onEnemySkill(skillIdx, otherSkills);
+                }
             }
             getUpdateFunction() {
                 return (ctx) => {
@@ -9991,13 +10098,16 @@
                         }
                     }
                     if (ctx.dungeonHpMultiplier != undefined) {
-                        this.hpMultiplier = Rational.from(ctx.dungeonHpMultiplier);
+                        this.hpMultiplier = common_10.Rational.from(ctx.dungeonHpMultiplier);
+                        this.getActiveEnemy().dungeonMultipliers.hp = this.hpMultiplier;
                     }
                     if (ctx.dungeonAtkMultiplier != undefined) {
-                        this.atkMultiplier = Rational.from(ctx.dungeonAtkMultiplier);
+                        this.atkMultiplier = common_10.Rational.from(ctx.dungeonAtkMultiplier);
+                        this.getActiveEnemy().dungeonMultipliers.atk = this.atkMultiplier;
                     }
                     if (ctx.dungeonDefMultiplier != undefined) {
-                        this.defMultiplier = Rational.from(ctx.dungeonDefMultiplier);
+                        this.defMultiplier = common_10.Rational.from(ctx.dungeonDefMultiplier);
+                        this.getActiveEnemy().dungeonMultipliers.def = this.defMultiplier;
                     }
                     if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
                         // Update other dungeon info about dungeon editor.
@@ -10055,6 +10165,13 @@
             setActiveEnemy(idx) {
                 this.activeEnemy = idx;
                 this.floors[this.activeFloor].activeEnemy = idx;
+                const enemy = this.getActiveEnemy();
+                enemy.reset();
+                enemy.dungeonMultipliers = {
+                    hp: this.hpMultiplier,
+                    atk: this.atkMultiplier,
+                    def: this.defMultiplier,
+                };
             }
             getActiveEnemy() {
                 return this.floors[this.activeFloor].getActiveEnemy();
@@ -10086,9 +10203,9 @@
                 }
                 this.activeFloor = 0;
                 this.setActiveEnemy(0);
-                this.hpMultiplier = Rational.from(json.hp || '1');
-                this.atkMultiplier = Rational.from(json.atk || '1');
-                this.defMultiplier = Rational.from(json.def || '1');
+                this.hpMultiplier = common_10.Rational.from(json.hp || '1');
+                this.atkMultiplier = common_10.Rational.from(json.atk || '1');
+                this.defMultiplier = common_10.Rational.from(json.def || '1');
                 this.update(true);
             }
         }
@@ -10109,7 +10226,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "url_handler"], function (require, exports, common_11, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_2, ilmina_stripped_9, custom_base64_1, url_handler_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "url_handler"], function (require, exports, common_11, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_2, ilmina_stripped_10, custom_base64_1, url_handler_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
@@ -10241,7 +10358,7 @@
             }
         }
         async function init() {
-            await common_11.waitFor(() => ilmina_stripped_9.floof.ready);
+            await common_11.waitFor(() => ilmina_stripped_10.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
