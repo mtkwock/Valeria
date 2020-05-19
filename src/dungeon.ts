@@ -417,12 +417,12 @@ class DungeonInstance {
     this.activeEnemy = idx;
     this.floors[this.activeFloor].activeEnemy = idx;
     const enemy = this.getActiveEnemy();
-    enemy.reset();
     enemy.dungeonMultipliers = {
       hp: this.hpMultiplier,
       atk: this.atkMultiplier,
       def: this.defMultiplier,
     };
+    enemy.reset();
   }
 
   getActiveEnemy(): EnemyInstance {

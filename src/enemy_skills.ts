@@ -243,7 +243,8 @@ const enrageFromStatusAilment: EnemySkillEffect = {
   },
   goto: () => {
     // TODO: Determine if monster already buffed or monster afflicted with status.
-    return TERMINATE;
+    // return TERMINATE;
+    return TO_NEXT;
   },
 };
 
@@ -437,7 +438,9 @@ const fallbackAttack: EnemySkillEffect = {
 const displayCounterOrContinue: EnemySkillEffect = {
   textify: () => 'Decrement counter by 1. If positive, display and terminate, else if 0, continue.',
   condition: () => true,
-  aiEffect: () => { },
+  aiEffect: (_, ctx) => {
+    ctx.counter--;
+  },
   effect: (_, { enemy }) => {
     if (enemy.counter) {
       console.log(enemy.counter);
@@ -1195,7 +1198,7 @@ const lockOrbs: EnemySkillEffect = {
   textify: ({ skillArgs }) => {
     const [attrBits, maxLocked] = skillArgs;
     const lockedOrbs = idxsFromBits(attrBits).map((c) => AttributeToName.get(c)).join(', ');
-    return `Lock up to ${maxLocked} of the following orbs: ${lockedOrbs}.`;
+    return `Lock up to ${maxLocked} of the following orbs: ${lockedOrbs}. If none exist, continue.`;
   },
   condition: () => {
     // Not applicable right now, but requires that one of the locked colors exists.
@@ -1203,6 +1206,7 @@ const lockOrbs: EnemySkillEffect = {
   },
   aiEffect: () => { },
   effect: () => { },
+  // TODO: Determine if any orbs can be locked.  If no, then return TO_NEXT instead.
   goto: () => TERMINATE,
 };
 
@@ -1324,7 +1328,7 @@ const rcv: EnemySkillEffect = {
 
 // 106
 const changeTurnTimer: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `[Pasive] When HP Drops below ${skillArgs[0]}%, change turn timer to ${skillArgs[1]}`,
+  textify: ({ skillArgs }) => `[Passive] When HP Drops below ${skillArgs[0]}%, change turn timer to ${skillArgs[1]}`,
   condition: () => true,
   aiEffect: () => { },
   // This will occur in the damage step.
@@ -1770,6 +1774,7 @@ function determineSkillset(ctx: AiContext): EnemyEffect[] {
       idx++;
       continue;
     }
+    aiEffect(ctx, idx);
     let next = goto(ctx, idx);
     // HP Conditional skills.
     if (next == TERMINATE && skill.aiArgs[1] < ctx.hpPercent) {
@@ -1778,9 +1783,9 @@ function determineSkillset(ctx: AiContext): EnemyEffect[] {
       continue;
     }
 
-    aiEffect(ctx, idx);
     if (next == TERMINATE) {
-      let chance = skills[idx].rnd || skills[idx].ai;
+      // If neither rnd or ai are set on a terminating skill, assume it MUST happen.
+      let chance = skills[idx].rnd || skills[idx].ai || 100;
       ctx.charges -= skill.aiArgs[3];
       if (floof.model.cards[ctx.cardId].aiVersion == 1) {
         // Do new
