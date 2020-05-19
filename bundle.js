@@ -8244,6 +8244,15 @@
             },
             goto: () => TERMINATE,
         };
+        // 4
+        const orbChange = {
+            textify: ({ skillArgs }) => `Convert ${common_9.AttributeToName.get(skillArgs[0])} to ${common_9.AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: () => { },
+            // TODO: Change this to TO_NEXT if there are no convertible orbs.
+            goto: () => TERMINATE,
+        };
         // 5
         const blindBoard = {
             textify: () => 'Blind board.',
@@ -9577,6 +9586,7 @@
             1: bindRandom,
             2: bindColor,
             3: bindType,
+            4: orbChange,
             5: blindBoard,
             6: dispelBuffs,
             7: healOrAttack,
