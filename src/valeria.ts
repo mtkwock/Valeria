@@ -28,7 +28,6 @@ class Valeria {
 
     this.monsterEditor = new MonsterEditor((ctx: MonsterUpdate) => {
       if (ctx.playerMode) {
-        console.log(ctx.playerMode);
         this.team.setPlayerMode(ctx.playerMode);
         this.team.update();
         return;
@@ -176,6 +175,8 @@ async function init(): Promise<void> {
     document.body.appendChild(debug.getElement());
   }
   window.valeria = valeria;
+  const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`) as HTMLInputElement;
+  el.checked = true;
 }
 
 init();

@@ -422,7 +422,7 @@ class Team {
   }
 
   fromJson(json: TeamJson): void {
-    this.playerMode = json.playerMode || 1;
+    this.setPlayerMode(json.playerMode || 1);
     this.teamName = json.title || 'UNTITLED';
     this.description = json.description || '';
     for (let i = 0; i < this.monsters.length; i++) {
@@ -438,6 +438,10 @@ class Team {
   setPlayerMode(newMode: number): void {
     if (newMode != 1 && newMode != 2 && newMode != 3) {
       throw `Invalid player mode, must be 1, 2, or 3, got ${newMode}`;
+    }
+    const el = document.getElementById(`valeria-player-mode-${newMode}`);
+    if (el instanceof HTMLInputElement) {
+      el.checked = true;
     }
     if (this.playerMode == 2) {
       /**
