@@ -7510,6 +7510,13 @@
                 counts.set(common_7.Awakening.ROW_LIGHT, this.countAwakening(common_7.Awakening.ROW_LIGHT));
                 counts.set(common_7.Awakening.ROW_DARK, this.countAwakening(common_7.Awakening.ROW_DARK));
                 counts.set(common_7.Awakening.RECOVER_BIND, this.countAwakening(common_7.Awakening.RECOVER_BIND));
+                // Resists
+                counts.set(common_7.Awakening.RESIST_FIRE, this.countAwakening(common_7.Awakening.RESIST_FIRE));
+                counts.set(common_7.Awakening.RESIST_WATER, this.countAwakening(common_7.Awakening.RESIST_WATER));
+                counts.set(common_7.Awakening.RESIST_WOOD, this.countAwakening(common_7.Awakening.RESIST_WOOD));
+                counts.set(common_7.Awakening.RESIST_LIGHT, this.countAwakening(common_7.Awakening.RESIST_LIGHT));
+                counts.set(common_7.Awakening.RESIST_DARK, this.countAwakening(common_7.Awakening.RESIST_DARK));
+                counts.set(common_7.Awakening.AUTOHEAL, this.countAwakening(common_7.Awakening.AUTOHEAL));
                 return {
                     hps: this.getIndividualHp(),
                     atks: atks,
