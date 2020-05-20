@@ -17,7 +17,6 @@ interface SkillContext {
 }
 
 interface AiContext {
-  // enemy: EnemyInstance,
   cardId: number,
   isPreempt: boolean,
   lv: number,
@@ -26,6 +25,10 @@ interface AiContext {
   hpPercent: number,
   teamIds: number[],
   bigBoard: boolean,
+
+  // If another enemy exists alongside this monster, set to positive.
+  // If this is 0, then allows resurrect.
+  otherEnemyHp: number,
 
   combo: number,
 
@@ -111,7 +114,7 @@ const bindType: EnemySkillEffect = {
 
 // 4
 const orbChange: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Convert ${AttributeToName.get(skillArgs[0])} to ${AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
+  textify: ({ skillArgs }) => `Convert ${AttributeToName.get(skillArgs[0] || 0)} to ${AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
   condition: () => true,
   aiEffect: () => { },
   effect: () => { },
@@ -176,7 +179,7 @@ const enhanceBasicAttack: EnemySkillEffect = {
 
 // 12
 const singleOrbToJammer: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : AttributeToName.get(skillArgs[0])} color into Jammer`,
+  textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : AttributeToName.get(skillArgs[0])} color into Jammer.`,
   condition: () => true,
   aiEffect: () => { },
   effect: () => { },
@@ -235,10 +238,7 @@ const enrage: EnemySkillEffect = {
   effect: ({ skillArgs }, { enemy }) => {
     enemy.attackMultiplier = skillArgs[2] / 100;
   },
-  goto: () => {
-    // TODO: Add enrage status because it skips it if already buffed.
-    return TERMINATE;
-  },
+  goto: (_, { otherEnemyHp }) => otherEnemyHp == 0 ? TERMINATE : TO_NEXT,
 };
 
 // 18
@@ -453,7 +453,7 @@ const displayCounterOrContinue: EnemySkillEffect = {
   },
   effect: (_, { enemy }) => {
     if (enemy.counter) {
-      console.log(enemy.counter);
+      console.log(`Countdown: ${enemy.counter}`);
     }
   },
   goto: (_, { counter }) => {
@@ -646,12 +646,14 @@ const gravity: EnemySkillEffect = {
 
 // 52
 const resurrect: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Revive ally with ${skillArgs[0]}% HP.`,
+  textify: ({ skillArgs }) => `Revive ally with ${skillArgs[0]}% HP. If not alone, Continue`,
   condition: () => true,
   aiEffect: () => { },
-  effect: () => { },
+  effect: ({ skillArgs }, { enemy }) => {
+    enemy.otherEnemyHp = skillArgs[0];
+  },
   // Currently never occurs in simulations.
-  goto: () => TO_NEXT,
+  goto: (_, { otherEnemyHp }) => otherEnemyHp ? TO_NEXT : TERMINATE,
 }
 
 // 53
@@ -1150,7 +1152,6 @@ const awokenBind: EnemySkillEffect = {
   textify: ({ skillArgs }) => {
     return `Awoken Bind for ${skillArgs[0]} turn(s)`;
   },
-  // TODO: Determine if team is awoken bound already.
   condition: () => true,
   aiEffect: () => { },
   effect: (_, { team }) => {
@@ -1160,6 +1161,7 @@ const awokenBind: EnemySkillEffect = {
       // Should we do a basic attack here?
     }
   },
+  // TODO: If player is awoken bound, this should be TO_NEXT
   goto: () => TERMINATE,
 };
 
@@ -1187,7 +1189,7 @@ const gotoIfCardOnTeam: EnemySkillEffect = {
 
 // 92
 const randomOrbSpawn: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x ${idxsFromBits(skillArgs[1]).map(c => AttributeToName.get(c))} orbs from non-[${idxsFromBits(skillArgs[2]).map((c) => AttributeToName.get(c))}]`,
+  textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x ${idxsFromBits(skillArgs[1]).map(c => AttributeToName.get(c))} orbs from non-[${idxsFromBits(skillArgs[2]).map((c) => AttributeToName.get(c))}], If Unable, Continue`,
   condition: () => true,
   aiEffect: () => { },
   effect: () => { }, // Implement later?!
@@ -1208,7 +1210,7 @@ const lockOrbs: EnemySkillEffect = {
   textify: ({ skillArgs }) => {
     const [attrBits, maxLocked] = skillArgs;
     const lockedOrbs = idxsFromBits(attrBits).map((c) => AttributeToName.get(c)).join(', ');
-    return `Lock up to ${maxLocked} of the following orbs: ${lockedOrbs}. If none exist, continue.`;
+    return `Lock up to ${maxLocked} of the following orbs: ${lockedOrbs}. If unable to lock any, Continue.`;
   },
   condition: () => {
     // Not applicable right now, but requires that one of the locked colors exists.
@@ -1394,6 +1396,21 @@ const spinnerPattern: EnemySkillEffect = {
   condition: () => true,
   aiEffect: () => { },
   effect: () => { },
+  goto: () => TERMINATE,
+};
+
+// 111
+const fixedHp: EnemySkillEffect = {
+  textify: ({ skillArgs }) => `Player team HP set to ${skillArgs[0] ? `${skillArgs[0]}%` : `${skillArgs[1]}`} for ${skillArgs[2]} turns.`,
+  condition: () => true,
+  aiEffect: () => { },
+  effect: ({ skillArgs }, { team }) => {
+    let [percent, val] = skillArgs;
+    if (percent) {
+      val = Math.ceil(team.getHp() * percent / 100);
+    }
+    team.updateState({ fixedHp: val });
+  }, // Implement later?!
   goto: () => TERMINATE,
 };
 
@@ -1664,6 +1681,7 @@ const ENEMY_SKILL_GENERATORS: Record<number, EnemySkillEffect> = {
   108: attackAndMultiOrbChange,
   109: spinners,
   110: spinnerPattern,
+  111: fixedHp,
   112: fixedTarget,
   113: gotoIfComboMin,
   // 114: unused
@@ -1883,6 +1901,7 @@ export function textifyEnemySkill(enemy: { id: number; atk: number }, idx: numbe
     lv: 10,
     hpPercent: 100,
     combo: 1,
+    otherEnemyHp: 0,
     teamIds: [],
     bigBoard: false,
     charges: 0,

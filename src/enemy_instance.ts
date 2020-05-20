@@ -195,10 +195,11 @@ class EnemyInstance {
   turnCounter: number = 0; // Currently unused.
 
   // Used for determining moveset.
-  charges: number = 0;
-  flags: number = 0;
-  counter: number = 0;
-  forceAttack: boolean = false; // If true, next attack must be basic.
+  charges = 0;
+  flags = 0;
+  counter = 0;
+  forceAttack = false; // If true, next attack must be basic.
+  otherEnemyHp = 100;
 
   // Values that can change during battle.
   currentHp: number = 1;
@@ -441,6 +442,9 @@ class EnemyInstance {
     this.ignoreDefensePercent = 0;
     this.poison = 0;
     this.delayed = false;
+
+    // Assume that only large monsters are alone.
+    this.otherEnemyHp = this.getCard().monsterSize == 5 ? 0 : 100;
 
     this.charges = floof.model.cards[this.id].charges;
     this.counter = 0;

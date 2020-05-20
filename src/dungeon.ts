@@ -276,6 +276,7 @@ class DungeonInstance {
         charges: enemy.charges,
         flags: enemy.flags,
         counter: enemy.counter,
+        otherEnemyHp: enemy.otherEnemyHp,
 
         isPreempt,
         combo,

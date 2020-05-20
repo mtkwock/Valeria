@@ -380,6 +380,15 @@ class MonsterIcon {
           if (className == ClassNames.ICON_SUPER) {
             el = create('a', className);
           }
+          if (className == ClassNames.ICON_AWAKE) {
+            const numberArea = create('div');
+            const maxAwokenImage = create('img') as HTMLImageElement;
+            maxAwokenImage.src = 'assets/max_awoken.png';
+            superHide(numberArea);
+            superHide(maxAwokenImage);
+            el.appendChild(numberArea);
+            el.appendChild(maxAwokenImage);
+          }
           if (this.hideInfoTable && i * 2 + j != 5) {
             superHide(el);
           }
@@ -509,7 +518,16 @@ class MonsterIcon {
     const awakeningEl = this.element.getElementsByClassName(ClassNames.ICON_AWAKE)[0] as HTMLElement;
     if (d.awakening != 0) {
       show(awakeningEl);
-      awakeningEl.innerText = `(${d.awakening})`;
+      const maxAwokenImage = awakeningEl.getElementsByTagName('img')[0] as HTMLImageElement;
+      const numberArea = awakeningEl.getElementsByTagName('div')[0] as HTMLDivElement;
+      if (d.awakening >= floof.model.cards[d.id].awakenings.length || d.activeTransform) {
+        superShow(maxAwokenImage);
+        superHide(numberArea);
+      } else {
+        superHide(maxAwokenImage);
+        superShow(numberArea);
+        numberArea.innerText = `(${d.awakening})`;
+      }
     } else {
       hide(awakeningEl);
     }
