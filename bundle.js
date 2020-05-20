@@ -2469,6 +2469,15 @@
                             if (className == ClassNames.ICON_SUPER) {
                                 el = create('a', className);
                             }
+                            if (className == ClassNames.ICON_AWAKE) {
+                                const numberArea = create('div');
+                                const maxAwokenImage = create('img');
+                                maxAwokenImage.src = 'assets/max_awoken.png';
+                                superHide(numberArea);
+                                superHide(maxAwokenImage);
+                                el.appendChild(numberArea);
+                                el.appendChild(maxAwokenImage);
+                            }
                             if (this.hideInfoTable && i * 2 + j != 5) {
                                 superHide(el);
                             }
@@ -2573,7 +2582,17 @@
                 const awakeningEl = this.element.getElementsByClassName(ClassNames.ICON_AWAKE)[0];
                 if (d.awakening != 0) {
                     show(awakeningEl);
-                    awakeningEl.innerText = `(${d.awakening})`;
+                    const maxAwokenImage = awakeningEl.getElementsByTagName('img')[0];
+                    const numberArea = awakeningEl.getElementsByTagName('div')[0];
+                    if (d.awakening >= ilmina_stripped_3.floof.model.cards[d.id].awakenings.length || d.activeTransform) {
+                        superShow(maxAwokenImage);
+                        superHide(numberArea);
+                    }
+                    else {
+                        superHide(maxAwokenImage);
+                        superShow(numberArea);
+                        numberArea.innerText = `(${d.awakening})`;
+                    }
                 }
                 else {
                     hide(awakeningEl);
@@ -7899,6 +7918,7 @@
                 this.flags = 0;
                 this.counter = 0;
                 this.forceAttack = false; // If true, next attack must be basic.
+                this.otherEnemyHp = 100;
                 // Values that can change during battle.
                 this.currentHp = 1;
                 this.currentAttribute = -1; // -1 is main, -2 is sub.
@@ -8106,6 +8126,8 @@
                 this.ignoreDefensePercent = 0;
                 this.poison = 0;
                 this.delayed = false;
+                // Assume that only large monsters are alone.
+                this.otherEnemyHp = this.getCard().monsterSize == 5 ? 0 : 100;
                 this.charges = ilmina_stripped_7.floof.model.cards[this.id].charges;
                 this.counter = 0;
                 this.flags = 0;
@@ -8246,7 +8268,7 @@
         };
         // 4
         const orbChange = {
-            textify: ({ skillArgs }) => `Convert ${common_9.AttributeToName.get(skillArgs[0])} to ${common_9.AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
+            textify: ({ skillArgs }) => `Convert ${common_9.AttributeToName.get(skillArgs[0] || 0)} to ${common_9.AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -8307,7 +8329,7 @@
         };
         // 12
         const singleOrbToJammer = {
-            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_9.AttributeToName.get(skillArgs[0])} color into Jammer`,
+            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_9.AttributeToName.get(skillArgs[0])} color into Jammer.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -8362,10 +8384,7 @@
             effect: ({ skillArgs }, { enemy }) => {
                 enemy.attackMultiplier = skillArgs[2] / 100;
             },
-            goto: () => {
-                // TODO: Add enrage status because it skips it if already buffed.
-                return TERMINATE;
-            },
+            goto: (_, { otherEnemyHp }) => otherEnemyHp == 0 ? TERMINATE : TO_NEXT,
         };
         // 18
         const enrageFromStatusAilment = {
@@ -8561,7 +8580,7 @@
             },
             effect: (_, { enemy }) => {
                 if (enemy.counter) {
-                    console.log(enemy.counter);
+                    console.log(`Countdown: ${enemy.counter}`);
                 }
             },
             goto: (_, { counter }) => {
@@ -8743,12 +8762,14 @@
         };
         // 52
         const resurrect = {
-            textify: ({ skillArgs }) => `Revive ally with ${skillArgs[0]}% HP.`,
+            textify: ({ skillArgs }) => `Revive ally with ${skillArgs[0]}% HP. If not alone, Continue`,
             condition: () => true,
             aiEffect: () => { },
-            effect: () => { },
+            effect: ({ skillArgs }, { enemy }) => {
+                enemy.otherEnemyHp = skillArgs[0];
+            },
             // Currently never occurs in simulations.
-            goto: () => TO_NEXT,
+            goto: (_, { otherEnemyHp }) => otherEnemyHp ? TO_NEXT : TERMINATE,
         };
         // 53
         const attributeAbsorb = {
@@ -9215,7 +9236,6 @@
             textify: ({ skillArgs }) => {
                 return `Awoken Bind for ${skillArgs[0]} turn(s)`;
             },
-            // TODO: Determine if team is awoken bound already.
             condition: () => true,
             aiEffect: () => { },
             effect: (_, { team }) => {
@@ -9226,6 +9246,7 @@
                     // Should we do a basic attack here?
                 }
             },
+            // TODO: If player is awoken bound, this should be TO_NEXT
             goto: () => TERMINATE,
         };
         // 89
@@ -9250,7 +9271,7 @@
         };
         // 92
         const randomOrbSpawn = {
-            textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x ${common_9.idxsFromBits(skillArgs[1]).map(c => common_9.AttributeToName.get(c))} orbs from non-[${common_9.idxsFromBits(skillArgs[2]).map((c) => common_9.AttributeToName.get(c))}]`,
+            textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x ${common_9.idxsFromBits(skillArgs[1]).map(c => common_9.AttributeToName.get(c))} orbs from non-[${common_9.idxsFromBits(skillArgs[2]).map((c) => common_9.AttributeToName.get(c))}], If Unable, Continue`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9269,7 +9290,7 @@
             textify: ({ skillArgs }) => {
                 const [attrBits, maxLocked] = skillArgs;
                 const lockedOrbs = common_9.idxsFromBits(attrBits).map((c) => common_9.AttributeToName.get(c)).join(', ');
-                return `Lock up to ${maxLocked} of the following orbs: ${lockedOrbs}. If none exist, continue.`;
+                return `Lock up to ${maxLocked} of the following orbs: ${lockedOrbs}. If unable to lock any, Continue.`;
             },
             condition: () => {
                 // Not applicable right now, but requires that one of the locked colors exists.
@@ -9439,6 +9460,20 @@
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
+            goto: () => TERMINATE,
+        };
+        // 111
+        const fixedHp = {
+            textify: ({ skillArgs }) => `Player team HP set to ${skillArgs[0] ? `${skillArgs[0]}%` : `${skillArgs[1]}`} for ${skillArgs[2]} turns.`,
+            condition: () => true,
+            aiEffect: () => { },
+            effect: ({ skillArgs }, { team }) => {
+                let [percent, val] = skillArgs;
+                if (percent) {
+                    val = Math.ceil(team.getHp() * percent / 100);
+                }
+                team.updateState({ fixedHp: val });
+            },
             goto: () => TERMINATE,
         };
         // 112
@@ -9693,6 +9728,7 @@
             108: attackAndMultiOrbChange,
             109: spinners,
             110: spinnerPattern,
+            111: fixedHp,
             112: fixedTarget,
             113: gotoIfComboMin,
             // 114: unused
@@ -9889,6 +9925,7 @@
                 lv: 10,
                 hpPercent: 100,
                 combo: 1,
+                otherEnemyHp: 0,
                 teamIds: [],
                 bigBoard: false,
                 charges: 0,
@@ -10070,6 +10107,7 @@
                         charges: enemy.charges,
                         flags: enemy.flags,
                         counter: enemy.counter,
+                        otherEnemyHp: enemy.otherEnemyHp,
                         isPreempt,
                         combo,
                         teamIds,

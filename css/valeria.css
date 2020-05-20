@@ -81,6 +81,12 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   font-weight: bold;
 }
 
+.valeria-monster-icon-awakening > img {
+  width: 15px;
+  margin-top: 3px;
+  margin-right: -1px;
+}
+
 .valeria-monster-icon-sa {
   display: inline-block;
   width: 18;
