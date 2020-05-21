@@ -3503,19 +3503,20 @@
             update(ctx) {
                 this.monsterSelector.setId(ctx.id);
                 this.inheritSelector.setId(ctx.inheritId);
+                const c = ilmina_stripped_3.floof.model.cards[ctx.id];
                 for (let i = 0; i < 3; i++) {
-                    const monsterType = ilmina_stripped_3.floof.model.cards[ctx.id].types[i];
-                    if (monsterType === undefined) {
+                    if (!c || i >= c.types.length) {
                         superHide(this.types[i].getElement());
                     }
                     else {
+                        const monsterType = c.types[i];
                         superShow(this.types[i].getElement());
                         this.types[i].setType(monsterType);
                     }
                 }
                 let maxLevel = 1;
-                if (ctx.id in ilmina_stripped_3.floof.model.cards) {
-                    maxLevel = ilmina_stripped_3.floof.model.cards[ctx.id].isLimitBreakable ? 110 : ilmina_stripped_3.floof.model.cards[ctx.id].maxLevel;
+                if (c) {
+                    maxLevel = c.isLimitBreakable ? 110 : c.maxLevel;
                 }
                 let inheritMaxLevel = 1;
                 if (ctx.inheritId in ilmina_stripped_3.floof.model.cards) {
@@ -3533,9 +3534,9 @@
                 let awakenings = [];
                 let superAwakenings = [];
                 let inheritAwakenings = [];
-                if (ctx.id in ilmina_stripped_3.floof.model.cards) {
-                    awakenings = ilmina_stripped_3.floof.model.cards[ctx.id].awakenings;
-                    superAwakenings = ilmina_stripped_3.floof.model.cards[ctx.id].superAwakenings;
+                if (c) {
+                    awakenings = c.awakenings;
+                    superAwakenings = c.superAwakenings;
                 }
                 if (ctx.inheritId in ilmina_stripped_3.floof.model.cards) {
                     inheritAwakenings = ilmina_stripped_3.floof.model.cards[ctx.inheritId].awakenings;
@@ -3543,14 +3544,13 @@
                 this.awakeningEditor.update(awakenings, superAwakenings, inheritAwakenings, ctx.awakeningLevel, ctx.superAwakeningIdx, -1);
                 let latentKillers = [];
                 if (ctx.id in ilmina_stripped_3.floof.model.cards) {
-                    latentKillers = ilmina_stripped_3.floof.model.cards[ctx.id].latentKillers;
+                    latentKillers = c.latentKillers;
                 }
-                const maybeCard = ilmina_stripped_3.floof.model.cards[ctx.id];
                 let maxLatents = 6;
-                if (!maybeCard) {
+                if (!c) {
                     maxLatents = 0;
                 }
-                else if (maybeCard.inheritanceType & 32) {
+                else if (c.inheritanceType & 32) {
                     maxLatents = 8;
                 }
                 this.latentEditor.update(ctx.latents, latentKillers, maxLatents);
@@ -8449,6 +8449,9 @@
             aiEffect: () => { },
             effect: (_, { enemy }) => {
                 enemy.statusShield = true;
+                enemy.poison = 0;
+                enemy.delayed = false;
+                enemy.ignoreDefensePercent = 0;
             },
             goto: () => TERMINATE,
         };
