@@ -136,7 +136,7 @@ class Valeria {
 
     debug.addButton('Use Preempt', () => {
       this.dungeon.useEnemySkill(
-        [], // teamIds
+        this.team.getActiveTeam().map((m) => m.getId()), // teamIds
         this.comboContainer.comboCount(), // combo
         this.team.getBoardWidth() == 7, // bigBoard
         true, // isPreempt
@@ -145,7 +145,7 @@ class Valeria {
 
     debug.addButton('Print next skill', () => {
       this.dungeon.useEnemySkill(
-        [], // teamIds
+        this.team.getActiveTeam().map((m) => m.getId()), // teamIds
         this.comboContainer.comboCount(), // combo
         this.team.getBoardWidth() == 7, // bigBoard
       );
