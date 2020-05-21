@@ -8062,11 +8062,20 @@
                 const defMultiplier = (100 - this.ignoreDefensePercent) / 100;
                 return Math.ceil(defMultiplier * this.getDefBase());
             }
-            // TODO:
             getSuperResolve() {
+                const superResolveSkills = this.getEnemySkills(129);
+                if (!superResolveSkills.length) {
+                    return {
+                        minHp: 0,
+                        triggersAt: 0,
+                    };
+                }
+                if (superResolveSkills.length > 1) {
+                    console.warn('Multiple super resolve skills detected.  Only using first.');
+                }
                 return {
-                    minHp: 0,
-                    triggersAt: 0,
+                    minHp: superResolveSkills[0].skillArgs[0],
+                    triggersAt: superResolveSkills[0].skillArgs[1],
                 };
             }
             getEnemySkills(internalEffectId = -1) {
@@ -8131,6 +8140,9 @@
             }
             calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
                 let currentDamage = ping.damage;
+                if (!currentDamage) {
+                    return 0;
+                }
                 // Handle Attribute (dis)advantage
                 if (Advantage[ping.attribute] == this.getAttribute()) {
                     currentDamage *= 2;
@@ -10538,7 +10550,7 @@
                 let currentHp = enemy.currentHp;
                 const maxHp = enemy.getHp();
                 let minHp = enemy.getResolve() && enemy.getHpPercent() >= enemy.getResolve() ? 1 : 0;
-                const superResolve = enemy.getSuperResolve().triggersAt >= enemy.getHpPercent() ? enemy.getSuperResolve().minHp * maxHp / 100 : 0;
+                const superResolve = enemy.getSuperResolve().triggersAt <= enemy.getHpPercent() ? enemy.getSuperResolve().minHp * maxHp / 100 : 0;
                 if (superResolve) {
                     minHp = superResolve;
                 }
@@ -10567,7 +10579,7 @@
                     damageAbsorb: this.team.state.voidDamageAbsorb,
                 });
                 minHp = enemy.getResolve() && (100 * currentHp / maxHp) >= enemy.getResolve() ? 1 : 0;
-                const superResolveRound2 = enemy.getSuperResolve().triggersAt >= (currentHp / maxHp * 100) ? superResolve : 0;
+                const superResolveRound2 = enemy.getSuperResolve().triggersAt <= (currentHp / maxHp * 100) ? superResolve : 0;
                 minHp = superResolveRound2 || minHp;
                 const oldHp = currentHp;
                 currentHp -= specialPing.rawDamage;
