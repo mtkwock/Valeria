@@ -6430,7 +6430,7 @@
                         highest = c.count > highest ? c.count : highest;
                     }
                 }
-                return highest > minMatched ? atk100 / 100 : 1;
+                return highest >= minMatched ? atk100 / 100 : 1;
             },
             damageMult: ([attrBits, minMatched, _, shield], { comboContainer }) => {
                 if (!shield) {
@@ -6442,7 +6442,7 @@
                         highest = c.count > highest ? c.count : highest;
                     }
                 }
-                return highest > minMatched ? shield / 100 : 1;
+                return highest >= minMatched ? shield / 100 : 1;
             },
         };
         const atkRcvShieldFromMultThresh = {
@@ -6495,7 +6495,7 @@
             },
             plusCombo: ([attrBits, minLinked, _, comboBonus], { comboContainer }) => {
                 if (!comboBonus) {
-                    return 1;
+                    return 0;
                 }
                 return common_6.idxsFromBits(attrBits)
                     .every((attr) => comboContainer.combos[common_6.COLORS[attr]]
@@ -6508,8 +6508,8 @@
             damageMult: ([attrBits, _, _a, shield], { comboContainer }) => shield && common_6.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_6.COLORS[attr]].some((c) => c.shape == common_6.Shape.L)) ? 1 - shield / 100 : 1,
         };
         const atkPlusCombosFromRainbow = {
-            atk: ([attrBits, minColors, atk100], { comboContainer, team }) => atk100 && countMatchedColors(attrBits, comboContainer, team) > minColors ? atk100 / 100 : 1,
-            plusCombo: ([attrBits, minColors, _, comboBonus], { comboContainer, team }) => comboBonus && countMatchedColors(attrBits, comboContainer, team) > minColors ? comboBonus : 0,
+            atk: ([attrBits, minColors, atk100], { comboContainer, team }) => atk100 && countMatchedColors(attrBits, comboContainer, team) >= minColors ? atk100 / 100 : 1,
+            plusCombo: ([attrBits, minColors, _, comboBonus], { comboContainer, team }) => comboBonus && countMatchedColors(attrBits, comboContainer, team) >= minColors ? comboBonus : 0,
         };
         const disablePoisonDamage = {
             ignorePoison: true,
@@ -8140,7 +8140,7 @@
             }
             calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
                 let currentDamage = ping.damage;
-                if (!currentDamage) {
+                if (!currentDamage || this.invincible) {
                     return 0;
                 }
                 // Handle Attribute (dis)advantage
@@ -10550,7 +10550,7 @@
                 let currentHp = enemy.currentHp;
                 const maxHp = enemy.getHp();
                 let minHp = enemy.getResolve() && enemy.getHpPercent() >= enemy.getResolve() ? 1 : 0;
-                const superResolve = enemy.getSuperResolve().triggersAt <= enemy.getHpPercent() ? enemy.getSuperResolve().minHp * maxHp / 100 : 0;
+                const superResolve = enemy.getSuperResolve().triggersAt < enemy.getHpPercent() ? enemy.getSuperResolve().minHp * maxHp / 100 : 0;
                 if (superResolve) {
                     minHp = superResolve;
                 }
@@ -10579,7 +10579,7 @@
                     damageAbsorb: this.team.state.voidDamageAbsorb,
                 });
                 minHp = enemy.getResolve() && (100 * currentHp / maxHp) >= enemy.getResolve() ? 1 : 0;
-                const superResolveRound2 = enemy.getSuperResolve().triggersAt <= (currentHp / maxHp * 100) ? superResolve : 0;
+                const superResolveRound2 = enemy.getSuperResolve().triggersAt < (currentHp / maxHp * 100) ? superResolve : 0;
                 minHp = superResolveRound2 || minHp;
                 const oldHp = currentHp;
                 currentHp -= specialPing.rawDamage;
