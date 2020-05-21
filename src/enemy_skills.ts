@@ -1925,4 +1925,5 @@ function textifyEnemySkills(enemy: {
 export {
   textifyEnemySkills,
   determineSkillset,
+  toSkillContext,
 };

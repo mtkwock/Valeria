@@ -11,6 +11,7 @@ import { MonsterEditor, ValeriaDisplay, MonsterUpdate, ClassNames } from './temp
 import { debug } from './debugger';
 import { floof } from './ilmina_stripped';
 import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
+import { textifyEnemySkills, textifyEnemySkill, effect as enemyEffect, toSkillContext } from './enemy_skills';
 import { getUrlParameter } from './url_handler';
 
 class Valeria {
@@ -120,6 +121,55 @@ class Valeria {
       this.dungeon.loadDungeon(Number(dungeonId));
     }
     this.display.panes[2].appendChild(this.dungeon.getPane());
+
+    debug.addButton('Print Skills', () => {
+      const enemy = this.dungeon.getActiveEnemy();
+      const id = enemy.id;
+      const skillTexts = textifyEnemySkills({
+        id,
+        atk: enemy.getAtk(),
+      });
+      for (let i = 0; i < skillTexts.length; i++) {
+        debug.print(`${i + 1}: ${skillTexts[i]} `);
+      }
+    });
+
+    debug.addButton('Use Preempt', () => {
+      this.dungeon.useEnemySkill(
+        [], // teamIds
+        this.comboContainer.comboCount(), // combo
+        this.team.getBoardWidth() == 7, // bigBoard
+        true, // isPreempt
+      );
+    });
+
+    debug.addButton('Print next skill', () => {
+      this.dungeon.useEnemySkill(
+        [], // teamIds
+        this.comboContainer.comboCount(), // combo
+        this.team.getBoardWidth() == 7, // bigBoard
+      );
+    });
+
+    this.dungeon.onEnemySkill = (idx, otherIdxs) => {
+      if (idx < 0) {
+        debug.print('No skill to use');
+        return;
+      }
+      const enemy = this.dungeon.getActiveEnemy();
+      if (otherIdxs.length) {
+        debug.print(`  * Not using potential skills: ${otherIdxs}`);
+      }
+      debug.print('** Using the following skill **');
+      debug.print(textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
+      const skillCtx = toSkillContext(enemy.id, idx);
+      enemyEffect(skillCtx, { enemy, team: this.team });
+      enemy.charges -= floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
+      enemy.charges += enemy.getCard().chargeGain;
+      this.dungeon.update(true);
+      this.team.updateState({});
+    }
+
   }
 
   updateMonsterEditor(): void {

@@ -1343,6 +1343,7 @@ export {
   Card,
   CardUiAssets,
   CardAssets,
+  EnemySkill,
   compress,
   decompress,
 };

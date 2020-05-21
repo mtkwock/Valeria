@@ -2,9 +2,9 @@ import { BASE_URL, waitFor, Rational } from './common';
 import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
 import { DungeonPane, DungeonUpdate } from './templates';
-import { textifyEnemySkills, determineSkillset, textifyEnemySkill } from './enemy_skills';
-import { debug } from './debugger';
-import { floof } from './ilmina_stripped';
+import { determineSkillset } from './enemy_skills';
+// import { debug } from './debugger';
+// import { floof } from './ilmina_stripped';
 // import {DungeonEditor} from './templates';
 
 // function createHpEl() {
@@ -166,7 +166,7 @@ request.done((data) => {
         floor.enemies.push({
           id: encounter.enemy_id,
           lv: encounter.level,
-          turnCounter: encounter.turns,
+          // turnCounter: encounter.turns,
         });
       }
       const dungeonInstanceJson: DungeonInstanceJson = {
@@ -218,49 +218,6 @@ class DungeonInstance {
     // Sets all of your monsters to level 1 temporarily.
     this.floors = [new DungeonFloor()];
     this.pane = new DungeonPane(dungeonSearchArray, this.getUpdateFunction());
-
-    debug.addButton('Print Skills', () => {
-      const enemy = this.getActiveEnemy();
-      const id = enemy.id;
-      const skillTexts = textifyEnemySkills({
-        id,
-        atk: enemy.getAtk(),
-      });
-      for (let i = 0; i < skillTexts.length; i++) {
-        debug.print(`${i + 1}: ${skillTexts[i]} `);
-      }
-    });
-
-    debug.addButton('Use Preempt', () => {
-      this.useEnemySkill(
-        [], // teamIds
-        1, // combo
-        true, // bigBoard
-        true, // isPreempt
-      );
-    });
-
-    debug.addButton('Print next skill', () => {
-      this.useEnemySkill(
-        [], // teamIds
-        8, // combo
-        true, // bigBoard
-      );
-    });
-
-    this.onEnemySkill = (idx, otherIdxs) => {
-      if (idx < 0) {
-        debug.print('No skill to use');
-        return;
-      }
-      const enemy = this.getActiveEnemy();
-      if (otherIdxs.length) {
-        debug.print(`  * Not using potential skills: ${otherIdxs}`);
-      }
-      debug.print('** Using the following skill **');
-      debug.print(textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
-      enemy.charges -= floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
-    }
   }
 
   useEnemySkill(teamIds: number[], combo: number, bigBoard: boolean, isPreempt = false, skillIdx = -1): void {
@@ -331,25 +288,51 @@ class DungeonInstance {
           this.deleteFloor(ctx.removeFloor);
         }
       }
-      if (ctx.dungeonHpMultiplier != undefined) {
-        this.hpMultiplier = Rational.from(ctx.dungeonHpMultiplier);
-        this.getActiveEnemy().dungeonMultipliers.hp = this.hpMultiplier;
-      }
-      if (ctx.dungeonAtkMultiplier != undefined) {
-        this.atkMultiplier = Rational.from(ctx.dungeonAtkMultiplier);
-        this.getActiveEnemy().dungeonMultipliers.atk = this.atkMultiplier;
-      }
-      if (ctx.dungeonDefMultiplier != undefined) {
-        this.defMultiplier = Rational.from(ctx.dungeonDefMultiplier);
-        this.getActiveEnemy().dungeonMultipliers.def = this.defMultiplier;
-      }
-      if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
-        // Update other dungeon info about dungeon editor.
-      }
       if (ctx.addEnemy) {
         const floor = this.floors[this.activeFloor];
         floor.addEnemy();
         this.setActiveEnemy(floor.enemies.length - 1);
+      }
+
+      const enemy = this.getActiveEnemy();
+      if (ctx.dungeonHpMultiplier != undefined) {
+        this.hpMultiplier = Rational.from(ctx.dungeonHpMultiplier);
+        enemy.dungeonMultipliers.hp = this.hpMultiplier;
+      }
+      if (ctx.dungeonAtkMultiplier != undefined) {
+        this.atkMultiplier = Rational.from(ctx.dungeonAtkMultiplier);
+        enemy.dungeonMultipliers.atk = this.atkMultiplier;
+      }
+      if (ctx.dungeonDefMultiplier != undefined) {
+        this.defMultiplier = Rational.from(ctx.dungeonDefMultiplier);
+        enemy.dungeonMultipliers.def = this.defMultiplier;
+      }
+      if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
+        // Update other dungeon info about dungeon editor.
+      }
+      if (ctx.hp != undefined) {
+        if (ctx.hp < 0) {
+          ctx.hp = 0;
+        }
+        if (ctx.hp > enemy.getHp()) {
+          ctx.hp = enemy.getHp();
+        }
+        enemy.currentHp = ctx.hp;
+      }
+      if (ctx.hpPercent != undefined) {
+        if (ctx.hpPercent < 0) {
+          ctx.hpPercent = 0;
+        }
+        if (ctx.hpPercent > 100) {
+          ctx.hpPercent = 100;
+        }
+        enemy.currentHp = Math.ceil(enemy.getHp() * ctx.hpPercent / 100);
+      }
+      if (ctx.enrage != undefined) {
+        enemy.attackMultiplier = ctx.enrage;
+      }
+      if (ctx.defBreak != undefined) {
+        enemy.ignoreDefensePercent = ctx.defBreak;
       }
       if (ctx.enemyLevel) {
         this.getActiveEnemy().setLevel(ctx.enemyLevel);
@@ -357,15 +340,14 @@ class DungeonInstance {
       if (ctx.activeEnemyId != undefined) {
         this.getActiveEnemy().id = ctx.activeEnemyId;
       }
-      if (ctx.addTypeResist != undefined) {
-        this.getActiveEnemy().typeResists.push(ctx.addTypeResist);
+      if (ctx.charges != undefined) {
+        enemy.charges = ctx.charges;
       }
-      if (ctx.removeTypeResist != undefined) {
-        if (this.getActiveEnemy().typeResists.includes(ctx.removeTypeResist)) {
-          this.getActiveEnemy().typeResists.splice(
-            this.getActiveEnemy().typeResists.indexOf(ctx.removeTypeResist),
-            1);
-        }
+      if (ctx.counter != undefined) {
+        enemy.counter = ctx.counter;
+      }
+      if (ctx.flags != undefined) {
+        enemy.flags = ctx.flags;
       }
       const updateActiveEnemy = old.floor != this.activeFloor || old.enemy != this.activeEnemy;
       this.update(updateActiveEnemy);
@@ -386,15 +368,31 @@ class DungeonInstance {
       this.hpMultiplier.toString(),
       this.atkMultiplier.toString(),
       this.defMultiplier.toString());
-    this.pane.dungeonEditor.setEnemyStats(
-      enemy.lv,
-      Math.round(this.hpMultiplier.multiply(enemy.getHp())),
-      Math.round(this.atkMultiplier.multiply(enemy.getAtk())),
-      Math.round(this.defMultiplier.multiply(enemy.getDef())),
-      Math.round(enemy.getResolve()),
-      enemy.getTypeResists(),
-      enemy.getAttrResists(),
-    );
+    this.pane.dungeonEditor.setEnemyStats({
+      lv: enemy.lv,
+
+      currentHp: enemy.currentHp,
+      percentHp: enemy.getHpPercent(),
+      hp: Math.round(this.hpMultiplier.multiply(enemy.getHp())),
+
+      baseAtk: enemy.getAtkBase(),
+      enrage: enemy.attackMultiplier,
+      atk: enemy.getAtk(),
+
+      baseDef: enemy.getDefBase(),
+      ignoreDefensePercent: enemy.ignoreDefensePercent,
+      def: enemy.getDef(),
+
+      resolve: Math.round(enemy.getResolve()),
+      superResolve: enemy.getSuperResolve().minHp,
+      typeResists: enemy.getTypeResists(),
+      attrResists: enemy.getAttrResists(),
+
+      maxCharges: enemy.getCard().charges,
+      charges: enemy.charges,
+      counter: enemy.counter,
+      flags: enemy.flags,
+    });
   }
 
   addFloor(): void {
