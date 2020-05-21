@@ -1,4 +1,4 @@
-import { BASE_URL, waitFor, Rational } from './common';
+import { BASE_URL, waitFor, Rational, Attribute, MonsterType } from './common';
 import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
 import { DungeonPane, DungeonUpdate } from './templates';
@@ -220,7 +220,15 @@ class DungeonInstance {
     this.pane = new DungeonPane(dungeonSearchArray, this.getUpdateFunction());
   }
 
-  useEnemySkill(teamIds: number[], combo: number, bigBoard: boolean, isPreempt = false, skillIdx = -1): void {
+  useEnemySkill(
+    teamIds: number[],
+    teamAttrs: Set<Attribute>,
+    teamTypes: Set<MonsterType>,
+    combo: number,
+    bigBoard: boolean,
+    isPreempt = false,
+    skillIdx = -1,
+  ): void {
     const enemy = this.getActiveEnemy();
     const otherSkills = [];
     if (skillIdx < 0) {
@@ -239,6 +247,8 @@ class DungeonInstance {
         combo,
         teamIds,
         bigBoard,
+        teamAttributes: teamAttrs,
+        teamTypes: teamTypes,
       });
       if (possibleEffects.length) {
         const totalWeight = possibleEffects.reduce((total, e) => total + e.chance, 0);

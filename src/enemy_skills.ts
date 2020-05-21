@@ -4,37 +4,39 @@ import { idxsFromBits, AttributeToName, TypeToName, addCommas } from './common';
 import { Team } from './player_team';
 
 interface SkillContext {
-  ai: number,
-  id: number,
-  rnd: number,
+  ai: number;
+  id: number;
+  rnd: number;
 
-  aiArgs: number[],
-  effectId: number,
-  name: string,
-  text: string,
-  skillArgs: number[],
-  ratio: number,
+  aiArgs: number[];
+  effectId: number;
+  name: string;
+  text: string;
+  skillArgs: number[];
+  ratio: number;
 }
 
 interface AiContext {
-  cardId: number,
-  isPreempt: boolean,
-  lv: number,
-  atk: number,
-  attribute: number,
-  hpPercent: number,
-  teamIds: number[],
-  bigBoard: boolean,
+  cardId: number;
+  isPreempt: boolean;
+  lv: number;
+  atk: number;
+  attribute: number;
+  hpPercent: number;
+  teamIds: number[];
+  teamAttributes: Set<number>;
+  teamTypes: Set<number>;
+  bigBoard: boolean;
 
   // If another enemy exists alongside this monster, set to positive.
   // If this is 0, then allows resurrect.
-  otherEnemyHp: number,
+  otherEnemyHp: number;
 
-  combo: number,
+  combo: number;
 
-  charges: number,
-  flags: number,
-  counter: number,
+  charges: number;
+  flags: number;
+  counter: number;
 }
 
 interface GameContext {
@@ -73,10 +75,10 @@ const bindRandom: EnemySkillEffect = {
 };
 
 // 2
-const bindColor: EnemySkillEffect = {
+const bindAttr: EnemySkillEffect = {
   textify: ({ skillArgs }, { atk }) => {
     const [color, min, max] = skillArgs;
-    return `Binds ${AttributeToName.get(color)} monsters for ${min} to ${max} turns. If none exist, hits for ${addCommas(atk)}.`;
+    return `Binds ${AttributeToName.get(color || 0)} monsters for ${min} to ${max} turns. If none exist and part of skillset, hits for ${addCommas(atk)}. Else continue.`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -89,7 +91,7 @@ const bindColor: EnemySkillEffect = {
     console.warn('Bind not yet supported');
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
   },
-  goto: () => TERMINATE,
+  goto: ({ skillArgs }, { teamAttributes }) => teamAttributes.has(skillArgs[0] || 0) ? TERMINATE : TO_NEXT,
 };
 
 // 3
@@ -109,7 +111,7 @@ const bindType: EnemySkillEffect = {
     console.warn('Bind not yet supported');
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
   },
-  goto: () => TERMINATE,
+  goto: ({ skillArgs }, { teamTypes }) => teamTypes.has(skillArgs[0] || 0) ? TERMINATE : TO_NEXT,
 };
 
 // 4
@@ -1152,16 +1154,17 @@ const damageAbsorb: EnemySkillEffect = {
 
 // 88
 const awokenBind: EnemySkillEffect = {
-  textify: ({ skillArgs }) => {
-    return `Awoken Bind for ${skillArgs[0]} turn(s)`;
+  textify: ({ skillArgs }, { atk }) => {
+    return `Awoken Bind for ${skillArgs[0]} turn(s). If awoken bound and part of a skillset, attack for ${addCommas(atk)}, else Continue.`;
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: (_, { team }) => {
+  effect: (_, { team, enemy }) => {
     if (team.state.awakenings) {
       team.state.awakenings = false;
     } else {
       // Should we do a basic attack here?
+      team.damage(enemy.getAtk(), enemy.getAttribute());
     }
   },
   // TODO: If player is awoken bound, this should be TO_NEXT
@@ -1575,7 +1578,7 @@ const playerAtkDebuff: EnemySkillEffect = {
 
 const ENEMY_SKILL_GENERATORS: Record<number, EnemySkillEffect> = {
   1: bindRandom,
-  2: bindColor,
+  2: bindAttr,
   3: bindType,
   4: orbChange,
   5: blindBoard,
@@ -1910,6 +1913,8 @@ export function textifyEnemySkill(enemy: { id: number; atk: number }, idx: numbe
     charges: 0,
     flags: 0,
     counter: 0,
+    teamTypes: new Set(),
+    teamAttributes: new Set(),
   }, toSkillContext(enemy.id, idx));
   return text;
 }

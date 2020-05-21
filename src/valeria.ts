@@ -2,8 +2,9 @@
  * Main File for Valeria.
  */
 
-import { Latent, Attribute, waitFor } from './common';
+import { Latent, Attribute, MonsterType, waitFor } from './common';
 import { ComboContainer } from './combo_container';
+import { DamagePing } from './damage_ping';
 import { DungeonInstance } from './dungeon';
 import { SearchInit } from './fuzzy_search';
 import { Team } from './player_team';
@@ -135,8 +136,19 @@ class Valeria {
     });
 
     debug.addButton('Use Preempt', () => {
+      const attributes = new Set<Attribute>();
+      const types = new Set<MonsterType>();
+      for (const m of this.team.getActiveTeam()) {
+        for (const type of m.getCard().types) {
+          types.add(type);
+        }
+        attributes.add(m.getAttribute());
+        attributes.add(m.getSubattribute());
+      }
       this.dungeon.useEnemySkill(
         this.team.getActiveTeam().map((m) => m.getId()), // teamIds
+        attributes,
+        types,
         this.comboContainer.comboCount(), // combo
         this.team.getBoardWidth() == 7, // bigBoard
         true, // isPreempt
@@ -144,8 +156,19 @@ class Valeria {
     });
 
     debug.addButton('Print next skill', () => {
+      const attributes = new Set<Attribute>();
+      const types = new Set<MonsterType>();
+      for (const m of this.team.getActiveTeam()) {
+        for (const type of m.getCard().types) {
+          types.add(type);
+        }
+        attributes.add(m.getAttribute());
+        attributes.add(m.getSubattribute());
+      }
       this.dungeon.useEnemySkill(
         this.team.getActiveTeam().map((m) => m.getId()), // teamIds
+        attributes,
+        types,
         this.comboContainer.comboCount(), // combo
         this.team.getBoardWidth() == 7, // bigBoard
       );
@@ -190,12 +213,66 @@ class Valeria {
   }
 
   updateDamage(): void {
-    const { pings, healing } = this.team.getDamageCombos(this.comboContainer);
+    let { pings, healing, trueBonusAttack } = this.team.getDamageCombos(this.comboContainer);
+
+    if (!this.dungeon) return;
+    const enemy = this.dungeon.getActiveEnemy();
+    let currentHp = enemy.currentHp;
+    const maxHp = enemy.getHp();
+    let minHp = enemy.getResolve() && enemy.getHpPercent() >= enemy.getResolve() ? 1 : 0;
+    const superResolve = enemy.getSuperResolve().triggersAt >= enemy.getHpPercent() ? enemy.getSuperResolve().minHp * maxHp / 100 : 0;
+    if (superResolve) {
+      minHp = superResolve;
+    }
+    for (const ping of pings) {
+      let oldHp = currentHp;
+      ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.isMultiplayer(), {
+        attributeAbsorb: this.team.state.voidAttributeAbsorb,
+        damageVoid: this.team.state.voidDamageVoid,
+        damageAbsorb: this.team.state.voidDamageAbsorb,
+      });
+
+      currentHp -= ping.rawDamage;
+      if (currentHp < minHp) {
+        currentHp = minHp;
+      }
+      if (currentHp > maxHp) {
+        currentHp = maxHp;
+      }
+
+      ping.actualDamage = oldHp - currentHp;
+    }
+
+    const specialPing = new DamagePing(this.team.getActiveTeam()[0], Attribute.FIXED, false);
+    specialPing.damage = trueBonusAttack;
+    specialPing.isActive = true;
+    specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.isMultiplayer(), {
+      attributeAbsorb: this.team.state.voidAttributeAbsorb,
+      damageVoid: this.team.state.voidDamageVoid,
+      damageAbsorb: this.team.state.voidDamageAbsorb,
+    });
+
+    minHp = enemy.getResolve() && (100 * currentHp / maxHp) >= enemy.getResolve() ? 1 : 0;
+    const superResolveRound2 = enemy.getSuperResolve().triggersAt >= (currentHp / maxHp * 100) ? superResolve : 0;
+    minHp = superResolveRound2 || minHp;
+
+    const oldHp = currentHp;
+    currentHp -= specialPing.rawDamage;
+    if (currentHp < minHp) {
+      currentHp = minHp;
+    }
+    if (currentHp > maxHp) {
+      currentHp = maxHp;
+    }
+    specialPing.actualDamage = oldHp - currentHp;
+    if (specialPing.actualDamage) {
+      pings = [...pings, specialPing];
+    }
+
     this.team.teamPane.updateDamage(
-      pings.map((ping) => ({
-        attribute: ping ? ping.attribute : Attribute.NONE,
-        damage: ping ? ping.damage : 0,
-      })),
+      pings.map((ping) => ({ attribute: ping ? ping.attribute : Attribute.NONE, damage: ping ? ping.damage : 0 })),
+      pings.map((ping) => ({ attribute: ping ? ping.attribute : Attribute.NONE, damage: ping ? ping.rawDamage : 0 })),
+      pings.map((ping) => ({ attribute: ping ? ping.attribute : Attribute.NONE, damage: ping ? ping.actualDamage : 0 })),
       healing,
     );
   }

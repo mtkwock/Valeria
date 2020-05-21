@@ -74,7 +74,7 @@ enum MonsterType {
   ATTACKER = 6,
   DEVIL = 7,
   MACHINE = 8,
-  AWAKENING = 12,
+  AWOKEN = 12,
   ENHANCED = 14,
   REDEEMABLE = 15,
 
@@ -94,7 +94,7 @@ TypeToName.set(MonsterType.GOD, 'God');
 TypeToName.set(MonsterType.ATTACKER, 'Attacker');
 TypeToName.set(MonsterType.DEVIL, 'Devil');
 TypeToName.set(MonsterType.MACHINE, 'Machine');
-TypeToName.set(MonsterType.AWAKENING, 'Awakening');
+TypeToName.set(MonsterType.AWOKEN, 'Awakening');
 TypeToName.set(MonsterType.ENHANCED, 'Enhanced');
 TypeToName.set(MonsterType.REDEEMABLE, 'Redeemable');
 TypeToName.set(MonsterType.NONE, 'None');
@@ -137,7 +137,7 @@ enum Awakening {
   MULTIBOOST = 30,
   DRAGON = 31, GOD = 32, DEVIL = 33, MACHINE = 34,
   BALANCED = 35, ATTACKER = 36, PHYSICAL = 37, HEALER = 38,
-  EVO = 39, AWAKENING = 40, ENHANCED = 41, REDEEMABLE = 42,
+  EVO = 39, AWOKEN = 40, ENHANCED = 41, REDEEMABLE = 42,
   COMBO_7 = 43,
   GUARD_BREAK = 44,
   BONUS_ATTACK = 45,
@@ -158,6 +158,48 @@ enum Awakening {
   HP_MINUS = 65, ATK_MINUS = 66, RCV_MINUS = 67,
   RESIST_BLIND_PLUS = 68, RESIST_JAMMER_PLUS = 69, RESIST_POISON_PLUS = 70,
   JAMMER_BOOST = 71, POISON_BOOST = 72,
+}
+
+const TypeToKiller: Record<MonsterType, Awakening> = {
+  0: Awakening.EVO,
+  1: Awakening.BALANCED,
+  2: Awakening.PHYSICAL,
+  3: Awakening.HEALER,
+  4: Awakening.DRAGON,
+  5: Awakening.GOD,
+  6: Awakening.ATTACKER,
+  7: Awakening.DEVIL,
+  8: Awakening.MACHINE,
+  12: Awakening.AWOKEN,
+  14: Awakening.ENHANCED,
+  15: Awakening.REDEEMABLE,
+  // Unset values.
+  '-1': Awakening.AUTOHEAL,
+  9: Awakening.AUTOHEAL,
+  10: Awakening.AUTOHEAL,
+  11: Awakening.AUTOHEAL,
+  13: Awakening.AUTOHEAL,
+};
+
+const TypeToLatentKiller: Record<MonsterType, Latent> = {
+  0: Latent.EVO,
+  1: Latent.BALANCED,
+  2: Latent.PHYSICAL,
+  3: Latent.HEALER,
+  4: Latent.DRAGON,
+  5: Latent.GOD,
+  6: Latent.ATTACKER,
+  7: Latent.DEVIL,
+  8: Latent.MACHINE,
+  12: Latent.AWOKEN,
+  14: Latent.ENHANCED,
+  15: Latent.REDEEMABLE,
+  // Unset values.
+  '-1': Latent.AUTOHEAL,
+  9: Latent.AUTOHEAL,
+  10: Latent.AUTOHEAL,
+  11: Latent.AUTOHEAL,
+  13: Latent.AUTOHEAL,
 }
 
 const AwakeningToPlusAwakening = new Map<Awakening, Awakening>([
@@ -389,7 +431,7 @@ class Rational {
   }
 }
 
-
+const INT_CAP = 2 ** 31 - 1;
 
 export {
   Attribute,
@@ -405,9 +447,11 @@ export {
   Shape,
   LetterToShape,
   ShapeToLetter,
+  TypeToKiller, TypeToLatentKiller,
   BASE_URL,
   COLORS,
   DEFAULT_CARD,
+  INT_CAP,
   idxsFromBits,
   numberWithCommas,
   Round,

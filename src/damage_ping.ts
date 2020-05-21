@@ -5,6 +5,7 @@ class DamagePing {
   source: MonsterInstance;
   attribute: Attribute;
   isSub: boolean = false;
+  isActive: boolean = false;
   ignoreVoid: boolean = false;
   ignoreDefense: boolean = false;
   damage: number = 0;

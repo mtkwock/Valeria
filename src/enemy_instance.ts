@@ -1,30 +1,7 @@
-import { Attribute, MonsterType, DEFAULT_CARD, idxsFromBits, Rational } from './common';
+import { Attribute, MonsterType, DEFAULT_CARD, idxsFromBits, Rational, TypeToKiller, TypeToLatentKiller, INT_CAP, Awakening } from './common';
 import { floof, Card, EnemySkill } from './ilmina_stripped';
-
-// enum EnemySkillEffect {
-//   NONE = 'None',
-//   // MULTI_HIT: 'multi-hit', // #hits
-//   // GRAVITY: 'gravity', // %Gravity
-//   STATUS_SHIELD = 'Status Shield', // config unused.
-//   DAMAGE_SHIELD = 'Shield', // %shield (e.g. 50, 75)
-//   // SELF_HEAL: 'enemy-heal', // %heal (e.g. 10, 50, 100)
-//   // PLAYER_HEAL: 'player-heal', // %heal
-//   DAMAGE_ABSORB = 'Damage Absorb', // Minimum value absorbed.
-//   ATTRIBUTE_ABSORB = 'Attribute Absorb', // Flags, 1: Fire, 2: Water, 4: Wood, 8: Light, 16: Dark
-//   COMBO_ABSORB = 'Combo Absorb', // Max combos of the absorb.
-//   // ENRAGE: 'enrage', // %Damage (e.g. 150, 200, 1000)
-//   DAMAGE_VOID = 'Damage Void', // Min damage voided
-//   // CLEAR_BUFFS: 'clear', // config unused.
-//   // RCV_BUFF: 'rcv', // Percent RCV (e.g. 0, 25, 50, 300)
-//   // TIME_BUFF_FLAT: 'time-flat', // Time delta (e.g. -5, -2, +1, +5)
-//   // TIME_BUFF_SCALE: 'time-scale', // Time multiplier (e.g. 0.25, 0.5, 3)
-//   // Not supporting.
-//   // ORB_CHANGE: 'orb-change',
-//   // BLIND: 'blind', // Unused config.
-//   // STICKY_BLIND: 'sticky-blind', // Config is [positions], turns
-//   // AWAKENING_BIND: 'awakening-bind',
-// }
-
+import { DamagePing } from './damage_ping';
+import { ComboContainer } from './combo_container';
 
 function calcScaleStat(max: number, min: number, level: number, growth: number): number {
   const diff = max - min;
@@ -33,162 +10,29 @@ function calcScaleStat(max: number, min: number, level: number, growth: number):
   return min + added;
 }
 
-// interface EnemySkillJson {
-//   name?: string;
-//   damagePercent?: number;
-//   effect?: EnemySkillEffect;
-//   config?: number;
-// }
-
-// class EnemySkill {
-//   name: string = '';
-//   effect: EnemySkillEffect = EnemySkillEffect.NONE;
-//   config: number = 0;
-//   damagePercent: number = 0; // If 0, no attack.
-//
-//   // apply(idc, source) {
-//   //   // console.warn('Enemy Skills not handled yet');
-//   //   console.debug(idc);
-//   //   switch(this.effect) {
-//   //     case EnemySkillEffect.NONE:
-//   //       break;
-//   //     case EnemySkillEffect.STATUS_SHIELD:
-//   //       source.statusShield = true;
-//   //       break;
-//   //     case EnemySkillEffect.DAMAGE_SHIELD:
-//   //       source.shieldPercent = this.config;
-//   //       break;
-//   //     case EnemySkillEffect.DAMAGE_ABSORB:
-//   //       source.damageAbsorb = this.config;
-//   //       break;
-//   //     case EnemySkillEffect.ATTRIBUTE_ABSORB:
-//   //       source.attributeAbsorb = idxsFromBits(this.config);
-//   //       break;
-//   //     case EnemySkillEffect.DAMAGE_VOID:
-//   //       source.damageVoid = this.config;
-//   //       break;
-//   //     case EnemySkillEffect.COMBO_ABSORB:
-//   //       source.comboAbsorb = this.config;
-//   //       break;
-//   //     case EnemySkillEffect.ENRAGE:
-//   //       source.enrage = this.config;
-//   //       break;
-//   //     // case EnemySkillEffect.MULTI_HIT:
-//   //     // case EnemySkillEffect.GRAVITY:
-//   //     // case EnemySkillEffect.SELF_HEAL:
-//   //     // case EnemySkillEffect.PLAYER_HEAL:
-//   //     // case EnemySkillEffect.CLEAR_BUFFS:
-//   //     // case EnemySkillEffect.RCV_BUFF:
-//   //     // case EnemySkillEffect.TIME_BUFF_FLAT:
-//   //     // case EnemySkillEffect.TIME_BUFF_SCALE:
-//   //     default:
-//   //       console.warn('Unhandled type: ' + this.effect);
-//   //   }
-//   // }
-//
-//   toJson(): EnemySkillJson {
-//     const obj: EnemySkillJson = {};
-//     if (this.name) {
-//       obj.name = this.name;
-//     }
-//     if (this.effect != EnemySkillEffect.NONE) {
-//       obj.effect = this.effect;
-//     }
-//     if (this.config) {
-//       obj.config = this.config;
-//     }
-//     if (this.damagePercent) {
-//       obj.damagePercent = this.damagePercent;
-//     }
-//     return obj;
-//   }
-//
-//   static fromJson(json: EnemySkillJson): EnemySkill {
-//     const skill = new EnemySkill();
-//     skill.name = skill.name || '';
-//     skill.damagePercent = json.damagePercent || 0;
-//     skill.effect = json.effect || EnemySkillEffect.NONE;
-//     skill.config = json.config || 0;
-//     return skill;
-//   }
-// }
-
-// interface SkillsetJson {
-//   skills?: EnemySkillJson[];
-// }
-
-// class EnemySkillset {
-//   skills: EnemySkill[];
-//   constructor() {
-//     this.skills = [];
-//   }
-//
-//   // TODO
-//   // applySkillset(idc, source) {
-//   //   // console.warn('Enemy skillset application not supported yet.');
-//   //   for (const skill of this.skills) {
-//   //     skill.apply(idc, source);
-//   //   }
-//   // }
-//
-//   toJson(): SkillsetJson {
-//     const obj: SkillsetJson = {};
-//     if (this.skills.length) {
-//       obj.skills = this.skills.map((skill) => skill.toJson());
-//     }
-//     return obj;
-//   }
-//
-//   static fromJson(json: SkillsetJson): EnemySkillset {
-//     const skillset = new EnemySkillset();
-//     skillset.skills = (json.skills || []).map((j) => EnemySkill.fromJson(j));
-//     return skillset;
-//   }
-// }
-
-// function attributeMultiplier(attacker, defender) {
-//   if (attacker == 0 && defender == 1) {
-//     return 0.5;
-//   } else if (attacker == 0 && defender == 2) {
-//     return 2;
-//   } else if (attacker == 1 && defender == 2) {
-//     return 0.5;
-//   } else if (attacker == 1 && defender == 0) {
-//     return 2;
-//   } else if (attacker == 2 && defender == 0) {
-//     return 0.5;
-//   } else if (attacker == 2 && defender == 1) {
-//     return 2;
-//   } else if (attacker == 3 && defender == 4) {
-//     return 2;
-//   } else if (attacker == 4 && defender == 3) {
-//     return 2;
-//   }
-//   return 1;
-// }
-
 interface EnemyInstanceJson {
   id?: number,
   lv?: number,
-  // hp?: number,
-  // attack?: number,
-  // defense?: number,
-  // resolvePercent?: number,
-  // attributesResisted?: Attribute[],
-  // typeResists?: MonsterType[],
-  // turnCounter?: number,
 }
+
+const Advantage: Record<number, Attribute> = {
+  0: 2,
+  1: 0,
+  2: 1,
+  3: 4,
+  4: 3,
+};
+
+const Disadvantage: Record<number, Attribute> = {
+  0: 1,
+  1: 2,
+  2: 0,
+};
 
 class EnemyInstance {
   id: number = 4014;
   lv: number = 10;
   hp: number = -1;
-  // attack: number = -1;
-  // defense: number = -1;
-  // resolvePercent: number = 0;
-  // attributesResisted: Attribute[];
-  // typeResists: MonsterType[];
-  // turnCounter: number = 0; // Currently unused.
 
   // Used for determining moveset.
   charges = 0;
@@ -223,12 +67,6 @@ class EnemyInstance {
   }
 
   constructor() {
-    // Passives that are always applied
-    // this.attributesResisted = [];
-    // this.typeResists = [];
-    // this.preemptiveSkillset = new EnemySkillset(); // Used when loading the monster.
-    // this.skillsets = [];
-    // this.attributeAbsorb = [];
   }
 
   setLevel(lv: number) {
@@ -352,72 +190,79 @@ class EnemyInstance {
     return this.currentAttribute;
   }
 
-  // calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
-  //   let currentDamage = ping.amount;
-  //   const types = floof.model.cards[this.id] ? floof.model.cards[this.id].types : [];
-  //   // Attribute Advantage
-  //   currentDamage *= attributeMultiplier(ping.attribute, this.getAttribute());
-  //   currentDamage = Math.ceil(currentDamage);
-  //
-  //   if (!ping.isActive) {
-  //     // Killers
-  //     const killerCount = ping.source.getAwakenings(isMultiplayer, new Set(types.map((type) => TypeToKiller[type]))).length;
-  //     currentDamage *= (3 ** killerCount);
-  //
-  //     // Latent Killers
-  //     const validLatents = types.map((type) => TypeToLatent[type]);
-  //     const latentCount = ping.source.latents.filter((latent) => validLatents.includes(latent)).length;
-  //     currentDamage *= (1.5 ** latentCount);
-  //     currentDamage = Math.ceil(currentDamage);
-  //     if (currentDamage >= 2147483648) {
-  //       currentDamage = 2147483647;
-  //     }
-  //   }
-  //
-  //   if (ping.attribute != -1) {
-  //     // Innate Resists (e.g. attribute and type)
-  //     if (this.attributesResisted.includes(ping.attribute)) {
-  //       currentDamage *= 0.5;
-  //       currentDamage = Math.ceil(currentDamage);
-  //     }
-  //     if (this.typeResists.some((type) => ping.source.getCard().types.includes(type))) {
-  //       currentDamage *= 0.5;
-  //       currentDamage = Math.ceil(currentDamage);
-  //     }
-  //
-  //     // Shield
-  //     currentDamage = currentDamage * (100 - this.shieldPercent) / 100
-  //     currentDamage = Math.ceil(currentDamage);
-  //
-  //     // Defense + Guard Break, Damage afterward is minimum 1.
-  //     if ((ping.source.countAwakening(Awakening.GUARD_BREAK) == 0 ||
-  //             (new Set(pings.map((ping) => ping.attribute))).size < 5)) {
-  //       const defense = this.defense * (100 - this.ignoreDefensePercent) / 100;
-  //       currentDamage -= defense;
-  //       currentDamage = Math.ceil(currentDamage);
-  //
-  //       currentDamage = Math.max(currentDamage, 1);
-  //     }
-  //   }
-  //
-  //   // Void
-  //   if (this.damageVoid
-  //       && currentDamage > this.damageVoid
-  //       && !voids.damageVoid
-  //       && (!(COLORS[ping.attribute] in comboContainer.combos) ||
-  //           comboContainer.combos[COLORS[ping.attribute]].every((combo) => combo.shape != Shape.BOX))) {
-  //     currentDamage = 0;
-  //   }
-  //
-  //   // Absorbs
-  //   if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb ||
-  //       this.damageAbsorb && currentDamage >= this.damageAbsorb && !voids.damageAbsorb ||
-  //       this.comboAbsorb && comboContainer.comboCount() <= this.comboAbsorb && !ping.isActive) {
-  //     currentDamage *= -1;
-  //   }
-  //
-  //   return currentDamage;
-  // }
+  calcDamage(
+    ping: DamagePing,
+    pings: DamagePing[],
+    comboContainer: ComboContainer,
+    isMultiplayer: boolean,
+    voids: { attributeAbsorb: boolean; damageAbsorb: boolean; damageVoid: boolean }): number {
+
+    let currentDamage = ping.damage;
+
+    // Handle Attribute (dis)advantage
+    if (Advantage[ping.attribute] == this.getAttribute()) {
+      currentDamage *= 2;
+    } else if (Disadvantage[ping.attribute] == this.getAttribute()) {
+      currentDamage = Math.ceil(currentDamage / 2);
+    }
+
+    // Handle killers.
+    const types: MonsterType[] = floof.model.cards[this.id] ? floof.model.cards[this.id].types : [];
+    if (!ping.isActive) {
+      let killerCount = 0;
+      let latentCount = 0;
+      for (const type of types) {
+        killerCount += ping.source.countAwakening(TypeToKiller[type], isMultiplayer);
+        latentCount += ping.source.latents.filter((latent) => latent == TypeToLatentKiller[type]).length;
+      }
+      currentDamage *= (3 ** killerCount);
+      currentDamage *= (1.5 ** latentCount);
+      currentDamage = Math.min(currentDamage, INT_CAP);
+    }
+
+    if (ping.attribute != Attribute.FIXED) {
+      // Handle resisted Attributes and Types
+      const attrResists = this.getAttrResists();
+      if (attrResists.attrs.includes(ping.attribute)) {
+        currentDamage *= (100 - attrResists.percent) / 100;
+      }
+      const typeResists = this.getTypeResists();
+      if (ping.source.anyTypes(typeResists.types)) {
+        currentDamage *= (100 - typeResists.percent) / 100;
+      }
+      currentDamage = Math.ceil(currentDamage);
+
+      // Handle Defense
+      if (!ping.source.countAwakening(Awakening.GUARD_BREAK) ||
+        new Set(pings.filter((p) => p.damage).map((p) => p.attribute)).size < 5) {
+        currentDamage -= this.getDef();
+        currentDamage = Math.max(currentDamage, 1);
+      }
+
+      // Handle Shield
+      if (this.shieldPercent) {
+        currentDamage *= (100 - this.shieldPercent) / 100;
+        currentDamage = Math.ceil(currentDamage);
+      }
+    }
+
+    // Handle void
+    if (this.damageVoid && currentDamage >= this.damageVoid &&
+      !ping.ignoreVoid && !voids.damageVoid) {
+      currentDamage = 0;
+    }
+
+    // Handle Absorbs
+    if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb) {
+      currentDamage *= -1;
+    } else if (this.damageAbsorb && currentDamage >= this.damageAbsorb && !voids.damageAbsorb) {
+      currentDamage *= -1;
+    } else if (this.comboAbsorb && !ping.isActive && comboContainer.comboCount() <= this.comboAbsorb) {
+      currentDamage *= -1;
+    }
+
+    return currentDamage;
+  }
 
   setId(id: number): void {
     if (!(id in floof.model.cards)) {
@@ -476,36 +321,6 @@ class EnemyInstance {
     if (this.lv != 10) {
       obj.lv = this.lv;
     }
-    // if (this.hp > 0) {
-    //   obj.hp = this.hp;
-    // }
-    // if (this.attack > 0) {
-    //   obj.attack = this.attack;
-    // }
-    // if (this.defense >= 0) {
-    //   obj.defense = this.defense;
-    // }
-    // if (this.resolvePercent > 0) {
-    //   obj.resolvePercent = this.resolvePercent;
-    // }
-    // if (this.attributesResisted.length) {
-    //   obj.attributesResisted = [...this.attributesResisted];
-    // }
-    // if (this.typeResists.length) {
-    //   obj.typeResists = [...this.typeResists];
-    // }
-    // if (this.preemptiveSkillset) {
-    //   const preemptiveJson = this.preemptiveSkillset.toJson();
-    //   if (preemptiveJson.skills && preemptiveJson.skills.length) {
-    //     obj.preemptiveSkillset = preemptiveJson;
-    //   }
-    // }
-    // if (this.skillsets.length) {
-    //   obj.skillsets = this.skillsets.map((skillset) => skillset.toJson());
-    // }
-    // if (this.turnCounter != 1) {
-    //   obj.turnCounter = this.turnCounter;
-    // }
     return obj;
   }
 
@@ -513,24 +328,6 @@ class EnemyInstance {
     const enemy = new EnemyInstance();
     enemy.id = Number(json.id) || -1;
     enemy.lv = Number(json.lv) || 10;
-    // if (enemy.id in floof.model.cards) {
-    //   // TODO: Preload Card with this information.
-    //   enemy.hp = Number(json.hp) || -1;
-    //   enemy.attack = Number(json.attack) || -1;
-    //   enemy.defense = Number(json.defense) || -1;
-    // } else {
-    //   enemy.hp = Number(json.hp) || 1;
-    //   enemy.attack = Number(json.attack) || 1;
-    //   enemy.defense = Number(json.defense) || 0;
-    // }
-    // enemy.resolvePercent = Number(json.resolvePercent) || 0;
-    // enemy.attributesResisted = (json.attributesResisted || []).map((a) => Number(a));
-    // enemy.typeResists = (json.typeResists || []).map((a) => Number(a));
-    // // enemy.preemptiveSkillset = json.preemptiveSkillset ?
-    // //   EnemySkillset.fromJson(json.preemptiveSkillset) : new EnemySkillset();
-    // // enemy.skillsets = (json.skillsets || []).map(
-    // //   (skillsetJson) => EnemySkillset.fromJson(skillsetJson));
-    // enemy.turnCounter = json.turnCounter || 1;
     enemy.reset();
     return enemy;
   }

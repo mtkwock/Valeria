@@ -1812,6 +1812,11 @@ class TeamPane {
   private leadSwapInput = create('select') as HTMLSelectElement;
   private voidEls: LayeredAsset[] = [];
   private pingCells: HTMLTableCellElement[] = [];
+  private bonusPing = create('tr') as HTMLTableRowElement;
+  private rawPingCells: HTMLTableCellElement[] = [];
+  private rawBonusPing = create('tr') as HTMLTableRowElement;
+  private actualPingCells: HTMLTableCellElement[] = [];
+  private actualBonusPing = create('tr') as HTMLTableRowElement;
   private hpDamage: HTMLSpanElement = create('span') as HTMLSpanElement;
 
   constructor(
@@ -2118,24 +2123,53 @@ class TeamPane {
     const damageTable = create('table', ClassNames.DAMAGE_TABLE) as HTMLTableElement;
     const mainRow = create('tr') as HTMLTableRowElement;
     const subRow = create('tr') as HTMLTableRowElement;
+    const rawMainRow = create('tr') as HTMLTableRowElement;
+    const rawSubRow = create('tr') as HTMLTableRowElement;
+    const actualMainRow = create('tr') as HTMLTableRowElement;
+    const actualSubRow = create('tr') as HTMLTableRowElement;
 
     this.pingCells = Array(12);
+    this.rawPingCells = Array(12);
+    this.actualPingCells = Array(1);
 
     for (let i = 0; i < 6; i++) {
       const mainPingCell = create('td') as HTMLTableCellElement;
       const subPingCell = create('td') as HTMLTableCellElement;
+      const rawMainPingCell = create('td') as HTMLTableCellElement;
+      const rawSubPingCell = create('td') as HTMLTableCellElement;
+      const actualMainPingCell = create('td') as HTMLTableCellElement;
+      const actualSubPingCell = create('td') as HTMLTableCellElement;
 
       mainPingCell.id = `valeria-ping-main-${i}`;
       subPingCell.id = `valeria-ping-sub-${i}`;
+      rawMainPingCell.id = `valeria-ping-raw-main-${i}`;
+      rawSubPingCell.id = `valeria-ping-raw-sub-${i}`;
+      actualMainPingCell.id = `valeria-ping-actual-main-${i}`;
+      actualSubPingCell.id = `valeria-ping-actual-sub-${i}`;
 
       mainRow.appendChild(mainPingCell);
       subRow.appendChild(subPingCell);
+      rawMainRow.appendChild(rawMainPingCell);
+      rawSubRow.appendChild(rawSubPingCell);
+      actualMainRow.appendChild(actualMainPingCell);
+      actualSubRow.appendChild(actualSubPingCell);
       this.pingCells[i] = mainPingCell;
       this.pingCells[i + 6] = subPingCell;
+      this.rawPingCells[i] = rawMainPingCell;
+      this.rawPingCells[i + 6] = rawSubPingCell;
+      this.actualPingCells[i] = actualMainPingCell;
+      this.actualPingCells[i + 6] = actualSubPingCell;
     }
 
     damageTable.appendChild(mainRow);
     damageTable.appendChild(subRow);
+    damageTable.appendChild(this.bonusPing);
+    damageTable.appendChild(rawMainRow);
+    damageTable.appendChild(rawSubRow);
+    damageTable.appendChild(this.rawBonusPing);
+    damageTable.appendChild(actualMainRow);
+    damageTable.appendChild(actualSubRow);
+    damageTable.appendChild((this.actualBonusPing));
     this.battleEl.appendChild(damageTable);
   }
 
@@ -2194,11 +2228,34 @@ class TeamPane {
     this.fixedHpInput.value = addCommas(teamBattle.fixedHp);
   }
 
-  updateDamage(pings: { attribute: Attribute; damage: number }[], healing: number): void {
+  updateDamage(
+    pings: { attribute: Attribute; damage: number }[],
+    rawPings: { attribute: Attribute; damage: number }[],
+    actualPings: { attribute: Attribute; damage: number }[],
+    healing: number): void {
     for (let i = 0; i < 12; i++) {
-      const { attribute, damage } = pings[i];
-      this.pingCells[i].innerText = addCommas(damage);
-      this.pingCells[i].style.color = AttributeToFontColor[attribute];
+      this.pingCells[i].innerText = addCommas(pings[i].damage);
+      this.pingCells[i].style.color = AttributeToFontColor[pings[i].attribute];
+
+      this.rawPingCells[i].innerText = addCommas(rawPings[i].damage);
+      this.rawPingCells[i].style.color = AttributeToFontColor[rawPings[i].attribute];
+
+      this.actualPingCells[i].innerText = addCommas(actualPings[i].damage);
+      this.actualPingCells[i].style.color = AttributeToFontColor[actualPings[i].attribute];
+    }
+    if (pings.length > 12) {
+      this.bonusPing.innerText = addCommas(pings[12].damage);
+      this.bonusPing.style.color = AttributeToFontColor[pings[12].attribute];
+
+      this.rawBonusPing.innerText = addCommas(rawPings[12].damage);
+      this.rawBonusPing.style.color = AttributeToFontColor[rawPings[12].attribute];
+
+      this.actualBonusPing.innerText = addCommas(actualPings[12].damage);
+      this.actualBonusPing.style.color = AttributeToFontColor[actualPings[12].attribute];
+    } else {
+      this.bonusPing.innerText = '';
+      this.rawBonusPing.innerText = '';
+      this.actualBonusPing.innerText = '';
     }
     this.hpDamage.innerText = `+${addCommas(healing)}`;
   }
