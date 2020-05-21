@@ -116,11 +116,20 @@ class EnemyInstance {
     return Math.ceil(defMultiplier * this.getDefBase());
   }
 
-  // TODO:
   getSuperResolve(): { minHp: number; triggersAt: number } {
+    const superResolveSkills = this.getEnemySkills(129);
+    if (!superResolveSkills.length) {
+      return {
+        minHp: 0,
+        triggersAt: 0,
+      };
+    }
+    if (superResolveSkills.length > 1) {
+      console.warn('Multiple super resolve skills detected.  Only using first.');
+    }
     return {
-      minHp: 0,
-      triggersAt: 0,
+      minHp: superResolveSkills[0].skillArgs[0],
+      triggersAt: superResolveSkills[0].skillArgs[1],
     };
   }
 
@@ -198,6 +207,9 @@ class EnemyInstance {
     voids: { attributeAbsorb: boolean; damageAbsorb: boolean; damageVoid: boolean }): number {
 
     let currentDamage = ping.damage;
+    if (!currentDamage) {
+      return 0;
+    }
 
     // Handle Attribute (dis)advantage
     if (Advantage[ping.attribute] == this.getAttribute()) {

@@ -220,7 +220,7 @@ class Valeria {
     let currentHp = enemy.currentHp;
     const maxHp = enemy.getHp();
     let minHp = enemy.getResolve() && enemy.getHpPercent() >= enemy.getResolve() ? 1 : 0;
-    const superResolve = enemy.getSuperResolve().triggersAt >= enemy.getHpPercent() ? enemy.getSuperResolve().minHp * maxHp / 100 : 0;
+    const superResolve = enemy.getSuperResolve().triggersAt <= enemy.getHpPercent() ? enemy.getSuperResolve().minHp * maxHp / 100 : 0;
     if (superResolve) {
       minHp = superResolve;
     }
@@ -253,7 +253,7 @@ class Valeria {
     });
 
     minHp = enemy.getResolve() && (100 * currentHp / maxHp) >= enemy.getResolve() ? 1 : 0;
-    const superResolveRound2 = enemy.getSuperResolve().triggersAt >= (currentHp / maxHp * 100) ? superResolve : 0;
+    const superResolveRound2 = enemy.getSuperResolve().triggersAt <= (currentHp / maxHp * 100) ? superResolve : 0;
     minHp = superResolveRound2 || minHp;
 
     const oldHp = currentHp;
