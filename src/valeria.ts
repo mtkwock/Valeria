@@ -155,7 +155,7 @@ class Valeria {
       );
     });
 
-    debug.addButton('Print next skill', () => {
+    debug.addButton('Use Next Skill', () => {
       const attributes = new Set<Attribute>();
       const types = new Set<MonsterType>();
       for (const m of this.team.getActiveTeam()) {
