@@ -1443,7 +1443,7 @@
             MonsterType[MonsterType["ATTACKER"] = 6] = "ATTACKER";
             MonsterType[MonsterType["DEVIL"] = 7] = "DEVIL";
             MonsterType[MonsterType["MACHINE"] = 8] = "MACHINE";
-            MonsterType[MonsterType["AWAKENING"] = 12] = "AWAKENING";
+            MonsterType[MonsterType["AWOKEN"] = 12] = "AWOKEN";
             MonsterType[MonsterType["ENHANCED"] = 14] = "ENHANCED";
             MonsterType[MonsterType["REDEEMABLE"] = 15] = "REDEEMABLE";
             MonsterType[MonsterType["UNKNOWN_1"] = 9] = "UNKNOWN_1";
@@ -1463,7 +1463,7 @@
         TypeToName.set(MonsterType.ATTACKER, 'Attacker');
         TypeToName.set(MonsterType.DEVIL, 'Devil');
         TypeToName.set(MonsterType.MACHINE, 'Machine');
-        TypeToName.set(MonsterType.AWAKENING, 'Awakening');
+        TypeToName.set(MonsterType.AWOKEN, 'Awakening');
         TypeToName.set(MonsterType.ENHANCED, 'Enhanced');
         TypeToName.set(MonsterType.REDEEMABLE, 'Redeemable');
         TypeToName.set(MonsterType.NONE, 'None');
@@ -1545,7 +1545,7 @@
             Awakening[Awakening["PHYSICAL"] = 37] = "PHYSICAL";
             Awakening[Awakening["HEALER"] = 38] = "HEALER";
             Awakening[Awakening["EVO"] = 39] = "EVO";
-            Awakening[Awakening["AWAKENING"] = 40] = "AWAKENING";
+            Awakening[Awakening["AWOKEN"] = 40] = "AWOKEN";
             Awakening[Awakening["ENHANCED"] = 41] = "ENHANCED";
             Awakening[Awakening["REDEEMABLE"] = 42] = "REDEEMABLE";
             Awakening[Awakening["COMBO_7"] = 43] = "COMBO_7";
@@ -1580,6 +1580,48 @@
             Awakening[Awakening["POISON_BOOST"] = 72] = "POISON_BOOST";
         })(Awakening || (Awakening = {}));
         exports.Awakening = Awakening;
+        const TypeToKiller = {
+            0: Awakening.EVO,
+            1: Awakening.BALANCED,
+            2: Awakening.PHYSICAL,
+            3: Awakening.HEALER,
+            4: Awakening.DRAGON,
+            5: Awakening.GOD,
+            6: Awakening.ATTACKER,
+            7: Awakening.DEVIL,
+            8: Awakening.MACHINE,
+            12: Awakening.AWOKEN,
+            14: Awakening.ENHANCED,
+            15: Awakening.REDEEMABLE,
+            // Unset values.
+            '-1': Awakening.AUTOHEAL,
+            9: Awakening.AUTOHEAL,
+            10: Awakening.AUTOHEAL,
+            11: Awakening.AUTOHEAL,
+            13: Awakening.AUTOHEAL,
+        };
+        exports.TypeToKiller = TypeToKiller;
+        const TypeToLatentKiller = {
+            0: Latent.EVO,
+            1: Latent.BALANCED,
+            2: Latent.PHYSICAL,
+            3: Latent.HEALER,
+            4: Latent.DRAGON,
+            5: Latent.GOD,
+            6: Latent.ATTACKER,
+            7: Latent.DEVIL,
+            8: Latent.MACHINE,
+            12: Latent.AWOKEN,
+            14: Latent.ENHANCED,
+            15: Latent.REDEEMABLE,
+            // Unset values.
+            '-1': Latent.AUTOHEAL,
+            9: Latent.AUTOHEAL,
+            10: Latent.AUTOHEAL,
+            11: Latent.AUTOHEAL,
+            13: Latent.AUTOHEAL,
+        };
+        exports.TypeToLatentKiller = TypeToLatentKiller;
         const AwakeningToPlusAwakening = new Map([
             [Awakening.SKILL_BOOST, Awakening.SKILL_BOOST_PLUS],
             [Awakening.TIME, Awakening.TIME_PLUS],
@@ -1799,6 +1841,8 @@
         }
         exports.Rational = Rational;
         Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
+        const INT_CAP = 2 ** 31 - 1;
+        exports.INT_CAP = INT_CAP;
     });
     define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_1, ilmina_stripped_2) {
         "use strict";
@@ -3668,6 +3712,11 @@
                 this.leadSwapInput = create('select');
                 this.voidEls = [];
                 this.pingCells = [];
+                this.bonusPing = create('tr');
+                this.rawPingCells = [];
+                this.rawBonusPing = create('tr');
+                this.actualPingCells = [];
+                this.actualBonusPing = create('tr');
                 this.hpDamage = create('span');
                 this.onTeamUpdate = onTeamUpdate;
                 const teamTab = this.metaTabs.getTab('Team');
@@ -3922,19 +3971,48 @@
                 const damageTable = create('table', ClassNames.DAMAGE_TABLE);
                 const mainRow = create('tr');
                 const subRow = create('tr');
+                const rawMainRow = create('tr');
+                const rawSubRow = create('tr');
+                const actualMainRow = create('tr');
+                const actualSubRow = create('tr');
                 this.pingCells = Array(12);
+                this.rawPingCells = Array(12);
+                this.actualPingCells = Array(1);
                 for (let i = 0; i < 6; i++) {
                     const mainPingCell = create('td');
                     const subPingCell = create('td');
+                    const rawMainPingCell = create('td');
+                    const rawSubPingCell = create('td');
+                    const actualMainPingCell = create('td');
+                    const actualSubPingCell = create('td');
                     mainPingCell.id = `valeria-ping-main-${i}`;
                     subPingCell.id = `valeria-ping-sub-${i}`;
+                    rawMainPingCell.id = `valeria-ping-raw-main-${i}`;
+                    rawSubPingCell.id = `valeria-ping-raw-sub-${i}`;
+                    actualMainPingCell.id = `valeria-ping-actual-main-${i}`;
+                    actualSubPingCell.id = `valeria-ping-actual-sub-${i}`;
                     mainRow.appendChild(mainPingCell);
                     subRow.appendChild(subPingCell);
+                    rawMainRow.appendChild(rawMainPingCell);
+                    rawSubRow.appendChild(rawSubPingCell);
+                    actualMainRow.appendChild(actualMainPingCell);
+                    actualSubRow.appendChild(actualSubPingCell);
                     this.pingCells[i] = mainPingCell;
                     this.pingCells[i + 6] = subPingCell;
+                    this.rawPingCells[i] = rawMainPingCell;
+                    this.rawPingCells[i + 6] = rawSubPingCell;
+                    this.actualPingCells[i] = actualMainPingCell;
+                    this.actualPingCells[i + 6] = actualSubPingCell;
                 }
                 damageTable.appendChild(mainRow);
                 damageTable.appendChild(subRow);
+                damageTable.appendChild(this.bonusPing);
+                damageTable.appendChild(rawMainRow);
+                damageTable.appendChild(rawSubRow);
+                damageTable.appendChild(this.rawBonusPing);
+                damageTable.appendChild(actualMainRow);
+                damageTable.appendChild(actualSubRow);
+                damageTable.appendChild((this.actualBonusPing));
                 this.battleEl.appendChild(damageTable);
             }
             // TODO
@@ -3988,11 +4066,27 @@
                 this.fixedHpEl.setActive(teamBattle.fixedHp > 0);
                 this.fixedHpInput.value = common_2.addCommas(teamBattle.fixedHp);
             }
-            updateDamage(pings, healing) {
+            updateDamage(pings, rawPings, actualPings, healing) {
                 for (let i = 0; i < 12; i++) {
-                    const { attribute, damage } = pings[i];
-                    this.pingCells[i].innerText = common_2.addCommas(damage);
-                    this.pingCells[i].style.color = common_2.AttributeToFontColor[attribute];
+                    this.pingCells[i].innerText = common_2.addCommas(pings[i].damage);
+                    this.pingCells[i].style.color = common_2.AttributeToFontColor[pings[i].attribute];
+                    this.rawPingCells[i].innerText = common_2.addCommas(rawPings[i].damage);
+                    this.rawPingCells[i].style.color = common_2.AttributeToFontColor[rawPings[i].attribute];
+                    this.actualPingCells[i].innerText = common_2.addCommas(actualPings[i].damage);
+                    this.actualPingCells[i].style.color = common_2.AttributeToFontColor[actualPings[i].attribute];
+                }
+                if (pings.length > 12) {
+                    this.bonusPing.innerText = common_2.addCommas(pings[12].damage);
+                    this.bonusPing.style.color = common_2.AttributeToFontColor[pings[12].attribute];
+                    this.rawBonusPing.innerText = common_2.addCommas(rawPings[12].damage);
+                    this.rawBonusPing.style.color = common_2.AttributeToFontColor[rawPings[12].attribute];
+                    this.actualBonusPing.innerText = common_2.addCommas(actualPings[12].damage);
+                    this.actualBonusPing.style.color = common_2.AttributeToFontColor[actualPings[12].attribute];
+                }
+                else {
+                    this.bonusPing.innerText = '';
+                    this.rawBonusPing.innerText = '';
+                    this.actualBonusPing.innerText = '';
                 }
                 this.hpDamage.innerText = `+${common_2.addCommas(healing)}`;
             }
@@ -5655,6 +5749,7 @@
         class DamagePing {
             constructor(source, attribute, isSub = false) {
                 this.isSub = false;
+                this.isActive = false;
                 this.ignoreVoid = false;
                 this.ignoreDefense = false;
                 this.damage = 0;
@@ -7890,46 +7985,29 @@
     define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_8, ilmina_stripped_7) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        // enum EnemySkillEffect {
-        //   NONE = 'None',
-        //   // MULTI_HIT: 'multi-hit', // #hits
-        //   // GRAVITY: 'gravity', // %Gravity
-        //   STATUS_SHIELD = 'Status Shield', // config unused.
-        //   DAMAGE_SHIELD = 'Shield', // %shield (e.g. 50, 75)
-        //   // SELF_HEAL: 'enemy-heal', // %heal (e.g. 10, 50, 100)
-        //   // PLAYER_HEAL: 'player-heal', // %heal
-        //   DAMAGE_ABSORB = 'Damage Absorb', // Minimum value absorbed.
-        //   ATTRIBUTE_ABSORB = 'Attribute Absorb', // Flags, 1: Fire, 2: Water, 4: Wood, 8: Light, 16: Dark
-        //   COMBO_ABSORB = 'Combo Absorb', // Max combos of the absorb.
-        //   // ENRAGE: 'enrage', // %Damage (e.g. 150, 200, 1000)
-        //   DAMAGE_VOID = 'Damage Void', // Min damage voided
-        //   // CLEAR_BUFFS: 'clear', // config unused.
-        //   // RCV_BUFF: 'rcv', // Percent RCV (e.g. 0, 25, 50, 300)
-        //   // TIME_BUFF_FLAT: 'time-flat', // Time delta (e.g. -5, -2, +1, +5)
-        //   // TIME_BUFF_SCALE: 'time-scale', // Time multiplier (e.g. 0.25, 0.5, 3)
-        //   // Not supporting.
-        //   // ORB_CHANGE: 'orb-change',
-        //   // BLIND: 'blind', // Unused config.
-        //   // STICKY_BLIND: 'sticky-blind', // Config is [positions], turns
-        //   // AWAKENING_BIND: 'awakening-bind',
-        // }
         function calcScaleStat(max, min, level, growth) {
             const diff = max - min;
             const frac = (level - 1) / 9;
             const added = Math.round(Math.pow(frac, growth) * diff);
             return min + added;
         }
+        const Advantage = {
+            0: 2,
+            1: 0,
+            2: 1,
+            3: 4,
+            4: 3,
+        };
+        const Disadvantage = {
+            0: 1,
+            1: 2,
+            2: 0,
+        };
         class EnemyInstance {
             constructor() {
                 this.id = 4014;
                 this.lv = 10;
                 this.hp = -1;
-                // attack: number = -1;
-                // defense: number = -1;
-                // resolvePercent: number = 0;
-                // attributesResisted: Attribute[];
-                // typeResists: MonsterType[];
-                // turnCounter: number = 0; // Currently unused.
                 // Used for determining moveset.
                 this.charges = 0;
                 this.flags = 0;
@@ -7958,12 +8036,6 @@
                     atk: new common_8.Rational(),
                     def: new common_8.Rational(),
                 };
-                // Passives that are always applied
-                // this.attributesResisted = [];
-                // this.typeResists = [];
-                // this.preemptiveSkillset = new EnemySkillset(); // Used when loading the monster.
-                // this.skillsets = [];
-                // this.attributeAbsorb = [];
             }
             setLevel(lv) {
                 this.lv = lv;
@@ -8057,72 +8129,68 @@
                 }
                 return this.currentAttribute;
             }
-            // calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
-            //   let currentDamage = ping.amount;
-            //   const types = floof.model.cards[this.id] ? floof.model.cards[this.id].types : [];
-            //   // Attribute Advantage
-            //   currentDamage *= attributeMultiplier(ping.attribute, this.getAttribute());
-            //   currentDamage = Math.ceil(currentDamage);
-            //
-            //   if (!ping.isActive) {
-            //     // Killers
-            //     const killerCount = ping.source.getAwakenings(isMultiplayer, new Set(types.map((type) => TypeToKiller[type]))).length;
-            //     currentDamage *= (3 ** killerCount);
-            //
-            //     // Latent Killers
-            //     const validLatents = types.map((type) => TypeToLatent[type]);
-            //     const latentCount = ping.source.latents.filter((latent) => validLatents.includes(latent)).length;
-            //     currentDamage *= (1.5 ** latentCount);
-            //     currentDamage = Math.ceil(currentDamage);
-            //     if (currentDamage >= 2147483648) {
-            //       currentDamage = 2147483647;
-            //     }
-            //   }
-            //
-            //   if (ping.attribute != -1) {
-            //     // Innate Resists (e.g. attribute and type)
-            //     if (this.attributesResisted.includes(ping.attribute)) {
-            //       currentDamage *= 0.5;
-            //       currentDamage = Math.ceil(currentDamage);
-            //     }
-            //     if (this.typeResists.some((type) => ping.source.getCard().types.includes(type))) {
-            //       currentDamage *= 0.5;
-            //       currentDamage = Math.ceil(currentDamage);
-            //     }
-            //
-            //     // Shield
-            //     currentDamage = currentDamage * (100 - this.shieldPercent) / 100
-            //     currentDamage = Math.ceil(currentDamage);
-            //
-            //     // Defense + Guard Break, Damage afterward is minimum 1.
-            //     if ((ping.source.countAwakening(Awakening.GUARD_BREAK) == 0 ||
-            //             (new Set(pings.map((ping) => ping.attribute))).size < 5)) {
-            //       const defense = this.defense * (100 - this.ignoreDefensePercent) / 100;
-            //       currentDamage -= defense;
-            //       currentDamage = Math.ceil(currentDamage);
-            //
-            //       currentDamage = Math.max(currentDamage, 1);
-            //     }
-            //   }
-            //
-            //   // Void
-            //   if (this.damageVoid
-            //       && currentDamage > this.damageVoid
-            //       && !voids.damageVoid
-            //       && (!(COLORS[ping.attribute] in comboContainer.combos) ||
-            //           comboContainer.combos[COLORS[ping.attribute]].every((combo) => combo.shape != Shape.BOX))) {
-            //     currentDamage = 0;
-            //   }
-            //
-            //   // Absorbs
-            //   if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb ||
-            //       this.damageAbsorb && currentDamage >= this.damageAbsorb && !voids.damageAbsorb ||
-            //       this.comboAbsorb && comboContainer.comboCount() <= this.comboAbsorb && !ping.isActive) {
-            //     currentDamage *= -1;
-            //   }
-            //
-            //   return currentDamage;
-            // }
+            calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
+                let currentDamage = ping.damage;
+                // Handle Attribute (dis)advantage
+                if (Advantage[ping.attribute] == this.getAttribute()) {
+                    currentDamage *= 2;
+                }
+                else if (Disadvantage[ping.attribute] == this.getAttribute()) {
+                    currentDamage = Math.ceil(currentDamage / 2);
+                }
+                // Handle killers.
+                const types = ilmina_stripped_7.floof.model.cards[this.id] ? ilmina_stripped_7.floof.model.cards[this.id].types : [];
+                if (!ping.isActive) {
+                    let killerCount = 0;
+                    let latentCount = 0;
+                    for (const type of types) {
+                        killerCount += ping.source.countAwakening(common_8.TypeToKiller[type], isMultiplayer);
+                        latentCount += ping.source.latents.filter((latent) => latent == common_8.TypeToLatentKiller[type]).length;
+                    }
+                    currentDamage *= (3 ** killerCount);
+                    currentDamage *= (1.5 ** latentCount);
+                    currentDamage = Math.min(currentDamage, common_8.INT_CAP);
+                }
+                if (ping.attribute != common_8.Attribute.FIXED) {
+                    // Handle resisted Attributes and Types
+                    const attrResists = this.getAttrResists();
+                    if (attrResists.attrs.includes(ping.attribute)) {
+                        currentDamage *= (100 - attrResists.percent) / 100;
+                    }
+                    const typeResists = this.getTypeResists();
+                    if (ping.source.anyTypes(typeResists.types)) {
+                        currentDamage *= (100 - typeResists.percent) / 100;
+                    }
+                    currentDamage = Math.ceil(currentDamage);
+                    // Handle Defense
+                    if (!ping.source.countAwakening(common_8.Awakening.GUARD_BREAK) ||
+                        new Set(pings.filter((p) => p.damage).map((p) => p.attribute)).size < 5) {
+                        currentDamage -= this.getDef();
+                        currentDamage = Math.max(currentDamage, 1);
+                    }
+                    // Handle Shield
+                    if (this.shieldPercent) {
+                        currentDamage *= (100 - this.shieldPercent) / 100;
+                        currentDamage = Math.ceil(currentDamage);
+                    }
+                }
+                // Handle void
+                if (this.damageVoid && currentDamage >= this.damageVoid &&
+                    !ping.ignoreVoid && !voids.damageVoid) {
+                    currentDamage = 0;
+                }
+                // Handle Absorbs
+                if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb) {
+                    currentDamage *= -1;
+                }
+                else if (this.damageAbsorb && currentDamage >= this.damageAbsorb && !voids.damageAbsorb) {
+                    currentDamage *= -1;
+                }
+                else if (this.comboAbsorb && !ping.isActive && comboContainer.comboCount() <= this.comboAbsorb) {
+                    currentDamage *= -1;
+                }
+                return currentDamage;
+            }
             setId(id) {
                 if (!(id in ilmina_stripped_7.floof.model.cards)) {
                     return;
@@ -8173,60 +8241,12 @@
                 if (this.lv != 10) {
                     obj.lv = this.lv;
                 }
-                // if (this.hp > 0) {
-                //   obj.hp = this.hp;
-                // }
-                // if (this.attack > 0) {
-                //   obj.attack = this.attack;
-                // }
-                // if (this.defense >= 0) {
-                //   obj.defense = this.defense;
-                // }
-                // if (this.resolvePercent > 0) {
-                //   obj.resolvePercent = this.resolvePercent;
-                // }
-                // if (this.attributesResisted.length) {
-                //   obj.attributesResisted = [...this.attributesResisted];
-                // }
-                // if (this.typeResists.length) {
-                //   obj.typeResists = [...this.typeResists];
-                // }
-                // if (this.preemptiveSkillset) {
-                //   const preemptiveJson = this.preemptiveSkillset.toJson();
-                //   if (preemptiveJson.skills && preemptiveJson.skills.length) {
-                //     obj.preemptiveSkillset = preemptiveJson;
-                //   }
-                // }
-                // if (this.skillsets.length) {
-                //   obj.skillsets = this.skillsets.map((skillset) => skillset.toJson());
-                // }
-                // if (this.turnCounter != 1) {
-                //   obj.turnCounter = this.turnCounter;
-                // }
                 return obj;
             }
             static fromJson(json) {
                 const enemy = new EnemyInstance();
                 enemy.id = Number(json.id) || -1;
                 enemy.lv = Number(json.lv) || 10;
-                // if (enemy.id in floof.model.cards) {
-                //   // TODO: Preload Card with this information.
-                //   enemy.hp = Number(json.hp) || -1;
-                //   enemy.attack = Number(json.attack) || -1;
-                //   enemy.defense = Number(json.defense) || -1;
-                // } else {
-                //   enemy.hp = Number(json.hp) || 1;
-                //   enemy.attack = Number(json.attack) || 1;
-                //   enemy.defense = Number(json.defense) || 0;
-                // }
-                // enemy.resolvePercent = Number(json.resolvePercent) || 0;
-                // enemy.attributesResisted = (json.attributesResisted || []).map((a) => Number(a));
-                // enemy.typeResists = (json.typeResists || []).map((a) => Number(a));
-                // // enemy.preemptiveSkillset = json.preemptiveSkillset ?
-                // //   EnemySkillset.fromJson(json.preemptiveSkillset) : new EnemySkillset();
-                // // enemy.skillsets = (json.skillsets || []).map(
-                // //   (skillsetJson) => EnemySkillset.fromJson(skillsetJson));
-                // enemy.turnCounter = json.turnCounter || 1;
                 enemy.reset();
                 return enemy;
             }
@@ -8254,10 +8274,10 @@
             goto: () => TERMINATE,
         };
         // 2
-        const bindColor = {
+        const bindAttr = {
             textify: ({ skillArgs }, { atk }) => {
                 const [color, min, max] = skillArgs;
-                return `Binds ${common_9.AttributeToName.get(color)} monsters for ${min} to ${max} turns. If none exist, hits for ${common_9.addCommas(atk)}.`;
+                return `Binds ${common_9.AttributeToName.get(color || 0)} monsters for ${min} to ${max} turns. If none exist and part of skillset, hits for ${common_9.addCommas(atk)}. Else continue.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8270,7 +8290,7 @@
                 console.warn('Bind not yet supported');
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
             },
-            goto: () => TERMINATE,
+            goto: ({ skillArgs }, { teamAttributes }) => teamAttributes.has(skillArgs[0] || 0) ? TERMINATE : TO_NEXT,
         };
         // 3
         const bindType = {
@@ -8289,7 +8309,7 @@
                 console.warn('Bind not yet supported');
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
             },
-            goto: () => TERMINATE,
+            goto: ({ skillArgs }, { teamTypes }) => teamTypes.has(skillArgs[0] || 0) ? TERMINATE : TO_NEXT,
         };
         // 4
         const orbChange = {
@@ -9261,17 +9281,18 @@
         };
         // 88
         const awokenBind = {
-            textify: ({ skillArgs }) => {
-                return `Awoken Bind for ${skillArgs[0]} turn(s)`;
+            textify: ({ skillArgs }, { atk }) => {
+                return `Awoken Bind for ${skillArgs[0]} turn(s). If awoken bound and part of a skillset, attack for ${common_9.addCommas(atk)}, else Continue.`;
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: (_, { team }) => {
+            effect: (_, { team, enemy }) => {
                 if (team.state.awakenings) {
                     team.state.awakenings = false;
                 }
                 else {
                     // Should we do a basic attack here?
+                    team.damage(enemy.getAtk(), enemy.getAttribute());
                 }
             },
             // TODO: If player is awoken bound, this should be TO_NEXT
@@ -9647,7 +9668,7 @@
         };
         const ENEMY_SKILL_GENERATORS = {
             1: bindRandom,
-            2: bindColor,
+            2: bindAttr,
             3: bindType,
             4: orbChange,
             5: blindBoard,
@@ -9960,6 +9981,8 @@
                 charges: 0,
                 flags: 0,
                 counter: 0,
+                teamTypes: new Set(),
+                teamAttributes: new Set(),
             }, toSkillContext(enemy.id, idx));
             return text;
         }
@@ -10087,7 +10110,7 @@
                 this.id = subDungeonId;
                 this.loadJson(data);
             }
-            useEnemySkill(teamIds, combo, bigBoard, isPreempt = false, skillIdx = -1) {
+            useEnemySkill(teamIds, teamAttrs, teamTypes, combo, bigBoard, isPreempt = false, skillIdx = -1) {
                 const enemy = this.getActiveEnemy();
                 const otherSkills = [];
                 if (skillIdx < 0) {
@@ -10105,6 +10128,8 @@
                         combo,
                         teamIds,
                         bigBoard,
+                        teamAttributes: teamAttrs,
+                        teamTypes: teamTypes,
                     });
                     if (possibleEffects.length) {
                         const totalWeight = possibleEffects.reduce((total, e) => total + e.chance, 0);
@@ -10328,7 +10353,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler"], function (require, exports, common_11, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_1, ilmina_stripped_9, custom_base64_1, enemy_skills_2, url_handler_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler"], function (require, exports, common_11, combo_container_1, damage_ping_2, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_1, ilmina_stripped_9, custom_base64_1, enemy_skills_2, url_handler_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
@@ -10442,14 +10467,32 @@
                     }
                 });
                 debugger_1.debug.addButton('Use Preempt', () => {
+                    const attributes = new Set();
+                    const types = new Set();
+                    for (const m of this.team.getActiveTeam()) {
+                        for (const type of m.getCard().types) {
+                            types.add(type);
+                        }
+                        attributes.add(m.getAttribute());
+                        attributes.add(m.getSubattribute());
+                    }
                     this.dungeon.useEnemySkill(this.team.getActiveTeam().map((m) => m.getId()), // teamIds
-                    this.comboContainer.comboCount(), // combo
+                    attributes, types, this.comboContainer.comboCount(), // combo
                     this.team.getBoardWidth() == 7, // bigBoard
                     true);
                 });
                 debugger_1.debug.addButton('Print next skill', () => {
+                    const attributes = new Set();
+                    const types = new Set();
+                    for (const m of this.team.getActiveTeam()) {
+                        for (const type of m.getCard().types) {
+                            types.add(type);
+                        }
+                        attributes.add(m.getAttribute());
+                        attributes.add(m.getSubattribute());
+                    }
                     this.dungeon.useEnemySkill(this.team.getActiveTeam().map((m) => m.getId()), // teamIds
-                    this.comboContainer.comboCount(), // combo
+                    attributes, types, this.comboContainer.comboCount(), // combo
                     this.team.getBoardWidth() == 7);
                 });
                 this.dungeon.onEnemySkill = (idx, otherIdxs) => {
@@ -10488,11 +10531,57 @@
                 });
             }
             updateDamage() {
-                const { pings, healing } = this.team.getDamageCombos(this.comboContainer);
-                this.team.teamPane.updateDamage(pings.map((ping) => ({
-                    attribute: ping ? ping.attribute : common_11.Attribute.NONE,
-                    damage: ping ? ping.damage : 0,
-                })), healing);
+                let { pings, healing, trueBonusAttack } = this.team.getDamageCombos(this.comboContainer);
+                if (!this.dungeon)
+                    return;
+                const enemy = this.dungeon.getActiveEnemy();
+                let currentHp = enemy.currentHp;
+                const maxHp = enemy.getHp();
+                let minHp = enemy.getResolve() && enemy.getHpPercent() >= enemy.getResolve() ? 1 : 0;
+                const superResolve = enemy.getSuperResolve().triggersAt >= enemy.getHpPercent() ? enemy.getSuperResolve().minHp * maxHp / 100 : 0;
+                if (superResolve) {
+                    minHp = superResolve;
+                }
+                for (const ping of pings) {
+                    let oldHp = currentHp;
+                    ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.isMultiplayer(), {
+                        attributeAbsorb: this.team.state.voidAttributeAbsorb,
+                        damageVoid: this.team.state.voidDamageVoid,
+                        damageAbsorb: this.team.state.voidDamageAbsorb,
+                    });
+                    currentHp -= ping.rawDamage;
+                    if (currentHp < minHp) {
+                        currentHp = minHp;
+                    }
+                    if (currentHp > maxHp) {
+                        currentHp = maxHp;
+                    }
+                    ping.actualDamage = oldHp - currentHp;
+                }
+                const specialPing = new damage_ping_2.DamagePing(this.team.getActiveTeam()[0], common_11.Attribute.FIXED, false);
+                specialPing.damage = trueBonusAttack;
+                specialPing.isActive = true;
+                specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.isMultiplayer(), {
+                    attributeAbsorb: this.team.state.voidAttributeAbsorb,
+                    damageVoid: this.team.state.voidDamageVoid,
+                    damageAbsorb: this.team.state.voidDamageAbsorb,
+                });
+                minHp = enemy.getResolve() && (100 * currentHp / maxHp) >= enemy.getResolve() ? 1 : 0;
+                const superResolveRound2 = enemy.getSuperResolve().triggersAt >= (currentHp / maxHp * 100) ? superResolve : 0;
+                minHp = superResolveRound2 || minHp;
+                const oldHp = currentHp;
+                currentHp -= specialPing.rawDamage;
+                if (currentHp < minHp) {
+                    currentHp = minHp;
+                }
+                if (currentHp > maxHp) {
+                    currentHp = maxHp;
+                }
+                specialPing.actualDamage = oldHp - currentHp;
+                if (specialPing.actualDamage) {
+                    pings = [...pings, specialPing];
+                }
+                this.team.teamPane.updateDamage(pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), healing);
             }
             getElement() {
                 return this.display.getElement();
