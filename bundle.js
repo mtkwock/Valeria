@@ -10439,13 +10439,13 @@
                     }
                 });
                 debugger_1.debug.addButton('Use Preempt', () => {
-                    this.dungeon.useEnemySkill([], // teamIds
+                    this.dungeon.useEnemySkill(this.team.getActiveTeam().map((m) => m.getId()), // teamIds
                     this.comboContainer.comboCount(), // combo
                     this.team.getBoardWidth() == 7, // bigBoard
                     true);
                 });
                 debugger_1.debug.addButton('Print next skill', () => {
-                    this.dungeon.useEnemySkill([], // teamIds
+                    this.dungeon.useEnemySkill(this.team.getActiveTeam().map((m) => m.getId()), // teamIds
                     this.comboContainer.comboCount(), // combo
                     this.team.getBoardWidth() == 7);
                 });
