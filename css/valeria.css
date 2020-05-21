@@ -491,7 +491,7 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 }
 
 .valeria-floor-container {
-  max-height: 300px;
+  max-height: 230px;
   overflow-y: scroll;
 }
 
@@ -528,6 +528,10 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 
 .valeria-enemy-stat-table > input {
   width: 40px;
+}
+
+.valeria-enemy-stat-table > tr > td:nth-child(4) > input {
+  max-width: 40px;
 }
 
 .valeria > table {

@@ -736,6 +736,7 @@
                 this.aiArgs = [100, 100, 10000, 0, 0];
             }
         }
+        exports.EnemySkill = EnemySkill;
         class EvolutionTreeDetails {
             constructor(baseId) {
                 this.cards = [];
@@ -3437,6 +3438,7 @@
             constructor(onUpdate) {
                 this.el = create('div', ClassNames.MONSTER_EDITOR);
                 this.playerModeSelectors = [];
+                this.types = [];
                 const pdchuArea = create('div');
                 this.pdchu = {
                     io: create('textarea', ClassNames.PDCHU_IO),
@@ -3481,6 +3483,14 @@
                 this.inheritSelector.selector.placeholder = 'Inherit Search';
                 this.el.appendChild(this.monsterSelector.getElement());
                 this.el.appendChild(this.inheritSelector.getElement());
+                const monsterTypeDiv = create('div');
+                for (let i = 0; i < 3; i++) {
+                    const monsterType = new MonsterTypeEl(common_2.MonsterType.NONE, 0.7);
+                    superHide(monsterType.getElement());
+                    this.types.push(monsterType);
+                    monsterTypeDiv.appendChild(monsterType.getElement());
+                }
+                this.el.appendChild(monsterTypeDiv);
                 this.levelEditor = new LevelEditor(onUpdate);
                 this.el.appendChild(this.levelEditor.getElement());
                 this.plusEditor = new PlusEditor(onUpdate);
@@ -3493,6 +3503,16 @@
             update(ctx) {
                 this.monsterSelector.setId(ctx.id);
                 this.inheritSelector.setId(ctx.inheritId);
+                for (let i = 0; i < 3; i++) {
+                    const monsterType = ilmina_stripped_3.floof.model.cards[ctx.id].types[i];
+                    if (monsterType === undefined) {
+                        superHide(this.types[i].getElement());
+                    }
+                    else {
+                        superShow(this.types[i].getElement());
+                        this.types[i].setType(monsterType);
+                    }
+                }
                 let maxLevel = 1;
                 if (ctx.id in ilmina_stripped_3.floof.model.cards) {
                     maxLevel = ilmina_stripped_3.floof.model.cards[ctx.id].isLimitBreakable ? 110 : ilmina_stripped_3.floof.model.cards[ctx.id].maxLevel;
@@ -4009,14 +4029,16 @@
             }
         }
         class MonsterTypeEl {
-            constructor(monsterType) {
+            constructor(monsterType, scale = 1) {
                 this.element = create('a', ClassNames.MONSTER_TYPE);
                 this.type = common_2.MonsterType.NONE;
+                this.scale = 1;
                 this.setType(monsterType);
+                this.setScale(scale);
             }
             getTypeOffsets() {
                 const { offsetX, offsetY } = ilmina_stripped_3.CardAssets.getTypeImageData(Number(this.type));
-                return { offsetX, offsetY };
+                return { offsetX: offsetX * this.scale, offsetY: offsetY * this.scale };
             }
             setType(type) {
                 this.type = type;
@@ -4026,12 +4048,13 @@
             getElement() {
                 return this.element;
             }
-        }
-        function grandparentEl(el) {
-            el = el;
-            const parent = el.parentElement;
-            const grandparent = parent.parentElement;
-            return grandparent;
+            setScale(scale) {
+                this.scale = scale;
+                this.element.style.backgroundSize = `${400 * scale}px ${580 * scale}px`;
+                this.element.style.width = `${scale * 36}px`;
+                this.element.style.height = `${scale * 36}px`;
+                this.setType(this.type);
+            }
         }
         class DungeonEditor {
             constructor(dungeonNames, onUpdate) {
@@ -4041,22 +4064,36 @@
                 this.addEnemyBtns = [];
                 this.dungeonEnemies = [];
                 this.addFloorBtn = create('button', ClassNames.FLOOR_ADD);
+                this.activeFloorIdx = 0;
+                this.activeEnemyIdx = 0;
                 this.importer = create('textarea');
                 this.enemyPicture = new MonsterIcon(true);
                 this.enemyLevelInput = create('input');
                 this.dungeonHpInput = create('input');
                 this.dungeonAtkInput = create('input');
                 this.dungeonDefInput = create('input');
-                this.enemyHpInput = create('input');
-                this.enemyAtkInput = create('input');
-                this.enemyDefInput = create('input');
-                this.enemyResolveInput = create('input');
-                this.enemyResistTypesInputs = new Map();
-                this.enemyResistTypePercentInput = create('input');
-                this.enemyResistAttrInputs = new Map();
-                this.enemyResistAttrPercentInput = create('input');
-                this.activeFloorIdx = 0;
-                this.activeEnemyIdx = 0;
+                this.hpInput = create('input');
+                this.hpPercentInput = create('input');
+                this.maxHp = create('td');
+                // ATK = enrage * base atk.
+                this.atkFinal = create('td');
+                this.rageInput = create('input');
+                this.atkBase = create('td');
+                // DEF = 100 - Break * Base def
+                this.defFinal = create('td');
+                this.defBreakInput = create('input');
+                this.defBase = create('td');
+                // Passive Information.
+                this.resolve = create('span');
+                this.resistTypes = new Map();
+                this.resistTypePercent = create('span');
+                this.resistAttrs = new Map();
+                this.resistAttrPercent = create('span');
+                // AI Information
+                this.counterInput = create('input');
+                this.flagsInput = create('input');
+                this.chargesInput = create('input');
+                this.maxCharges = create('span');
                 this.onUpdate = onUpdate;
                 this.dungeonSelector = new GenericSelector(dungeonNames, (id) => {
                     this.onUpdate({ loadDungeon: id });
@@ -4127,147 +4164,122 @@
             }
             setupEnemyStatTable() {
                 const statTable = create('table', ClassNames.ENEMY_STAT_TABLE);
+                const passivesEl = create('div');
+                const aiEl = create('div');
                 const lvRow = create('tr');
                 const hpRow = create('tr');
                 const atkRow = create('tr');
                 const defRow = create('tr');
-                const resolveRow = create('tr');
-                const resistTypesRow = create('tr');
-                const resistTypePercentRow = create('tr');
-                const resistAttrRow = create('tr');
-                const resistAttrPercentRow = create('tr');
+                // const resolveRow = create('tr') as HTMLTableRowElement;
+                // const resistTypesRow = create('tr') as HTMLTableRowElement;
+                // // const resistTypePercentRow = create('tr') as HTMLTableRowElement;
+                // const resistAttrRow = create('tr') as HTMLTableRowElement;
+                // const resistAttrPercentRow = create('tr') as HTMLTableRowElement;
                 this.enemyLevelInput.type = 'number';
-                // this.enemyHpInput.type = 'number';
-                // this.enemyAtkInput.type = 'number';
-                // this.enemyDefInput.type = 'number';
-                this.enemyResolveInput.type = 'number';
-                this.enemyResistTypePercentInput.type = 'number';
-                this.enemyResistAttrPercentInput.type = 'number';
-                this.enemyHpInput.disabled = true;
-                this.enemyAtkInput.disabled = true;
-                this.enemyDefInput.disabled = true;
-                this.enemyResolveInput.disabled = true;
-                this.enemyResistTypePercentInput.disabled = true;
-                this.enemyResistAttrPercentInput.disabled = true;
+                this.enemyLevelInput.style.width = '50px';
+                this.hpInput.style.width = '100px';
+                // this.resolve.type = 'number';
+                // this.resistTypePercent.type = 'number';
+                // this.resistAttrPercent.type = 'number';
+                // this.hpInput.disabled = true;
+                // this.rageInput.disabled = true;
+                // this.defBreakInput.disabled = true;
+                // this.resolve.disabled = true;
+                // this.resistTypePercent.disabled = true;
+                // this.resistAttrPercent.disabled = true;
                 const lvLabel = create('td');
                 const hpLabel = create('td');
                 const atkLabel = create('td');
                 const defLabel = create('td');
-                const resolveLabel = create('td');
-                const resistTypesLabel = create('td');
-                const resistTypePercentLabel = create('td');
-                const resistAttrLabel = create('td');
-                const resistAttrPercentLabel = create('td');
+                // const resolveLabel = create('td') as HTMLTableCellElement;
+                // const resistTypesLabel = create('td') as HTMLTableCellElement;
+                // const resistTypePercentLabel = create('td') as HTMLTableCellElement;
+                // const resistAttrLabel = create('td') as HTMLTableCellElement;
+                // const resistAttrPercentLabel = create('td') as HTMLTableCellElement;
                 lvLabel.innerText = 'Level';
-                hpLabel.innerText = 'Health';
-                atkLabel.innerText = 'Attack';
-                defLabel.innerText = 'Defense';
-                resolveLabel.innerText = 'Resolve %';
-                resistTypesLabel.innerText = 'Resist Type';
-                resistTypePercentLabel.innerText = '% Resist';
-                resistAttrLabel.innerText = 'Resist Attr';
-                resistAttrPercentLabel.innerText = '% Resist';
-                lvRow.appendChild(lvLabel);
-                hpRow.appendChild(hpLabel);
-                atkRow.appendChild(atkLabel);
-                defRow.appendChild(defLabel);
-                resolveRow.appendChild(resolveLabel);
-                resistTypesRow.appendChild(resistTypesLabel);
-                resistTypePercentRow.appendChild(resistTypePercentLabel);
-                resistAttrRow.appendChild(resistAttrLabel);
-                resistAttrPercentRow.appendChild(resistAttrPercentLabel);
+                hpLabel.innerText = 'HP';
+                atkLabel.innerText = 'ATK';
+                defLabel.innerText = 'DEF';
+                // resolveLabel.innerText = 'Resolve';
+                // resistTypesLabel.innerText = 'Resist Type';
+                // resistTypePercentLabel.innerText = '% Resist';
+                // resistAttrLabel.innerText = 'Resist Attr';
+                // resistAttrPercentLabel.innerText = '% Resist';
                 const lvCell = create('td');
                 const hpCell = create('td');
+                const hpPercentCell = create('td');
                 const atkCell = create('td');
                 const defCell = create('td');
-                const resolveCell = create('td');
-                const resistTypesCell = create('td');
-                const resistTypePercentCell = create('td');
-                const resistAttrCell = create('td');
-                const resistAttrPercentCell = create('td');
+                // const resolveCell = create('td') as HTMLTableCellElement;
+                // const resistTypesCell = create('td') as HTMLTableCellElement;
+                // const resistTypePercentCell = create('td') as HTMLTableCellElement;
+                // const resistAttrCell = create('td') as HTMLTableCellElement;
+                // const resistAttrPercentCell = create('td') as HTMLTableCellElement;
+                this.hpInput.onchange = () => this.onUpdate({ hp: common_2.removeCommas(this.hpInput.value) });
+                this.hpPercentInput.onchange = () => this.onUpdate({ hpPercent: common_2.removeCommas(this.hpPercentInput.value) });
+                this.rageInput.onchange = () => this.onUpdate({ enrage: common_2.removeCommas(this.rageInput.value) });
+                this.defBreakInput.onchange = () => this.onUpdate({ defBreak: common_2.removeCommas(this.defBreakInput.value) });
+                hpPercentCell.style.textAlign = 'right';
+                const enrageAsset = new LayeredAsset([AssetEnum.ENRAGE], () => { }, true, 0.7);
+                atkCell.appendChild(enrageAsset.getElement());
+                const defBreakAsset = new LayeredAsset([AssetEnum.GUARD_BREAK], () => { }, true, 0.7);
+                defCell.appendChild(defBreakAsset.getElement());
                 lvCell.appendChild(this.enemyLevelInput);
-                hpCell.appendChild(this.enemyHpInput);
-                atkCell.appendChild(this.enemyAtkInput);
-                defCell.appendChild(this.enemyDefInput);
-                resolveCell.appendChild(this.enemyResolveInput);
-                resistTypePercentCell.appendChild(this.enemyResistTypePercentInput);
-                resistAttrPercentCell.appendChild(this.enemyResistAttrPercentInput);
-                for (let i = 0; i < 16; i++) {
-                    if (i == 9 || i == 10 || i == 11 || i == 13) {
-                        continue;
-                    }
-                    const t = i;
-                    const typeImage = new MonsterTypeEl(t);
-                    const typeToggle = new ToggleableImage(typeImage.getElement(), (active) => {
-                        if (active) {
-                            this.onUpdate({ addTypeResist: t });
-                        }
-                        else {
-                            this.onUpdate({ removeTypeResist: t });
-                        }
-                    }, false);
-                    this.enemyResistTypesInputs.set(t, typeToggle);
-                    resistTypesCell.appendChild(typeImage.getElement());
-                }
-                const fire = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.FIRE_TRANSPARENT], (active) => {
-                    if (active) {
-                        this.onUpdate({ addAttrResist: common_2.Attribute.FIRE });
-                    }
-                    else {
-                        this.onUpdate({ removeAttrResist: common_2.Attribute.FIRE });
-                    }
-                }, false);
-                this.enemyResistAttrInputs.set(common_2.Attribute.FIRE, fire);
-                resistAttrCell.appendChild(fire.getElement());
-                const water = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WATER_TRANSPARENT], (active) => {
-                    if (active) {
-                        this.onUpdate({ addAttrResist: common_2.Attribute.WATER });
-                    }
-                    else {
-                        this.onUpdate({ removeAttrResist: common_2.Attribute.WATER });
-                    }
-                }, false);
-                this.enemyResistAttrInputs.set(common_2.Attribute.WATER, water);
-                resistAttrCell.appendChild(water.getElement());
-                const wood = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WOOD_TRANSPARENT], (active) => {
-                    if (active) {
-                        this.onUpdate({ addAttrResist: common_2.Attribute.WOOD });
-                    }
-                    else {
-                        this.onUpdate({ removeAttrResist: common_2.Attribute.WOOD });
-                    }
-                }, false);
-                this.enemyResistAttrInputs.set(common_2.Attribute.WOOD, wood);
-                resistAttrCell.appendChild(wood.getElement());
-                const light = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.LIGHT_TRANSPARENT], (active) => {
-                    if (active) {
-                        this.onUpdate({ addAttrResist: common_2.Attribute.LIGHT });
-                    }
-                    else {
-                        this.onUpdate({ removeAttrResist: common_2.Attribute.LIGHT });
-                    }
-                }, false);
-                this.enemyResistAttrInputs.set(common_2.Attribute.LIGHT, light);
-                resistAttrCell.appendChild(light.getElement());
-                const dark = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.DARK_TRANSPARENT], (active) => {
-                    if (active) {
-                        this.onUpdate({ addAttrResist: common_2.Attribute.DARK });
-                    }
-                    else {
-                        this.onUpdate({ removeAttrResist: common_2.Attribute.DARK });
-                    }
-                }, false);
-                this.enemyResistAttrInputs.set(common_2.Attribute.DARK, dark);
-                resistAttrCell.appendChild(dark.getElement());
-                lvRow.appendChild(lvCell);
-                hpRow.appendChild(hpCell);
-                atkRow.appendChild(atkCell);
-                defRow.appendChild(defCell);
-                resolveRow.appendChild(resolveCell);
-                resistTypesRow.appendChild(resistTypesCell);
-                resistTypePercentRow.appendChild(resistTypePercentCell);
-                resistAttrRow.appendChild(resistAttrCell);
-                resistAttrPercentRow.appendChild(resistAttrPercentCell);
+                hpCell.appendChild(this.hpInput);
+                hpPercentCell.appendChild(this.hpPercentInput);
+                atkCell.appendChild(this.rageInput);
+                defCell.appendChild(this.defBreakInput);
+                hpPercentCell.appendChild(document.createTextNode('%'));
+                atkCell.appendChild(document.createTextNode('X'));
+                defCell.appendChild(document.createTextNode('%'));
+                // resolveCell.appendChild(this.resolve);
+                // resistTypePercentCell.appendChild(this.resistTypePercent);
+                // resistAttrPercentCell.appendChild(this.resistAttrPercent);
+                // const fire = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.FIRE_TRANSPARENT], (_active) => {
+                //   // if (active) {
+                //   //   this.onUpdate({ addAttrResist: Attribute.FIRE });
+                //   // } else {
+                //   //   this.onUpdate({ removeAttrResist: Attribute.FIRE });
+                //   // }
+                // }, false, 0.7);
+                // this.resistAttrs.set(Attribute.FIRE, fire);
+                // resistAttrCell.appendChild(fire.getElement());
+                // const water = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WATER_TRANSPARENT], (_active) => {
+                //   // if (active) {
+                //   //   this.onUpdate({ addAttrResist: Attribute.WATER });
+                //   // } else {
+                //   //   this.onUpdate({ removeAttrResist: Attribute.WATER });
+                //   // }
+                // }, false, 0.7);
+                // this.resistAttrs.set(Attribute.WATER, water);
+                // resistAttrCell.appendChild(water.getElement());
+                // const wood = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WOOD_TRANSPARENT], (_active) => {
+                //   // if (active) {
+                //   //   this.onUpdate({ addAttrResist: Attribute.WOOD });
+                //   // } else {
+                //   //   this.onUpdate({ removeAttrResist: Attribute.WOOD });
+                //   // }
+                // }, false, 0.7);
+                // this.resistAttrs.set(Attribute.WOOD, wood);
+                // resistAttrCell.appendChild(wood.getElement());
+                // const light = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.LIGHT_TRANSPARENT], (_active) => {
+                //   // if (active) {
+                //   //   this.onUpdate({ addAttrResist: Attribute.LIGHT });
+                //   // } else {
+                //   //   this.onUpdate({ removeAttrResist: Attribute.LIGHT });
+                //   // }
+                // }, false, 0.7);
+                // this.resistAttrs.set(Attribute.LIGHT, light);
+                // resistAttrCell.appendChild(light.getElement());
+                // const dark = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.DARK_TRANSPARENT], (_active) => {
+                //   // if (active) {
+                //   //   this.onUpdate({ addAttrResist: Attribute.DARK });
+                //   // } else {
+                //   //   this.onUpdate({ removeAttrResist: Attribute.DARK });
+                //   // }
+                // }, false, 0.7);
+                // this.resistAttrs.set(Attribute.DARK, dark);
+                // resistAttrCell.appendChild(dark.getElement());
                 this.enemyLevelInput.onchange = () => {
                     let v = Number(this.enemyLevelInput.value);
                     if (isNaN(v)) {
@@ -4286,12 +4298,101 @@
                 statTable.appendChild(hpRow);
                 statTable.appendChild(atkRow);
                 statTable.appendChild(defRow);
-                statTable.appendChild(resolveRow);
-                statTable.appendChild(resistTypesRow);
-                statTable.appendChild(resistTypePercentRow);
-                statTable.appendChild(resistAttrRow);
-                statTable.appendChild(resistAttrPercentRow);
+                lvRow.appendChild(lvLabel);
+                lvRow.appendChild(lvCell);
+                hpRow.appendChild(hpLabel);
+                hpRow.appendChild(hpCell);
+                const hpEqual = create('td');
+                hpEqual.innerText = '=';
+                hpRow.appendChild(hpEqual);
+                hpRow.appendChild(hpPercentCell);
+                hpRow.appendChild(this.maxHp);
+                atkRow.appendChild(atkLabel);
+                atkRow.appendChild(this.atkFinal);
+                const atkEqual = create('td');
+                atkEqual.innerText = '=';
+                atkRow.appendChild(atkEqual);
+                atkRow.appendChild(atkCell); // Enrage
+                atkRow.appendChild(this.atkBase);
+                defRow.appendChild(defLabel);
+                defRow.appendChild(this.defFinal);
+                const defEqual = create('td');
+                defEqual.innerText = '=';
+                defRow.appendChild(defEqual);
+                defRow.appendChild(defCell);
+                defRow.appendChild(this.defBase);
+                // resistTypesRow.appendChild(resistTypesLabel);
+                // resistTypesRow.appendChild(resistTypesCell);
+                // resistTypesRow.appendChild(this.resistTypePercent);
+                //
+                // // resistTypePercentRow.appendChild(resistTypePercentLabel);
+                // // resistTypePercentRow.appendChild(resistTypePercentCell);
+                //
+                // resistAttrRow.appendChild(resistAttrLabel);
+                // resistAttrRow.appendChild(resistAttrCell);
+                // resistAttrRow.appendChild(this.resistAttrPercent);
+                //
+                // // resistAttrPercentRow.appendChild(resistAttrPercentLabel);
+                // resistAttrPercentRow.appendChild(resistAttrPercentCell);
+                const resolveAsset = new LayeredAsset([AssetEnum.RESOLVE], () => { }, true, 0.7);
+                const resolveSpan = create('span');
+                resolveSpan.appendChild(resolveAsset.getElement());
+                resolveSpan.appendChild(this.resolve);
+                const resistTypeSpan = create('span');
+                for (let i = 0; i < 16; i++) {
+                    if (i == 9 || i == 10 || i == 11 || i == 13) {
+                        continue;
+                    }
+                    const t = i;
+                    const typeImage = new MonsterTypeEl(t, 0.7);
+                    const typeToggle = new ToggleableImage(typeImage.getElement(), () => { }, false);
+                    this.resistTypes.set(t, typeToggle);
+                    resistTypeSpan.appendChild(typeImage.getElement());
+                }
+                resistTypeSpan.appendChild(this.resistTypePercent);
+                const resistAttrSpan = create('span');
+                for (let i = 0; i < 5; i++) {
+                    const asset = AssetEnum.FIRE_TRANSPARENT + i;
+                    const resistAttr = new LayeredAsset([AssetEnum.SHIELD_BASE, asset], () => { }, true, 0.7);
+                    resistAttrSpan.appendChild(resistAttr.getElement());
+                    this.resistAttrs.set(i, resistAttr);
+                }
+                resistAttrSpan.appendChild(this.resistAttrPercent);
+                passivesEl.appendChild(resolveSpan);
+                passivesEl.appendChild(resistTypeSpan);
+                passivesEl.appendChild(resistAttrSpan);
+                // statTable.appendChild(resolveRow);
+                // statTable.appendChild(resistTypesRow);
+                // statTable.appendChild(resistTypePercentRow);
+                // statTable.appendChild(resistAttrRow);
+                // statTable.appendChild(resistAttrPercentRow);
+                const chargesSpan = create('span');
+                const chargesLabel = create('span');
+                chargesLabel.innerText = 'Charges: ';
+                chargesSpan.appendChild(chargesLabel);
+                this.chargesInput.style.width = '40px';
+                this.chargesInput.onchange = () => this.onUpdate({ charges: Number(this.chargesInput.value) });
+                chargesSpan.appendChild(this.chargesInput);
+                chargesSpan.appendChild(this.maxCharges);
+                const counterSpan = create('span');
+                const counterLabel = create('span');
+                counterLabel.innerText = 'Counter: ';
+                counterSpan.appendChild(counterLabel);
+                this.counterInput.style.width = '40px';
+                this.counterInput.onchange = () => this.onUpdate({ counter: Number(this.counterInput.value) });
+                counterSpan.appendChild(this.counterInput);
+                const flagsSpan = create('span');
+                const flagsLabel = create('span');
+                flagsLabel.innerText = 'Flags: ';
+                flagsSpan.appendChild(flagsLabel);
+                this.flagsInput.onchange = () => this.onUpdate({ flags: parseInt(this.flagsInput.value, 2) });
+                flagsSpan.appendChild(this.flagsInput);
+                aiEl.appendChild(chargesSpan);
+                aiEl.appendChild(counterSpan);
+                aiEl.appendChild(flagsSpan);
                 this.element.appendChild(statTable);
+                this.element.appendChild(passivesEl);
+                this.element.appendChild(aiEl);
             }
             addFloor() {
                 const floorIdx = this.dungeonFloorEls.length;
@@ -4383,54 +4484,64 @@
                     }
                 }
             }
-            setEnemyStats(lv, hp, atk, def, resolve, typeResists, attrResists) {
-                this.enemyLevelInput.value = String(lv);
-                this.enemyHpInput.value = common_2.addCommas(hp);
-                this.enemyAtkInput.value = common_2.addCommas(atk);
-                this.enemyDefInput.value = common_2.addCommas(def);
-                if (resolve <= 0) {
-                    superHide(grandparentEl(this.enemyResolveInput));
+            setEnemyStats(s) {
+                this.enemyLevelInput.value = String(s.lv);
+                this.hpInput.value = common_2.addCommas(s.currentHp);
+                this.hpPercentInput.value = String(s.percentHp);
+                this.maxHp.innerText = `${common_2.addCommas(s.hp)}`;
+                this.atkBase.innerText = `${common_2.addCommas(s.baseAtk)}`;
+                this.rageInput.value = common_2.addCommas(s.enrage);
+                this.atkFinal.innerText = `${common_2.addCommas(s.atk)}`;
+                this.defFinal.innerText = common_2.addCommas(s.def);
+                this.defBreakInput.value = common_2.addCommas(s.ignoreDefensePercent);
+                this.defBase.innerText = common_2.addCommas(s.baseDef);
+                if (s.resolve <= 0) {
+                    superHide(this.resolve.parentElement);
                 }
                 else {
-                    superShow(grandparentEl(this.enemyResolveInput));
-                    this.enemyResolveInput.value = String(resolve);
+                    superShow(this.resolve.parentElement);
+                    this.resolve.innerText = `${s.resolve}%`;
                 }
-                if (typeResists.types.length) {
-                    superShow(grandparentEl(this.enemyResistTypesInputs.get(0).getElement()));
-                    for (const [key, toggle] of [...this.enemyResistTypesInputs.entries()]) {
-                        if (typeResists.types.includes(key)) {
+                if (s.typeResists.types.length) {
+                    // superShow(grandparentEl((this.resistTypes.get(0) as ToggleableImage).getElement()))
+                    superShow(this.resistTypePercent.parentElement);
+                    for (const [key, toggle] of [...this.resistTypes.entries()]) {
+                        if (s.typeResists.types.includes(key)) {
                             superShow(toggle.getElement());
                         }
                         else {
                             superHide(toggle.getElement());
                         }
-                        toggle.setActive(typeResists.types.includes(key));
+                        toggle.setActive(s.typeResists.types.includes(key));
                     }
-                    superShow(grandparentEl(this.enemyResistTypePercentInput));
-                    this.enemyResistTypePercentInput.value = String(typeResists.percent);
+                    this.resistTypePercent.innerText = `${s.typeResists.percent}%`;
                 }
                 else {
-                    superHide(grandparentEl(this.enemyResistTypesInputs.get(0).getElement()));
-                    superHide(grandparentEl(this.enemyResistTypePercentInput));
+                    // superHide(grandparentEl((this.resistTypes.get(0) as ToggleableImage).getElement()))
+                    superHide(this.resistTypePercent.parentElement);
                 }
-                if (attrResists.attrs.length) {
-                    superShow(grandparentEl(this.enemyResistAttrInputs.get(0).getElement()));
-                    superShow(grandparentEl(this.enemyResistAttrPercentInput));
-                    for (const [key, asset] of [...this.enemyResistAttrInputs.entries()]) {
-                        if (attrResists.attrs.includes(key)) {
+                if (s.attrResists.attrs.length) {
+                    // superShow(grandparentEl((this.resistAttrs.get(0) as LayeredAsset).getElement()));
+                    superShow(this.resistAttrPercent.parentElement);
+                    for (const [key, asset] of [...this.resistAttrs.entries()]) {
+                        if (s.attrResists.attrs.includes(key)) {
                             superShow(asset.getElement());
                         }
                         else {
                             superHide(asset.getElement());
                         }
-                        asset.setActive(attrResists.attrs.includes(key));
+                        asset.setActive(s.attrResists.attrs.includes(key));
                     }
-                    this.enemyResistAttrPercentInput.value = String(attrResists.percent);
+                    this.resistAttrPercent.innerText = `${s.attrResists.percent}%`;
                 }
                 else {
-                    superHide(grandparentEl(this.enemyResistAttrInputs.get(0).getElement()));
-                    superHide(grandparentEl(this.enemyResistAttrPercentInput));
+                    // superHide(grandparentEl((this.resistAttrs.get(0) as LayeredAsset).getElement()));
+                    superHide(this.resistAttrPercent.parentElement);
                 }
+                this.maxCharges.innerText = ` / ${s.maxCharges} `;
+                this.chargesInput.value = String(s.charges);
+                this.counterInput.value = String(s.counter);
+                this.flagsInput.value = s.flags.toString(2).padStart(8, '0');
             }
             getElement() {
                 return this.element;
@@ -7779,140 +7890,46 @@
     define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_8, ilmina_stripped_7) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        var EnemySkillEffect;
-        (function (EnemySkillEffect) {
-            EnemySkillEffect["NONE"] = "None";
-            // MULTI_HIT: 'multi-hit', // #hits
-            // GRAVITY: 'gravity', // %Gravity
-            EnemySkillEffect["STATUS_SHIELD"] = "Status Shield";
-            EnemySkillEffect["DAMAGE_SHIELD"] = "Shield";
-            // SELF_HEAL: 'enemy-heal', // %heal (e.g. 10, 50, 100)
-            // PLAYER_HEAL: 'player-heal', // %heal
-            EnemySkillEffect["DAMAGE_ABSORB"] = "Damage Absorb";
-            EnemySkillEffect["ATTRIBUTE_ABSORB"] = "Attribute Absorb";
-            EnemySkillEffect["COMBO_ABSORB"] = "Combo Absorb";
-            // ENRAGE: 'enrage', // %Damage (e.g. 150, 200, 1000)
-            EnemySkillEffect["DAMAGE_VOID"] = "Damage Void";
-            // CLEAR_BUFFS: 'clear', // config unused.
-            // RCV_BUFF: 'rcv', // Percent RCV (e.g. 0, 25, 50, 300)
-            // TIME_BUFF_FLAT: 'time-flat', // Time delta (e.g. -5, -2, +1, +5)
-            // TIME_BUFF_SCALE: 'time-scale', // Time multiplier (e.g. 0.25, 0.5, 3)
-            // Not supporting.
-            // ORB_CHANGE: 'orb-change',
-            // BLIND: 'blind', // Unused config.
-            // STICKY_BLIND: 'sticky-blind', // Config is [positions], turns
-            // AWAKENING_BIND: 'awakening-bind',
-        })(EnemySkillEffect || (EnemySkillEffect = {}));
+        // enum EnemySkillEffect {
+        //   NONE = 'None',
+        //   // MULTI_HIT: 'multi-hit', // #hits
+        //   // GRAVITY: 'gravity', // %Gravity
+        //   STATUS_SHIELD = 'Status Shield', // config unused.
+        //   DAMAGE_SHIELD = 'Shield', // %shield (e.g. 50, 75)
+        //   // SELF_HEAL: 'enemy-heal', // %heal (e.g. 10, 50, 100)
+        //   // PLAYER_HEAL: 'player-heal', // %heal
+        //   DAMAGE_ABSORB = 'Damage Absorb', // Minimum value absorbed.
+        //   ATTRIBUTE_ABSORB = 'Attribute Absorb', // Flags, 1: Fire, 2: Water, 4: Wood, 8: Light, 16: Dark
+        //   COMBO_ABSORB = 'Combo Absorb', // Max combos of the absorb.
+        //   // ENRAGE: 'enrage', // %Damage (e.g. 150, 200, 1000)
+        //   DAMAGE_VOID = 'Damage Void', // Min damage voided
+        //   // CLEAR_BUFFS: 'clear', // config unused.
+        //   // RCV_BUFF: 'rcv', // Percent RCV (e.g. 0, 25, 50, 300)
+        //   // TIME_BUFF_FLAT: 'time-flat', // Time delta (e.g. -5, -2, +1, +5)
+        //   // TIME_BUFF_SCALE: 'time-scale', // Time multiplier (e.g. 0.25, 0.5, 3)
+        //   // Not supporting.
+        //   // ORB_CHANGE: 'orb-change',
+        //   // BLIND: 'blind', // Unused config.
+        //   // STICKY_BLIND: 'sticky-blind', // Config is [positions], turns
+        //   // AWAKENING_BIND: 'awakening-bind',
+        // }
         function calcScaleStat(max, min, level, growth) {
             const diff = max - min;
             const frac = (level - 1) / 9;
             const added = Math.round(Math.pow(frac, growth) * diff);
             return min + added;
         }
-        class EnemySkill {
-            constructor() {
-                this.name = '';
-                this.effect = EnemySkillEffect.NONE;
-                this.config = 0;
-                this.damagePercent = 0; // If 0, no attack.
-            }
-            // apply(idc, source) {
-            //   // console.warn('Enemy Skills not handled yet');
-            //   console.debug(idc);
-            //   switch(this.effect) {
-            //     case EnemySkillEffect.NONE:
-            //       break;
-            //     case EnemySkillEffect.STATUS_SHIELD:
-            //       source.statusShield = true;
-            //       break;
-            //     case EnemySkillEffect.DAMAGE_SHIELD:
-            //       source.shieldPercent = this.config;
-            //       break;
-            //     case EnemySkillEffect.DAMAGE_ABSORB:
-            //       source.damageAbsorb = this.config;
-            //       break;
-            //     case EnemySkillEffect.ATTRIBUTE_ABSORB:
-            //       source.attributeAbsorb = idxsFromBits(this.config);
-            //       break;
-            //     case EnemySkillEffect.DAMAGE_VOID:
-            //       source.damageVoid = this.config;
-            //       break;
-            //     case EnemySkillEffect.COMBO_ABSORB:
-            //       source.comboAbsorb = this.config;
-            //       break;
-            //     case EnemySkillEffect.ENRAGE:
-            //       source.enrage = this.config;
-            //       break;
-            //     // case EnemySkillEffect.MULTI_HIT:
-            //     // case EnemySkillEffect.GRAVITY:
-            //     // case EnemySkillEffect.SELF_HEAL:
-            //     // case EnemySkillEffect.PLAYER_HEAL:
-            //     // case EnemySkillEffect.CLEAR_BUFFS:
-            //     // case EnemySkillEffect.RCV_BUFF:
-            //     // case EnemySkillEffect.TIME_BUFF_FLAT:
-            //     // case EnemySkillEffect.TIME_BUFF_SCALE:
-            //     default:
-            //       console.warn('Unhandled type: ' + this.effect);
-            //   }
-            // }
-            toJson() {
-                const obj = {};
-                if (this.name) {
-                    obj.name = this.name;
-                }
-                if (this.effect != EnemySkillEffect.NONE) {
-                    obj.effect = this.effect;
-                }
-                if (this.config) {
-                    obj.config = this.config;
-                }
-                if (this.damagePercent) {
-                    obj.damagePercent = this.damagePercent;
-                }
-                return obj;
-            }
-            static fromJson(json) {
-                const skill = new EnemySkill();
-                skill.name = skill.name || '';
-                skill.damagePercent = json.damagePercent || 0;
-                skill.effect = json.effect || EnemySkillEffect.NONE;
-                skill.config = json.config || 0;
-                return skill;
-            }
-        }
-        class EnemySkillset {
-            constructor() {
-                this.skills = [];
-            }
-            // TODO
-            // applySkillset(idc, source) {
-            //   // console.warn('Enemy skillset application not supported yet.');
-            //   for (const skill of this.skills) {
-            //     skill.apply(idc, source);
-            //   }
-            // }
-            toJson() {
-                const obj = {};
-                if (this.skills.length) {
-                    obj.skills = this.skills.map((skill) => skill.toJson());
-                }
-                return obj;
-            }
-            static fromJson(json) {
-                const skillset = new EnemySkillset();
-                skillset.skills = (json.skills || []).map((j) => EnemySkill.fromJson(j));
-                return skillset;
-            }
-        }
         class EnemyInstance {
             constructor() {
                 this.id = 4014;
                 this.lv = 10;
                 this.hp = -1;
-                this.attack = -1;
-                this.defense = -1;
-                this.resolvePercent = 0;
-                this.turnCounter = 0; // Currently unused.
+                // attack: number = -1;
+                // defense: number = -1;
+                // resolvePercent: number = 0;
+                // attributesResisted: Attribute[];
+                // typeResists: MonsterType[];
+                // turnCounter: number = 0; // Currently unused.
                 // Used for determining moveset.
                 this.charges = 0;
                 this.flags = 0;
@@ -7924,6 +7941,7 @@
                 this.currentAttribute = -1; // -1 is main, -2 is sub.
                 this.statusShield = false;
                 this.shieldPercent = 0; // Damage is multiplied by (100 - shieldPercent) / 100
+                this.attributeAbsorb = []; // Each attribute absorbed.
                 this.comboAbsorb = 0; // Combos of this or fewer are absorbed.
                 this.damageAbsorb = 0;
                 this.damageVoid = 0;
@@ -7941,11 +7959,11 @@
                     def: new common_8.Rational(),
                 };
                 // Passives that are always applied
-                this.attributesResisted = [];
-                this.typeResists = [];
-                this.preemptiveSkillset = new EnemySkillset(); // Used when loading the monster.
-                this.skillsets = [];
-                this.attributeAbsorb = [];
+                // this.attributesResisted = [];
+                // this.typeResists = [];
+                // this.preemptiveSkillset = new EnemySkillset(); // Used when loading the monster.
+                // this.skillsets = [];
+                // this.attributeAbsorb = [];
             }
             setLevel(lv) {
                 this.lv = lv;
@@ -7954,26 +7972,40 @@
                 const c = this.getCard();
                 return this.dungeonMultipliers.hp.multiply(calcScaleStat(c.enemyHpAtLv10, c.enemyHpAtLv1, this.lv, c.enemyHpCurve), Math.ceil);
             }
-            getAtk() {
-                // if (this.atk > 0) {
-                //   return this.atk;
-                // }
+            getHpPercent() {
+                return Math.round(100 * this.currentHp / this.getHp());
+            }
+            getAtkBase() {
                 const c = this.getCard();
                 return this.dungeonMultipliers.atk.multiply(calcScaleStat(c.enemyAtkAtLv10, c.enemyAtkAtLv1, this.lv, c.enemyAtkCurve), Math.ceil);
             }
-            getDef() {
-                // if (this.def > 0) {
-                //   return this.def;
-                // }
+            getAtk() {
+                return Math.ceil(this.getAtkBase() * this.attackMultiplier);
+            }
+            getDefBase() {
                 const c = this.getCard();
                 return this.dungeonMultipliers.def.multiply(calcScaleStat(c.enemyDefAtLv10, c.enemyDefAtLv1, this.lv, c.enemyDefCurve), Math.ceil);
             }
-            getResolve() {
+            getDef() {
+                const defMultiplier = (100 - this.ignoreDefensePercent) / 100;
+                return Math.ceil(defMultiplier * this.getDefBase());
+            }
+            // TODO:
+            getSuperResolve() {
+                return {
+                    minHp: 0,
+                    triggersAt: 0,
+                };
+            }
+            getEnemySkills(internalEffectId = -1) {
                 const c = this.getCard();
-                const resolveSkills = c.enemySkills
+                return c.enemySkills
                     .map((skill) => skill.enemySkillId)
                     .map((id) => ilmina_stripped_7.floof.model.enemySkills[id])
-                    .filter((skill) => skill.internalEffectId == 73);
+                    .filter((skill) => internalEffectId < 0 || skill.internalEffectId == internalEffectId);
+            }
+            getResolve() {
+                const resolveSkills = this.getEnemySkills(73);
                 if (!resolveSkills.length) {
                     return 0;
                 }
@@ -7983,11 +8015,7 @@
                 return resolveSkills[0].skillArgs[0];
             }
             getTypeResists() {
-                const c = this.getCard();
-                const resistTypeSkills = c.enemySkills
-                    .map((skill) => skill.enemySkillId)
-                    .map((id) => ilmina_stripped_7.floof.model.enemySkills[id])
-                    .filter((skill) => skill.internalEffectId == 118);
+                const resistTypeSkills = this.getEnemySkills(118);
                 if (!resistTypeSkills.length) {
                     return { types: [], percent: 0 };
                 }
@@ -8001,11 +8029,7 @@
                 };
             }
             getAttrResists() {
-                const c = this.getCard();
-                const resistAttrSkills = c.enemySkills
-                    .map((skill) => skill.enemySkillId)
-                    .map((id) => ilmina_stripped_7.floof.model.enemySkills[id])
-                    .filter((skill) => skill.internalEffectId == 72);
+                const resistAttrSkills = this.getEnemySkills(72);
                 if (!resistAttrSkills.length) {
                     return { attrs: [], percent: 0 };
                 }
@@ -8104,6 +8128,7 @@
                     return;
                 }
                 this.id = id;
+                this.reset();
             }
             getName() {
                 if (this.id < 0 || !(this.id in ilmina_stripped_7.floof.model.cards)) {
@@ -8121,7 +8146,7 @@
                 this.damageAbsorb = 0;
                 this.damageVoid = 0;
                 this.attackMultiplier = 1;
-                this.turnsRemaining = this.turnCounter;
+                // this.turnsRemaining = this.turnCounter;
                 this.turnCounterOverride = -1;
                 this.ignoreDefensePercent = 0;
                 this.poison = 0;
@@ -8148,60 +8173,60 @@
                 if (this.lv != 10) {
                     obj.lv = this.lv;
                 }
-                if (this.hp > 0) {
-                    obj.hp = this.hp;
-                }
-                if (this.attack > 0) {
-                    obj.attack = this.attack;
-                }
-                if (this.defense >= 0) {
-                    obj.defense = this.defense;
-                }
-                if (this.resolvePercent > 0) {
-                    obj.resolvePercent = this.resolvePercent;
-                }
-                if (this.attributesResisted.length) {
-                    obj.attributesResisted = [...this.attributesResisted];
-                }
-                if (this.typeResists.length) {
-                    obj.typeResists = [...this.typeResists];
-                }
-                if (this.preemptiveSkillset) {
-                    const preemptiveJson = this.preemptiveSkillset.toJson();
-                    if (preemptiveJson.skills && preemptiveJson.skills.length) {
-                        obj.preemptiveSkillset = preemptiveJson;
-                    }
-                }
-                if (this.skillsets.length) {
-                    obj.skillsets = this.skillsets.map((skillset) => skillset.toJson());
-                }
-                if (this.turnCounter != 1) {
-                    obj.turnCounter = this.turnCounter;
-                }
+                // if (this.hp > 0) {
+                //   obj.hp = this.hp;
+                // }
+                // if (this.attack > 0) {
+                //   obj.attack = this.attack;
+                // }
+                // if (this.defense >= 0) {
+                //   obj.defense = this.defense;
+                // }
+                // if (this.resolvePercent > 0) {
+                //   obj.resolvePercent = this.resolvePercent;
+                // }
+                // if (this.attributesResisted.length) {
+                //   obj.attributesResisted = [...this.attributesResisted];
+                // }
+                // if (this.typeResists.length) {
+                //   obj.typeResists = [...this.typeResists];
+                // }
+                // if (this.preemptiveSkillset) {
+                //   const preemptiveJson = this.preemptiveSkillset.toJson();
+                //   if (preemptiveJson.skills && preemptiveJson.skills.length) {
+                //     obj.preemptiveSkillset = preemptiveJson;
+                //   }
+                // }
+                // if (this.skillsets.length) {
+                //   obj.skillsets = this.skillsets.map((skillset) => skillset.toJson());
+                // }
+                // if (this.turnCounter != 1) {
+                //   obj.turnCounter = this.turnCounter;
+                // }
                 return obj;
             }
             static fromJson(json) {
                 const enemy = new EnemyInstance();
                 enemy.id = Number(json.id) || -1;
                 enemy.lv = Number(json.lv) || 10;
-                if (enemy.id in ilmina_stripped_7.floof.model.cards) {
-                    // TODO: Preload Card with this information.
-                    enemy.hp = Number(json.hp) || -1;
-                    enemy.attack = Number(json.attack) || -1;
-                    enemy.defense = Number(json.defense) || -1;
-                }
-                else {
-                    enemy.hp = Number(json.hp) || 1;
-                    enemy.attack = Number(json.attack) || 1;
-                    enemy.defense = Number(json.defense) || 0;
-                }
-                enemy.resolvePercent = Number(json.resolvePercent) || 0;
-                enemy.attributesResisted = (json.attributesResisted || []).map((a) => Number(a));
-                enemy.typeResists = (json.typeResists || []).map((a) => Number(a));
-                enemy.preemptiveSkillset = json.preemptiveSkillset ?
-                    EnemySkillset.fromJson(json.preemptiveSkillset) : new EnemySkillset();
-                enemy.skillsets = (json.skillsets || []).map((skillsetJson) => EnemySkillset.fromJson(skillsetJson));
-                enemy.turnCounter = json.turnCounter || 1;
+                // if (enemy.id in floof.model.cards) {
+                //   // TODO: Preload Card with this information.
+                //   enemy.hp = Number(json.hp) || -1;
+                //   enemy.attack = Number(json.attack) || -1;
+                //   enemy.defense = Number(json.defense) || -1;
+                // } else {
+                //   enemy.hp = Number(json.hp) || 1;
+                //   enemy.attack = Number(json.attack) || 1;
+                //   enemy.defense = Number(json.defense) || 0;
+                // }
+                // enemy.resolvePercent = Number(json.resolvePercent) || 0;
+                // enemy.attributesResisted = (json.attributesResisted || []).map((a) => Number(a));
+                // enemy.typeResists = (json.typeResists || []).map((a) => Number(a));
+                // // enemy.preemptiveSkillset = json.preemptiveSkillset ?
+                // //   EnemySkillset.fromJson(json.preemptiveSkillset) : new EnemySkillset();
+                // // enemy.skillsets = (json.skillsets || []).map(
+                // //   (skillsetJson) => EnemySkillset.fromJson(skillsetJson));
+                // enemy.turnCounter = json.turnCounter || 1;
                 enemy.reset();
                 return enemy;
             }
@@ -9780,6 +9805,7 @@
             skill.ratio = enemySkill.ratio;
             return skill;
         }
+        exports.toSkillContext = toSkillContext;
         var UnusedReason;
         (function (UnusedReason) {
             UnusedReason[UnusedReason["LOGIC"] = 0] = "LOGIC";
@@ -9944,7 +9970,7 @@
         }
         exports.textifyEnemySkills = textifyEnemySkills;
     });
-    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills", "debugger", "ilmina_stripped"], function (require, exports, common_10, ajax_2, enemy_instance_1, templates_5, enemy_skills_1, debugger_1, ilmina_stripped_9) {
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills"], function (require, exports, common_10, ajax_2, enemy_instance_1, templates_5, enemy_skills_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DungeonFloor {
@@ -10013,7 +10039,6 @@
                         floor.enemies.push({
                             id: encounter.enemy_id,
                             lv: encounter.level,
-                            turnCounter: encounter.turns,
                         });
                     }
                     const dungeonInstanceJson = {
@@ -10048,41 +10073,6 @@
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
                 this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
-                debugger_1.debug.addButton('Print Skills', () => {
-                    const enemy = this.getActiveEnemy();
-                    const id = enemy.id;
-                    const skillTexts = enemy_skills_1.textifyEnemySkills({
-                        id,
-                        atk: enemy.getAtk(),
-                    });
-                    for (let i = 0; i < skillTexts.length; i++) {
-                        debugger_1.debug.print(`${i + 1}: ${skillTexts[i]} `);
-                    }
-                });
-                debugger_1.debug.addButton('Use Preempt', () => {
-                    this.useEnemySkill([], // teamIds
-                    1, // combo
-                    true, // bigBoard
-                    true);
-                });
-                debugger_1.debug.addButton('Print next skill', () => {
-                    this.useEnemySkill([], // teamIds
-                    8, // combo
-                    true);
-                });
-                this.onEnemySkill = (idx, otherIdxs) => {
-                    if (idx < 0) {
-                        debugger_1.debug.print('No skill to use');
-                        return;
-                    }
-                    const enemy = this.getActiveEnemy();
-                    if (otherIdxs.length) {
-                        debugger_1.debug.print(`  * Not using potential skills: ${otherIdxs}`);
-                    }
-                    debugger_1.debug.print('** Using the following skill **');
-                    debugger_1.debug.print(enemy_skills_1.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
-                    enemy.charges -= ilmina_stripped_9.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
-                };
             }
             async loadDungeon(subDungeonId) {
                 await common_10.waitFor(() => dungeonsLoaded);
@@ -10161,25 +10151,50 @@
                             this.deleteFloor(ctx.removeFloor);
                         }
                     }
-                    if (ctx.dungeonHpMultiplier != undefined) {
-                        this.hpMultiplier = common_10.Rational.from(ctx.dungeonHpMultiplier);
-                        this.getActiveEnemy().dungeonMultipliers.hp = this.hpMultiplier;
-                    }
-                    if (ctx.dungeonAtkMultiplier != undefined) {
-                        this.atkMultiplier = common_10.Rational.from(ctx.dungeonAtkMultiplier);
-                        this.getActiveEnemy().dungeonMultipliers.atk = this.atkMultiplier;
-                    }
-                    if (ctx.dungeonDefMultiplier != undefined) {
-                        this.defMultiplier = common_10.Rational.from(ctx.dungeonDefMultiplier);
-                        this.getActiveEnemy().dungeonMultipliers.def = this.defMultiplier;
-                    }
-                    if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
-                        // Update other dungeon info about dungeon editor.
-                    }
                     if (ctx.addEnemy) {
                         const floor = this.floors[this.activeFloor];
                         floor.addEnemy();
                         this.setActiveEnemy(floor.enemies.length - 1);
+                    }
+                    const enemy = this.getActiveEnemy();
+                    if (ctx.dungeonHpMultiplier != undefined) {
+                        this.hpMultiplier = common_10.Rational.from(ctx.dungeonHpMultiplier);
+                        enemy.dungeonMultipliers.hp = this.hpMultiplier;
+                    }
+                    if (ctx.dungeonAtkMultiplier != undefined) {
+                        this.atkMultiplier = common_10.Rational.from(ctx.dungeonAtkMultiplier);
+                        enemy.dungeonMultipliers.atk = this.atkMultiplier;
+                    }
+                    if (ctx.dungeonDefMultiplier != undefined) {
+                        this.defMultiplier = common_10.Rational.from(ctx.dungeonDefMultiplier);
+                        enemy.dungeonMultipliers.def = this.defMultiplier;
+                    }
+                    if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
+                        // Update other dungeon info about dungeon editor.
+                    }
+                    if (ctx.hp != undefined) {
+                        if (ctx.hp < 0) {
+                            ctx.hp = 0;
+                        }
+                        if (ctx.hp > enemy.getHp()) {
+                            ctx.hp = enemy.getHp();
+                        }
+                        enemy.currentHp = ctx.hp;
+                    }
+                    if (ctx.hpPercent != undefined) {
+                        if (ctx.hpPercent < 0) {
+                            ctx.hpPercent = 0;
+                        }
+                        if (ctx.hpPercent > 100) {
+                            ctx.hpPercent = 100;
+                        }
+                        enemy.currentHp = Math.ceil(enemy.getHp() * ctx.hpPercent / 100);
+                    }
+                    if (ctx.enrage != undefined) {
+                        enemy.attackMultiplier = ctx.enrage;
+                    }
+                    if (ctx.defBreak != undefined) {
+                        enemy.ignoreDefensePercent = ctx.defBreak;
                     }
                     if (ctx.enemyLevel) {
                         this.getActiveEnemy().setLevel(ctx.enemyLevel);
@@ -10187,13 +10202,14 @@
                     if (ctx.activeEnemyId != undefined) {
                         this.getActiveEnemy().id = ctx.activeEnemyId;
                     }
-                    if (ctx.addTypeResist != undefined) {
-                        this.getActiveEnemy().typeResists.push(ctx.addTypeResist);
+                    if (ctx.charges != undefined) {
+                        enemy.charges = ctx.charges;
                     }
-                    if (ctx.removeTypeResist != undefined) {
-                        if (this.getActiveEnemy().typeResists.includes(ctx.removeTypeResist)) {
-                            this.getActiveEnemy().typeResists.splice(this.getActiveEnemy().typeResists.indexOf(ctx.removeTypeResist), 1);
-                        }
+                    if (ctx.counter != undefined) {
+                        enemy.counter = ctx.counter;
+                    }
+                    if (ctx.flags != undefined) {
+                        enemy.flags = ctx.flags;
                     }
                     const updateActiveEnemy = old.floor != this.activeFloor || old.enemy != this.activeEnemy;
                     this.update(updateActiveEnemy);
@@ -10209,7 +10225,26 @@
                 }
                 const enemy = this.getActiveEnemy();
                 this.pane.dungeonEditor.setDungeonMultipliers(this.hpMultiplier.toString(), this.atkMultiplier.toString(), this.defMultiplier.toString());
-                this.pane.dungeonEditor.setEnemyStats(enemy.lv, Math.round(this.hpMultiplier.multiply(enemy.getHp())), Math.round(this.atkMultiplier.multiply(enemy.getAtk())), Math.round(this.defMultiplier.multiply(enemy.getDef())), Math.round(enemy.getResolve()), enemy.getTypeResists(), enemy.getAttrResists());
+                this.pane.dungeonEditor.setEnemyStats({
+                    lv: enemy.lv,
+                    currentHp: enemy.currentHp,
+                    percentHp: enemy.getHpPercent(),
+                    hp: Math.round(this.hpMultiplier.multiply(enemy.getHp())),
+                    baseAtk: enemy.getAtkBase(),
+                    enrage: enemy.attackMultiplier,
+                    atk: enemy.getAtk(),
+                    baseDef: enemy.getDefBase(),
+                    ignoreDefensePercent: enemy.ignoreDefensePercent,
+                    def: enemy.getDef(),
+                    resolve: Math.round(enemy.getResolve()),
+                    superResolve: enemy.getSuperResolve().minHp,
+                    typeResists: enemy.getTypeResists(),
+                    attrResists: enemy.getAttrResists(),
+                    maxCharges: enemy.getCard().charges,
+                    charges: enemy.charges,
+                    counter: enemy.counter,
+                    flags: enemy.flags,
+                });
             }
             addFloor() {
                 this.floors.push(new DungeonFloor());
@@ -10290,7 +10325,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "url_handler"], function (require, exports, common_11, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_2, ilmina_stripped_10, custom_base64_1, url_handler_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler"], function (require, exports, common_11, combo_container_1, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_1, ilmina_stripped_9, custom_base64_1, enemy_skills_2, url_handler_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
@@ -10392,6 +10427,46 @@
                     this.dungeon.loadDungeon(Number(dungeonId));
                 }
                 this.display.panes[2].appendChild(this.dungeon.getPane());
+                debugger_1.debug.addButton('Print Skills', () => {
+                    const enemy = this.dungeon.getActiveEnemy();
+                    const id = enemy.id;
+                    const skillTexts = enemy_skills_2.textifyEnemySkills({
+                        id,
+                        atk: enemy.getAtk(),
+                    });
+                    for (let i = 0; i < skillTexts.length; i++) {
+                        debugger_1.debug.print(`${i + 1}: ${skillTexts[i]} `);
+                    }
+                });
+                debugger_1.debug.addButton('Use Preempt', () => {
+                    this.dungeon.useEnemySkill([], // teamIds
+                    this.comboContainer.comboCount(), // combo
+                    this.team.getBoardWidth() == 7, // bigBoard
+                    true);
+                });
+                debugger_1.debug.addButton('Print next skill', () => {
+                    this.dungeon.useEnemySkill([], // teamIds
+                    this.comboContainer.comboCount(), // combo
+                    this.team.getBoardWidth() == 7);
+                });
+                this.dungeon.onEnemySkill = (idx, otherIdxs) => {
+                    if (idx < 0) {
+                        debugger_1.debug.print('No skill to use');
+                        return;
+                    }
+                    const enemy = this.dungeon.getActiveEnemy();
+                    if (otherIdxs.length) {
+                        debugger_1.debug.print(`  * Not using potential skills: ${otherIdxs}`);
+                    }
+                    debugger_1.debug.print('** Using the following skill **');
+                    debugger_1.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
+                    const skillCtx = enemy_skills_2.toSkillContext(enemy.id, idx);
+                    enemy_skills_2.effect(skillCtx, { enemy, team: this.team });
+                    enemy.charges -= ilmina_stripped_9.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
+                    enemy.charges += enemy.getCard().chargeGain;
+                    this.dungeon.update(true);
+                    this.team.updateState({});
+                };
             }
             updateMonsterEditor() {
                 const monster = this.team.monsters[this.team.activeMonster];
@@ -10421,7 +10496,7 @@
             }
         }
         async function init() {
-            await common_11.waitFor(() => ilmina_stripped_10.floof.ready);
+            await common_11.waitFor(() => ilmina_stripped_9.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
@@ -10431,7 +10506,7 @@
             }
             document.body.appendChild(valeria.getElement());
             if (localStorage.debug) {
-                document.body.appendChild(debugger_2.debug.getElement());
+                document.body.appendChild(debugger_1.debug.getElement());
             }
             window.valeria = valeria;
             const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`);
