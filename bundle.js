@@ -8268,13 +8268,26 @@
     define("enemy_skills", ["require", "exports", "ilmina_stripped", "common"], function (require, exports, ilmina_stripped_8, common_9) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
+        var SkillType;
+        (function (SkillType) {
+            SkillType[SkillType["EFFECT"] = 0] = "EFFECT";
+            SkillType[SkillType["LOGIC"] = 1] = "LOGIC";
+        })(SkillType || (SkillType = {}));
         const TO_NEXT = -1;
         const TERMINATE = 0;
+        function rangeTurns(begin, end) {
+            begin = begin || 0;
+            const suffix = end == 1 ? ' turn' : ' turns';
+            if (begin == end) {
+                return common_9.addCommas(end) + suffix;
+            }
+            return `${common_9.addCommas(begin)}-${common_9.addCommas(end)}${suffix}`;
+        }
         // 1
         const bindRandom = {
             textify: ({ skillArgs }) => {
                 const [count, min, max] = skillArgs;
-                return `Binds ${count} of all monsters for ${min} to ${max} turns`;
+                return `Binds ${count} of all monsters for ${rangeTurns(min, max)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8289,7 +8302,7 @@
         const bindAttr = {
             textify: ({ skillArgs }, { atk }) => {
                 const [color, min, max] = skillArgs;
-                return `Binds ${common_9.AttributeToName.get(color || 0)} monsters for ${min} to ${max} turns. If none exist and part of skillset, hits for ${common_9.addCommas(atk)}. Else continue.`;
+                return `Binds ${common_9.AttributeToName.get(color || 0)} monsters for ${rangeTurns(min, max)}. If none exist and part of skillset, hits for ${common_9.addCommas(atk)}. Else continue.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8308,7 +8321,7 @@
         const bindType = {
             textify: ({ skillArgs }, { atk }) => {
                 const [type, min, max] = skillArgs;
-                return `Binds ${common_9.TypeToName.get(type)} monsters for ${min} to ${max} turns. If none exist, hits for ${common_9.addCommas(atk)}.`;
+                return `Binds ${common_9.TypeToName.get(type)} monsters for ${rangeTurns(min, max)}. If none exist, hits for ${common_9.addCommas(atk)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8402,7 +8415,7 @@
         };
         // 14
         const skillBind = {
-            textify: ({ skillArgs }) => `Skill bind for ${skillArgs[0]}-${skillArgs[1]} turns`,
+            textify: ({ skillArgs }) => `Skill bind for ${rangeTurns(skillArgs[0], skillArgs[1])}.`,
             condition: () => true,
             aiEffect: () => { },
             effect: (_, { team }) => {
@@ -8499,6 +8512,7 @@
             },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 23
         const goto0IndexIfFlag = {
@@ -8513,6 +8527,7 @@
             goto: (skillCtx, ctx) => {
                 return gotoIfFlag.condition(skillCtx, ctx) ? skillCtx.rnd : TO_NEXT;
             },
+            type: SkillType.LOGIC,
         };
         // 24
         const unsetFlagAndContinue = {
@@ -8526,6 +8541,7 @@
             },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 25
         const setCounterToAiAndContinue = {
@@ -8536,6 +8552,7 @@
             },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 26
         const incrementCounterAndContinue = {
@@ -8546,6 +8563,7 @@
             },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 27
         const decrementCounterAndContinue = {
@@ -8556,6 +8574,7 @@
             },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 28
         const gotoIfHpBelow = {
@@ -8564,6 +8583,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ ai, rnd }, { hpPercent }) => hpPercent < ai ? rnd - 1 : TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 29
         const gotoIfHpAbove = {
@@ -8572,6 +8592,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ ai, rnd }, { hpPercent }) => hpPercent >= ai ? rnd - 1 : TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 30
         const gotoIfCounterLesser = {
@@ -8580,6 +8601,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ ai, rnd }, { counter }) => counter <= ai ? rnd - 1 : TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 31
         const gotoIfCounterEqual = {
@@ -8588,6 +8610,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ ai, rnd }, { counter }) => counter == ai ? rnd - 1 : TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 32
         const gotoIfCounterGreater = {
@@ -8596,6 +8619,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ ai, rnd }, { counter }) => counter >= ai ? rnd - 1 : TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 33
         const gotoIfLvLesser = {
@@ -8604,6 +8628,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ ai, rnd }, { lv }) => lv < ai ? rnd - 1 : TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 34
         const gotoIfLvEqual = {
@@ -8612,6 +8637,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ ai, rnd }, { lv }) => lv == ai ? rnd - 1 : TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 35
         const gotoIfLvGreater = {
@@ -8620,6 +8646,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ ai, rnd }, { lv }) => lv > ai ? rnd - 1 : TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 36
         const fallbackAttack = {
@@ -8646,6 +8673,7 @@
             goto: (_, { counter }) => {
                 return counter > 0 ? TERMINATE : TO_NEXT;
             },
+            type: SkillType.LOGIC,
         };
         // 38
         const setCounterAndContinue = {
@@ -8658,6 +8686,7 @@
             },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 39
         const timeDebuff = {
@@ -8692,7 +8721,7 @@
                 enemy.currentHp = 0;
             },
             // Currently never occurs in simulations.
-            goto: () => TO_NEXT,
+            goto: () => TERMINATE,
         };
         // 43
         const gotoIfFlag = {
@@ -8707,6 +8736,7 @@
             goto: (skillCtx, ctx) => {
                 return gotoIfFlag.condition(skillCtx, ctx) ? skillCtx.rnd - 1 : TO_NEXT;
             },
+            type: SkillType.LOGIC,
         };
         // 44
         const orFlagsAndContinue = {
@@ -8719,6 +8749,7 @@
             },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 45
         const toggleFlagsAndContinue = {
@@ -8733,6 +8764,7 @@
             },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 46
         const changeAttribute = {
@@ -8809,6 +8841,7 @@
                 }
                 return TERMINATE;
             },
+            type: SkillType.LOGIC,
         };
         // 50
         const gravity = {
@@ -8836,7 +8869,7 @@
             textify: ({ skillArgs }) => {
                 const [minTurns, maxTurns, attrIdxs] = skillArgs;
                 const attrs = common_9.idxsFromBits(attrIdxs).map((c) => common_9.AttributeToName.get(c)).join(', ');
-                return `For ${minTurns} to ${maxTurns} turns, absorb ${attrs}.`;
+                return `For ${rangeTurns(minTurns, maxTurns)}, absorb ${attrs}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8945,7 +8978,7 @@
                         text.push('Subs');
                     }
                 }
-                return `Hits once for ${percent} % (${common_9.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${min} to ${max} turns`;
+                return `Hits once for ${percent} % (${common_9.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${rangeTurns(min, max)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8975,7 +9008,7 @@
         };
         // 65
         const bindSubs = {
-            textify: ({ skillArgs }) => `Binds ${skillArgs[0]} for ${skillArgs[1]}-${skillArgs[2]} turns`,
+            textify: ({ skillArgs }) => `Binds ${skillArgs[0]} for ${rangeTurns(skillArgs[1], skillArgs[2])}.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => {
@@ -8993,7 +9026,7 @@
         };
         // 67
         const comboAbsorb = {
-            textify: ({ skillArgs }) => `Absorb ${skillArgs[2]} or fewer combos for ${skillArgs[0]} - ${skillArgs[1]} turns.`,
+            textify: ({ skillArgs }) => `Absorb ${skillArgs[2]} or fewer combos for ${rangeTurns(skillArgs[0], skillArgs[1])}.`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { enemy }) => {
@@ -9329,6 +9362,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: ({ skillArgs, rnd }, { teamIds }) => skillArgs.some((id) => teamIds.includes(id)) ? rnd - 1 : TO_NEXT,
+            type: SkillType.LOGIC,
         };
         // 92
         const randomOrbSpawn = {
@@ -9375,7 +9409,7 @@
             textify: ({ skillArgs }) => {
                 const [attrBits, minTurns, maxTurns, percent] = skillArgs;
                 if (!attrBits || attrBits == -1) {
-                    return `Lock ${percent}% skyfall for ${minTurns}-${maxTurns} turns.`;
+                    return `Lock ${percent}% skyfall for ${rangeTurns(minTurns, maxTurns)}.`;
                 }
                 const lockedOrbs = common_9.idxsFromBits(attrBits).map((c) => common_9.AttributeToName.get(c)).join(', ');
                 return `Lock ${percent}% of ${lockedOrbs} skyfall for ${minTurns}-${maxTurns}`;
@@ -9554,6 +9588,7 @@
             goto: ({ ai, rnd }, { combo }) => {
                 return combo >= ai ? rnd - 1 : TO_NEXT;
             },
+            type: SkillType.LOGIC,
         };
         // 118
         const resistTypes = {
@@ -9584,6 +9619,7 @@
                 console.warn(`Multiple enemies not supported, assuming ${ai} remaining`);
                 return rnd;
             },
+            type: SkillType.LOGIC,
         };
         // 121
         const removeInvincibility = {
@@ -9635,7 +9671,7 @@
         };
         // 127
         const attackAndNoSkyfall = {
-            textify: ({ skillArgs }, { atk }) => `Attack of ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and no-skyfall for ${skillArgs[1]} turn(s).`,
+            textify: ({ skillArgs }, { atk }) => skillArgs[0] ? `Attack of ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and n` : 'N' + `o-skyfall for ${skillArgs[1]} turn(s).`,
             condition: () => true,
             aiEffect: () => { },
             // This will occur in the damage step.
@@ -9883,7 +9919,7 @@
             while (idx < skills.length) {
                 const skill = skills[idx];
                 // Remaining charge cost insufficient.
-                if (skill.aiArgs[3] > ctx.charges) {
+                if (skillType(ctx, idx) == SkillType.EFFECT && skill.aiArgs[3] > ctx.charges) {
                     path.push({ idx, unusedReason: UnusedReason.INSUFFICIENT_CHARGES });
                     idx++;
                     continue;
@@ -9967,6 +10003,16 @@
             return effect.aiEffect(skill, ctx);
         }
         exports.aiEffect = aiEffect;
+        function skillType(ctx, skillIdx) {
+            const skill = toSkillContext(ctx.cardId, skillIdx);
+            const effect = ENEMY_SKILL_GENERATORS[skill.effectId];
+            if (!effect) {
+                console.error(`UNIMPLEMENTED EFFECT ID: ${skill.effectId} `);
+                return SkillType.EFFECT;
+            }
+            return effect.type || SkillType.EFFECT;
+        }
+        exports.skillType = skillType;
         function goto(ctx, skillIdx) {
             const skill = toSkillContext(ctx.cardId, skillIdx);
             const effect = ENEMY_SKILL_GENERATORS[skill.effectId];
@@ -10493,7 +10539,7 @@
                     this.team.getBoardWidth() == 7, // bigBoard
                     true);
                 });
-                debugger_1.debug.addButton('Print next skill', () => {
+                debugger_1.debug.addButton('Use Next Skill', () => {
                     const attributes = new Set();
                     const types = new Set();
                     for (const m of this.team.getActiveTeam()) {
