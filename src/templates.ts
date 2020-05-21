@@ -1588,18 +1588,19 @@ class MonsterEditor {
   update(ctx: MonsterUpdateAll) {
     this.monsterSelector.setId(ctx.id);
     this.inheritSelector.setId(ctx.inheritId);
+    const c = floof.model.cards[ctx.id];
     for (let i = 0; i < 3; i++) {
-      const monsterType = floof.model.cards[ctx.id].types[i];
-      if (monsterType === undefined) {
+      if (!c || i >= c.types.length) {
         superHide(this.types[i].getElement());
       } else {
+        const monsterType = c.types[i];
         superShow(this.types[i].getElement());
         this.types[i].setType(monsterType);
       }
     }
     let maxLevel = 1;
-    if (ctx.id in floof.model.cards) {
-      maxLevel = floof.model.cards[ctx.id].isLimitBreakable ? 110 : floof.model.cards[ctx.id].maxLevel;
+    if (c) {
+      maxLevel = c.isLimitBreakable ? 110 : c.maxLevel;
     }
     let inheritMaxLevel = 1;
     if (ctx.inheritId in floof.model.cards) {
@@ -1618,9 +1619,9 @@ class MonsterEditor {
     let awakenings: Awakening[] = [];
     let superAwakenings: Awakening[] = [];
     let inheritAwakenings: Awakening[] = [];
-    if (ctx.id in floof.model.cards) {
-      awakenings = floof.model.cards[ctx.id].awakenings;
-      superAwakenings = floof.model.cards[ctx.id].superAwakenings;
+    if (c) {
+      awakenings = c.awakenings;
+      superAwakenings = c.superAwakenings;
     }
     if (ctx.inheritId in floof.model.cards) {
       inheritAwakenings = floof.model.cards[ctx.inheritId].awakenings;
@@ -1636,13 +1637,12 @@ class MonsterEditor {
 
     let latentKillers: Latent[] = [];
     if (ctx.id in floof.model.cards) {
-      latentKillers = floof.model.cards[ctx.id].latentKillers;
+      latentKillers = c.latentKillers;
     }
-    const maybeCard = floof.model.cards[ctx.id];
     let maxLatents = 6;
-    if (!maybeCard) {
+    if (!c) {
       maxLatents = 0;
-    } else if (maybeCard.inheritanceType & 32) {
+    } else if (c.inheritanceType & 32) {
       maxLatents = 8;
     }
     this.latentEditor.update(

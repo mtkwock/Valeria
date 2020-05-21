@@ -281,6 +281,9 @@ const statusShield: EnemySkillEffect = {
   aiEffect: () => { },
   effect: (_, { enemy }) => {
     enemy.statusShield = true;
+    enemy.poison = 0;
+    enemy.delayed = false;
+    enemy.ignoreDefensePercent = 0;
   },
   goto: () => TERMINATE,
 };
