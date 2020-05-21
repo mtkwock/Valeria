@@ -207,7 +207,7 @@ class EnemyInstance {
     voids: { attributeAbsorb: boolean; damageAbsorb: boolean; damageVoid: boolean }): number {
 
     let currentDamage = ping.damage;
-    if (!currentDamage) {
+    if (!currentDamage || this.invincible) {
       return 0;
     }
 

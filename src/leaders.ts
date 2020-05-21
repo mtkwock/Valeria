@@ -858,7 +858,7 @@ const atkShieldFromLinkedOrbs: LeaderSkill = { // 182
         highest = c.count > highest ? c.count : highest;
       }
     }
-    return highest > minMatched ? atk100 / 100 : 1;
+    return highest >= minMatched ? atk100 / 100 : 1;
   },
   damageMult: ([attrBits, minMatched, _, shield], { comboContainer }) => {
     if (!shield) {
@@ -870,7 +870,7 @@ const atkShieldFromLinkedOrbs: LeaderSkill = { // 182
         highest = c.count > highest ? c.count : highest;
       }
     }
-    return highest > minMatched ? shield / 100 : 1;
+    return highest >= minMatched ? shield / 100 : 1;
   },
 };
 
@@ -928,7 +928,7 @@ const atkPlusCombosFromAllLinkedOrbs: LeaderSkill = { // 192
   },
   plusCombo: ([attrBits, minLinked, _, comboBonus], { comboContainer }) => {
     if (!comboBonus) {
-      return 1;
+      return 0;
     }
     return idxsFromBits(attrBits)
       .every((attr) => comboContainer.combos[COLORS[attr]]
@@ -943,8 +943,8 @@ const atkRcvShieldFromLMatch: LeaderSkill = { // 193
 };
 
 const atkPlusCombosFromRainbow: LeaderSkill = { // 194
-  atk: ([attrBits, minColors, atk100], { comboContainer, team }) => atk100 && countMatchedColors(attrBits, comboContainer, team) > minColors ? atk100 / 100 : 1,
-  plusCombo: ([attrBits, minColors, _, comboBonus], { comboContainer, team }) => comboBonus && countMatchedColors(attrBits, comboContainer, team) > minColors ? comboBonus : 0,
+  atk: ([attrBits, minColors, atk100], { comboContainer, team }) => atk100 && countMatchedColors(attrBits, comboContainer, team) >= minColors ? atk100 / 100 : 1,
+  plusCombo: ([attrBits, minColors, _, comboBonus], { comboContainer, team }) => comboBonus && countMatchedColors(attrBits, comboContainer, team) >= minColors ? comboBonus : 0,
 };
 
 const disablePoisonDamage: LeaderSkill = { // 197
