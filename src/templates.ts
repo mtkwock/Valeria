@@ -7,9 +7,10 @@
  * compiling them here so that the structure is more consistent.
  */
 
-import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType, AttributeToFontColor, addCommas, removeCommas } from './common';
+import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType, AttributeToFontColor, addCommas, removeCommas, Shape, LetterToShape } from './common';
 import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
 import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
+// import { debug } from './debugger';
 
 function create(tag: string, cls = ''): HTMLElement {
   const el = document.createElement(tag);
@@ -48,6 +49,7 @@ enum ClassNames {
   COMBO_EDITOR = 'valeria-combo-editor',
   COMBO_COMMAND = 'valeria-combo-command',
   COMBO_TABLE = 'valeria-combo-table',
+  COMBO_ORB = 'valeria-combo-orb',
 
   TABBED = 'valeria-tabbed',
   TABBED_LABEL = 'valeria-tabbed-label',
@@ -116,9 +118,9 @@ enum ClassNames {
   VALERIA = 'valeria',
 }
 
-enum Ids {
-  COMBO_TABLE_PREFIX = 'valeria-combo-table-',
-}
+// enum Ids {
+//   COMBO_TABLE_PREFIX = 'valeria-combo-table-',
+// }
 
 enum StatIndex {
   HP = 0,
@@ -673,52 +675,96 @@ class MonsterLatent {
   }
 }
 
+class ComboPiece {
+  private element = create('div');
+  static width = 20;
+
+  static makeOrb(src: string): HTMLImageElement {
+    const img = create('img', ClassNames.COMBO_ORB) as HTMLImageElement;
+    img.src = src;
+    return img;
+  }
+
+  constructor(attribute: Attribute, shape = Shape.AMORPHOUS, count = 0, boardWidth = 6) {
+    this.element.style.display = 'inline-block';
+    this.element.style.margin = '5px';
+    const srcName = `assets/orb${attribute}.png`;
+    let positions: number[][] = [];
+    if (shape == Shape.CROSS) {
+      positions = [
+        [1],
+        [0, 1, 2],
+        [1],
+      ]
+    }
+    if (shape == Shape.COLUMN) {
+      for (let i = 0; i < count; i++) {
+        positions[i] = [0];
+      }
+    } else if (shape == Shape.L) {
+      positions = [
+        [0],
+        [0],
+        [0, 1, 2],
+      ]
+    } else if (shape == Shape.BOX) {
+      positions = [
+        [0, 1, 2],
+        [0, 1, 2],
+        [0, 1, 2],
+      ]
+    } else {
+      let width = shape == Shape.ROW ? boardWidth : boardWidth - 1;
+      let remainder = count;
+      let vertical = 0;
+      while (remainder > 0) {
+        let toAdd = width;
+        if (toAdd > remainder) {
+          toAdd = remainder;
+        }
+        positions[vertical] = new Array(toAdd);
+        for (let i = 0; i < toAdd; i++) {
+          positions[vertical][i] = i;
+        }
+
+        remainder -= toAdd;
+        vertical++;
+      }
+    }
+
+    const height = Object.keys(positions).length;
+    const width = Math.max(...Object.values(positions).map(p => p.length));
+
+    this.element.style.width = `${width * (ComboPiece.width + 2)}px`;
+    this.element.style.height = `${height * (ComboPiece.width + 2)}px`;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const orb = ComboPiece.makeOrb(srcName);
+        if (!positions[y].includes(x)) {
+          orb.style.opacity = '0';
+        }
+        this.element.appendChild(orb);
+      }
+    }
+  }
+
+  getElement(): HTMLElement {
+    return this.element;
+  }
+}
+
 class ComboEditor {
-  public static maxVisibleCombos: number = 14;
+  public static maxVisibleCombos: number = 16;
   public commandInput: HTMLInputElement = create('input', ClassNames.COMBO_COMMAND) as HTMLInputElement;
 
   private element: HTMLElement = create('div', ClassNames.COMBO_EDITOR);
-  private colorTables: Record<string, HTMLTableElement> = {};
+  // private colorTables: Record<string, HTMLTableElement> = {};
+  private pieceArea = create('div');
 
   constructor() {
     this.commandInput.placeholder = 'Combo Commands';
     this.element.appendChild(this.commandInput);
-
-    for (const c of COLORS) {
-      const colorTable = create('table', ClassNames.COMBO_TABLE) as HTMLTableElement;
-      colorTable.id = Ids.COMBO_TABLE_PREFIX + c;
-      const headerRow = create('tr');
-      const countRow = create('tr');
-      const enhanceRow = create('tr');
-      for (let i = -1; i < ComboEditor.maxVisibleCombos; i++) {
-        const headerCell = create('th');
-        const countCell = create('td');
-        const enhanceCell = create('td');
-        if (i == -1) {
-          headerCell.innerText = c.toUpperCase();
-          countCell.innerText = '#';
-          enhanceCell.innerText = '+';
-        } else {
-          headerCell.innerText = `${i}`;
-          const countInput = create('input') as HTMLInputElement;
-          countInput.id = `valeria-combo-count-${c}-${i}`;
-          countInput.value = '';
-          countCell.appendChild(countInput);
-          const enhanceInput = create('input') as HTMLInputElement;
-          enhanceInput.id = `valeria-combo-enhance-${c}-${i}`;
-          enhanceInput.value = '';
-          enhanceCell.appendChild(enhanceInput);
-        }
-        headerRow.appendChild(headerCell);
-        countRow.appendChild(countCell);
-        enhanceRow.appendChild(enhanceCell);
-      }
-      colorTable.appendChild(headerRow);
-      colorTable.appendChild(countRow);
-      colorTable.appendChild(enhanceRow);
-      this.colorTables[c] = colorTable;
-      this.element.appendChild(colorTable);
-    }
+    this.element.appendChild(this.pieceArea);
   }
 
   getElement(): HTMLElement {
@@ -727,39 +773,36 @@ class ComboEditor {
 
   getInputElements(): Record<string, { shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement }[]> {
     const out: Record<string, { shapeCountEl: HTMLInputElement, enhanceEl: HTMLInputElement }[]> = {};
-
-    for (const c of COLORS) {
-      out[c] = [];
-      const [shapeCountRow, enhanceRow] = [...this.colorTables[c].getElementsByTagName('tr')].slice(1);
-      const shapeCountEls = shapeCountRow.getElementsByTagName('input');
-      const enhanceEls = enhanceRow.getElementsByTagName('input');
-      for (let i = 0; i < ComboEditor.maxVisibleCombos; i++) {
-        const shapeCountEl = shapeCountEls[i] as HTMLInputElement;
-        const enhanceEl = enhanceEls[i] as HTMLInputElement;
-        out[c].push({
-          shapeCountEl,
-          enhanceEl,
-        });
-      }
-    }
-
     return out;
   }
 
   update(data: Record<string, { shapeCount: string, enhance: number }[]>) {
+    while (this.pieceArea.firstChild) {
+      this.pieceArea.removeChild(this.pieceArea.firstChild);
+    }
     for (const c in data) {
       const vals = data[c];
-      for (let i = 0; i < ComboEditor.maxVisibleCombos; i++) {
-        const countEl = document.getElementById(`valeria-combo-count-${c}-${i}`) as HTMLInputElement;
-        const enhanceEl = document.getElementById(`valeria-combo-enhance-${c}-${i}`) as HTMLInputElement;
-        if (i >= vals.length) {
-          countEl.value = '';
-          enhanceEl.value = '';
+      for (const { shapeCount } of vals) {
+        let shape: Shape;
+        let count: number;
+        if (shapeCount.startsWith('R')) {
+          shape = Shape.ROW;
+          count = parseInt(shapeCount.slice(1));
+        } else if (shapeCount.startsWith('C')) {
+          shape = Shape.COLUMN;
+          count = parseInt(shapeCount.slice(1));
+        } else if (shapeCount.match(/^\d+$/)) {
+          shape = Shape.AMORPHOUS;
+          count = parseInt(shapeCount);
         } else {
-          const { shapeCount, enhance } = vals[i];
-          countEl.value = shapeCount;
-          enhanceEl.value = enhance > 0 ? `${enhance}` : '';
+          shape = LetterToShape[shapeCount[0]];
+          count = 0;
         }
+        const comboPiece = new ComboPiece(COLORS.indexOf(c) as Attribute, shape, count, 6);
+        this.pieceArea.appendChild(comboPiece.getElement());
+      }
+      if (vals.length) {
+        this.pieceArea.appendChild(create('br'));
       }
     }
   }
