@@ -2189,6 +2189,7 @@
     define("templates", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search"], function (require, exports, common_2, ilmina_stripped_3, fuzzy_search_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
+        // import { debug } from './debugger';
         function create(tag, cls = '') {
             const el = document.createElement(tag);
             if (cls) {
@@ -2225,6 +2226,7 @@
             ClassNames["COMBO_EDITOR"] = "valeria-combo-editor";
             ClassNames["COMBO_COMMAND"] = "valeria-combo-command";
             ClassNames["COMBO_TABLE"] = "valeria-combo-table";
+            ClassNames["COMBO_ORB"] = "valeria-combo-orb";
             ClassNames["TABBED"] = "valeria-tabbed";
             ClassNames["TABBED_LABEL"] = "valeria-tabbed-label";
             ClassNames["TABBED_LABEL_SELECTED"] = "valeria-tabbed-label-selected";
@@ -2282,10 +2284,9 @@
             ClassNames["VALERIA"] = "valeria";
         })(ClassNames || (ClassNames = {}));
         exports.ClassNames = ClassNames;
-        var Ids;
-        (function (Ids) {
-            Ids["COMBO_TABLE_PREFIX"] = "valeria-combo-table-";
-        })(Ids || (Ids = {}));
+        // enum Ids {
+        //   COMBO_TABLE_PREFIX = 'valeria-combo-table-',
+        // }
         var StatIndex;
         (function (StatIndex) {
             StatIndex[StatIndex["HP"] = 0] = "HP";
@@ -2775,92 +2776,133 @@
             }
         }
         exports.MonsterLatent = MonsterLatent;
+        class ComboPiece {
+            constructor(attribute, shape = common_2.Shape.AMORPHOUS, count = 0, boardWidth = 6) {
+                this.element = create('div');
+                this.element.style.display = 'inline-block';
+                this.element.style.margin = '5px';
+                const srcName = `assets/orb${attribute}.png`;
+                let positions = [];
+                if (shape == common_2.Shape.CROSS) {
+                    positions = [
+                        [1],
+                        [0, 1, 2],
+                        [1],
+                    ];
+                }
+                if (shape == common_2.Shape.COLUMN) {
+                    for (let i = 0; i < count; i++) {
+                        positions[i] = [0];
+                    }
+                }
+                else if (shape == common_2.Shape.L) {
+                    positions = [
+                        [0],
+                        [0],
+                        [0, 1, 2],
+                    ];
+                }
+                else if (shape == common_2.Shape.BOX) {
+                    positions = [
+                        [0, 1, 2],
+                        [0, 1, 2],
+                        [0, 1, 2],
+                    ];
+                }
+                else {
+                    let width = shape == common_2.Shape.ROW ? boardWidth : boardWidth - 1;
+                    let remainder = count;
+                    let vertical = 0;
+                    while (remainder > 0) {
+                        let toAdd = width;
+                        if (toAdd > remainder) {
+                            toAdd = remainder;
+                        }
+                        positions[vertical] = new Array(toAdd);
+                        for (let i = 0; i < toAdd; i++) {
+                            positions[vertical][i] = i;
+                        }
+                        remainder -= toAdd;
+                        vertical++;
+                    }
+                }
+                const height = Object.keys(positions).length;
+                const width = Math.max(...Object.values(positions).map(p => p.length));
+                this.element.style.width = `${width * (ComboPiece.width + 2)}px`;
+                this.element.style.height = `${height * (ComboPiece.width + 2)}px`;
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const orb = ComboPiece.makeOrb(srcName);
+                        if (!positions[y].includes(x)) {
+                            orb.style.opacity = '0';
+                        }
+                        this.element.appendChild(orb);
+                    }
+                }
+            }
+            static makeOrb(src) {
+                const img = create('img', ClassNames.COMBO_ORB);
+                img.src = src;
+                return img;
+            }
+            getElement() {
+                return this.element;
+            }
+        }
+        ComboPiece.width = 20;
         class ComboEditor {
             constructor() {
                 this.commandInput = create('input', ClassNames.COMBO_COMMAND);
                 this.element = create('div', ClassNames.COMBO_EDITOR);
-                this.colorTables = {};
+                // private colorTables: Record<string, HTMLTableElement> = {};
+                this.pieceArea = create('div');
                 this.commandInput.placeholder = 'Combo Commands';
                 this.element.appendChild(this.commandInput);
-                for (const c of common_2.COLORS) {
-                    const colorTable = create('table', ClassNames.COMBO_TABLE);
-                    colorTable.id = Ids.COMBO_TABLE_PREFIX + c;
-                    const headerRow = create('tr');
-                    const countRow = create('tr');
-                    const enhanceRow = create('tr');
-                    for (let i = -1; i < ComboEditor.maxVisibleCombos; i++) {
-                        const headerCell = create('th');
-                        const countCell = create('td');
-                        const enhanceCell = create('td');
-                        if (i == -1) {
-                            headerCell.innerText = c.toUpperCase();
-                            countCell.innerText = '#';
-                            enhanceCell.innerText = '+';
-                        }
-                        else {
-                            headerCell.innerText = `${i}`;
-                            const countInput = create('input');
-                            countInput.id = `valeria-combo-count-${c}-${i}`;
-                            countInput.value = '';
-                            countCell.appendChild(countInput);
-                            const enhanceInput = create('input');
-                            enhanceInput.id = `valeria-combo-enhance-${c}-${i}`;
-                            enhanceInput.value = '';
-                            enhanceCell.appendChild(enhanceInput);
-                        }
-                        headerRow.appendChild(headerCell);
-                        countRow.appendChild(countCell);
-                        enhanceRow.appendChild(enhanceCell);
-                    }
-                    colorTable.appendChild(headerRow);
-                    colorTable.appendChild(countRow);
-                    colorTable.appendChild(enhanceRow);
-                    this.colorTables[c] = colorTable;
-                    this.element.appendChild(colorTable);
-                }
+                this.element.appendChild(this.pieceArea);
             }
             getElement() {
                 return this.element;
             }
             getInputElements() {
                 const out = {};
-                for (const c of common_2.COLORS) {
-                    out[c] = [];
-                    const [shapeCountRow, enhanceRow] = [...this.colorTables[c].getElementsByTagName('tr')].slice(1);
-                    const shapeCountEls = shapeCountRow.getElementsByTagName('input');
-                    const enhanceEls = enhanceRow.getElementsByTagName('input');
-                    for (let i = 0; i < ComboEditor.maxVisibleCombos; i++) {
-                        const shapeCountEl = shapeCountEls[i];
-                        const enhanceEl = enhanceEls[i];
-                        out[c].push({
-                            shapeCountEl,
-                            enhanceEl,
-                        });
-                    }
-                }
                 return out;
             }
             update(data) {
+                while (this.pieceArea.firstChild) {
+                    this.pieceArea.removeChild(this.pieceArea.firstChild);
+                }
                 for (const c in data) {
                     const vals = data[c];
-                    for (let i = 0; i < ComboEditor.maxVisibleCombos; i++) {
-                        const countEl = document.getElementById(`valeria-combo-count-${c}-${i}`);
-                        const enhanceEl = document.getElementById(`valeria-combo-enhance-${c}-${i}`);
-                        if (i >= vals.length) {
-                            countEl.value = '';
-                            enhanceEl.value = '';
+                    for (const { shapeCount } of vals) {
+                        let shape;
+                        let count;
+                        if (shapeCount.startsWith('R')) {
+                            shape = common_2.Shape.ROW;
+                            count = parseInt(shapeCount.slice(1));
+                        }
+                        else if (shapeCount.startsWith('C')) {
+                            shape = common_2.Shape.COLUMN;
+                            count = parseInt(shapeCount.slice(1));
+                        }
+                        else if (shapeCount.match(/^\d+$/)) {
+                            shape = common_2.Shape.AMORPHOUS;
+                            count = parseInt(shapeCount);
                         }
                         else {
-                            const { shapeCount, enhance } = vals[i];
-                            countEl.value = shapeCount;
-                            enhanceEl.value = enhance > 0 ? `${enhance}` : '';
+                            shape = common_2.LetterToShape[shapeCount[0]];
+                            count = 0;
                         }
+                        const comboPiece = new ComboPiece(common_2.COLORS.indexOf(c), shape, count, 6);
+                        this.pieceArea.appendChild(comboPiece.getElement());
+                    }
+                    if (vals.length) {
+                        this.pieceArea.appendChild(create('br'));
                     }
                 }
             }
         }
         exports.ComboEditor = ComboEditor;
-        ComboEditor.maxVisibleCombos = 14;
+        ComboEditor.maxVisibleCombos = 16;
         class TabbedComponent {
             constructor(tabNames, defaultTab = '') {
                 if (!tabNames.length) {
