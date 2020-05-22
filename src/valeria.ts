@@ -273,6 +273,7 @@ class Valeria {
       pings.map((ping) => ({ attribute: ping ? ping.attribute : Attribute.NONE, damage: ping ? ping.damage : 0 })),
       pings.map((ping) => ({ attribute: ping ? ping.attribute : Attribute.NONE, damage: ping ? ping.rawDamage : 0 })),
       pings.map((ping) => ({ attribute: ping ? ping.attribute : Attribute.NONE, damage: ping ? ping.actualDamage : 0 })),
+      maxHp,
       healing,
     );
   }

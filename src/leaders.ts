@@ -239,19 +239,10 @@ const coinBoost: LeaderSkill = { // 54
 };
 
 function countMatchedColors(attrBits: number, comboContainer: ComboContainer, team: MonsterInstance[]): number {
-  const attrs = idxsFromBits(attrBits);
-  let total = 0;
-  for (const attr of attrs) {
-    // Check if this color was matched.
-    if (comboContainer.combos[COLORS[attr]].length > 0) {
-      // Check if any of the monsters would have attacked.
-      // This could be refactored to check all of the available pings, but that's more dependencies.
-      if (team.some((monster) => !monster.bound && (monster.getAttribute() == attr || monster.getSubattribute() == attr))) {
-        total += 1;
-      }
-    }
-  }
-  return total;
+  const matchedAttr = idxsFromBits(attrBits)
+    .filter((attr) => comboContainer.combos[COLORS[attr]].length)
+    .filter((attr) => attr >= 5 || team.some((monster) => !monster.bound && (monster.getAttribute() == attr || monster.getSubattribute() == attr)));
+  return matchedAttr.length;
 }
 
 const atkScalingFromUniqueColorMatches: LeaderSkill = { // 61

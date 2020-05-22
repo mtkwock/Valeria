@@ -763,6 +763,11 @@ class ComboEditor {
 
   constructor() {
     this.commandInput.placeholder = 'Combo Commands';
+    const guideAnchor = create('a') as HTMLAnchorElement;
+    guideAnchor.href = 'https://github.com/mtkwock/Valeria#command-editor-syntax';
+    guideAnchor.innerText = 'Combo Command Usage Guide';
+    guideAnchor.target = '_blank';
+    this.element.appendChild(guideAnchor);
     this.element.appendChild(this.commandInput);
     this.element.appendChild(this.pieceArea);
   }
@@ -1854,12 +1859,18 @@ class TeamPane {
   private fixedHpInput: HTMLInputElement = create('input') as HTMLInputElement;
   private leadSwapInput = create('select') as HTMLSelectElement;
   private voidEls: LayeredAsset[] = [];
+
   private pingCells: HTMLTableCellElement[] = [];
-  private bonusPing = create('tr') as HTMLTableRowElement;
+  private bonusPing = create('td') as HTMLTableCellElement;
+  private pingTotal = create('td') as HTMLTableCellElement;
   private rawPingCells: HTMLTableCellElement[] = [];
-  private rawBonusPing = create('tr') as HTMLTableRowElement;
+  private rawBonusPing = create('td') as HTMLTableCellElement;
+  private rawPingTotal = create('td') as HTMLTableCellElement;
   private actualPingCells: HTMLTableCellElement[] = [];
-  private actualBonusPing = create('tr') as HTMLTableRowElement;
+  private actualBonusPing = create('td') as HTMLTableCellElement;
+  private actualPingTotal = create('td') as HTMLTableCellElement;
+  private actualPingPercent = create('td') as HTMLTableCellElement;
+
   private hpDamage: HTMLSpanElement = create('span') as HTMLSpanElement;
 
   constructor(
@@ -2164,6 +2175,8 @@ class TeamPane {
     this.battleEl.appendChild(toggleArea);
 
     const damageTable = create('table', ClassNames.DAMAGE_TABLE) as HTMLTableElement;
+    const rawDamageTable = create('table', ClassNames.DAMAGE_TABLE) as HTMLTableElement;
+    const actualDamageTable = create('table', ClassNames.DAMAGE_TABLE) as HTMLTableElement;
     const mainRow = create('tr') as HTMLTableRowElement;
     const subRow = create('tr') as HTMLTableRowElement;
     const rawMainRow = create('tr') as HTMLTableRowElement;
@@ -2183,12 +2196,19 @@ class TeamPane {
       const actualMainPingCell = create('td') as HTMLTableCellElement;
       const actualSubPingCell = create('td') as HTMLTableCellElement;
 
-      mainPingCell.id = `valeria-ping-main-${i}`;
-      subPingCell.id = `valeria-ping-sub-${i}`;
-      rawMainPingCell.id = `valeria-ping-raw-main-${i}`;
-      rawSubPingCell.id = `valeria-ping-raw-sub-${i}`;
-      actualMainPingCell.id = `valeria-ping-actual-main-${i}`;
-      actualSubPingCell.id = `valeria-ping-actual-sub-${i}`;
+      // mainPingCell.id = `valeria-ping-main-${i}`;
+      // subPingCell.id = `valeria-ping-sub-${i}`;
+      // rawMainPingCell.id = `valeria-ping-raw-main-${i}`;
+      // rawSubPingCell.id = `valeria-ping-raw-sub-${i}`;
+      // actualMainPingCell.id = `valeria-ping-actual-main-${i}`;
+      // actualSubPingCell.id = `valeria-ping-actual-sub-${i}`;
+
+      mainPingCell.innerText = '0';
+      subPingCell.innerText = '0';
+      rawMainPingCell.innerText = '0';
+      rawSubPingCell.innerText = '0';
+      actualMainPingCell.innerText = '0';
+      actualSubPingCell.innerText = '0';
 
       mainRow.appendChild(mainPingCell);
       subRow.appendChild(subPingCell);
@@ -2204,16 +2224,38 @@ class TeamPane {
       this.actualPingCells[i + 6] = actualSubPingCell;
     }
 
+    const bonusRow = create('tr');
+    bonusRow.appendChild(this.bonusPing);
+    bonusRow.appendChild(this.pingTotal);
+
+    const rawBonusRow = create('tr');
+    rawBonusRow.appendChild(this.rawBonusPing);
+    rawBonusRow.appendChild(this.rawPingTotal);
+
+    const actualBonusRow = create('tr');
+    actualBonusRow.appendChild(this.actualBonusPing);
+    actualBonusRow.appendChild(this.actualPingTotal);
+    actualBonusRow.appendChild(this.actualPingPercent);
+
     damageTable.appendChild(mainRow);
     damageTable.appendChild(subRow);
-    damageTable.appendChild(this.bonusPing);
-    damageTable.appendChild(rawMainRow);
-    damageTable.appendChild(rawSubRow);
-    damageTable.appendChild(this.rawBonusPing);
-    damageTable.appendChild(actualMainRow);
-    damageTable.appendChild(actualSubRow);
-    damageTable.appendChild((this.actualBonusPing));
+    damageTable.appendChild(bonusRow);
+    rawDamageTable.appendChild(rawMainRow);
+    rawDamageTable.appendChild(rawSubRow);
+    rawDamageTable.appendChild(rawBonusRow);
+    actualDamageTable.appendChild(actualMainRow);
+    actualDamageTable.appendChild(actualSubRow);
+    actualDamageTable.appendChild(actualBonusRow);
+
+    this.battleEl.appendChild(create('hr'));
+    this.battleEl.appendChild(document.createTextNode('Base Damage'));
     this.battleEl.appendChild(damageTable);
+    this.battleEl.appendChild(create('hr'));
+    this.battleEl.appendChild(document.createTextNode('Damage Dealt'));
+    this.battleEl.appendChild(rawDamageTable);
+    this.battleEl.appendChild(create('hr'));
+    this.battleEl.appendChild(document.createTextNode('Effective Damage Dealt'));
+    this.battleEl.appendChild(actualDamageTable);
   }
 
   // TODO
@@ -2275,6 +2317,7 @@ class TeamPane {
     pings: { attribute: Attribute; damage: number }[],
     rawPings: { attribute: Attribute; damage: number }[],
     actualPings: { attribute: Attribute; damage: number }[],
+    enemyHp: number,
     healing: number): void {
     for (let i = 0; i < 12; i++) {
       this.pingCells[i].innerText = addCommas(pings[i].damage);
@@ -2286,6 +2329,12 @@ class TeamPane {
       this.actualPingCells[i].innerText = addCommas(actualPings[i].damage);
       this.actualPingCells[i].style.color = AttributeToFontColor[actualPings[i].attribute];
     }
+    this.pingTotal.innerText = addCommas(pings.reduce((t, p) => t + p.damage, 0));
+    this.rawPingTotal.innerText = addCommas(rawPings.reduce((t, p) => t + p.damage, 0));
+    const d = actualPings.reduce((t, p) => t + p.damage, 0);
+    this.actualPingTotal.innerText = addCommas(actualPings.reduce((t, p) => t + p.damage, 0));
+    this.actualPingPercent.innerText = String(d / enemyHp * 100).substring(0, 5) + '%';
+
     if (pings.length > 12) {
       this.bonusPing.innerText = addCommas(pings[12].damage);
       this.bonusPing.style.color = AttributeToFontColor[pings[12].attribute];
