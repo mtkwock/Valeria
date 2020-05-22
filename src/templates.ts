@@ -759,6 +759,7 @@ class ComboEditor {
 
   private element: HTMLElement = create('div', ClassNames.COMBO_EDITOR);
   // private colorTables: Record<string, HTMLTableElement> = {};
+  public totalCombo = create('div');
   private pieceArea = create('div');
 
   constructor() {
@@ -769,6 +770,8 @@ class ComboEditor {
     guideAnchor.target = '_blank';
     this.element.appendChild(guideAnchor);
     this.element.appendChild(this.commandInput);
+    this.totalCombo.innerText = 'Total Combos: 0';
+    this.element.appendChild(this.totalCombo);
     this.element.appendChild(this.pieceArea);
   }
 
@@ -810,6 +813,7 @@ class ComboEditor {
         this.pieceArea.appendChild(create('br'));
       }
     }
+    // this.totalCombo.innerText = `Total Combos: ${totalCombos}`;
   }
 }
 
@@ -2196,13 +2200,6 @@ class TeamPane {
       const actualMainPingCell = create('td') as HTMLTableCellElement;
       const actualSubPingCell = create('td') as HTMLTableCellElement;
 
-      // mainPingCell.id = `valeria-ping-main-${i}`;
-      // subPingCell.id = `valeria-ping-sub-${i}`;
-      // rawMainPingCell.id = `valeria-ping-raw-main-${i}`;
-      // rawSubPingCell.id = `valeria-ping-raw-sub-${i}`;
-      // actualMainPingCell.id = `valeria-ping-actual-main-${i}`;
-      // actualSubPingCell.id = `valeria-ping-actual-sub-${i}`;
-
       mainPingCell.innerText = '0';
       subPingCell.innerText = '0';
       rawMainPingCell.innerText = '0';
@@ -3468,6 +3465,7 @@ class DungeonEditor {
   onUpdate: OnDungeonUpdate;
   monsterSelector: MonsterSelector;
   enemyPicture: MonsterIcon = new MonsterIcon(true);
+  enemyTypes: MonsterTypeEl[] = [];
   enemyLevelInput: HTMLInputElement = create('input') as HTMLInputElement;
   dungeonHpInput: HTMLInputElement = create('input') as HTMLInputElement;
   dungeonAtkInput: HTMLInputElement = create('input') as HTMLInputElement;
@@ -3489,6 +3487,7 @@ class DungeonEditor {
 
   // Passive Information.
   resolve = create('span') as HTMLSpanElement;
+  superResolve = create('span') as HTMLSpanElement;
   resistTypes: Map<MonsterType, ToggleableImage> = new Map();
   resistTypePercent = create('span') as HTMLSpanElement;
   resistAttrs: Map<Attribute, LayeredAsset> = new Map();
@@ -3535,6 +3534,13 @@ class DungeonEditor {
     });
 
     this.element.appendChild(this.enemyPicture.getElement());
+    for (let i = 0; i < 3; i++) {
+      const typeEl = new MonsterTypeEl(MonsterType.UNKNOWN_1, 0.7);
+      this.enemyTypes.push(typeEl);
+      hide(typeEl.getElement());
+      this.element.appendChild(typeEl.getElement());
+    }
+    this.element.appendChild(this.createPassivesArea());
     this.element.appendChild(this.monsterSelector.getElement());
 
     this.setupEnemyStatTable();
@@ -3586,64 +3592,76 @@ class DungeonEditor {
     this.dungeonDefInput.value = defMultText;
   }
 
+  private createPassivesArea(): HTMLElement {
+    const passivesEl = create('span') as HTMLSpanElement;
+
+    const resolveAsset = new LayeredAsset([AssetEnum.RESOLVE], () => { }, true, 0.7);
+    const resolveSpan = create('span');
+    resolveSpan.appendChild(resolveAsset.getElement());
+    resolveSpan.appendChild(this.resolve);
+
+    const superResolveSpan = create('span');
+    const superResolveLabel = document.createTextNode('Super Resolve:');
+    superResolveSpan.appendChild(superResolveLabel);
+    superResolveSpan.appendChild(this.superResolve);
+
+    const resistTypeSpan = create('span');
+    for (let i = 0; i < 16; i++) {
+      if (i == 9 || i == 10 || i == 11 || i == 13) {
+        continue;
+      }
+      const t = (i as unknown) as MonsterType;
+      const typeImage = new MonsterTypeEl(t as MonsterType, 0.7);
+      const typeToggle = new ToggleableImage(typeImage.getElement(), () => { }, false);
+      this.resistTypes.set(t, typeToggle);
+      resistTypeSpan.appendChild(typeImage.getElement());
+    }
+    resistTypeSpan.appendChild(this.resistTypePercent);
+
+    const resistAttrSpan = create('span');
+    for (let i = 0; i < 5; i++) {
+      const asset = AssetEnum.FIRE_TRANSPARENT + i as AssetEnum;
+      const resistAttr = new LayeredAsset([AssetEnum.SHIELD_BASE, asset], () => { }, true, 0.7);
+      resistAttrSpan.appendChild(resistAttr.getElement());
+      this.resistAttrs.set(i, resistAttr);
+    }
+    resistAttrSpan.appendChild(this.resistAttrPercent);
+
+    passivesEl.appendChild(document.createTextNode('Passives:'));
+    passivesEl.appendChild(resolveSpan);
+    passivesEl.appendChild(superResolveSpan);
+    passivesEl.appendChild(resistTypeSpan);
+    passivesEl.appendChild(resistAttrSpan);
+    return passivesEl;
+  }
+
   private setupEnemyStatTable(): void {
     const statTable = create('table', ClassNames.ENEMY_STAT_TABLE) as HTMLTableElement;
-    const passivesEl = create('div') as HTMLDivElement;
     const aiEl = create('div') as HTMLDivElement;
     const lvRow = create('tr') as HTMLTableRowElement;
     const hpRow = create('tr') as HTMLTableRowElement;
     const atkRow = create('tr') as HTMLTableRowElement;
     const defRow = create('tr') as HTMLTableRowElement;
-    // const resolveRow = create('tr') as HTMLTableRowElement;
-    // const resistTypesRow = create('tr') as HTMLTableRowElement;
-    // // const resistTypePercentRow = create('tr') as HTMLTableRowElement;
-    // const resistAttrRow = create('tr') as HTMLTableRowElement;
-    // const resistAttrPercentRow = create('tr') as HTMLTableRowElement;
 
     this.enemyLevelInput.type = 'number';
     this.enemyLevelInput.style.width = '50px';
     this.hpInput.style.width = '100px';
-    // this.resolve.type = 'number';
-    // this.resistTypePercent.type = 'number';
-    // this.resistAttrPercent.type = 'number';
-
-    // this.hpInput.disabled = true;
-    // this.rageInput.disabled = true;
-    // this.defBreakInput.disabled = true;
-    // this.resolve.disabled = true;
-    // this.resistTypePercent.disabled = true;
-    // this.resistAttrPercent.disabled = true;
 
     const lvLabel = create('td') as HTMLTableCellElement;
     const hpLabel = create('td') as HTMLTableCellElement;
     const atkLabel = create('td') as HTMLTableCellElement;
     const defLabel = create('td') as HTMLTableCellElement;
-    // const resolveLabel = create('td') as HTMLTableCellElement;
-    // const resistTypesLabel = create('td') as HTMLTableCellElement;
-    // const resistTypePercentLabel = create('td') as HTMLTableCellElement;
-    // const resistAttrLabel = create('td') as HTMLTableCellElement;
-    // const resistAttrPercentLabel = create('td') as HTMLTableCellElement;
 
     lvLabel.innerText = 'Level';
     hpLabel.innerText = 'HP';
     atkLabel.innerText = 'ATK';
     defLabel.innerText = 'DEF';
-    // resolveLabel.innerText = 'Resolve';
-    // resistTypesLabel.innerText = 'Resist Type';
-    // resistTypePercentLabel.innerText = '% Resist';
-    // resistAttrLabel.innerText = 'Resist Attr';
-    // resistAttrPercentLabel.innerText = '% Resist';
 
     const lvCell = create('td') as HTMLTableCellElement;
     const hpCell = create('td') as HTMLTableCellElement;
     const hpPercentCell = create('td') as HTMLTableCellElement;
     const atkCell = create('td') as HTMLTableCellElement;
     const defCell = create('td') as HTMLTableCellElement;
-    // const resolveCell = create('td') as HTMLTableCellElement;
-    // const resistTypesCell = create('td') as HTMLTableCellElement;
-    // const resistTypePercentCell = create('td') as HTMLTableCellElement;
-    // const resistAttrCell = create('td') as HTMLTableCellElement;
-    // const resistAttrPercentCell = create('td') as HTMLTableCellElement;
 
     this.hpInput.onchange = (): void => this.onUpdate({ hp: removeCommas(this.hpInput.value) });
     this.hpPercentInput.onchange = (): void => this.onUpdate({ hpPercent: removeCommas(this.hpPercentInput.value) });
@@ -3665,56 +3683,6 @@ class DungeonEditor {
     hpPercentCell.appendChild(document.createTextNode('%'));
     atkCell.appendChild(document.createTextNode('X'));
     defCell.appendChild(document.createTextNode('%'));
-    // resolveCell.appendChild(this.resolve);
-    // resistTypePercentCell.appendChild(this.resistTypePercent);
-    // resistAttrPercentCell.appendChild(this.resistAttrPercent);
-
-
-    // const fire = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.FIRE_TRANSPARENT], (_active) => {
-    //   // if (active) {
-    //   //   this.onUpdate({ addAttrResist: Attribute.FIRE });
-    //   // } else {
-    //   //   this.onUpdate({ removeAttrResist: Attribute.FIRE });
-    //   // }
-    // }, false, 0.7);
-    // this.resistAttrs.set(Attribute.FIRE, fire);
-    // resistAttrCell.appendChild(fire.getElement());
-    // const water = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WATER_TRANSPARENT], (_active) => {
-    //   // if (active) {
-    //   //   this.onUpdate({ addAttrResist: Attribute.WATER });
-    //   // } else {
-    //   //   this.onUpdate({ removeAttrResist: Attribute.WATER });
-    //   // }
-    // }, false, 0.7);
-    // this.resistAttrs.set(Attribute.WATER, water);
-    // resistAttrCell.appendChild(water.getElement());
-    // const wood = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.WOOD_TRANSPARENT], (_active) => {
-    //   // if (active) {
-    //   //   this.onUpdate({ addAttrResist: Attribute.WOOD });
-    //   // } else {
-    //   //   this.onUpdate({ removeAttrResist: Attribute.WOOD });
-    //   // }
-    // }, false, 0.7);
-    // this.resistAttrs.set(Attribute.WOOD, wood);
-    // resistAttrCell.appendChild(wood.getElement());
-    // const light = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.LIGHT_TRANSPARENT], (_active) => {
-    //   // if (active) {
-    //   //   this.onUpdate({ addAttrResist: Attribute.LIGHT });
-    //   // } else {
-    //   //   this.onUpdate({ removeAttrResist: Attribute.LIGHT });
-    //   // }
-    // }, false, 0.7);
-    // this.resistAttrs.set(Attribute.LIGHT, light);
-    // resistAttrCell.appendChild(light.getElement());
-    // const dark = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.DARK_TRANSPARENT], (_active) => {
-    //   // if (active) {
-    //   //   this.onUpdate({ addAttrResist: Attribute.DARK });
-    //   // } else {
-    //   //   this.onUpdate({ removeAttrResist: Attribute.DARK });
-    //   // }
-    // }, false, 0.7);
-    // this.resistAttrs.set(Attribute.DARK, dark);
-    // resistAttrCell.appendChild(dark.getElement());
 
     this.enemyLevelInput.onchange = (): void => {
       let v = Number(this.enemyLevelInput.value);
@@ -3763,56 +3731,6 @@ class DungeonEditor {
     defRow.appendChild(defCell);
     defRow.appendChild(this.defBase);
 
-    // resistTypesRow.appendChild(resistTypesLabel);
-    // resistTypesRow.appendChild(resistTypesCell);
-    // resistTypesRow.appendChild(this.resistTypePercent);
-    //
-    // // resistTypePercentRow.appendChild(resistTypePercentLabel);
-    // // resistTypePercentRow.appendChild(resistTypePercentCell);
-    //
-    // resistAttrRow.appendChild(resistAttrLabel);
-    // resistAttrRow.appendChild(resistAttrCell);
-    // resistAttrRow.appendChild(this.resistAttrPercent);
-    //
-    // // resistAttrPercentRow.appendChild(resistAttrPercentLabel);
-    // resistAttrPercentRow.appendChild(resistAttrPercentCell);
-    const resolveAsset = new LayeredAsset([AssetEnum.RESOLVE], () => { }, true, 0.7);
-    const resolveSpan = create('span');
-    resolveSpan.appendChild(resolveAsset.getElement());
-    resolveSpan.appendChild(this.resolve);
-
-    const resistTypeSpan = create('span');
-    for (let i = 0; i < 16; i++) {
-      if (i == 9 || i == 10 || i == 11 || i == 13) {
-        continue;
-      }
-      const t = (i as unknown) as MonsterType;
-      const typeImage = new MonsterTypeEl(t as MonsterType, 0.7);
-      const typeToggle = new ToggleableImage(typeImage.getElement(), () => { }, false);
-      this.resistTypes.set(t, typeToggle);
-      resistTypeSpan.appendChild(typeImage.getElement());
-    }
-    resistTypeSpan.appendChild(this.resistTypePercent);
-
-    const resistAttrSpan = create('span');
-    for (let i = 0; i < 5; i++) {
-      const asset = AssetEnum.FIRE_TRANSPARENT + i as AssetEnum;
-      const resistAttr = new LayeredAsset([AssetEnum.SHIELD_BASE, asset], () => { }, true, 0.7);
-      resistAttrSpan.appendChild(resistAttr.getElement());
-      this.resistAttrs.set(i, resistAttr);
-    }
-    resistAttrSpan.appendChild(this.resistAttrPercent);
-
-    passivesEl.appendChild(resolveSpan);
-    passivesEl.appendChild(resistTypeSpan);
-    passivesEl.appendChild(resistAttrSpan);
-
-    // statTable.appendChild(resolveRow);
-    // statTable.appendChild(resistTypesRow);
-    // statTable.appendChild(resistTypePercentRow);
-    // statTable.appendChild(resistAttrRow);
-    // statTable.appendChild(resistAttrPercentRow);
-
     const chargesSpan = create('span') as HTMLSpanElement;
     const chargesLabel = create('span') as HTMLSpanElement;
     chargesLabel.innerText = 'Charges: ';
@@ -3842,7 +3760,6 @@ class DungeonEditor {
     aiEl.appendChild(flagsSpan);
 
     this.element.appendChild(statTable);
-    this.element.appendChild(passivesEl);
     this.element.appendChild(aiEl);
   }
 
@@ -3905,6 +3822,15 @@ class DungeonEditor {
           el.scrollIntoView({ block: 'nearest' });
           const id = this.dungeonEnemies[i][j].id;
           this.enemyPicture.updateId(id);
+          const card = floof.model.cards[id];
+          for (let i = 0; i < this.enemyTypes.length; i++) {
+            if (card && card.types && i < card.types.length) {
+              show(this.enemyTypes[i].getElement())
+              this.enemyTypes[i].setType(card.types[i] as MonsterType);
+            } else {
+              hide(this.enemyTypes[i].getElement())
+            }
+          }
           this.monsterSelector.setId(id);
         } else {
           el.className = ClassNames.ICON;
@@ -3960,6 +3886,12 @@ class DungeonEditor {
     } else {
       superShow(this.resolve.parentElement as HTMLElement);
       this.resolve.innerText = `${s.resolve}%`;
+    }
+    if (s.superResolve <= 0) {
+      superHide(this.superResolve.parentElement as HTMLElement);
+    } else {
+      superShow(this.superResolve.parentElement as HTMLElement);
+      this.superResolve.innerText = `${s.superResolve}%`;
     }
     if (s.typeResists.types.length) {
       // superShow(grandparentEl((this.resistTypes.get(0) as ToggleableImage).getElement()))
@@ -4018,7 +3950,7 @@ class BattleDisplay {
 class DungeonPane {
   dungeonEditor: DungeonEditor;
   battleDisplay: BattleDisplay;
-  tabs: TabbedComponent = new TabbedComponent(['Dungeon', 'Editor', 'Save/Load'], 'Editor');
+  tabs: TabbedComponent = new TabbedComponent(['Dungeon']);
   onUpdate: OnDungeonUpdate;
 
   constructor(dungeonNames: { s: string; value: number }[], onUpdate: OnDungeonUpdate) {
@@ -4027,7 +3959,7 @@ class DungeonPane {
     this.dungeonEditor = new DungeonEditor(dungeonNames, onUpdate);
     this.battleDisplay = new BattleDisplay(onUpdate);
 
-    this.tabs.getTab('Editor').appendChild(this.dungeonEditor.getElement());
+    this.tabs.getTab('Dungeon').appendChild(this.dungeonEditor.getElement());
   }
 
   getElement(): HTMLElement {

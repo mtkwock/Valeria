@@ -833,9 +833,9 @@ class Team {
       }
     }
 
-    comboContainer.bonusCombosLeader = leaders.plusCombo(
+    comboContainer.setBonusComboLeader(leaders.plusCombo(
       leadId, { team: monsters, comboContainer }) +
-      leaders.plusCombo(helpId, { team: monsters, comboContainer });
+      leaders.plusCombo(helpId, { team: monsters, comboContainer }));
 
     const comboCount = comboContainer.comboCount();
     const comboMultiplier = comboCount * 0.25 + 0.75;

@@ -315,6 +315,11 @@ class ComboContainer {
     }
   }
 
+  setBonusComboLeader(bonus: number) {
+    this.bonusCombosLeader = bonus;
+    this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+  }
+
   comboCount(): number {
     let total = 0;
     for (const c in this.combos) {
