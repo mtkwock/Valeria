@@ -2857,6 +2857,11 @@
                 // private colorTables: Record<string, HTMLTableElement> = {};
                 this.pieceArea = create('div');
                 this.commandInput.placeholder = 'Combo Commands';
+                const guideAnchor = create('a');
+                guideAnchor.href = 'https://github.com/mtkwock/Valeria#command-editor-syntax';
+                guideAnchor.innerText = 'Combo Command Usage Guide';
+                guideAnchor.target = '_blank';
+                this.element.appendChild(guideAnchor);
                 this.element.appendChild(this.commandInput);
                 this.element.appendChild(this.pieceArea);
             }
@@ -3754,11 +3759,15 @@
                 this.leadSwapInput = create('select');
                 this.voidEls = [];
                 this.pingCells = [];
-                this.bonusPing = create('tr');
+                this.bonusPing = create('td');
+                this.pingTotal = create('td');
                 this.rawPingCells = [];
-                this.rawBonusPing = create('tr');
+                this.rawBonusPing = create('td');
+                this.rawPingTotal = create('td');
                 this.actualPingCells = [];
-                this.actualBonusPing = create('tr');
+                this.actualBonusPing = create('td');
+                this.actualPingTotal = create('td');
+                this.actualPingPercent = create('td');
                 this.hpDamage = create('span');
                 this.onTeamUpdate = onTeamUpdate;
                 const teamTab = this.metaTabs.getTab('Team');
@@ -4011,6 +4020,8 @@
                 toggleArea.appendChild(voidAwakenings.getElement());
                 this.battleEl.appendChild(toggleArea);
                 const damageTable = create('table', ClassNames.DAMAGE_TABLE);
+                const rawDamageTable = create('table', ClassNames.DAMAGE_TABLE);
+                const actualDamageTable = create('table', ClassNames.DAMAGE_TABLE);
                 const mainRow = create('tr');
                 const subRow = create('tr');
                 const rawMainRow = create('tr');
@@ -4027,12 +4038,18 @@
                     const rawSubPingCell = create('td');
                     const actualMainPingCell = create('td');
                     const actualSubPingCell = create('td');
-                    mainPingCell.id = `valeria-ping-main-${i}`;
-                    subPingCell.id = `valeria-ping-sub-${i}`;
-                    rawMainPingCell.id = `valeria-ping-raw-main-${i}`;
-                    rawSubPingCell.id = `valeria-ping-raw-sub-${i}`;
-                    actualMainPingCell.id = `valeria-ping-actual-main-${i}`;
-                    actualSubPingCell.id = `valeria-ping-actual-sub-${i}`;
+                    // mainPingCell.id = `valeria-ping-main-${i}`;
+                    // subPingCell.id = `valeria-ping-sub-${i}`;
+                    // rawMainPingCell.id = `valeria-ping-raw-main-${i}`;
+                    // rawSubPingCell.id = `valeria-ping-raw-sub-${i}`;
+                    // actualMainPingCell.id = `valeria-ping-actual-main-${i}`;
+                    // actualSubPingCell.id = `valeria-ping-actual-sub-${i}`;
+                    mainPingCell.innerText = '0';
+                    subPingCell.innerText = '0';
+                    rawMainPingCell.innerText = '0';
+                    rawSubPingCell.innerText = '0';
+                    actualMainPingCell.innerText = '0';
+                    actualSubPingCell.innerText = '0';
                     mainRow.appendChild(mainPingCell);
                     subRow.appendChild(subPingCell);
                     rawMainRow.appendChild(rawMainPingCell);
@@ -4046,16 +4063,34 @@
                     this.actualPingCells[i] = actualMainPingCell;
                     this.actualPingCells[i + 6] = actualSubPingCell;
                 }
+                const bonusRow = create('tr');
+                bonusRow.appendChild(this.bonusPing);
+                bonusRow.appendChild(this.pingTotal);
+                const rawBonusRow = create('tr');
+                rawBonusRow.appendChild(this.rawBonusPing);
+                rawBonusRow.appendChild(this.rawPingTotal);
+                const actualBonusRow = create('tr');
+                actualBonusRow.appendChild(this.actualBonusPing);
+                actualBonusRow.appendChild(this.actualPingTotal);
+                actualBonusRow.appendChild(this.actualPingPercent);
                 damageTable.appendChild(mainRow);
                 damageTable.appendChild(subRow);
-                damageTable.appendChild(this.bonusPing);
-                damageTable.appendChild(rawMainRow);
-                damageTable.appendChild(rawSubRow);
-                damageTable.appendChild(this.rawBonusPing);
-                damageTable.appendChild(actualMainRow);
-                damageTable.appendChild(actualSubRow);
-                damageTable.appendChild((this.actualBonusPing));
+                damageTable.appendChild(bonusRow);
+                rawDamageTable.appendChild(rawMainRow);
+                rawDamageTable.appendChild(rawSubRow);
+                rawDamageTable.appendChild(rawBonusRow);
+                actualDamageTable.appendChild(actualMainRow);
+                actualDamageTable.appendChild(actualSubRow);
+                actualDamageTable.appendChild(actualBonusRow);
+                this.battleEl.appendChild(create('hr'));
+                this.battleEl.appendChild(document.createTextNode('Base Damage'));
                 this.battleEl.appendChild(damageTable);
+                this.battleEl.appendChild(create('hr'));
+                this.battleEl.appendChild(document.createTextNode('Damage Dealt'));
+                this.battleEl.appendChild(rawDamageTable);
+                this.battleEl.appendChild(create('hr'));
+                this.battleEl.appendChild(document.createTextNode('Effective Damage Dealt'));
+                this.battleEl.appendChild(actualDamageTable);
             }
             // TODO
             update(playerMode, title, description) {
@@ -4108,7 +4143,7 @@
                 this.fixedHpEl.setActive(teamBattle.fixedHp > 0);
                 this.fixedHpInput.value = common_2.addCommas(teamBattle.fixedHp);
             }
-            updateDamage(pings, rawPings, actualPings, healing) {
+            updateDamage(pings, rawPings, actualPings, enemyHp, healing) {
                 for (let i = 0; i < 12; i++) {
                     this.pingCells[i].innerText = common_2.addCommas(pings[i].damage);
                     this.pingCells[i].style.color = common_2.AttributeToFontColor[pings[i].attribute];
@@ -4117,6 +4152,11 @@
                     this.actualPingCells[i].innerText = common_2.addCommas(actualPings[i].damage);
                     this.actualPingCells[i].style.color = common_2.AttributeToFontColor[actualPings[i].attribute];
                 }
+                this.pingTotal.innerText = common_2.addCommas(pings.reduce((t, p) => t + p.damage, 0));
+                this.rawPingTotal.innerText = common_2.addCommas(rawPings.reduce((t, p) => t + p.damage, 0));
+                const d = actualPings.reduce((t, p) => t + p.damage, 0);
+                this.actualPingTotal.innerText = common_2.addCommas(actualPings.reduce((t, p) => t + p.damage, 0));
+                this.actualPingPercent.innerText = String(d / enemyHp * 100).substring(0, 5) + '%';
                 if (pings.length > 12) {
                     this.bonusPing.innerText = common_2.addCommas(pings[12].damage);
                     this.bonusPing.style.color = common_2.AttributeToFontColor[pings[12].attribute];
@@ -5933,19 +5973,10 @@
             coins: ([coins100]) => coins100 / 100,
         };
         function countMatchedColors(attrBits, comboContainer, team) {
-            const attrs = common_6.idxsFromBits(attrBits);
-            let total = 0;
-            for (const attr of attrs) {
-                // Check if this color was matched.
-                if (comboContainer.combos[common_6.COLORS[attr]].length > 0) {
-                    // Check if any of the monsters would have attacked.
-                    // This could be refactored to check all of the available pings, but that's more dependencies.
-                    if (team.some((monster) => !monster.bound && (monster.getAttribute() == attr || monster.getSubattribute() == attr))) {
-                        total += 1;
-                    }
-                }
-            }
-            return total;
+            const matchedAttr = common_6.idxsFromBits(attrBits)
+                .filter((attr) => comboContainer.combos[common_6.COLORS[attr]].length)
+                .filter((attr) => attr >= 5 || team.some((monster) => !monster.bound && (monster.getAttribute() == attr || monster.getSubattribute() == attr)));
+            return matchedAttr.length;
         }
         const atkScalingFromUniqueColorMatches = {
             atk: ([attrBits, minColors, atk100base, atk100scale, maxColors], { team, comboContainer }) => {
@@ -10681,7 +10712,7 @@
                 if (specialPing.actualDamage) {
                     pings = [...pings, specialPing];
                 }
-                this.team.teamPane.updateDamage(pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), healing);
+                this.team.teamPane.updateDamage(pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
             }
             getElement() {
                 return this.display.getElement();
