@@ -4064,14 +4064,35 @@
                     this.actualPingCells[i + 6] = actualSubPingCell;
                 }
                 const bonusRow = create('tr');
+                const bonusAttackLabel = create('td');
+                bonusAttackLabel.innerText = 'Bonus Attack';
+                bonusRow.appendChild(bonusAttackLabel);
                 bonusRow.appendChild(this.bonusPing);
+                const totalAttackLabel = create('td');
+                totalAttackLabel.innerText = 'Total';
+                bonusRow.appendChild(totalAttackLabel);
                 bonusRow.appendChild(this.pingTotal);
                 const rawBonusRow = create('tr');
+                const rawBonusAttackLabel = create('td');
+                rawBonusAttackLabel.innerText = 'Bonus Attack';
+                rawBonusRow.appendChild(rawBonusAttackLabel);
                 rawBonusRow.appendChild(this.rawBonusPing);
+                const rawTotalAttackLabel = create('td');
+                rawTotalAttackLabel.innerText = 'Total';
+                rawBonusRow.appendChild(rawTotalAttackLabel);
                 rawBonusRow.appendChild(this.rawPingTotal);
                 const actualBonusRow = create('tr');
+                const actualBonusAttackLabel = create('td');
+                actualBonusAttackLabel.innerText = 'Bonus Attack';
+                actualBonusRow.appendChild(actualBonusAttackLabel);
                 actualBonusRow.appendChild(this.actualBonusPing);
+                const actualTotalAttackLabel = create('td');
+                actualTotalAttackLabel.innerText = 'Total';
+                actualBonusRow.appendChild(actualTotalAttackLabel);
                 actualBonusRow.appendChild(this.actualPingTotal);
+                const actualPercentLabel = create('td');
+                actualPercentLabel.innerText = 'Max Health';
+                actualBonusRow.appendChild(actualPercentLabel);
                 actualBonusRow.appendChild(this.actualPingPercent);
                 damageTable.appendChild(mainRow);
                 damageTable.appendChild(subRow);
@@ -4166,9 +4187,9 @@
                     this.actualBonusPing.style.color = common_2.AttributeToFontColor[actualPings[12].attribute];
                 }
                 else {
-                    this.bonusPing.innerText = '';
-                    this.rawBonusPing.innerText = '';
-                    this.actualBonusPing.innerText = '';
+                    this.bonusPing.innerText = '0';
+                    this.rawBonusPing.innerText = '0';
+                    this.actualBonusPing.innerText = '0';
                 }
                 this.hpDamage.innerText = `+${common_2.addCommas(healing)}`;
             }
