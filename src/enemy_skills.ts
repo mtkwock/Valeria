@@ -1182,7 +1182,7 @@ const damageAbsorb: EnemySkillEffect = {
   condition: () => true,
   aiEffect: () => { },
   effect: ({ skillArgs }, { enemy }) => {
-    enemy.damageAbsorb = skillArgs[0];
+    enemy.damageAbsorb = skillArgs[1];
   },
   goto: () => TERMINATE,
 };

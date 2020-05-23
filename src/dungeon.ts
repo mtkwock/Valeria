@@ -350,6 +350,27 @@ class DungeonInstance {
       if (ctx.activeEnemyId != undefined) {
         this.getActiveEnemy().id = ctx.activeEnemyId;
       }
+
+      if (ctx.statusShield != undefined) {
+        enemy.statusShield = ctx.statusShield;
+      }
+
+      if (ctx.invincible != undefined) {
+        enemy.invincible = ctx.invincible;
+      }
+
+      if (ctx.comboAbsorb != undefined) {
+        enemy.comboAbsorb = ctx.comboAbsorb;
+      }
+
+      if (ctx.damageAbsorb != undefined) {
+        enemy.damageAbsorb = ctx.damageAbsorb;
+      }
+
+      if (ctx.damageVoid != undefined) {
+        enemy.damageVoid = ctx.damageVoid;
+      }
+
       if (ctx.charges != undefined) {
         enemy.charges = ctx.charges;
       }
@@ -397,6 +418,13 @@ class DungeonInstance {
       superResolve: enemy.getSuperResolve().minHp,
       typeResists: enemy.getTypeResists(),
       attrResists: enemy.getAttrResists(),
+
+      statusShield: enemy.statusShield,
+      comboAbsorb: enemy.comboAbsorb,
+      damageAbsorb: enemy.damageAbsorb,
+      damageVoid: enemy.damageVoid,
+      invincible: enemy.invincible,
+      attributeAbsorb: enemy.attributeAbsorb,
 
       maxCharges: enemy.getCard().charges,
       charges: enemy.charges,
