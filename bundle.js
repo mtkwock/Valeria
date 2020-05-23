@@ -8501,6 +8501,8 @@
                 }
             },
         };
+        // 51
+        const massAttack = {};
         // 52
         const enhanceOrbs = {};
         // 55
@@ -8586,6 +8588,14 @@
                     awakenings: [],
                     awakeningScale: 0,
                 };
+            },
+        };
+        // 93
+        const leadSwap = {
+            teamEffect: (_, { team }) => {
+                team.updateState({
+                    leadSwap: Math.floor(team.action / 2),
+                });
             },
         };
         // 110
@@ -8676,6 +8686,21 @@
         };
         // 127
         const orbChangeColumn = {};
+        // 132
+        const timeExtend = {
+            teamEffect: ([_, seconds10, mult100], { team }) => {
+                if (mult100) {
+                    team.state.timeBonus = mult100 / 100;
+                    team.state.timeIsMult = true;
+                }
+                else {
+                    team.state.timeBonus = seconds10 / 10;
+                    team.state.timeIsMult = false;
+                }
+            },
+        };
+        // 141
+        const randomOrbSpawn = {};
         // 142
         const selfAttributeChange = {
             teamEffect: ([_, attr], { source }) => {
@@ -8776,6 +8801,12 @@
                 team.state.currentHp = Math.max(1, Math.floor(team.state.currentHp * suicideTo / 100));
             },
         };
+        // 202
+        const transform = {
+            teamEffect: ([id], { source }) => {
+                source.transformedTo = id;
+            },
+        };
         const ACTIVE_GENERATORS = {
             0: scalingAttackToAllEnemies,
             1: flatAttackToAllEnemies,
@@ -8794,6 +8825,7 @@
             37: scalingAttackToOneEnemy,
             42: flatAttackToAttribute,
             50: attrOrRcvBurst,
+            51: massAttack,
             52: enhanceOrbs,
             55: fixedDamageToOneEnemy,
             56: fixedDamageToAllEnemies,
@@ -8807,12 +8839,15 @@
             88: burstForOneType,
             90: burstForTwoAttributes,
             92: burstForTwoTypes,
+            93: leadSwap,
             110: grudgeStrike,
             115: elementalScalingAttackAndHeal,
             116: multipleActiveSkills,
             117: catchAllCleric,
             127: orbChangeColumn,
+            132: timeExtend,
             138: multipleActiveSkills,
+            141: randomOrbSpawn,
             142: selfAttributeChange,
             144: scalingAttackFromTeam,
             146: haste,
@@ -8825,6 +8860,7 @@
             188: fixedDamageToOneEnemy,
             191: voidDamageVoid,
             195: pureSuicide,
+            202: transform,
         };
         function getGeneratorIfExists(activeId) {
             if (!ilmina_stripped_8.floof.model.playerSkills[activeId]) {
@@ -11345,7 +11381,7 @@
                     }
                     const team = this.team.getActiveTeam();
                     const source = team[Math.floor(action / 2)];
-                    const activeId = action & 1 ? source.inheritId : source.getId();
+                    const activeId = ilmina_stripped_10.floof.model.cards[action & 1 ? source.inheritId : source.getId()].activeSkillId;
                     const enemy = this.dungeon.getActiveEnemy();
                     actives_1.teamEffect(activeId, {
                         source,
