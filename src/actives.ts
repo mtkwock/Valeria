@@ -62,6 +62,7 @@ const flatAttackToAllEnemies: MonsterActive = {
 // 2
 const scalingAttackRandomToSingleEnemy: MonsterActive = {
   damage: ([atk100base, atk100max], { source, awakeningsActive, isMultiplayer }) => {
+    atk100max = atk100max || atk100base;
     const ping = new DamagePing(source, source.getAttribute());
     ping.isActive = true;
     ping.damage = source.getAtk(isMultiplayer, awakeningsActive);

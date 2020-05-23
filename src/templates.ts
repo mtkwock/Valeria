@@ -305,9 +305,6 @@ class LayeredAsset {
         }
         return el;
       });
-    if (this.elements.length == 3) {
-      console.log('here');
-    }
     // Manually center each of these.
     for (const el of this.elements) {
       const elHeight = Number(el.style.height.replace('px', ''));
@@ -1872,6 +1869,7 @@ class TeamPane {
   private fixedHpEl: LayeredAsset = new LayeredAsset([], () => { });
   private fixedHpInput: HTMLInputElement = create('input') as HTMLInputElement;
   private actionOptions: HTMLOptionElement[] = [];
+  public applyActionButton: HTMLButtonElement = create('button') as HTMLButtonElement;
 
   private leadSwapInput = create('select') as HTMLSelectElement;
   private voidEls: LayeredAsset[] = [];
@@ -2093,11 +2091,11 @@ class TeamPane {
       this.onTeamUpdate({ fixedHp: 0 });
     }, false, 0.7);
     this.fixedHpInput.onchange = () => {
-      console.log('Fixed HP');
       this.onTeamUpdate({ fixedHp: removeCommas(this.fixedHpInput.value) });
     }
     this.battleEl.appendChild(this.fixedHpEl.getElement());
     this.battleEl.appendChild(this.fixedHpInput);
+    this.battleEl.appendChild(create('br'));
 
     // Choose combos or active.
     const actionSelect = create('select') as HTMLSelectElement;
@@ -2117,10 +2115,13 @@ class TeamPane {
       this.actionOptions.push(activeOption);
     }
     this.battleEl.appendChild(actionSelect);
+    this.applyActionButton.innerText = 'Use';
+    this.battleEl.appendChild(this.applyActionButton);
+
+    const leadSwapArea = create('div');
 
     const leadSwapLabel = create('span') as HTMLDivElement;
     leadSwapLabel.innerText = 'Lead Swap: ';
-    this.battleEl.appendChild(leadSwapLabel);
     for (let i = 0; i < 5; i++) {
       const option = create('option') as HTMLOptionElement;
       option.value = String(i);
@@ -2141,7 +2142,10 @@ class TeamPane {
       }
       this.onTeamUpdate({ leadSwap: pos });
     }
-    this.battleEl.appendChild(this.leadSwapInput);
+
+    leadSwapArea.appendChild(leadSwapLabel);
+    leadSwapArea.appendChild(this.leadSwapInput);
+    this.battleEl.appendChild(leadSwapArea);
 
 
     // Player State including
@@ -2357,9 +2361,12 @@ class TeamPane {
       if (!c) {
         option.innerText = '';
         option.disabled = true;
+        superHide(option);
       } else {
-        option.innerText = `${Math.floor(i / 2) + 1}: ${floof.model.playerSkills[c.activeSkillId].description.replace('\n', ' ')}`;
+        let text = `${Math.floor(i / 2) + 1}: ${floof.model.playerSkills[c.activeSkillId].description.replace('\n', ' ')}`;
+        option.innerText = text.length >= 80 ? text.substring(0, 77) + '...' : text;
         option.disabled = false;
+        superShow(option);
       }
     }
     this.leadSwapInput.value = `${teamBattle.leadSwap}`;

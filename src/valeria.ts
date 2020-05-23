@@ -14,7 +14,7 @@ import { floof } from './ilmina_stripped';
 import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
 import { textifyEnemySkills, textifyEnemySkill, effect as enemyEffect, toSkillContext } from './enemy_skills';
 import { getUrlParameter } from './url_handler';
-import { damage as activeDamage } from './actives';
+import { damage as activeDamage, teamEffect, enemyEffect as activeEnemyEffect, boardEffect } from './actives';
 
 class Valeria {
   display: ValeriaDisplay = new ValeriaDisplay();
@@ -106,6 +106,37 @@ class Valeria {
       this.updateDamage();
       // console.log(healing);
       // console.log(trueBonusAttack);
+    }
+    this.team.teamPane.applyActionButton.onclick = () => {
+      const action = this.team.action;
+      this.dungeon.getActiveEnemy().currentHp = this.updateDamage();
+      if (action == -1) {
+        return;
+      }
+
+      const team = this.team.getActiveTeam();
+      const source = team[Math.floor(action / 2)];
+      const activeId = action & 1 ? source.inheritId : source.getId();
+      const enemy = this.dungeon.getActiveEnemy();
+
+      teamEffect(activeId, {
+        source,
+        enemy,
+        team: this.team,
+        comboContainer: this.comboContainer,
+      });
+
+      activeEnemyEffect(activeId, {
+        source,
+        enemy,
+        awakeningsActive: this.team.state.awakenings,
+        isMultiplayer: this.team.isMultiplayer(),
+      });
+
+      boardEffect(activeId, this.comboContainer);
+
+      this.updateDamage();
+      this.dungeon.update(false);
     }
     let team = getUrlParameter('team');
     if (team) {
@@ -219,7 +250,7 @@ class Valeria {
     });
   }
 
-  updateDamage(): void {
+  updateDamage(): number {
     let pings: DamagePing[] = []
     let healing: number = 0
     let trueBonusAttack = 0;
@@ -244,7 +275,7 @@ class Valeria {
       });
     }
 
-    if (!this.dungeon) return;
+    if (!this.dungeon) return 0;
     const enemy = this.dungeon.getActiveEnemy();
     let currentHp = enemy.currentHp;
     const maxHp = enemy.getHp();
@@ -305,6 +336,8 @@ class Valeria {
       maxHp,
       healing,
     );
+
+    return currentHp;
   }
 
   getElement(): HTMLElement {
