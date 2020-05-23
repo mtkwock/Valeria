@@ -2528,9 +2528,6 @@
                     }
                     return el;
                 });
-                if (this.elements.length == 3) {
-                    console.log('here');
-                }
                 // Manually center each of these.
                 for (const el of this.elements) {
                     const elHeight = Number(el.style.height.replace('px', ''));
@@ -3850,6 +3847,7 @@
                 this.fixedHpEl = new LayeredAsset([], () => { });
                 this.fixedHpInput = create('input');
                 this.actionOptions = [];
+                this.applyActionButton = create('button');
                 this.leadSwapInput = create('select');
                 this.voidEls = [];
                 this.pingCells = [];
@@ -4042,11 +4040,11 @@
                     this.onTeamUpdate({ fixedHp: 0 });
                 }, false, 0.7);
                 this.fixedHpInput.onchange = () => {
-                    console.log('Fixed HP');
                     this.onTeamUpdate({ fixedHp: common_2.removeCommas(this.fixedHpInput.value) });
                 };
                 this.battleEl.appendChild(this.fixedHpEl.getElement());
                 this.battleEl.appendChild(this.fixedHpInput);
+                this.battleEl.appendChild(create('br'));
                 // Choose combos or active.
                 const actionSelect = create('select');
                 actionSelect.style.fontSize = 'xx-small';
@@ -4065,9 +4063,11 @@
                     this.actionOptions.push(activeOption);
                 }
                 this.battleEl.appendChild(actionSelect);
+                this.applyActionButton.innerText = 'Use';
+                this.battleEl.appendChild(this.applyActionButton);
+                const leadSwapArea = create('div');
                 const leadSwapLabel = create('span');
                 leadSwapLabel.innerText = 'Lead Swap: ';
-                this.battleEl.appendChild(leadSwapLabel);
                 for (let i = 0; i < 5; i++) {
                     const option = create('option');
                     option.value = String(i);
@@ -4088,7 +4088,9 @@
                     }
                     this.onTeamUpdate({ leadSwap: pos });
                 };
-                this.battleEl.appendChild(this.leadSwapInput);
+                leadSwapArea.appendChild(leadSwapLabel);
+                leadSwapArea.appendChild(this.leadSwapInput);
+                this.battleEl.appendChild(leadSwapArea);
                 // Player State including
                 // * Void Attr, Void
                 const voidDamageAbsorb = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.ABSORB_OVERLAY, AssetEnum.VOID], (active) => {
@@ -4268,10 +4270,13 @@
                     if (!c) {
                         option.innerText = '';
                         option.disabled = true;
+                        superHide(option);
                     }
                     else {
-                        option.innerText = `${Math.floor(i / 2) + 1}: ${ilmina_stripped_3.floof.model.playerSkills[c.activeSkillId].description.replace('\n', ' ')}`;
+                        let text = `${Math.floor(i / 2) + 1}: ${ilmina_stripped_3.floof.model.playerSkills[c.activeSkillId].description.replace('\n', ' ')}`;
+                        option.innerText = text.length >= 80 ? text.substring(0, 77) + '...' : text;
                         option.disabled = false;
+                        superShow(option);
                     }
                 }
                 this.leadSwapInput.value = `${teamBattle.leadSwap}`;
@@ -8364,6 +8369,7 @@
         // 2
         const scalingAttackRandomToSingleEnemy = {
             damage: ([atk100base, atk100max], { source, awakeningsActive, isMultiplayer }) => {
+                atk100max = atk100max || atk100base;
                 const ping = new damage_ping_2.DamagePing(source, source.getAttribute());
                 ping.isActive = true;
                 ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
@@ -11331,6 +11337,32 @@
                     // console.log(healing);
                     // console.log(trueBonusAttack);
                 };
+                this.team.teamPane.applyActionButton.onclick = () => {
+                    const action = this.team.action;
+                    this.dungeon.getActiveEnemy().currentHp = this.updateDamage();
+                    if (action == -1) {
+                        return;
+                    }
+                    const team = this.team.getActiveTeam();
+                    const source = team[Math.floor(action / 2)];
+                    const activeId = action & 1 ? source.inheritId : source.getId();
+                    const enemy = this.dungeon.getActiveEnemy();
+                    actives_1.teamEffect(activeId, {
+                        source,
+                        enemy,
+                        team: this.team,
+                        comboContainer: this.comboContainer,
+                    });
+                    actives_1.enemyEffect(activeId, {
+                        source,
+                        enemy,
+                        awakeningsActive: this.team.state.awakenings,
+                        isMultiplayer: this.team.isMultiplayer(),
+                    });
+                    actives_1.boardEffect(activeId, this.comboContainer);
+                    this.updateDamage();
+                    this.dungeon.update(false);
+                };
                 let team = url_handler_1.getUrlParameter('team');
                 if (team) {
                     team = custom_base64_1.ValeriaDecodeToPdchu(team);
@@ -11453,7 +11485,7 @@
                     });
                 }
                 if (!this.dungeon)
-                    return;
+                    return 0;
                 const enemy = this.dungeon.getActiveEnemy();
                 let currentHp = enemy.currentHp;
                 const maxHp = enemy.getHp();
@@ -11502,6 +11534,7 @@
                     pings = [...pings, specialPing];
                 }
                 this.team.teamPane.updateDamage(pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
+                return currentHp;
             }
             getElement() {
                 return this.display.getElement();
