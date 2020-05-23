@@ -2350,54 +2350,56 @@
             AssetEnum[AssetEnum["FIXED_HP"] = 20] = "FIXED_HP";
             AssetEnum[AssetEnum["AWOKEN_BIND"] = 21] = "AWOKEN_BIND";
             AssetEnum[AssetEnum["SKILL_BIND"] = 22] = "SKILL_BIND";
-            AssetEnum[AssetEnum["SHIELD_BASE"] = 23] = "SHIELD_BASE";
-            AssetEnum[AssetEnum["PLAYER_HP_LEFT"] = 24] = "PLAYER_HP_LEFT";
-            AssetEnum[AssetEnum["PLAYER_HP_MIDDLE"] = 25] = "PLAYER_HP_MIDDLE";
-            AssetEnum[AssetEnum["PLAYER_HP_RIGHT"] = 26] = "PLAYER_HP_RIGHT";
-            AssetEnum[AssetEnum["ENEMY_HP_LEFT"] = 27] = "ENEMY_HP_LEFT";
-            AssetEnum[AssetEnum["ENEMY_HP_MIDDLE"] = 28] = "ENEMY_HP_MIDDLE";
-            AssetEnum[AssetEnum["ENEMY_HP_RIGHT"] = 29] = "ENEMY_HP_RIGHT";
+            AssetEnum[AssetEnum["INVINCIBLE"] = 23] = "INVINCIBLE";
+            AssetEnum[AssetEnum["SHIELD_BASE"] = 24] = "SHIELD_BASE";
+            AssetEnum[AssetEnum["PLAYER_HP_LEFT"] = 25] = "PLAYER_HP_LEFT";
+            AssetEnum[AssetEnum["PLAYER_HP_MIDDLE"] = 26] = "PLAYER_HP_MIDDLE";
+            AssetEnum[AssetEnum["PLAYER_HP_RIGHT"] = 27] = "PLAYER_HP_RIGHT";
+            AssetEnum[AssetEnum["ENEMY_HP_LEFT"] = 28] = "ENEMY_HP_LEFT";
+            AssetEnum[AssetEnum["ENEMY_HP_MIDDLE"] = 29] = "ENEMY_HP_MIDDLE";
+            AssetEnum[AssetEnum["ENEMY_HP_RIGHT"] = 30] = "ENEMY_HP_RIGHT";
             // Overlays SHIELD_BASE for attribute resists.
-            AssetEnum[AssetEnum["FIRE_TRANSPARENT"] = 30] = "FIRE_TRANSPARENT";
-            AssetEnum[AssetEnum["WATER_TRANSPARENT"] = 31] = "WATER_TRANSPARENT";
-            AssetEnum[AssetEnum["WOOD_TRANSPARENT"] = 32] = "WOOD_TRANSPARENT";
-            AssetEnum[AssetEnum["LIGHT_TRANSPARENT"] = 33] = "LIGHT_TRANSPARENT";
-            AssetEnum[AssetEnum["DARK_TRANSPARENT"] = 34] = "DARK_TRANSPARENT";
+            AssetEnum[AssetEnum["FIRE_TRANSPARENT"] = 31] = "FIRE_TRANSPARENT";
+            AssetEnum[AssetEnum["WATER_TRANSPARENT"] = 32] = "WATER_TRANSPARENT";
+            AssetEnum[AssetEnum["WOOD_TRANSPARENT"] = 33] = "WOOD_TRANSPARENT";
+            AssetEnum[AssetEnum["LIGHT_TRANSPARENT"] = 34] = "LIGHT_TRANSPARENT";
+            AssetEnum[AssetEnum["DARK_TRANSPARENT"] = 35] = "DARK_TRANSPARENT";
+            AssetEnum[AssetEnum["COMBO_ABSORB"] = 36] = "COMBO_ABSORB";
             // Overlays [attr]_TRANSPARENT for attribute absorb.
-            AssetEnum[AssetEnum["TWINKLE"] = 35] = "TWINKLE";
+            AssetEnum[AssetEnum["TWINKLE"] = 37] = "TWINKLE";
             // Overlays SHIELD_BASE for Damage Void.
-            AssetEnum[AssetEnum["VOID_OVERLAY"] = 36] = "VOID_OVERLAY";
+            AssetEnum[AssetEnum["VOID_OVERLAY"] = 38] = "VOID_OVERLAY";
             // Overlays SHIELD_BASES for Damage Absorb.
-            AssetEnum[AssetEnum["ABSORB_OVERLAY"] = 37] = "ABSORB_OVERLAY";
+            AssetEnum[AssetEnum["ABSORB_OVERLAY"] = 39] = "ABSORB_OVERLAY";
             // DAMAGE_NULL,
-            AssetEnum[AssetEnum["SWAP"] = 38] = "SWAP";
-            AssetEnum[AssetEnum["TRANSFROM"] = 39] = "TRANSFROM";
+            AssetEnum[AssetEnum["SWAP"] = 40] = "SWAP";
+            AssetEnum[AssetEnum["TRANSFROM"] = 41] = "TRANSFROM";
             // Overlays absorbs and voids as player buffs..
-            AssetEnum[AssetEnum["VOID"] = 40] = "VOID";
-            AssetEnum[AssetEnum["COLOR_WHEEL"] = 41] = "COLOR_WHEEL";
+            AssetEnum[AssetEnum["VOID"] = 42] = "VOID";
+            AssetEnum[AssetEnum["COLOR_WHEEL"] = 43] = "COLOR_WHEEL";
         })(AssetEnum || (AssetEnum = {}));
         exports.AssetEnum = AssetEnum;
         const ASSET_INFO = new Map([
-            [AssetEnum.NUMBER_0, { offsetY: 182 + 0 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_1, { offsetY: 182 + 1 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_2, { offsetY: 182 + 2 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_3, { offsetY: 182 + 3 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_4, { offsetY: 182 + 4 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_5, { offsetY: 182 + 5 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_6, { offsetY: 182 + 6 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_7, { offsetY: 182 + 7 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_8, { offsetY: 182 + 8 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.NUMBER_9, { offsetY: 182 + 9 * 32, offsetX: 180, width: 20, height: 26 }],
-            [AssetEnum.GUARD_BREAK, { offsetY: 0, offsetX: 2 + 36 * 0, width: 36, height: 36 }],
+            [AssetEnum.NUMBER_0, { offsetX: 186, offsetY: 180, width: 19, height: 25 }],
+            [AssetEnum.NUMBER_1, { offsetX: 217, offsetY: 180, width: 14, height: 25 }],
+            [AssetEnum.NUMBER_2, { offsetX: 247, offsetY: 180, width: 19, height: 25 }],
+            [AssetEnum.NUMBER_3, { offsetX: 279, offsetY: 180, width: 18, height: 26 }],
+            [AssetEnum.NUMBER_4, { offsetX: 310, offsetY: 180, width: 20, height: 25 }],
+            [AssetEnum.NUMBER_5, { offsetX: 343, offsetY: 180, width: 18, height: 25 }],
+            [AssetEnum.NUMBER_6, { offsetX: 374, offsetY: 180, width: 19, height: 25 }],
+            [AssetEnum.NUMBER_7, { offsetX: 407, offsetY: 180, width: 18, height: 25 }],
+            [AssetEnum.NUMBER_8, { offsetX: 438, offsetY: 180, width: 19, height: 25 }],
+            [AssetEnum.NUMBER_9, { offsetX: 470, offsetY: 180, width: 20, height: 25 }],
+            [AssetEnum.GUARD_BREAK, { offsetY: 1, offsetX: 3, width: 34, height: 30 }],
             [AssetEnum.TIME, { offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36 }],
             [AssetEnum.POISON, { offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36 }],
-            [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 114, width: 36, height: 36 }],
-            [AssetEnum.STATUS_SHIELD, { offsetY: 0, offsetX: 154, width: 36, height: 36 }],
+            [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 116, width: 32, height: 32 }],
+            [AssetEnum.STATUS_SHIELD, { offsetY: 1, offsetX: 156, width: 32, height: 29 }],
             [AssetEnum.SKILL_BIND, { offsetY: 40, offsetX: 141, width: 32, height: 32 }],
             [AssetEnum.AWOKEN_BIND, { offsetY: 73, offsetX: 140, width: 32, height: 32 }],
             [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
             [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
-            [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 326, width: 36, height: 36 }],
+            [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 327, width: 34, height: 34 }],
             [AssetEnum.FIRE_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 0, width: 32, height: 32 }],
             [AssetEnum.WATER_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 1, width: 32, height: 32 }],
             [AssetEnum.WOOD_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 2, width: 32, height: 32 }],
@@ -2411,6 +2413,8 @@
             [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
             [AssetEnum.VOID, { offsetY: 90, offsetX: 416, width: 19, height: 18 }],
             [AssetEnum.COLOR_WHEEL, { offsetY: 208, offsetX: 131, width: 32, height: 32 }],
+            [AssetEnum.INVINCIBLE, { offsetY: 241, offsetX: 314, width: 28, height: 30 }],
+            [AssetEnum.COMBO_ABSORB, { offsetY: 113, offsetX: 133, width: 30, height: 30 }],
         ]);
         const UI_ASSET_SRC = `url(${common_2.BASE_URL}assets/UIPAT1.PNG)`;
         class LayeredAsset {
@@ -2431,10 +2435,10 @@
                         el.style.width = String(assetInfo.width * scale);
                         el.style.height = String(assetInfo.height * scale);
                         el.style.backgroundSize = `${512 * scale}px ${512 * scale}px`;
-                        if (assetInfo.width > maxSizes.width * scale) {
+                        if (assetInfo.width * scale > maxSizes.width) {
                             maxSizes.width = assetInfo.width * scale;
                         }
-                        if (assetInfo.height > maxSizes.height * scale) {
+                        if (assetInfo.height * scale > maxSizes.height) {
                             maxSizes.height = assetInfo.height * scale;
                         }
                         el.style.backgroundImage = UI_ASSET_SRC;
@@ -2907,7 +2911,6 @@
                         this.pieceArea.appendChild(create('br'));
                     }
                 }
-                // this.totalCombo.innerText = `Total Combos: ${totalCombos}`;
             }
         }
         exports.ComboEditor = ComboEditor;
@@ -4291,6 +4294,10 @@
                 this.flagsInput = create('input');
                 this.chargesInput = create('input');
                 this.maxCharges = create('span');
+                this.damageAbsorbInput = create('input');
+                this.comboAbsorbInput = create('input');
+                this.damageVoidInput = create('input');
+                this.attributeAbsorbs = [];
                 this.onUpdate = onUpdate;
                 this.dungeonSelector = new GenericSelector(dungeonNames, (id) => {
                     this.onUpdate({ loadDungeon: id });
@@ -4302,7 +4309,7 @@
                 const dungeonFloorContainer = create('div', ClassNames.FLOOR_CONTAINER);
                 dungeonFloorContainer.appendChild(this.dungeonFloorTable);
                 this.element.appendChild(dungeonFloorContainer);
-                this.element.appendChild(create('br'));
+                // this.element.appendChild(create('br'));
                 // TODO: Remove line when dungeon customization is necessary.
                 superHide(this.addFloorBtn);
                 this.addFloorBtn.innerText = 'Add Floor';
@@ -4311,7 +4318,8 @@
                 };
                 this.element.appendChild(this.addFloorBtn);
                 this.addFloor();
-                this.setupDungeonMultiplierTable();
+                // this.setupDungeonMultiplierTable();
+                this.element.appendChild(create('hr'));
                 this.monsterSelector = new MonsterSelector(fuzzy_search_1.prioritizedEnemySearch, ({ id }) => {
                     if (!id) {
                         return;
@@ -4327,40 +4335,53 @@
                 }
                 this.element.appendChild(this.createPassivesArea());
                 this.element.appendChild(this.monsterSelector.getElement());
+                this.statusShield = new LayeredAsset([AssetEnum.STATUS_SHIELD], (statusShield) => this.onUpdate({ statusShield }), false, 0.7);
+                this.invincible = new LayeredAsset([AssetEnum.INVINCIBLE], (invincible) => this.onUpdate({ invincible }), false, 0.7);
                 this.setupEnemyStatTable();
+                this.setupStatusArea();
+                this.setupAiArea();
             }
-            setupDungeonMultiplierTable() {
-                const multiplierTable = create('table', ClassNames.ENEMY_STAT_TABLE);
-                const row = create('tr');
-                // const atkRow = create('tr') as HTMLTableRowElement;
-                // const defRow = create('tr') as HTMLTableRowElement;
-                const hpLabel = create('td');
-                const atkLabel = create('td');
-                const defLabel = create('td');
-                hpLabel.innerText = 'HP';
-                atkLabel.innerText = 'Attack';
-                defLabel.innerText = 'Defense';
-                row.appendChild(hpLabel);
-                row.appendChild(this.dungeonHpInput);
-                row.appendChild(atkLabel);
-                row.appendChild(this.dungeonAtkInput);
-                row.appendChild(defLabel);
-                row.appendChild(this.dungeonDefInput);
-                this.dungeonHpInput.style.width = `40px`;
-                this.dungeonAtkInput.style.width = `40px`;
-                this.dungeonDefInput.style.width = `40px`;
-                this.dungeonHpInput.onchange = () => {
-                    this.onUpdate({ dungeonHpMultiplier: this.dungeonHpInput.value });
-                };
-                this.dungeonAtkInput.onchange = () => {
-                    this.onUpdate({ dungeonAtkMultiplier: this.dungeonAtkInput.value });
-                };
-                this.dungeonDefInput.onchange = () => {
-                    this.onUpdate({ dungeonDefMultiplier: this.dungeonDefInput.value });
-                };
-                multiplierTable.appendChild(row);
-                this.element.appendChild(multiplierTable);
+            /**
+            private setupDungeonMultiplierTable(): void {
+              const multiplierTable = create('table', ClassNames.ENEMY_STAT_TABLE) as HTMLTableElement;
+              const row = create('tr') as HTMLTableRowElement;
+              // const atkRow = create('tr') as HTMLTableRowElement;
+              // const defRow = create('tr') as HTMLTableRowElement;
+          
+              const hpLabel = create('td') as HTMLTableCellElement;
+              const atkLabel = create('td') as HTMLTableCellElement;
+              const defLabel = create('td') as HTMLTableCellElement;
+          
+              hpLabel.innerText = 'HP';
+              atkLabel.innerText = 'Attack';
+              defLabel.innerText = 'Defense';
+          
+              row.appendChild(hpLabel);
+              row.appendChild(this.dungeonHpInput);
+              row.appendChild(atkLabel);
+              row.appendChild(this.dungeonAtkInput);
+              row.appendChild(defLabel);
+              row.appendChild(this.dungeonDefInput);
+          
+              this.dungeonHpInput.style.width = `40px`;
+              this.dungeonAtkInput.style.width = `40px`;
+              this.dungeonDefInput.style.width = `40px`;
+          
+              this.dungeonHpInput.onchange = (): void => {
+                this.onUpdate({ dungeonHpMultiplier: this.dungeonHpInput.value });
+              };
+              this.dungeonAtkInput.onchange = (): void => {
+                this.onUpdate({ dungeonAtkMultiplier: this.dungeonAtkInput.value });
+              };
+              this.dungeonDefInput.onchange = (): void => {
+                this.onUpdate({ dungeonDefMultiplier: this.dungeonDefInput.value });
+              };
+          
+              multiplierTable.appendChild(row);
+          
+              this.element.appendChild(multiplierTable);
             }
+            */
             setDungeonMultipliers(hpMultText, atkMultText, defMultText) {
                 this.dungeonHpInput.value = hpMultText;
                 this.dungeonAtkInput.value = atkMultText;
@@ -4405,7 +4426,6 @@
             }
             setupEnemyStatTable() {
                 const statTable = create('table', ClassNames.ENEMY_STAT_TABLE);
-                const aiEl = create('div');
                 const lvRow = create('tr');
                 const hpRow = create('tr');
                 const atkRow = create('tr');
@@ -4484,6 +4504,41 @@
                 defRow.appendChild(defEqual);
                 defRow.appendChild(defCell);
                 defRow.appendChild(this.defBase);
+                this.element.appendChild(statTable);
+            }
+            setupStatusArea() {
+                const statusArea = create('div');
+                this.comboAbsorbInput.type = 'number';
+                this.comboAbsorbInput.style.width = '35px';
+                this.damageVoidInput.style.width = '90px';
+                this.damageAbsorbInput.style.width = '90px';
+                this.comboAbsorbInput.value = '0';
+                this.damageVoidInput.value = '0';
+                this.damageAbsorbInput.value = '0';
+                const comboAbsorbArea = create('span');
+                const comboAbsorbLabel = new LayeredAsset([AssetEnum.COMBO_ABSORB, AssetEnum.NUMBER_0], () => this.onUpdate({ comboAbsorb: 0 }), true, 0.7);
+                comboAbsorbArea.appendChild(comboAbsorbLabel.getElement());
+                this.comboAbsorbInput.onchange = () => this.onUpdate({ comboAbsorb: Number(this.comboAbsorbInput.value) });
+                comboAbsorbArea.appendChild(this.comboAbsorbInput);
+                const damageAbsorbArea = create('span');
+                const damageAbsorbLabel = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.ABSORB_OVERLAY], () => this.onUpdate({ damageAbsorb: 0 }), true, 0.7);
+                damageAbsorbArea.appendChild(damageAbsorbLabel.getElement());
+                this.damageAbsorbInput.onchange = () => this.onUpdate({ damageAbsorb: Number(this.damageAbsorbInput.value) });
+                damageAbsorbArea.appendChild(this.damageAbsorbInput);
+                const damageVoidArea = create('span');
+                const damageVoidLabel = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.VOID_OVERLAY], () => this.onUpdate({ damageVoid: 0 }), true, 0.7);
+                damageVoidArea.appendChild(damageVoidLabel.getElement());
+                this.damageVoidInput.onchange = () => this.onUpdate({ damageVoid: Number(this.damageVoidInput.value) });
+                damageVoidArea.appendChild(this.damageVoidInput);
+                statusArea.appendChild(this.statusShield.getElement());
+                statusArea.appendChild(this.invincible.getElement());
+                statusArea.appendChild(comboAbsorbArea);
+                statusArea.appendChild(damageAbsorbArea);
+                statusArea.appendChild(damageVoidArea);
+                this.element.appendChild(statusArea);
+            }
+            setupAiArea() {
+                const aiEl = create('div');
                 const chargesSpan = create('span');
                 const chargesLabel = create('span');
                 chargesLabel.innerText = 'Charges: ';
@@ -4503,12 +4558,12 @@
                 const flagsLabel = create('span');
                 flagsLabel.innerText = 'Flags: ';
                 flagsSpan.appendChild(flagsLabel);
+                this.flagsInput.style.width = '80px';
                 this.flagsInput.onchange = () => this.onUpdate({ flags: parseInt(this.flagsInput.value, 2) });
                 flagsSpan.appendChild(this.flagsInput);
                 aiEl.appendChild(chargesSpan);
                 aiEl.appendChild(counterSpan);
                 aiEl.appendChild(flagsSpan);
-                this.element.appendChild(statTable);
                 this.element.appendChild(aiEl);
             }
             addFloor() {
@@ -4672,6 +4727,11 @@
                     // superHide(grandparentEl((this.resistAttrs.get(0) as LayeredAsset).getElement()));
                     superHide(this.resistAttrPercent.parentElement);
                 }
+                this.statusShield.setActive(s.statusShield);
+                this.invincible.setActive(s.invincible);
+                this.damageVoidInput.value = common_2.addCommas(s.damageVoid);
+                this.damageAbsorbInput.value = common_2.addCommas(s.damageAbsorb);
+                this.comboAbsorbInput.value = `${s.comboAbsorb}`;
                 this.maxCharges.innerText = ` / ${s.maxCharges} `;
                 this.chargesInput.value = String(s.charges);
                 this.counterInput.value = String(s.counter);
@@ -9355,7 +9415,7 @@
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { enemy }) => {
-                enemy.damageAbsorb = skillArgs[0];
+                enemy.damageAbsorb = skillArgs[1];
             },
             goto: () => TERMINATE,
         };
@@ -10323,6 +10383,21 @@
                     if (ctx.activeEnemyId != undefined) {
                         this.getActiveEnemy().id = ctx.activeEnemyId;
                     }
+                    if (ctx.statusShield != undefined) {
+                        enemy.statusShield = ctx.statusShield;
+                    }
+                    if (ctx.invincible != undefined) {
+                        enemy.invincible = ctx.invincible;
+                    }
+                    if (ctx.comboAbsorb != undefined) {
+                        enemy.comboAbsorb = ctx.comboAbsorb;
+                    }
+                    if (ctx.damageAbsorb != undefined) {
+                        enemy.damageAbsorb = ctx.damageAbsorb;
+                    }
+                    if (ctx.damageVoid != undefined) {
+                        enemy.damageVoid = ctx.damageVoid;
+                    }
                     if (ctx.charges != undefined) {
                         enemy.charges = ctx.charges;
                     }
@@ -10361,6 +10436,12 @@
                     superResolve: enemy.getSuperResolve().minHp,
                     typeResists: enemy.getTypeResists(),
                     attrResists: enemy.getAttrResists(),
+                    statusShield: enemy.statusShield,
+                    comboAbsorb: enemy.comboAbsorb,
+                    damageAbsorb: enemy.damageAbsorb,
+                    damageVoid: enemy.damageVoid,
+                    invincible: enemy.invincible,
+                    attributeAbsorb: enemy.attributeAbsorb,
                     maxCharges: enemy.getCard().charges,
                     charges: enemy.charges,
                     counter: enemy.counter,
