@@ -3055,7 +3055,7 @@
                             continue;
                         }
                         this.options[i].className = ClassNames.SELECTOR_OPTION_ACTIVE;
-                        this.options[i].innerText = `${fuzzyMatches[i]} - ${this.getName(Number(fuzzyMatches[i]))}`;
+                        this.options[i].innerText = `${this.getName(Number(fuzzyMatches[i]))}`;
                         this.options[i].setAttribute('value', String(fuzzyMatches[i]));
                     }
                     this.activeOptions = Math.min(fuzzyMatches.length, this.options.length);
@@ -3065,7 +3065,6 @@
                 return () => {
                     const id = Number(option.getAttribute('value'));
                     this.updateCb(id);
-                    // TODO: Clean this up.
                     this.selector.value = this.getName(id);
                     this.optionsContainer.className = ClassNames.SELECTOR_OPTIONS_INACTIVE;
                 };
@@ -3102,11 +3101,12 @@
                     return 'None';
                 }
                 else {
-                    return ilmina_stripped_3.floof.model.cards[id].name;
+                    return `${id}: ${ilmina_stripped_3.floof.model.cards[id].name}`;
                 }
             }
             getFuzzyMatches(text) {
-                return fuzzy_search_1.fuzzyMonsterSearch(text, GenericSelector.MAX_OPTIONS * 3, this.cardArray);
+                const splits = text.split(':');
+                return fuzzy_search_1.fuzzyMonsterSearch(splits[splits.length - 1].trim(), GenericSelector.MAX_OPTIONS * 3, this.cardArray);
             }
             postFilter(matches) {
                 if (this.isInherit) {
