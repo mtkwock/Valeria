@@ -215,8 +215,11 @@ const attrOrRcvBurst: MonsterActive = {
   },
 };
 
+// 51
+const massAttack: MonsterActive = {};
+
 // 52
-const enhanceOrbs: MonsterActive = {}
+const enhanceOrbs: MonsterActive = {};
 
 // 55
 const fixedDamageToOneEnemy: MonsterActive = {
@@ -316,6 +319,15 @@ const burstForTwoTypes: MonsterActive = {
   },
 };
 
+// 93
+const leadSwap: MonsterActive = {
+  teamEffect: (_, { team }) => {
+    team.updateState({
+      leadSwap: Math.floor(team.action / 2),
+    });
+  },
+};
+
 // 110
 const grudgeStrike: MonsterActive = {
   damage: ([_, attr, baseMult, maxMult, scaling], { source, isMultiplayer, awakeningsActive, currentHp, maxHp }) => {
@@ -409,6 +421,22 @@ const catchAllCleric: MonsterActive = {
 
 // 127
 const orbChangeColumn: MonsterActive = {};
+
+// 132
+const timeExtend: MonsterActive = {
+  teamEffect: ([_, seconds10, mult100], { team }) => {
+    if (mult100) {
+      team.state.timeBonus = mult100 / 100;
+      team.state.timeIsMult = true;
+    } else {
+      team.state.timeBonus = seconds10 / 10;
+      team.state.timeIsMult = false;
+    }
+  },
+};
+
+// 141
+const randomOrbSpawn: MonsterActive = {};
 
 // 142
 const selfAttributeChange: MonsterActive = {
@@ -521,6 +549,13 @@ const pureSuicide: MonsterActive = {
   },
 };
 
+// 202
+const transform: MonsterActive = {
+  teamEffect: ([id], { source }) => {
+    source.transformedTo = id;
+  },
+};
+
 const ACTIVE_GENERATORS: Record<number, MonsterActive> = {
   0: scalingAttackToAllEnemies,
   1: flatAttackToAllEnemies,
@@ -539,6 +574,7 @@ const ACTIVE_GENERATORS: Record<number, MonsterActive> = {
   37: scalingAttackToOneEnemy,
   42: flatAttackToAttribute,
   50: attrOrRcvBurst,
+  51: massAttack, // No effect
   52: enhanceOrbs, // No effect
   55: fixedDamageToOneEnemy,
   56: fixedDamageToAllEnemies,
@@ -552,12 +588,15 @@ const ACTIVE_GENERATORS: Record<number, MonsterActive> = {
   88: burstForOneType,
   90: burstForTwoAttributes,
   92: burstForTwoTypes,
+  93: leadSwap,
   110: grudgeStrike,
   115: elementalScalingAttackAndHeal,
   116: multipleActiveSkills,
   117: catchAllCleric,
   127: orbChangeColumn,
+  132: timeExtend,
   138: multipleActiveSkills,
+  141: randomOrbSpawn,
   142: selfAttributeChange,
   144: scalingAttackFromTeam,
   146: haste, // No effect
@@ -570,6 +609,7 @@ const ACTIVE_GENERATORS: Record<number, MonsterActive> = {
   188: fixedDamageToOneEnemy, // Same as 55.
   191: voidDamageVoid,
   195: pureSuicide,
+  202: transform,
 };
 
 function getGeneratorIfExists(activeId: number): MonsterActive | void {

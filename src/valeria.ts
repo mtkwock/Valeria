@@ -116,7 +116,7 @@ class Valeria {
 
       const team = this.team.getActiveTeam();
       const source = team[Math.floor(action / 2)];
-      const activeId = action & 1 ? source.inheritId : source.getId();
+      const activeId = floof.model.cards[action & 1 ? source.inheritId : source.getId()].activeSkillId;
       const enemy = this.dungeon.getActiveEnemy();
 
       teamEffect(activeId, {
