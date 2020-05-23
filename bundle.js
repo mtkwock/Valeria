@@ -3827,6 +3827,10 @@
             }
         }
         exports.StoredTeamDisplay = StoredTeamDisplay;
+        var ActionOptions;
+        (function (ActionOptions) {
+            ActionOptions[ActionOptions["COMBO"] = -1] = "COMBO";
+        })(ActionOptions || (ActionOptions = {}));
         class TeamPane {
             constructor(storageDisplay, monsterDivs, onTeamUpdate) {
                 this.element_ = create('div');
@@ -3845,6 +3849,7 @@
                 this.detailTabs = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
                 this.fixedHpEl = new LayeredAsset([], () => { });
                 this.fixedHpInput = create('input');
+                this.actionOptions = [];
                 this.leadSwapInput = create('select');
                 this.voidEls = [];
                 this.pingCells = [];
@@ -4043,6 +4048,23 @@
                 this.battleEl.appendChild(this.fixedHpEl.getElement());
                 this.battleEl.appendChild(this.fixedHpInput);
                 // Choose combos or active.
+                const actionSelect = create('select');
+                actionSelect.style.fontSize = 'xx-small';
+                actionSelect.onchange = () => {
+                    this.onTeamUpdate({ action: Number(actionSelect.value) });
+                };
+                const comboOption = create('option');
+                comboOption.innerText = 'Apply Combos';
+                comboOption.value = String(ActionOptions.COMBO);
+                actionSelect.appendChild(comboOption);
+                for (let i = 0; i < 12; i++) {
+                    const activeOption = create('option');
+                    activeOption.value = String(i);
+                    activeOption.innerText = `${Math.floor(i / 2) + 1}:`;
+                    actionSelect.appendChild(activeOption);
+                    this.actionOptions.push(activeOption);
+                }
+                this.battleEl.appendChild(actionSelect);
                 const leadSwapLabel = create('span');
                 leadSwapLabel.innerText = 'Lead Swap: ';
                 this.battleEl.appendChild(leadSwapLabel);
@@ -4240,6 +4262,18 @@
             }
             updateBattle(teamBattle) {
                 this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
+                for (let i = 0; i < this.actionOptions.length; i++) {
+                    const c = ilmina_stripped_3.floof.model.cards[teamBattle.ids[i]];
+                    const option = this.actionOptions[i];
+                    if (!c) {
+                        option.innerText = '';
+                        option.disabled = true;
+                    }
+                    else {
+                        option.innerText = `${Math.floor(i / 2) + 1}: ${ilmina_stripped_3.floof.model.playerSkills[c.activeSkillId].description.replace('\n', ' ')}`;
+                        option.disabled = false;
+                    }
+                }
                 this.leadSwapInput.value = `${teamBattle.leadSwap}`;
                 for (const idx in teamBattle.voids) {
                     this.voidEls[idx].setActive(teamBattle.voids[idx]);
@@ -4248,13 +4282,18 @@
                 this.fixedHpInput.value = common_2.addCommas(teamBattle.fixedHp);
             }
             updateDamage(pings, rawPings, actualPings, enemyHp, healing) {
+                while (pings.length < 13) {
+                    pings.push({ attribute: common_2.Attribute.NONE, damage: 0 });
+                    rawPings.push({ attribute: common_2.Attribute.NONE, damage: 0 });
+                    actualPings.push({ attribute: common_2.Attribute.NONE, damage: 0 });
+                }
                 for (let i = 0; i < 12; i++) {
                     this.pingCells[i].innerText = common_2.addCommas(pings[i].damage);
-                    this.pingCells[i].style.color = common_2.AttributeToFontColor[pings[i].attribute];
+                    this.pingCells[i].style.color = pings[i].damage ? common_2.AttributeToFontColor[pings[i].attribute] : common_2.FontColor.COLORLESS;
                     this.rawPingCells[i].innerText = common_2.addCommas(rawPings[i].damage);
-                    this.rawPingCells[i].style.color = common_2.AttributeToFontColor[rawPings[i].attribute];
+                    this.rawPingCells[i].style.color = rawPings[i].damage ? common_2.AttributeToFontColor[rawPings[i].attribute] : common_2.FontColor.COLORLESS;
                     this.actualPingCells[i].innerText = common_2.addCommas(actualPings[i].damage);
-                    this.actualPingCells[i].style.color = common_2.AttributeToFontColor[actualPings[i].attribute];
+                    this.actualPingCells[i].style.color = actualPings[i].damage ? common_2.AttributeToFontColor[actualPings[i].attribute] : common_2.FontColor.COLORLESS;
                 }
                 this.pingTotal.innerText = common_2.addCommas(pings.reduce((t, p) => t + p.damage, 0));
                 this.rawPingTotal.innerText = common_2.addCommas(rawPings.reduce((t, p) => t + p.damage, 0));
@@ -4263,16 +4302,16 @@
                 this.actualPingPercent.innerText = String(d / enemyHp * 100).substring(0, 5) + '%';
                 if (pings.length > 12) {
                     this.bonusPing.innerText = common_2.addCommas(pings[12].damage);
-                    this.bonusPing.style.color = common_2.AttributeToFontColor[pings[12].attribute];
+                    this.bonusPing.style.color = pings[12].damage ? common_2.AttributeToFontColor[pings[12].attribute] : common_2.FontColor.COLORLESS;
                     this.rawBonusPing.innerText = common_2.addCommas(rawPings[12].damage);
-                    this.rawBonusPing.style.color = common_2.AttributeToFontColor[rawPings[12].attribute];
+                    this.rawBonusPing.style.color = rawPings[12].damage ? common_2.AttributeToFontColor[rawPings[12].attribute] : common_2.FontColor.COLORLESS;
                     this.actualBonusPing.innerText = common_2.addCommas(actualPings[12].damage);
-                    this.actualBonusPing.style.color = common_2.AttributeToFontColor[actualPings[12].attribute];
+                    this.actualBonusPing.style.color = actualPings[12].damage ? common_2.AttributeToFontColor[actualPings[12].attribute] : common_2.FontColor.COLORLESS;
                 }
                 else {
-                    this.bonusPing.innerText = '0';
-                    this.rawBonusPing.innerText = '0';
-                    this.actualBonusPing.innerText = '0';
+                    this.bonusPing.innerText = '';
+                    this.rawBonusPing.innerText = '';
+                    this.actualBonusPing.innerText = '';
                 }
                 this.hpDamage.innerText = `+${common_2.addCommas(healing)}`;
             }
@@ -4747,7 +4786,6 @@
                 }
             }
             setEnemies(enemyIdsByFloor) {
-                console.log(enemyIdsByFloor);
                 while (this.dungeonFloorEls.length < enemyIdsByFloor.length) {
                     this.addFloor();
                 }
@@ -4894,383 +4932,66 @@
         }
         exports.ValeriaDisplay = ValeriaDisplay;
     });
-    define("combo_container", ["require", "exports", "common", "templates"], function (require, exports, common_3, templates_1) {
-        "use strict";
-        Object.defineProperty(exports, "__esModule", { value: true });
-        class Combo {
-            constructor(count, attribute, enhanced = 0, shape) {
-                this.count = count;
-                this.attribute = attribute;
-                if (enhanced > count) {
-                    enhanced = count;
-                }
-                this.enhanced = enhanced;
-                if (shape == common_3.Shape.L && count != 5 ||
-                    shape == common_3.Shape.COLUMN && (count < 4 || count > 6) ||
-                    shape == common_3.Shape.CROSS && count != 5 ||
-                    shape == common_3.Shape.BOX && count != 9 ||
-                    shape == common_3.Shape.ROW && count < 5) {
-                    console.warn(`Invalid Shape and count combination. Changing shape to AMORPHOUS`);
-                    shape = common_3.Shape.AMORPHOUS;
-                }
-                this.shape = shape;
-            }
-            recount() {
-                if (this.shape == common_3.Shape.L || this.shape == common_3.Shape.CROSS) {
-                    this.count = 5;
-                }
-                if (this.shape == common_3.Shape.BOX) {
-                    this.count = 9;
-                }
-                if (this.shape == common_3.Shape.COLUMN) {
-                    console.warn('TODO: Handle auto changing to column');
-                }
-                if (this.enhanced > this.count) {
-                    this.enhanced = this.count;
-                }
-            }
-        }
-        exports.Combo = Combo;
-        class ComboContainer {
-            constructor() {
-                this.combos = {};
-                for (const c of common_3.COLORS) {
-                    this.combos[c] = [];
-                }
-                this.boardWidth = 6;
-                this.maxVisibleCombos = 14;
-                this.bonusCombosLeader = 0;
-                this.bonusCombosActive = 0;
-                this.onUpdate = [];
-                this.comboEditor = new templates_1.ComboEditor();
-                this.comboEditor.commandInput.onkeyup = (e) => {
-                    if (e.keyCode == 13) {
-                        const remainingCommands = this.doCommands(this.comboEditor.commandInput.value);
-                        this.comboEditor.commandInput.value = remainingCommands.join(' ');
-                    }
-                };
-                const colorToInputs = this.comboEditor.getInputElements();
-                for (const c in colorToInputs) {
-                    for (const i in colorToInputs[c]) {
-                        const idx = Number(i);
-                        const { shapeCountEl, enhanceEl } = colorToInputs[c][i];
-                        // TODO: Add onclick modifiers to these.
-                        shapeCountEl.onblur = () => {
-                            const v = shapeCountEl.value.replace(/\s/g, '');
-                            // Delete this combo.
-                            let letter = v[0] || 'NaN';
-                            let count = 0;
-                            let shape = 'A';
-                            if (letter == 'R') {
-                                count = this.boardWidth;
-                                shape = 'R';
-                                if (v.length > 1 && Number(v.substring(1)) > count) {
-                                    count = Number(v.substring(1));
-                                }
-                                shape = 'R';
-                            }
-                            else if (letter == 'C') {
-                                count = this.boardWidth - 1;
-                                shape = 'C';
-                            }
-                            else if ('LXB'.indexOf(letter) >= 0) {
-                                shape = letter;
-                                count = letter == 'B' ? 9 : 5;
-                            }
-                            else if (!isNaN(Number(v))) {
-                                count = Number(v);
-                            }
-                            const combos = this.combos[c];
-                            // Only possibly adding a combo.
-                            if (idx >= combos.length) {
-                                if (count == 0) {
-                                    // Nothing to add, return early.
-                                    shapeCountEl.value = '';
-                                    return;
-                                }
-                                this.addShape(shape, `${count}${c}`);
-                                // Modify or delete a combo.
-                            }
-                            else {
-                                if (count == 0) {
-                                    this.delete(`${c}${idx}`);
-                                }
-                                else {
-                                    combos[idx].shape = common_3.LetterToShape[shape];
-                                    combos[idx].count = count;
-                                    combos[idx].recount();
-                                }
-                            }
-                            this.update();
-                        };
-                        enhanceEl.onblur = () => {
-                            const combos = this.combos[c];
-                            const v = Number(enhanceEl.value);
-                            if (!isNaN(v) && idx < combos.length) {
-                                combos[i].enhanced = v;
-                                combos[i].recount();
-                                this.update();
-                            }
-                            else {
-                                enhanceEl.value = '';
-                            }
-                        };
-                    }
-                }
-            }
-            getElement() {
-                return this.comboEditor.getElement();
-            }
-            doCommands(cmdsString) {
-                const cmds = cmdsString.split(' ')
-                    .map((c) => c.trim())
-                    .filter((c) => Boolean(c));
-                let executed = 0;
-                for (const i in cmds) {
-                    if (!this.doCommand(cmds[i])) {
-                        break;
-                    }
-                    executed++;
-                }
-                this.update();
-                return cmds.slice(executed);
-            }
-            doCommand(cmd) {
-                if (cmd == 'D') {
-                    return this.doCommand('Daa');
-                }
-                if (cmd.startsWith('Da') || cmd.startsWith('DA')) {
-                    return this.deleteAll(cmd.substring(2));
-                }
-                if (cmd.startsWith('D')) {
-                    return this.delete(cmd.substring(1));
-                }
-                if ('XCLBR'.indexOf(cmd[0]) >= 0) {
-                    return this.addShape(cmd[0], cmd.substring(1));
-                }
-                let maybeMatch = cmd.match(/^\d+/);
-                if (maybeMatch) {
-                    let count = Number(maybeMatch[0]);
-                    cmd = cmd.substring(maybeMatch[0].length);
-                    if (!cmd) {
-                        // Requires at least one color.
-                        return false;
-                    }
-                    return this.add(count, cmd);
-                }
-                if (cmd[0] in this.combos) {
-                    return this.add(3, cmd);
-                }
-                return false;
-            }
-            addShape(shape, cmd) {
-                let count = 3;
-                const maybeCount = cmd.match(/^\d+/);
-                if (maybeCount) {
-                    count = Number(maybeCount[0]);
-                    cmd = cmd.substring(maybeCount[0].length);
-                }
-                switch (shape) {
-                    case 'R':
-                        count = Math.max(count, this.boardWidth);
-                        break;
-                    case 'C':
-                        count = this.boardWidth - 1;
-                        break;
-                    case 'L':
-                    case 'X':
-                        count = 5;
-                        break;
-                    case 'B':
-                        count = 9;
-                        break;
-                }
-                return this.add(count, cmd, common_3.LetterToShape[shape] || common_3.Shape.AMORPHOUS);
-            }
-            add(count, cmd, shape = common_3.Shape.AMORPHOUS) {
-                if (count < 3) {
-                    count = 3;
-                }
-                let added = false;
-                while (cmd) {
-                    if (!(cmd[0] in this.combos)) {
-                        break;
-                    }
-                    const c = cmd[0];
-                    let e = 0;
-                    cmd = cmd.substring(1);
-                    const maybeEnhance = cmd.match(/^\d+/);
-                    if (maybeEnhance) {
-                        e = Number(maybeEnhance[0]);
-                        cmd = cmd.substring(maybeEnhance[0].length);
-                    }
-                    this.combos[c].push(new Combo(count, common_3.COLORS.indexOf(c), e, shape));
-                    added = true;
-                }
-                if (cmd) {
-                    console.warn('Unused values in cmd: ' + cmd);
-                }
-                return added;
-            }
-            // TODO
-            delete(cmd) {
-                let colorsToDelete = [];
-                while (cmd && cmd[0] in this.combos) {
-                    colorsToDelete.push(cmd[0]);
-                    cmd = cmd.substring(1);
-                }
-                let idxToDelete = 1;
-                let fromEnd = true;
-                if (cmd) {
-                    if (cmd[0] == '-') {
-                        fromEnd = true;
-                        cmd = cmd.substring(1);
-                    }
-                    else {
-                        fromEnd = false;
-                    }
-                    const maybeIdx = cmd.match(/^\d+/);
-                    if (maybeIdx) {
-                        cmd = cmd.substring(maybeIdx[0].length);
-                        idxToDelete = Number(maybeIdx[0]);
-                    }
-                    if (cmd) {
-                        console.log(`Unused delete args: ${cmd}`);
-                    }
-                }
-                let anyDeleted = false;
-                for (const c of colorsToDelete) {
-                    const idx = fromEnd ? this.combos[c].length - idxToDelete : idxToDelete - 0;
-                    if (idx >= 0 && idx < this.combos[c].length) {
-                        this.combos[c].splice(idx, 1);
-                        anyDeleted = true;
-                        console.log(`Deleting from ${c}, combo #${idx}`);
-                    }
-                    else {
-                        console.warn(`Index out of bounds: ${idx}`);
-                    }
-                }
-                return anyDeleted;
-            }
-            deleteAll(cmd) {
-                if (cmd[0].toLowerCase() == 'a') {
-                    for (const c in this.combos) {
-                        this.combos[c].length = 0;
-                    }
-                    return true;
-                }
-                // Assume to delete all color values present.
-                for (const c of cmd) {
-                    if (!(c in this.combos)) {
-                        console.warn('Not valid color: ' + c);
-                    }
-                    this.combos[c].length = 0;
-                }
-                return true;
-            }
-            update() {
-                const data = {};
-                for (const c in this.combos) {
-                    data[c] = this.combos[c].map((combo) => {
-                        let countString = common_3.ShapeToLetter[combo.shape];
-                        if (combo.shape == common_3.Shape.AMORPHOUS) {
-                            countString = `${combo.count}`;
-                        }
-                        if (combo.shape == common_3.Shape.ROW || combo.shape == common_3.Shape.COLUMN) {
-                            countString += `${combo.count}`;
-                        }
-                        return {
-                            shapeCount: countString,
-                            enhance: combo.enhanced,
-                        };
-                    });
-                }
-                this.comboEditor.update(data);
-                for (const fn of this.onUpdate) {
-                    fn(this);
-                }
-            }
-            setBonusComboLeader(bonus) {
-                this.bonusCombosLeader = bonus;
-                this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
-            }
-            comboCount() {
-                let total = 0;
-                for (const c in this.combos) {
-                    total += this.combos[c].length;
-                }
-                return total + this.bonusCombosLeader + this.bonusCombosActive;
-            }
-            setBoardWidth(width) {
-                this.boardWidth = width;
-                // TODO: Update combo counts as well.
-            }
-            getBoardSize() {
-                return this.boardWidth * (this.boardWidth - 1);
-            }
-        }
-        exports.ComboContainer = ComboContainer;
-    });
-    define("monster_instance", ["require", "exports", "common", "ilmina_stripped", "templates", "fuzzy_search"], function (require, exports, common_4, ilmina_stripped_4, templates_2, fuzzy_search_2) {
+    define("monster_instance", ["require", "exports", "common", "ilmina_stripped", "templates", "fuzzy_search"], function (require, exports, common_3, ilmina_stripped_4, templates_1, fuzzy_search_2) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const AWAKENING_BONUS = new Map([
-            [common_4.Awakening.HP, 500],
-            [common_4.Awakening.HP_MINUS, -5000],
-            [common_4.Awakening.ATK, 100],
-            [common_4.Awakening.ATK_MINUS, -1000],
-            [common_4.Awakening.RCV, 200],
-            [common_4.Awakening.RCV_MINUS, -2000],
+            [common_3.Awakening.HP, 500],
+            [common_3.Awakening.HP_MINUS, -5000],
+            [common_3.Awakening.ATK, 100],
+            [common_3.Awakening.ATK_MINUS, -1000],
+            [common_3.Awakening.RCV, 200],
+            [common_3.Awakening.RCV_MINUS, -2000],
         ]);
         const LatentHp = new Map([
-            [common_4.Latent.HP, 0.015],
-            [common_4.Latent.HP_PLUS, 0.045],
-            [common_4.Latent.ALL_STATS, 0.03],
+            [common_3.Latent.HP, 0.015],
+            [common_3.Latent.HP_PLUS, 0.045],
+            [common_3.Latent.ALL_STATS, 0.03],
         ]);
         const LatentAtk = new Map([
-            [common_4.Latent.ATK, 0.01],
-            [common_4.Latent.ATK_PLUS, 0.03],
-            [common_4.Latent.ALL_STATS, 0.02],
+            [common_3.Latent.ATK, 0.01],
+            [common_3.Latent.ATK_PLUS, 0.03],
+            [common_3.Latent.ALL_STATS, 0.02],
         ]);
         const LatentRcv = new Map([
-            [common_4.Latent.RCV, 0.1],
-            [common_4.Latent.RCV_PLUS, 0.3],
-            [common_4.Latent.ALL_STATS, 0.2],
+            [common_3.Latent.RCV, 0.1],
+            [common_3.Latent.RCV_PLUS, 0.3],
+            [common_3.Latent.ALL_STATS, 0.2],
         ]);
         const LatentToPdchu = new Map([
-            [common_4.Latent.HP, 'hp'],
-            [common_4.Latent.ATK, 'atk'],
-            [common_4.Latent.RCV, 'rcv'],
-            [common_4.Latent.HP_PLUS, 'hp+'],
-            [common_4.Latent.ATK_PLUS, 'atk+'],
-            [common_4.Latent.RCV_PLUS, 'rcv+'],
-            [common_4.Latent.TIME, 'te'],
-            [common_4.Latent.TIME_PLUS, 'te+'],
-            [common_4.Latent.AUTOHEAL, 'ah'],
-            [common_4.Latent.RESIST_FIRE, 'rres'],
-            [common_4.Latent.RESIST_WATER, 'bres'],
-            [common_4.Latent.RESIST_WOOD, 'gres'],
-            [common_4.Latent.RESIST_LIGHT, 'lres'],
-            [common_4.Latent.RESIST_DARK, 'dres'],
-            [common_4.Latent.RESIST_FIRE_PLUS, 'rres+'],
-            [common_4.Latent.RESIST_WATER_PLUS, 'bres+'],
-            [common_4.Latent.RESIST_WOOD_PLUS, 'gres+'],
-            [common_4.Latent.RESIST_LIGHT_PLUS, 'lres+'],
-            [common_4.Latent.RESIST_DARK_PLUS, 'dres+'],
-            [common_4.Latent.SDR, 'sdr'],
-            [common_4.Latent.ALL_STATS, 'all'],
-            [common_4.Latent.EVO, 'evk'],
-            [common_4.Latent.AWOKEN, 'awk'],
-            [common_4.Latent.ENHANCED, 'enk'],
-            [common_4.Latent.REDEEMABLE, 'rek'],
-            [common_4.Latent.GOD, 'gok'],
-            [common_4.Latent.DEVIL, 'dek'],
-            [common_4.Latent.DRAGON, 'drk'],
-            [common_4.Latent.MACHINE, 'mak'],
-            [common_4.Latent.BALANCED, 'bak'],
-            [common_4.Latent.ATTACKER, 'aak'],
-            [common_4.Latent.PHYSICAL, 'phk'],
-            [common_4.Latent.HEALER, 'hek'],
+            [common_3.Latent.HP, 'hp'],
+            [common_3.Latent.ATK, 'atk'],
+            [common_3.Latent.RCV, 'rcv'],
+            [common_3.Latent.HP_PLUS, 'hp+'],
+            [common_3.Latent.ATK_PLUS, 'atk+'],
+            [common_3.Latent.RCV_PLUS, 'rcv+'],
+            [common_3.Latent.TIME, 'te'],
+            [common_3.Latent.TIME_PLUS, 'te+'],
+            [common_3.Latent.AUTOHEAL, 'ah'],
+            [common_3.Latent.RESIST_FIRE, 'rres'],
+            [common_3.Latent.RESIST_WATER, 'bres'],
+            [common_3.Latent.RESIST_WOOD, 'gres'],
+            [common_3.Latent.RESIST_LIGHT, 'lres'],
+            [common_3.Latent.RESIST_DARK, 'dres'],
+            [common_3.Latent.RESIST_FIRE_PLUS, 'rres+'],
+            [common_3.Latent.RESIST_WATER_PLUS, 'bres+'],
+            [common_3.Latent.RESIST_WOOD_PLUS, 'gres+'],
+            [common_3.Latent.RESIST_LIGHT_PLUS, 'lres+'],
+            [common_3.Latent.RESIST_DARK_PLUS, 'dres+'],
+            [common_3.Latent.SDR, 'sdr'],
+            [common_3.Latent.ALL_STATS, 'all'],
+            [common_3.Latent.EVO, 'evk'],
+            [common_3.Latent.AWOKEN, 'awk'],
+            [common_3.Latent.ENHANCED, 'enk'],
+            [common_3.Latent.REDEEMABLE, 'rek'],
+            [common_3.Latent.GOD, 'gok'],
+            [common_3.Latent.DEVIL, 'dek'],
+            [common_3.Latent.DRAGON, 'drk'],
+            [common_3.Latent.MACHINE, 'mak'],
+            [common_3.Latent.BALANCED, 'bak'],
+            [common_3.Latent.ATTACKER, 'aak'],
+            [common_3.Latent.PHYSICAL, 'phk'],
+            [common_3.Latent.HEALER, 'hek'],
         ]);
         exports.LatentToPdchu = LatentToPdchu;
         const PdchuToLatent = new Map();
@@ -5309,17 +5030,17 @@
                 this.inheritPlussed = false;
                 // Attributes set in dungeon.
                 this.bound = false; // Monster being bound and unusable.
-                this.attribute = common_4.Attribute.NONE; // Attribute override.
+                this.attribute = common_3.Attribute.NONE; // Attribute override.
                 this.transformedTo = -1; // Monster transformation.
                 this.id = id;
-                this.el = templates_2.create('div');
-                this.inheritIcon = new templates_2.MonsterInherit();
-                this.icon = new templates_2.MonsterIcon();
+                this.el = templates_1.create('div');
+                this.inheritIcon = new templates_1.MonsterInherit();
+                this.icon = new templates_1.MonsterIcon();
                 this.icon.setOnUpdate(onUpdate);
-                this.latentIcon = new templates_2.MonsterLatent();
+                this.latentIcon = new templates_1.MonsterLatent();
                 const inheritIconEl = this.inheritIcon.getElement();
                 inheritIconEl.onclick = () => {
-                    const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
+                    const els = document.getElementsByClassName(templates_1.ClassNames.MONSTER_SELECTOR);
                     if (els.length > 1) {
                         const el = els[1];
                         el.focus();
@@ -5328,7 +5049,7 @@
                 this.el.appendChild(inheritIconEl);
                 this.el.appendChild(this.icon.getElement());
                 this.el.onclick = () => {
-                    const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
+                    const els = document.getElementsByClassName(templates_1.ClassNames.MONSTER_SELECTOR);
                     if (els.length) {
                         const el = els[0];
                         el.focus();
@@ -5479,11 +5200,11 @@
                 if (c) {
                     return c;
                 }
-                return common_4.DEFAULT_CARD;
+                return common_3.DEFAULT_CARD;
             }
             getInheritCard() {
                 if (this.inheritId == 0) {
-                    return common_4.DEFAULT_CARD;
+                    return common_3.DEFAULT_CARD;
                 }
                 return ilmina_stripped_4.floof.model.cards[this.inheritId];
             }
@@ -5622,7 +5343,7 @@
                             continue;
                         }
                         const latentName = latentMatch[0];
-                        let latent = PdchuToLatent.get(String(latentName)) || common_4.Latent.SDR;
+                        let latent = PdchuToLatent.get(String(latentName)) || common_3.Latent.SDR;
                         if (latent == undefined) {
                             continue;
                         }
@@ -5725,7 +5446,7 @@
                     awakenings.push(c.superAwakenings[this.superAwakeningIdx]);
                 }
                 const inherit = this.getInheritCard();
-                if (inherit && inherit.awakenings.length && inherit.awakenings[0] == common_4.Awakening.AWOKEN_ASSIST) {
+                if (inherit && inherit.awakenings.length && inherit.awakenings[0] == common_3.Awakening.AWOKEN_ASSIST) {
                     for (const a of inherit.awakenings) {
                         awakenings.push(a);
                     }
@@ -5754,9 +5475,9 @@
                 const maxSlots = c.inheritanceType & 32 ? 8 : 6;
                 let totalSlots = 0;
                 for (const l of this.latents) {
-                    totalSlots += common_4.LatentSuper.has(l) ? 2 : 1;
+                    totalSlots += common_3.LatentSuper.has(l) ? 2 : 1;
                 }
-                totalSlots += common_4.LatentSuper.has(latent) ? 2 : 1;
+                totalSlots += common_3.LatentSuper.has(latent) ? 2 : 1;
                 if (totalSlots > maxSlots)
                     return;
                 if (latent >= 16 && latent <= 23 && !c.latentKillers.some((killer) => killer == (latent - 11))) {
@@ -5800,12 +5521,12 @@
                 let hp = this.calcScaleStat(c.maxHp, c.minHp, c.hpGrowth);
                 if (awakeningsActive) {
                     let latentMultiplier = 1;
-                    for (const latent of this.getLatents(new Set([common_4.Latent.HP, common_4.Latent.HP_PLUS, common_4.Latent.ALL_STATS]))) {
+                    for (const latent of this.getLatents(new Set([common_3.Latent.HP, common_3.Latent.HP_PLUS, common_3.Latent.ALL_STATS]))) {
                         latentMultiplier += LatentHp.get(latent) || 0;
                     }
                     hp *= latentMultiplier;
                     let awakeningAdder = 0;
-                    for (const awakening of this.getAwakenings(isMultiplayer, new Set([common_4.Awakening.HP, common_4.Awakening.HP_MINUS]))) {
+                    for (const awakening of this.getAwakenings(isMultiplayer, new Set([common_3.Awakening.HP, common_3.Awakening.HP_MINUS]))) {
                         awakeningAdder += AWAKENING_BONUS.get(awakening) || 0;
                     }
                     hp += awakeningAdder;
@@ -5818,7 +5539,7 @@
                     hp += Math.round(inheritBonus * 0.1);
                 }
                 if (isMultiplayer) {
-                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_4.Awakening.MULTIBOOST, isMultiplayer);
+                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, isMultiplayer);
                     hp *= multiboostMultiplier;
                 }
                 return Math.max(Math.round(hp), 1);
@@ -5831,12 +5552,12 @@
                 let atk = this.calcScaleStat(c.maxAtk, c.minAtk, c.atkGrowth);
                 if (awakeningsActive) {
                     let latentMultiplier = 1;
-                    for (const latent of this.getLatents(new Set([common_4.Latent.ATK, common_4.Latent.ATK_PLUS, common_4.Latent.ALL_STATS]))) {
+                    for (const latent of this.getLatents(new Set([common_3.Latent.ATK, common_3.Latent.ATK_PLUS, common_3.Latent.ALL_STATS]))) {
                         latentMultiplier += LatentAtk.get(latent) || 0;
                     }
                     atk *= latentMultiplier;
                     let awakeningAdder = 0;
-                    for (const awakening of this.getAwakenings(isMultiplayer, new Set([common_4.Awakening.ATK, common_4.Awakening.ATK_MINUS]))) {
+                    for (const awakening of this.getAwakenings(isMultiplayer, new Set([common_3.Awakening.ATK, common_3.Awakening.ATK_MINUS]))) {
                         awakeningAdder += AWAKENING_BONUS.get(awakening) || 0;
                     }
                     atk += awakeningAdder;
@@ -5849,7 +5570,7 @@
                     atk += Math.round(inheritBonus * 0.05);
                 }
                 if (isMultiplayer && awakeningsActive) {
-                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_4.Awakening.MULTIBOOST, isMultiplayer);
+                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, isMultiplayer);
                     atk *= multiboostMultiplier;
                 }
                 return Math.max(Math.round(atk), 1);
@@ -5859,11 +5580,11 @@
                 let rcv = this.calcScaleStat(c.maxRcv, c.minRcv, c.rcvGrowth);
                 if (awakeningsActive) {
                     let latentMultiplier = 1;
-                    for (const latent of this.getLatents(new Set([common_4.Latent.RCV, common_4.Latent.RCV_PLUS, common_4.Latent.ALL_STATS]))) {
+                    for (const latent of this.getLatents(new Set([common_3.Latent.RCV, common_3.Latent.RCV_PLUS, common_3.Latent.ALL_STATS]))) {
                         latentMultiplier += LatentRcv.get(latent) || 0;
                     }
                     rcv *= latentMultiplier;
-                    const rcvSet = new Set([common_4.Awakening.RCV, common_4.Awakening.RCV_MINUS]);
+                    const rcvSet = new Set([common_3.Awakening.RCV, common_3.Awakening.RCV_MINUS]);
                     let total = 0;
                     for (const awakening of this.getAwakenings(isMultiplayer, rcvSet)) {
                         total += AWAKENING_BONUS.get(awakening) || 0;
@@ -5878,23 +5599,23 @@
                     rcv += Math.round(inheritBonus * 0.15);
                 }
                 if (isMultiplayer && awakeningsActive) {
-                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_4.Awakening.MULTIBOOST, isMultiplayer);
+                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, isMultiplayer);
                     rcv *= multiboostMultiplier;
                 }
                 return Math.round(rcv);
             }
             getAttribute() {
-                if (this.attribute != common_4.Attribute.NONE) {
+                if (this.attribute != common_3.Attribute.NONE) {
                     return this.attribute;
                 }
                 return this.getCard().attribute;
             }
             getSubattribute() {
                 const c = this.getCard();
-                if (c.subattribute == common_4.Attribute.NONE) {
-                    return common_4.Attribute.NONE;
+                if (c.subattribute == common_3.Attribute.NONE) {
+                    return common_3.Attribute.NONE;
                 }
-                if (this.attribute != common_4.Attribute.NONE) {
+                if (this.attribute != common_3.Attribute.NONE) {
                     return this.attribute;
                 }
                 return c.subattribute;
@@ -5913,7 +5634,7 @@
                 return a.some((attr) => this.isAttribute(attr));
             }
             anyAttributeTypeBits(attrBits, typeBits) {
-                return this.anyAttributes(common_4.idxsFromBits(attrBits)) || this.anyTypes(common_4.idxsFromBits(typeBits));
+                return this.anyAttributes(common_3.idxsFromBits(attrBits)) || this.anyTypes(common_3.idxsFromBits(typeBits));
             }
             fromJson(json) {
                 // const monster = new MonsterInstance(json.id || -1);
@@ -5957,7 +5678,7 @@
         }
         exports.MonsterInstance = MonsterInstance;
     });
-    define("damage_ping", ["require", "exports", "common"], function (require, exports, common_5) {
+    define("damage_ping", ["require", "exports", "common"], function (require, exports, common_4) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DamagePing {
@@ -5976,11 +5697,328 @@
             add(amount) {
                 this.damage += amount;
             }
-            multiply(multiplier, round = common_5.Round.NEAREST) {
+            multiply(multiplier, round = common_4.Round.NEAREST) {
                 this.damage = round(this.damage * multiplier);
             }
         }
         exports.DamagePing = DamagePing;
+    });
+    define("combo_container", ["require", "exports", "common", "templates"], function (require, exports, common_5, templates_2) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        class Combo {
+            constructor(count, attribute, enhanced = 0, shape) {
+                this.count = count;
+                this.attribute = attribute;
+                if (enhanced > count) {
+                    enhanced = count;
+                }
+                this.enhanced = enhanced;
+                if (shape == common_5.Shape.L && count != 5 ||
+                    shape == common_5.Shape.COLUMN && (count < 4 || count > 6) ||
+                    shape == common_5.Shape.CROSS && count != 5 ||
+                    shape == common_5.Shape.BOX && count != 9 ||
+                    shape == common_5.Shape.ROW && count < 5) {
+                    console.warn(`Invalid Shape and count combination. Changing shape to AMORPHOUS`);
+                    shape = common_5.Shape.AMORPHOUS;
+                }
+                this.shape = shape;
+            }
+            recount() {
+                if (this.shape == common_5.Shape.L || this.shape == common_5.Shape.CROSS) {
+                    this.count = 5;
+                }
+                if (this.shape == common_5.Shape.BOX) {
+                    this.count = 9;
+                }
+                if (this.shape == common_5.Shape.COLUMN) {
+                    console.warn('TODO: Handle auto changing to column');
+                }
+                if (this.enhanced > this.count) {
+                    this.enhanced = this.count;
+                }
+            }
+        }
+        exports.Combo = Combo;
+        class ComboContainer {
+            constructor() {
+                this.combos = {};
+                for (const c of common_5.COLORS) {
+                    this.combos[c] = [];
+                }
+                this.boardWidth = 6;
+                this.maxVisibleCombos = 14;
+                this.bonusCombosLeader = 0;
+                this.bonusCombosActive = 0;
+                this.onUpdate = [];
+                this.comboEditor = new templates_2.ComboEditor();
+                this.comboEditor.commandInput.onkeyup = (e) => {
+                    if (e.keyCode == 13) {
+                        const remainingCommands = this.doCommands(this.comboEditor.commandInput.value);
+                        this.comboEditor.commandInput.value = remainingCommands.join(' ');
+                    }
+                };
+                const colorToInputs = this.comboEditor.getInputElements();
+                for (const c in colorToInputs) {
+                    for (const i in colorToInputs[c]) {
+                        const idx = Number(i);
+                        const { shapeCountEl, enhanceEl } = colorToInputs[c][i];
+                        // TODO: Add onclick modifiers to these.
+                        shapeCountEl.onblur = () => {
+                            const v = shapeCountEl.value.replace(/\s/g, '');
+                            // Delete this combo.
+                            let letter = v[0] || 'NaN';
+                            let count = 0;
+                            let shape = 'A';
+                            if (letter == 'R') {
+                                count = this.boardWidth;
+                                shape = 'R';
+                                if (v.length > 1 && Number(v.substring(1)) > count) {
+                                    count = Number(v.substring(1));
+                                }
+                                shape = 'R';
+                            }
+                            else if (letter == 'C') {
+                                count = this.boardWidth - 1;
+                                shape = 'C';
+                            }
+                            else if ('LXB'.indexOf(letter) >= 0) {
+                                shape = letter;
+                                count = letter == 'B' ? 9 : 5;
+                            }
+                            else if (!isNaN(Number(v))) {
+                                count = Number(v);
+                            }
+                            const combos = this.combos[c];
+                            // Only possibly adding a combo.
+                            if (idx >= combos.length) {
+                                if (count == 0) {
+                                    // Nothing to add, return early.
+                                    shapeCountEl.value = '';
+                                    return;
+                                }
+                                this.addShape(shape, `${count}${c}`);
+                                // Modify or delete a combo.
+                            }
+                            else {
+                                if (count == 0) {
+                                    this.delete(`${c}${idx}`);
+                                }
+                                else {
+                                    combos[idx].shape = common_5.LetterToShape[shape];
+                                    combos[idx].count = count;
+                                    combos[idx].recount();
+                                }
+                            }
+                            this.update();
+                        };
+                        enhanceEl.onblur = () => {
+                            const combos = this.combos[c];
+                            const v = Number(enhanceEl.value);
+                            if (!isNaN(v) && idx < combos.length) {
+                                combos[i].enhanced = v;
+                                combos[i].recount();
+                                this.update();
+                            }
+                            else {
+                                enhanceEl.value = '';
+                            }
+                        };
+                    }
+                }
+            }
+            getElement() {
+                return this.comboEditor.getElement();
+            }
+            doCommands(cmdsString) {
+                const cmds = cmdsString.split(' ')
+                    .map((c) => c.trim())
+                    .filter((c) => Boolean(c));
+                let executed = 0;
+                for (const i in cmds) {
+                    if (!this.doCommand(cmds[i])) {
+                        break;
+                    }
+                    executed++;
+                }
+                this.update();
+                return cmds.slice(executed);
+            }
+            doCommand(cmd) {
+                if (cmd == 'D') {
+                    return this.doCommand('Daa');
+                }
+                if (cmd.startsWith('Da') || cmd.startsWith('DA')) {
+                    return this.deleteAll(cmd.substring(2));
+                }
+                if (cmd.startsWith('D')) {
+                    return this.delete(cmd.substring(1));
+                }
+                if ('XCLBR'.indexOf(cmd[0]) >= 0) {
+                    return this.addShape(cmd[0], cmd.substring(1));
+                }
+                let maybeMatch = cmd.match(/^\d+/);
+                if (maybeMatch) {
+                    let count = Number(maybeMatch[0]);
+                    cmd = cmd.substring(maybeMatch[0].length);
+                    if (!cmd) {
+                        // Requires at least one color.
+                        return false;
+                    }
+                    return this.add(count, cmd);
+                }
+                if (cmd[0] in this.combos) {
+                    return this.add(3, cmd);
+                }
+                return false;
+            }
+            addShape(shape, cmd) {
+                let count = 3;
+                const maybeCount = cmd.match(/^\d+/);
+                if (maybeCount) {
+                    count = Number(maybeCount[0]);
+                    cmd = cmd.substring(maybeCount[0].length);
+                }
+                switch (shape) {
+                    case 'R':
+                        count = Math.max(count, this.boardWidth);
+                        break;
+                    case 'C':
+                        count = this.boardWidth - 1;
+                        break;
+                    case 'L':
+                    case 'X':
+                        count = 5;
+                        break;
+                    case 'B':
+                        count = 9;
+                        break;
+                }
+                return this.add(count, cmd, common_5.LetterToShape[shape] || common_5.Shape.AMORPHOUS);
+            }
+            add(count, cmd, shape = common_5.Shape.AMORPHOUS) {
+                if (count < 3) {
+                    count = 3;
+                }
+                let added = false;
+                while (cmd) {
+                    if (!(cmd[0] in this.combos)) {
+                        break;
+                    }
+                    const c = cmd[0];
+                    let e = 0;
+                    cmd = cmd.substring(1);
+                    const maybeEnhance = cmd.match(/^\d+/);
+                    if (maybeEnhance) {
+                        e = Number(maybeEnhance[0]);
+                        cmd = cmd.substring(maybeEnhance[0].length);
+                    }
+                    this.combos[c].push(new Combo(count, common_5.COLORS.indexOf(c), e, shape));
+                    added = true;
+                }
+                if (cmd) {
+                    console.warn('Unused values in cmd: ' + cmd);
+                }
+                return added;
+            }
+            // TODO
+            delete(cmd) {
+                let colorsToDelete = [];
+                while (cmd && cmd[0] in this.combos) {
+                    colorsToDelete.push(cmd[0]);
+                    cmd = cmd.substring(1);
+                }
+                let idxToDelete = 1;
+                let fromEnd = true;
+                if (cmd) {
+                    if (cmd[0] == '-') {
+                        fromEnd = true;
+                        cmd = cmd.substring(1);
+                    }
+                    else {
+                        fromEnd = false;
+                    }
+                    const maybeIdx = cmd.match(/^\d+/);
+                    if (maybeIdx) {
+                        cmd = cmd.substring(maybeIdx[0].length);
+                        idxToDelete = Number(maybeIdx[0]);
+                    }
+                    if (cmd) {
+                        console.log(`Unused delete args: ${cmd}`);
+                    }
+                }
+                let anyDeleted = false;
+                for (const c of colorsToDelete) {
+                    const idx = fromEnd ? this.combos[c].length - idxToDelete : idxToDelete - 0;
+                    if (idx >= 0 && idx < this.combos[c].length) {
+                        this.combos[c].splice(idx, 1);
+                        anyDeleted = true;
+                        console.log(`Deleting from ${c}, combo #${idx}`);
+                    }
+                    else {
+                        console.warn(`Index out of bounds: ${idx}`);
+                    }
+                }
+                return anyDeleted;
+            }
+            deleteAll(cmd) {
+                if (cmd[0].toLowerCase() == 'a') {
+                    for (const c in this.combos) {
+                        this.combos[c].length = 0;
+                    }
+                    return true;
+                }
+                // Assume to delete all color values present.
+                for (const c of cmd) {
+                    if (!(c in this.combos)) {
+                        console.warn('Not valid color: ' + c);
+                    }
+                    this.combos[c].length = 0;
+                }
+                return true;
+            }
+            update() {
+                const data = {};
+                for (const c in this.combos) {
+                    data[c] = this.combos[c].map((combo) => {
+                        let countString = common_5.ShapeToLetter[combo.shape];
+                        if (combo.shape == common_5.Shape.AMORPHOUS) {
+                            countString = `${combo.count}`;
+                        }
+                        if (combo.shape == common_5.Shape.ROW || combo.shape == common_5.Shape.COLUMN) {
+                            countString += `${combo.count}`;
+                        }
+                        return {
+                            shapeCount: countString,
+                            enhance: combo.enhanced,
+                        };
+                    });
+                }
+                this.comboEditor.update(data);
+                for (const fn of this.onUpdate) {
+                    fn(this);
+                }
+            }
+            setBonusComboLeader(bonus) {
+                this.bonusCombosLeader = bonus;
+                this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+            }
+            comboCount() {
+                let total = 0;
+                for (const c in this.combos) {
+                    total += this.combos[c].length;
+                }
+                return total + this.bonusCombosLeader + this.bonusCombosActive;
+            }
+            setBoardWidth(width) {
+                this.boardWidth = width;
+                // TODO: Update combo counts as well.
+            }
+            getBoardSize() {
+                return this.boardWidth * (this.boardWidth - 1);
+            }
+        }
+        exports.ComboContainer = ComboContainer;
     });
     define("leaders", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_6, ilmina_stripped_5) {
         "use strict";
@@ -7158,6 +7196,7 @@
                 this.activeTeamIdx = 0;
                 this.activeMonster = 0;
                 this.lastMaxHp = 0;
+                this.action = -1;
                 this.state = Object.assign({}, DEFAULT_STATE);
                 /**
                  * 1P: 0-5
@@ -7206,6 +7245,9 @@
                     }
                     if (ctx.fixedHp != undefined) {
                         this.state.fixedHp = ctx.fixedHp;
+                    }
+                    if (ctx.action != undefined) {
+                        this.action = ctx.action;
                     }
                     if (ctx.leadSwap != undefined) {
                         this.updateState({ leadSwap: ctx.leadSwap });
@@ -7856,12 +7898,14 @@
                     }
                 }
                 this.teamPane.updateStats(this.getStats());
+                const ns = [];
                 this.teamPane.updateBattle({
                     currentHp: this.state.currentHp,
                     maxHp: this.getHp(),
                     leadSwap: this.state.leadSwaps[this.activeTeamIdx],
                     voids: [this.state.voidDamageAbsorb, this.state.voidAttributeAbsorb, this.state.voidDamageVoid, !this.state.awakenings],
                     fixedHp: this.state.fixedHp,
+                    ids: ns.concat(...this.getActiveTeam().map((m) => [m.getId(), m.inheritId])),
                 });
                 this.updateCb(this.activeMonster);
             }
@@ -7881,6 +7925,14 @@
             damage(amount, _attr) {
                 // TODO: Account for leader skills and buffs;
                 this.state.currentHp -= amount;
+                this.state.currentHp = Math.max(0, this.state.currentHp);
+            }
+            heal(amount, percent = 0) {
+                this.state.currentHp += amount;
+                if (percent) {
+                    this.state.currentHp += Math.ceil(this.getHp() * percent / 100);
+                }
+                this.state.currentHp = Math.min(this.state.currentHp, this.getHp());
             }
             getStats() {
                 const team = this.getActiveTeam();
@@ -7964,228 +8016,6 @@
             }
         }
         exports.Team = Team;
-    });
-    /**
-     * Custom Base 64 encoding for Valeria's teams. This uses the 64 available
-     * characaters
-     * Encoding is as follows:
-     * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
-     * For each team in mode:
-     *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
-     *     14 bits encode monster sub id.
-     *     If monster id is 0, there is no monster here. Go to next monster sub.
-     *     Else:
-     *       Next 14 bits is monster inherit.
-     *       If inherit id is 0, this monster has no inherit, go to monster stats.
-     *       Else:
-     *         Next 7 bits represents inherit level.
-     *         Next 1 bit represents if the inherit monster is +297.
-     *       Next 4 bits determine number of Latents
-     *       For each latent:
-     *         Next 6 bits represents latent.
-     *       Next 7 bits represents monster level.
-     *       Next 4 bits represents monster awakening level.
-     *       Next 1 bit represents if a monster is 297 or not.
-     *       If 297, set to 297
-     *       Else:
-     *         Next 7 bits represents +HP
-     *         Next 7 bits represents +ATK
-     *         Next 7 bits represents +RCV
-     *       Next 4 bits represents monsters Super Awakening.
-     */
-    define("custom_base64", ["require", "exports", "monster_instance"], function (require, exports, monster_instance_2) {
-        "use strict";
-        Object.defineProperty(exports, "__esModule", { value: true });
-        var Bits;
-        (function (Bits) {
-            Bits[Bits["PLAYDER_MODE"] = 2] = "PLAYDER_MODE";
-            Bits[Bits["ID"] = 14] = "ID";
-            Bits[Bits["LEVEL"] = 7] = "LEVEL";
-            Bits[Bits["LATENT_COUNT"] = 4] = "LATENT_COUNT";
-            Bits[Bits["LATENT"] = 6] = "LATENT";
-            Bits[Bits["AWAKENING"] = 4] = "AWAKENING";
-            Bits[Bits["PLUS"] = 7] = "PLUS";
-        })(Bits || (Bits = {}));
-        const CHAR_AT = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        const CHAR_TO_NUM = new Map(CHAR_AT.split('').map((c, i) => [c, i]));
-        class Encoding {
-            constructor(s = '') {
-                this.bitQueue = 0;
-                this.queueLength = 0;
-                this.dequeueLength = 0;
-                this.bitDequeue = 0;
-                this.composedString = s;
-            }
-            check() {
-                while (this.queueLength >= 6) {
-                    this.queueLength -= 6;
-                    this.composedString += CHAR_AT[this.bitQueue >> this.queueLength];
-                    this.bitQueue = this.bitQueue & ((1 << this.queueLength) - 1);
-                }
-            }
-            queueBits(n, l) {
-                if ((1 << l) <= n) {
-                    throw new Error(`Cannot queue a number ${n} of length ${l}`);
-                }
-                this.bitQueue = (this.bitQueue << l) | n;
-                this.queueLength += l;
-                this.check();
-            }
-            queueBit(on) {
-                this.queueLength++;
-                this.bitQueue = this.bitQueue << 1 | Number(on);
-                this.check();
-            }
-            dequeueBit() {
-                if (!this.dequeueLength) {
-                    this.dequeueLength = 6;
-                    this.bitDequeue = CHAR_TO_NUM.get(this.composedString[0]);
-                    this.composedString = this.composedString.substring(1);
-                }
-                this.dequeueLength--;
-                const val = this.bitDequeue >> this.dequeueLength;
-                this.bitDequeue = this.bitDequeue & ((1 << this.dequeueLength) - 1);
-                return val;
-            }
-            dequeueBits(l) {
-                let result = 0;
-                for (let i = 0; i < l; i++) {
-                    result = (result << 1) | this.dequeueBit();
-                }
-                return result;
-            }
-            getString() {
-                const padded = this.bitQueue << (6 - this.queueLength);
-                return this.composedString + CHAR_AT[padded];
-            }
-        }
-        exports.Encoding = Encoding;
-        function ValeriaEncode(team) {
-            const encoding = new Encoding();
-            const playerMode = team.playerMode;
-            encoding.queueBits(playerMode, Bits.PLAYDER_MODE);
-            const monstersPerTeam = playerMode == 2 ? 5 : 6;
-            for (let i = 0; i < playerMode; i++) {
-                for (let j = 0; j < monstersPerTeam; j++) {
-                    const monster = team.monsters[i * 6 + j];
-                    const id = monster.getId(true);
-                    if (id <= 0) {
-                        encoding.queueBits(0, Bits.ID);
-                        continue;
-                    }
-                    encoding.queueBits(id, Bits.ID);
-                    const inheritId = monster.inheritId;
-                    if (inheritId <= 0) {
-                        encoding.queueBits(0, Bits.ID);
-                    }
-                    else {
-                        encoding.queueBits(inheritId, Bits.ID);
-                        encoding.queueBits(monster.inheritLevel, Bits.LEVEL);
-                        encoding.queueBit(monster.inheritPlussed);
-                    }
-                    encoding.queueBits(monster.latents.length, Bits.LATENT_COUNT);
-                    for (const latent of monster.latents) {
-                        encoding.queueBits(latent, Bits.LATENT);
-                    }
-                    encoding.queueBits(monster.level, Bits.LEVEL);
-                    encoding.queueBits(monster.awakenings, Bits.AWAKENING);
-                    if (monster.hpPlus + monster.atkPlus + monster.rcvPlus == 297) {
-                        encoding.queueBit(true);
-                    }
-                    else {
-                        encoding.queueBit(false);
-                        encoding.queueBits(monster.hpPlus, Bits.PLUS);
-                        encoding.queueBits(monster.atkPlus, Bits.PLUS);
-                        encoding.queueBits(monster.rcvPlus, Bits.PLUS);
-                    }
-                    encoding.queueBits(monster.superAwakeningIdx + 1, Bits.AWAKENING);
-                }
-            }
-            return encoding.getString();
-        }
-        exports.ValeriaEncode = ValeriaEncode;
-        function ValeriaDecodeToPdchu(s) {
-            let pdchu = '';
-            const encoding = new Encoding(s);
-            const playerMode = encoding.dequeueBits(2);
-            const monstersPerTeam = playerMode == 2 ? 5 : 6;
-            for (let i = 0; i < playerMode; i++) {
-                let teamString = '';
-                for (let j = 0; j < monstersPerTeam; j++) {
-                    const id = encoding.dequeueBits(Bits.ID);
-                    if (id == 0) {
-                        teamString += ' / ';
-                        continue;
-                    }
-                    teamString += `${id} `;
-                    const inheritId = encoding.dequeueBits(Bits.ID);
-                    if (inheritId != 0) {
-                        teamString += `(${inheritId}| lv${encoding.dequeueBits(Bits.LEVEL)}${encoding.dequeueBit() ? ' +297' : ''})`;
-                    }
-                    const latentCount = encoding.dequeueBits(Bits.LATENT_COUNT);
-                    if (latentCount) {
-                        teamString += '[';
-                        for (let k = 0; k < latentCount; k++) {
-                            teamString += `${monster_instance_2.LatentToPdchu.get(encoding.dequeueBits(Bits.LATENT))},`;
-                        }
-                        teamString = teamString.substring(0, teamString.length - 1);
-                        teamString += '] ';
-                    }
-                    teamString += `| lv${encoding.dequeueBits(Bits.LEVEL)} awk${encoding.dequeueBits(Bits.AWAKENING)} `;
-                    const is297 = encoding.dequeueBit();
-                    if (!is297) {
-                        teamString += `+H${encoding.dequeueBits(Bits.PLUS)} +A${encoding.dequeueBits(Bits.PLUS)} +R${encoding.dequeueBits(Bits.PLUS)} `;
-                    }
-                    const sa = encoding.dequeueBits(Bits.AWAKENING);
-                    if (sa) {
-                        teamString += `sa${sa} `;
-                    }
-                    teamString += '/ ';
-                }
-                pdchu += teamString.substring(0, teamString.length - 2) + '; ';
-            }
-            return pdchu.substring(0, pdchu.length - 2);
-        }
-        exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
-    });
-    define("debugger", ["require", "exports", "templates"], function (require, exports, templates_4) {
-        "use strict";
-        Object.defineProperty(exports, "__esModule", { value: true });
-        class DebuggerEl {
-            constructor() {
-                this.el = templates_4.create('div');
-                this.inputEl = templates_4.create('input');
-                this.buttons = [];
-                this.textarea = templates_4.create('textarea');
-                this.text = '';
-                this.el.appendChild(this.inputEl);
-                this.el.appendChild(this.textarea);
-                this.addButton('Clear', () => {
-                    this.text = '';
-                    this.textarea.value = '';
-                });
-                this.textarea.style.width = `100%`;
-                this.textarea.style.fontSize = 'small';
-                this.textarea.style.height = '250px';
-                this.textarea.style.fontFamily = 'monospace';
-            }
-            addButton(text, onclick) {
-                const button = templates_4.create('button');
-                button.innerText = text;
-                button.onclick = onclick;
-                this.el.insertBefore(button, this.textarea);
-                this.buttons.push(button);
-            }
-            getElement() {
-                return this.el;
-            }
-            print(text) {
-                this.text += `\n${text}`;
-                this.textarea.value = this.text;
-            }
-        }
-        const debug = new DebuggerEl();
-        exports.debug = debug;
     });
     define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_8, ilmina_stripped_7) {
         "use strict";
@@ -8470,7 +8300,756 @@
         }
         exports.EnemyInstance = EnemyInstance;
     });
-    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common"], function (require, exports, ilmina_stripped_8, common_9) {
+    define("debugger", ["require", "exports", "templates"], function (require, exports, templates_4) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        class DebuggerEl {
+            constructor() {
+                this.el = templates_4.create('div');
+                this.inputEl = templates_4.create('input');
+                this.buttons = [];
+                this.textarea = templates_4.create('textarea');
+                this.text = '';
+                this.el.appendChild(this.inputEl);
+                this.el.appendChild(this.textarea);
+                this.addButton('Clear', () => {
+                    this.text = '';
+                    this.textarea.value = '';
+                });
+                this.textarea.style.width = `100%`;
+                this.textarea.style.fontSize = 'small';
+                this.textarea.style.height = '250px';
+                this.textarea.style.fontFamily = 'monospace';
+            }
+            addButton(text, onclick) {
+                const button = templates_4.create('button');
+                button.innerText = text;
+                button.onclick = onclick;
+                this.el.insertBefore(button, this.textarea);
+                this.buttons.push(button);
+            }
+            getElement() {
+                return this.el;
+            }
+            print(text) {
+                this.text += `\n${text}`;
+                this.textarea.value = this.text;
+            }
+        }
+        const debug = new DebuggerEl();
+        exports.debug = debug;
+    });
+    define("actives", ["require", "exports", "common", "damage_ping", "ilmina_stripped", "debugger"], function (require, exports, common_9, damage_ping_2, ilmina_stripped_8, debugger_1) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        // 0
+        const scalingAttackToAllEnemies = {
+            damage: ([attr, atk100], { source, awakeningsActive, isMultiplayer }) => {
+                const ping = new damage_ping_2.DamagePing(source, attr);
+                ping.isActive = true;
+                ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
+                ping.multiply(atk100 / 100, common_9.Round.UP);
+                return [ping];
+            },
+        };
+        // 1
+        const flatAttackToAllEnemies = {
+            damage: ([attr, damage], { source }) => {
+                const ping = new damage_ping_2.DamagePing(source, attr);
+                ping.isActive = true;
+                ping.damage = damage;
+                return [ping];
+            },
+        };
+        // 2
+        const scalingAttackRandomToSingleEnemy = {
+            damage: ([atk100base, atk100max], { source, awakeningsActive, isMultiplayer }) => {
+                const ping = new damage_ping_2.DamagePing(source, source.getAttribute());
+                ping.isActive = true;
+                ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
+                const multiplier100 = atk100base + Math.floor(Math.random() * (atk100max - atk100base));
+                ping.multiply(multiplier100 / 100, common_9.Round.UP);
+                if (atk100base != atk100max) {
+                    debugger_1.debug.print('Random scaling active used. Damage is inconsistent');
+                }
+                return [ping];
+            },
+        };
+        // 3
+        const shield = {
+            teamEffect: ([_, shieldPercent], { team }) => {
+                team.state.shieldPercent = shieldPercent;
+            },
+        };
+        // 4
+        const poison = {
+            enemyEffect: ([poisonMultiplier100], { source, enemy, awakeningsActive, isMultiplayer }) => {
+                if (enemy.statusShield) {
+                    enemy.poison = 0;
+                    return;
+                }
+                enemy.poison = Math.ceil(source.getAtk(isMultiplayer, awakeningsActive) * poisonMultiplier100 / 100);
+            },
+        };
+        // 5
+        const changeTheWorld = {};
+        // 6
+        const gravity = {
+            damage: ([percentGravity], { source, enemy }) => {
+                const ping = new damage_ping_2.DamagePing(source, common_9.Attribute.FIXED);
+                ping.isActive = true;
+                ping.damage = Math.round(enemy.currentHp * percentGravity / 100);
+                return [ping];
+            },
+        };
+        // 8
+        const flatHeal = {
+            teamEffect: ([amount], { team }) => {
+                team.heal(amount);
+            },
+        };
+        // 9
+        const orbChange = {};
+        // 10
+        const orbRefresh = {};
+        // 18
+        const delay = {
+            enemyEffect: ([turns], { enemy }) => {
+                if (enemy.statusShield) {
+                    return;
+                }
+                enemy.turnsRemaining += turns;
+            },
+        };
+        // 19
+        const defenseBreak = {
+            enemyEffect: ([_, defenseBreakPercent], { enemy }) => {
+                if (enemy.statusShield) {
+                    enemy.ignoreDefensePercent = 0;
+                    return;
+                }
+                enemy.ignoreDefensePercent = defenseBreakPercent;
+            },
+        };
+        // 20
+        const orbChangeDouble = {};
+        function simulateDamage(ping, ctx) {
+            return ctx.enemy.calcDamage(ping, [ping], ctx.comboContainer, ctx.team.isMultiplayer(), {
+                attributeAbsorb: ctx.team.state.voidAttributeAbsorb,
+                damageAbsorb: ctx.team.state.voidDamageAbsorb,
+                damageVoid: ctx.team.state.voidDamageVoid,
+            });
+        }
+        // 35
+        const scalingAttackAndHeal = {
+            damage: ([atk100], ctx) => {
+                const baseSkill = scalingAttackToAllEnemies.damage;
+                return baseSkill ? baseSkill([ctx.source.getAttribute(), atk100], ctx) : [];
+            },
+            teamEffect: (params, ctx) => {
+                const skill = scalingAttackAndHeal.damage;
+                if (!skill)
+                    return;
+                const ping = skill(params, {
+                    source: ctx.source,
+                    enemy: ctx.enemy,
+                    awakeningsActive: ctx.team.state.awakenings,
+                    isMultiplayer: ctx.team.isMultiplayer(),
+                    team: ctx.team.getActiveTeam(),
+                    currentHp: ctx.team.state.currentHp,
+                    maxHp: ctx.team.getHp(),
+                })[0];
+                const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
+                ctx.team.heal(healAmount);
+            },
+        };
+        // 37
+        // Effectively the same as single target.
+        const scalingAttackToOneEnemy = scalingAttackToAllEnemies;
+        // 42
+        const flatAttackToAttribute = {
+            damage: ([targetAttr, attackAttr, damage], ctx) => {
+                if (ctx.enemy.getAttribute() != targetAttr) {
+                    return [];
+                }
+                const skill = flatAttackToAllEnemies.damage;
+                if (!skill)
+                    return [];
+                return skill([attackAttr, damage], ctx);
+            },
+        };
+        // 50
+        const attrOrRcvBurst = {
+            teamEffect: ([_, attr, mult100], { team }) => {
+                if (attr == 5) {
+                    team.state.rcvMult = mult100 / 100;
+                }
+                else {
+                    team.state.burst = {
+                        attrRestrictions: [attr],
+                        typeRestrictions: [],
+                        multiplier: mult100 / 100,
+                        awakeningScale: 0,
+                        awakenings: [],
+                    };
+                }
+            },
+        };
+        // 52
+        const enhanceOrbs = {};
+        // 55
+        const fixedDamageToOneEnemy = {
+            damage: ([amount], { source }) => {
+                const ping = new damage_ping_2.DamagePing(source, common_9.Attribute.FIXED);
+                ping.isActive = true;
+                ping.damage = amount;
+                return [ping];
+            },
+        };
+        // 56
+        const fixedDamageToAllEnemies = fixedDamageToOneEnemy;
+        // 58
+        const scalingAttackRandomToAllEnemies = {
+            damage: ([attr, ...args], ctx) => {
+                const skill = scalingAttackRandomToSingleEnemy.damage;
+                if (!skill) {
+                    return [];
+                }
+                const [ping] = skill(args, ctx);
+                ping.attribute = attr;
+                return [ping];
+            },
+        };
+        // 59
+        const scalingAttackRandomToOneEnemy = scalingAttackRandomToAllEnemies;
+        // 71
+        const fullBoard = {};
+        // 84
+        const scalingAttackAndSuicideSingle = {
+            damage: ([attr, atk100base, atk100max], ctx) => {
+                const skill = scalingAttackRandomToAllEnemies.damage;
+                if (!skill)
+                    return [];
+                return skill([attr, atk100base, atk100max], ctx);
+            },
+            teamEffect: ([_, _a, _b, suicideTo], { team }) => {
+                suicideTo = suicideTo || 0;
+                team.state.currentHp = Math.max(1, Math.floor(team.state.currentHp * suicideTo / 100));
+            },
+        };
+        // 85
+        const scalingAttackAndSuicideMass = scalingAttackAndSuicideSingle;
+        // 86
+        const flatAttackAndSuicideSingle = {
+            damage: flatAttackToAllEnemies.damage,
+            teamEffect: scalingAttackAndSuicideSingle.teamEffect,
+        };
+        // 87
+        const flatAttackAndSuicideMass = flatAttackAndSuicideSingle;
+        // 88
+        const burstForOneType = {
+            teamEffect: ([_, type, mult100], { team }) => {
+                team.state.burst = {
+                    multiplier: mult100 / 100,
+                    typeRestrictions: [type],
+                    attrRestrictions: [],
+                    awakenings: [],
+                    awakeningScale: 0,
+                };
+            },
+        };
+        // 90
+        const burstForTwoAttributes = {
+            teamEffect: ([_, attr1, attr2, mult100], { team }) => {
+                team.state.burst = {
+                    multiplier: mult100 / 100,
+                    typeRestrictions: [],
+                    attrRestrictions: [attr1, attr2],
+                    awakenings: [],
+                    awakeningScale: 0,
+                };
+            },
+        };
+        // 92
+        const burstForTwoTypes = {
+            teamEffect: ([_, type1, type2, mult100], { team }) => {
+                team.state.burst = {
+                    multiplier: mult100 / 100,
+                    typeRestrictions: [type1, type2],
+                    attrRestrictions: [],
+                    awakenings: [],
+                    awakeningScale: 0,
+                };
+            },
+        };
+        // 110
+        const grudgeStrike = {
+            damage: ([_, attr, baseMult, maxMult, scaling], { source, isMultiplayer, awakeningsActive, currentHp, maxHp }) => {
+                const ping = new damage_ping_2.DamagePing(source, attr);
+                ping.isActive = true;
+                ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
+                const multiplierScale = (maxMult - baseMult) * ((1 - (currentHp - 1) / maxHp) ** (scaling / 100));
+                ping.multiply(baseMult + multiplierScale, common_9.Round.NEAREST);
+                return [ping];
+            },
+        };
+        // 115
+        const elementalScalingAttackAndHeal = {
+            damage: ([attr, atk100], ctx) => {
+                const skill = scalingAttackAndHeal.damage;
+                if (!skill)
+                    return [];
+                const [ping] = skill([atk100], ctx);
+                ping.attribute = attr;
+                return [ping];
+            },
+            teamEffect: (params, ctx) => {
+                const skill = elementalScalingAttackAndHeal.damage;
+                if (!skill)
+                    return;
+                const ping = skill(params, {
+                    source: ctx.source,
+                    enemy: ctx.enemy,
+                    awakeningsActive: ctx.team.state.awakenings,
+                    isMultiplayer: ctx.team.isMultiplayer(),
+                    team: ctx.team.getActiveTeam(),
+                    currentHp: ctx.team.state.currentHp,
+                    maxHp: ctx.team.getHp(),
+                })[0];
+                const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
+                ctx.team.heal(healAmount);
+            },
+        };
+        // 116 + 138
+        const multipleActiveSkills = {
+            damage: (activeIds, ctx) => {
+                const ret = [];
+                return ret.concat(...activeIds.map((id) => damage(id, ctx)));
+            },
+            teamEffect: (activeIds, ctx) => {
+                for (const id of activeIds) {
+                    teamEffect(id, ctx);
+                }
+            },
+            enemyEffect: (activeIds, ctx) => {
+                for (const id of activeIds) {
+                    enemyEffect(id, ctx);
+                }
+            },
+            boardEffect: (activeIds, ctx) => {
+                for (const id of activeIds) {
+                    boardEffect(id, ctx);
+                }
+            },
+        };
+        // 117
+        const catchAllCleric = {
+            teamEffect: ([bindReduce, rcv100, flatHeal, percentHeal, awokenBindReduce], { source, team }) => {
+                let healing = 0;
+                if (bindReduce) {
+                    for (const monster of team.monsters) {
+                        monster.bound = false;
+                    }
+                }
+                if (awokenBindReduce) {
+                    team.state.awakenings = true;
+                }
+                if (flatHeal) {
+                    healing += flatHeal;
+                }
+                if (rcv100) {
+                    healing += Math.ceil(source.getRcv(team.isMultiplayer(), team.state.awakenings));
+                }
+                if (percentHeal) {
+                    healing += Math.ceil(team.getHp() * percentHeal / 100);
+                }
+                if (healing) {
+                    team.heal(healing);
+                }
+            },
+        };
+        // 127
+        const orbChangeColumn = {};
+        // 142
+        const selfAttributeChange = {
+            teamEffect: ([_, attr], { source }) => {
+                source.attribute = attr;
+            },
+        };
+        // 144
+        const scalingAttackFromTeam = {
+            damage: ([attrBits, atk100, _, attr], { source, isMultiplayer, awakeningsActive, team }) => {
+                const ping = new damage_ping_2.DamagePing(source, attr);
+                const attrs = new Set(common_9.idxsFromBits(attrBits));
+                for (const m of team) {
+                    const atk = m.getAtk(isMultiplayer, awakeningsActive);
+                    if (attrs.has(m.getAttribute())) {
+                        ping.add(atk);
+                    }
+                    if (attrs.has(m.getSubattribute())) {
+                        if (m.getAttribute() == m.getSubattribute()) {
+                            ping.add(Math.ceil(atk / 10));
+                        }
+                        else {
+                            ping.add(Math.ceil(atk / 3));
+                        }
+                    }
+                }
+                ping.multiply(atk100 / 100, common_9.Round.UP);
+                return [ping];
+            },
+        };
+        // 146
+        const haste = {};
+        // 153
+        const enemyAttributeChange = {
+            enemyEffect: ([attr], { enemy }) => {
+                enemy.currentAttribute = attr;
+            },
+        };
+        // 156
+        const effectFromAwakeningCount = {
+            teamEffect: ([_, awakening1, awakening2, awakening3, effect, mult100], { team }) => {
+                const awakenings = [awakening1, awakening2, awakening3].filter(Boolean);
+                if (!team.state.awakenings) {
+                    return;
+                }
+                const count = awakenings.map((a) => team.countAwakening(a)).reduce((t, a) => t + a, 0);
+                if (effect == 1) {
+                    const healing = Math.ceil(mult100 * count);
+                    team.heal(healing);
+                }
+                else if (effect == 2) {
+                    team.state.burst = {
+                        awakenings: awakenings,
+                        awakeningScale: mult100 / 100,
+                        multiplier: 1,
+                        typeRestrictions: [],
+                        attrRestrictions: [],
+                    };
+                }
+                else if (effect == 3) {
+                    const shieldPercent = Math.min(100, count * mult100);
+                    team.state.shieldPercent = shieldPercent;
+                }
+            }
+        };
+        // 160
+        const addCombos = {
+            boardEffect: ([_, combos], comboContainer) => {
+                comboContainer.bonusCombosActive = combos;
+            },
+        };
+        // 161
+        const trueGravity = {
+            damage: ([percentGravity], { source, enemy }) => {
+                const ping = new damage_ping_2.DamagePing(source, common_9.Attribute.FIXED);
+                ping.isActive = true;
+                ping.damage = Math.ceil(enemy.getHp() * percentGravity / 100);
+                return [ping];
+            },
+        };
+        // 173
+        const voidAbsorb = {
+            teamEffect: ([_, includeAttribute, _a, includeDamage], { team }) => {
+                team.state.voidAttributeAbsorb = team.state.voidAttributeAbsorb || Boolean(includeAttribute);
+                team.state.voidDamageAbsorb = team.state.voidDamageAbsorb || Boolean(includeDamage);
+            },
+        };
+        // 184
+        const noSkyfall = {};
+        // 191
+        const voidDamageVoid = {
+            teamEffect: (_, { team }) => {
+                team.state.voidDamageVoid = true;
+            },
+        };
+        // 195
+        const pureSuicide = {
+            teamEffect: ([suicideTo], { team }) => {
+                team.state.currentHp = Math.max(1, Math.floor(team.state.currentHp * suicideTo / 100));
+            },
+        };
+        const ACTIVE_GENERATORS = {
+            0: scalingAttackToAllEnemies,
+            1: flatAttackToAllEnemies,
+            2: scalingAttackRandomToSingleEnemy,
+            3: shield,
+            4: poison,
+            5: changeTheWorld,
+            6: gravity,
+            8: flatHeal,
+            9: orbChange,
+            10: orbRefresh,
+            18: delay,
+            19: defenseBreak,
+            20: orbChangeDouble,
+            35: scalingAttackAndHeal,
+            37: scalingAttackToOneEnemy,
+            42: flatAttackToAttribute,
+            50: attrOrRcvBurst,
+            52: enhanceOrbs,
+            55: fixedDamageToOneEnemy,
+            56: fixedDamageToAllEnemies,
+            58: scalingAttackRandomToAllEnemies,
+            59: scalingAttackRandomToOneEnemy,
+            71: fullBoard,
+            84: scalingAttackAndSuicideSingle,
+            85: scalingAttackAndSuicideMass,
+            86: flatAttackAndSuicideSingle,
+            87: flatAttackAndSuicideMass,
+            88: burstForOneType,
+            90: burstForTwoAttributes,
+            92: burstForTwoTypes,
+            110: grudgeStrike,
+            115: elementalScalingAttackAndHeal,
+            116: multipleActiveSkills,
+            117: catchAllCleric,
+            127: orbChangeColumn,
+            138: multipleActiveSkills,
+            142: selfAttributeChange,
+            144: scalingAttackFromTeam,
+            146: haste,
+            153: enemyAttributeChange,
+            156: effectFromAwakeningCount,
+            160: addCombos,
+            161: trueGravity,
+            173: voidAbsorb,
+            184: noSkyfall,
+            188: fixedDamageToOneEnemy,
+            191: voidDamageVoid,
+            195: pureSuicide,
+        };
+        function getGeneratorIfExists(activeId) {
+            if (!ilmina_stripped_8.floof.model.playerSkills[activeId]) {
+                debugger_1.debug.print(`Active ID not found: ${activeId}`);
+                return;
+            }
+            const active = ilmina_stripped_8.floof.model.playerSkills[activeId];
+            const generator = ACTIVE_GENERATORS[active.internalEffectId];
+            if (!generator) {
+                debugger_1.debug.print(`Active Internal Effect ${active.internalEffectId} not implemented`);
+                return;
+            }
+            return generator;
+        }
+        function damage(activeId, ctx) {
+            const generator = getGeneratorIfExists(activeId);
+            if (!generator || !generator.damage) {
+                return [];
+            }
+            return generator.damage(ilmina_stripped_8.floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+        }
+        exports.damage = damage;
+        function teamEffect(activeId, ctx) {
+            const generator = getGeneratorIfExists(activeId);
+            if (!generator || !generator.teamEffect) {
+                return;
+            }
+            return generator.teamEffect(ilmina_stripped_8.floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+        }
+        exports.teamEffect = teamEffect;
+        function enemyEffect(activeId, ctx) {
+            const generator = getGeneratorIfExists(activeId);
+            if (!generator || !generator.enemyEffect) {
+                return;
+            }
+            return generator.enemyEffect(ilmina_stripped_8.floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+        }
+        exports.enemyEffect = enemyEffect;
+        function boardEffect(activeId, ctx) {
+            const generator = getGeneratorIfExists(activeId);
+            if (!generator || !generator.boardEffect) {
+                return;
+            }
+            return generator.boardEffect(ilmina_stripped_8.floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+        }
+        exports.boardEffect = boardEffect;
+    });
+    /**
+     * Custom Base 64 encoding for Valeria's teams. This uses the 64 available
+     * characaters
+     * Encoding is as follows:
+     * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
+     * For each team in mode:
+     *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
+     *     14 bits encode monster sub id.
+     *     If monster id is 0, there is no monster here. Go to next monster sub.
+     *     Else:
+     *       Next 14 bits is monster inherit.
+     *       If inherit id is 0, this monster has no inherit, go to monster stats.
+     *       Else:
+     *         Next 7 bits represents inherit level.
+     *         Next 1 bit represents if the inherit monster is +297.
+     *       Next 4 bits determine number of Latents
+     *       For each latent:
+     *         Next 6 bits represents latent.
+     *       Next 7 bits represents monster level.
+     *       Next 4 bits represents monster awakening level.
+     *       Next 1 bit represents if a monster is 297 or not.
+     *       If 297, set to 297
+     *       Else:
+     *         Next 7 bits represents +HP
+     *         Next 7 bits represents +ATK
+     *         Next 7 bits represents +RCV
+     *       Next 4 bits represents monsters Super Awakening.
+     */
+    define("custom_base64", ["require", "exports", "monster_instance"], function (require, exports, monster_instance_2) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        var Bits;
+        (function (Bits) {
+            Bits[Bits["PLAYDER_MODE"] = 2] = "PLAYDER_MODE";
+            Bits[Bits["ID"] = 14] = "ID";
+            Bits[Bits["LEVEL"] = 7] = "LEVEL";
+            Bits[Bits["LATENT_COUNT"] = 4] = "LATENT_COUNT";
+            Bits[Bits["LATENT"] = 6] = "LATENT";
+            Bits[Bits["AWAKENING"] = 4] = "AWAKENING";
+            Bits[Bits["PLUS"] = 7] = "PLUS";
+        })(Bits || (Bits = {}));
+        const CHAR_AT = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        const CHAR_TO_NUM = new Map(CHAR_AT.split('').map((c, i) => [c, i]));
+        class Encoding {
+            constructor(s = '') {
+                this.bitQueue = 0;
+                this.queueLength = 0;
+                this.dequeueLength = 0;
+                this.bitDequeue = 0;
+                this.composedString = s;
+            }
+            check() {
+                while (this.queueLength >= 6) {
+                    this.queueLength -= 6;
+                    this.composedString += CHAR_AT[this.bitQueue >> this.queueLength];
+                    this.bitQueue = this.bitQueue & ((1 << this.queueLength) - 1);
+                }
+            }
+            queueBits(n, l) {
+                if ((1 << l) <= n) {
+                    throw new Error(`Cannot queue a number ${n} of length ${l}`);
+                }
+                this.bitQueue = (this.bitQueue << l) | n;
+                this.queueLength += l;
+                this.check();
+            }
+            queueBit(on) {
+                this.queueLength++;
+                this.bitQueue = this.bitQueue << 1 | Number(on);
+                this.check();
+            }
+            dequeueBit() {
+                if (!this.dequeueLength) {
+                    this.dequeueLength = 6;
+                    this.bitDequeue = CHAR_TO_NUM.get(this.composedString[0]);
+                    this.composedString = this.composedString.substring(1);
+                }
+                this.dequeueLength--;
+                const val = this.bitDequeue >> this.dequeueLength;
+                this.bitDequeue = this.bitDequeue & ((1 << this.dequeueLength) - 1);
+                return val;
+            }
+            dequeueBits(l) {
+                let result = 0;
+                for (let i = 0; i < l; i++) {
+                    result = (result << 1) | this.dequeueBit();
+                }
+                return result;
+            }
+            getString() {
+                const padded = this.bitQueue << (6 - this.queueLength);
+                return this.composedString + CHAR_AT[padded];
+            }
+        }
+        exports.Encoding = Encoding;
+        function ValeriaEncode(team) {
+            const encoding = new Encoding();
+            const playerMode = team.playerMode;
+            encoding.queueBits(playerMode, Bits.PLAYDER_MODE);
+            const monstersPerTeam = playerMode == 2 ? 5 : 6;
+            for (let i = 0; i < playerMode; i++) {
+                for (let j = 0; j < monstersPerTeam; j++) {
+                    const monster = team.monsters[i * 6 + j];
+                    const id = monster.getId(true);
+                    if (id <= 0) {
+                        encoding.queueBits(0, Bits.ID);
+                        continue;
+                    }
+                    encoding.queueBits(id, Bits.ID);
+                    const inheritId = monster.inheritId;
+                    if (inheritId <= 0) {
+                        encoding.queueBits(0, Bits.ID);
+                    }
+                    else {
+                        encoding.queueBits(inheritId, Bits.ID);
+                        encoding.queueBits(monster.inheritLevel, Bits.LEVEL);
+                        encoding.queueBit(monster.inheritPlussed);
+                    }
+                    encoding.queueBits(monster.latents.length, Bits.LATENT_COUNT);
+                    for (const latent of monster.latents) {
+                        encoding.queueBits(latent, Bits.LATENT);
+                    }
+                    encoding.queueBits(monster.level, Bits.LEVEL);
+                    encoding.queueBits(monster.awakenings, Bits.AWAKENING);
+                    if (monster.hpPlus + monster.atkPlus + monster.rcvPlus == 297) {
+                        encoding.queueBit(true);
+                    }
+                    else {
+                        encoding.queueBit(false);
+                        encoding.queueBits(monster.hpPlus, Bits.PLUS);
+                        encoding.queueBits(monster.atkPlus, Bits.PLUS);
+                        encoding.queueBits(monster.rcvPlus, Bits.PLUS);
+                    }
+                    encoding.queueBits(monster.superAwakeningIdx + 1, Bits.AWAKENING);
+                }
+            }
+            return encoding.getString();
+        }
+        exports.ValeriaEncode = ValeriaEncode;
+        function ValeriaDecodeToPdchu(s) {
+            let pdchu = '';
+            const encoding = new Encoding(s);
+            const playerMode = encoding.dequeueBits(2);
+            const monstersPerTeam = playerMode == 2 ? 5 : 6;
+            for (let i = 0; i < playerMode; i++) {
+                let teamString = '';
+                for (let j = 0; j < monstersPerTeam; j++) {
+                    const id = encoding.dequeueBits(Bits.ID);
+                    if (id == 0) {
+                        teamString += ' / ';
+                        continue;
+                    }
+                    teamString += `${id} `;
+                    const inheritId = encoding.dequeueBits(Bits.ID);
+                    if (inheritId != 0) {
+                        teamString += `(${inheritId}| lv${encoding.dequeueBits(Bits.LEVEL)}${encoding.dequeueBit() ? ' +297' : ''})`;
+                    }
+                    const latentCount = encoding.dequeueBits(Bits.LATENT_COUNT);
+                    if (latentCount) {
+                        teamString += '[';
+                        for (let k = 0; k < latentCount; k++) {
+                            teamString += `${monster_instance_2.LatentToPdchu.get(encoding.dequeueBits(Bits.LATENT))},`;
+                        }
+                        teamString = teamString.substring(0, teamString.length - 1);
+                        teamString += '] ';
+                    }
+                    teamString += `| lv${encoding.dequeueBits(Bits.LEVEL)} awk${encoding.dequeueBits(Bits.AWAKENING)} `;
+                    const is297 = encoding.dequeueBit();
+                    if (!is297) {
+                        teamString += `+H${encoding.dequeueBits(Bits.PLUS)} +A${encoding.dequeueBits(Bits.PLUS)} +R${encoding.dequeueBits(Bits.PLUS)} `;
+                    }
+                    const sa = encoding.dequeueBits(Bits.AWAKENING);
+                    if (sa) {
+                        teamString += `sa${sa} `;
+                    }
+                    teamString += '/ ';
+                }
+                pdchu += teamString.substring(0, teamString.length - 2) + '; ';
+            }
+            return pdchu.substring(0, pdchu.length - 2);
+        }
+        exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
+    });
+    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common"], function (require, exports, ilmina_stripped_9, common_10) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         var SkillType;
@@ -8484,9 +9063,9 @@
             begin = begin || 0;
             const suffix = end == 1 ? ' turn' : ' turns';
             if (begin == end) {
-                return common_9.addCommas(end) + suffix;
+                return common_10.addCommas(end) + suffix;
             }
-            return `${common_9.addCommas(begin)}-${common_9.addCommas(end)}${suffix}`;
+            return `${common_10.addCommas(begin)}-${common_10.addCommas(end)}${suffix}`;
         }
         // 1
         const bindRandom = {
@@ -8507,7 +9086,7 @@
         const bindAttr = {
             textify: ({ skillArgs }, { atk }) => {
                 const [color, min, max] = skillArgs;
-                return `Binds ${common_9.AttributeToName.get(color || 0)} monsters for ${rangeTurns(min, max)}. If none exist and part of skillset, hits for ${common_9.addCommas(atk)}. Else continue.`;
+                return `Binds ${common_10.AttributeToName.get(color || 0)} monsters for ${rangeTurns(min, max)}. If none exist and part of skillset, hits for ${common_10.addCommas(atk)}. Else continue.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8526,7 +9105,7 @@
         const bindType = {
             textify: ({ skillArgs }, { atk }) => {
                 const [type, min, max] = skillArgs;
-                return `Binds ${common_9.TypeToName.get(type)} monsters for ${rangeTurns(min, max)}. If none exist, hits for ${common_9.addCommas(atk)}.`;
+                return `Binds ${common_10.TypeToName.get(type)} monsters for ${rangeTurns(min, max)}. If none exist, hits for ${common_10.addCommas(atk)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8543,7 +9122,7 @@
         };
         // 4
         const orbChange = {
-            textify: ({ skillArgs }) => `Convert ${common_9.AttributeToName.get(skillArgs[0] || 0)} to ${common_9.AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
+            textify: ({ skillArgs }) => `Convert ${common_10.AttributeToName.get(skillArgs[0] || 0)} to ${common_10.AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -8570,7 +9149,7 @@
         };
         // 7
         const healOrAttack = {
-            textify: ({ skillArgs }, { atk }) => `If player health less than ${common_9.addCommas(atk)}, deal ${common_9.addCommas(atk)}, otherwise heal for ${skillArgs[0]}-${skillArgs[1]}%`,
+            textify: ({ skillArgs }, { atk }) => `If player health less than ${common_10.addCommas(atk)}, deal ${common_10.addCommas(atk)}, otherwise heal for ${skillArgs[0]}-${skillArgs[1]}%`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { team, enemy }) => {
@@ -8604,7 +9183,7 @@
         };
         // 12
         const singleOrbToJammer = {
-            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_9.AttributeToName.get(skillArgs[0])} color into Jammer.`,
+            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_10.AttributeToName.get(skillArgs[0])} color into Jammer.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -8633,9 +9212,9 @@
             textify: ({ skillArgs }, { atk }) => {
                 const [min, max, percent] = skillArgs;
                 if (min == max) {
-                    return `Hit ${max}x${percent}% for ${common_9.addCommas(max * Math.ceil(percent / 100 * atk))}`;
+                    return `Hit ${max}x${percent}% for ${common_10.addCommas(max * Math.ceil(percent / 100 * atk))}`;
                 }
-                return `Hit ${min}-${max}x${percent}% for ${common_9.addCommas(min * Math.ceil(percent / 100 * atk))}-${common_9.addCommas(max * Math.ceil(percent / 100 * atk))}`;
+                return `Hit ${min}-${max}x${percent}% for ${common_10.addCommas(min * Math.ceil(percent / 100 * atk))}-${common_10.addCommas(max * Math.ceil(percent / 100 * atk))}`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8708,7 +9287,7 @@
         // 22
         const setFlagAndContinue = {
             textify: (skillCtx) => {
-                const flagPositions = common_9.idxsFromBits(skillCtx.ai);
+                const flagPositions = common_10.idxsFromBits(skillCtx.ai);
                 return `Set Flag(s) ${flagPositions} and Continue.`;
             },
             condition: () => true,
@@ -8722,7 +9301,7 @@
         // 23
         const goto0IndexIfFlag = {
             textify: ({ ai, rnd }) => {
-                return `If Flag ${common_9.idxsFromBits(ai)}, go to skill at index ${rnd - 1}`;
+                return `If Flag ${common_10.idxsFromBits(ai)}, go to skill at index ${rnd - 1}`;
             },
             condition: ({ ai }, { flags }) => {
                 return Boolean(flags & ai);
@@ -8737,7 +9316,7 @@
         // 24
         const unsetFlagAndContinue = {
             textify: (skillCtx) => {
-                const flagPositions = common_9.idxsFromBits(skillCtx.ai);
+                const flagPositions = common_10.idxsFromBits(skillCtx.ai);
                 return `Unset Flag(s) ${flagPositions} and Continue.`;
             },
             condition: () => true,
@@ -8856,7 +9435,7 @@
         // 36
         const fallbackAttack = {
             textify: (_, { atk }) => {
-                return `Attack of ${common_9.addCommas(atk)} used if none of the above are available.`;
+                return `Attack of ${common_10.addCommas(atk)} used if none of the above are available.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -8931,7 +9510,7 @@
         // 43
         const gotoIfFlag = {
             textify: ({ ai, rnd }) => {
-                return `If Flag ${common_9.idxsFromBits(ai)}, go to skill at index ${rnd}`;
+                return `If Flag ${common_10.idxsFromBits(ai)}, go to skill at index ${rnd}`;
             },
             condition: ({ ai }, { flags }) => {
                 return Boolean(flags & ai);
@@ -8946,7 +9525,7 @@
         // 44
         const orFlagsAndContinue = {
             textify: ({ ai }) => {
-                return `OR flags ${common_9.idxsFromBits(ai)}, and Continue.`;
+                return `OR flags ${common_10.idxsFromBits(ai)}, and Continue.`;
             },
             condition: () => true,
             aiEffect: ({ ai }, ctx) => {
@@ -8959,7 +9538,7 @@
         // 45
         const toggleFlagsAndContinue = {
             textify: ({ ai }) => {
-                return `Toggle flags ${common_9.idxsFromBits(ai)}, and Continue.`;
+                return `Toggle flags ${common_10.idxsFromBits(ai)}, and Continue.`;
             },
             condition: ({ ai }, { flags }) => {
                 return Boolean(flags & ai);
@@ -8981,7 +9560,7 @@
                     skillArgs = skillArgs.filter(Boolean);
                     skillArgs.push(0);
                 }
-                const attrs = [...(new Set(skillArgs))].map(i => common_9.AttributeToName.get(i)).join(',');
+                const attrs = [...(new Set(skillArgs))].map(i => common_10.AttributeToName.get(i)).join(',');
                 return `Change attribute to one of [${attrs}]`;
             },
             condition: (skillCtx, ctx) => {
@@ -9004,7 +9583,7 @@
         // 47
         const oldPreemptiveAttack = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Preemptive: Do ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
+                return `Preemptive: Do ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
             },
             condition: () => true,
             effect: ({ skillArgs }, { team, enemy }) => {
@@ -9017,9 +9596,9 @@
         const attackAndSingleOrbChange = {
             textify: ({ skillArgs }, { atk }) => {
                 const [percent, from, to] = skillArgs;
-                const damage = common_9.addCommas(Math.ceil(percent / 100 * atk));
-                const fromString = from == -1 ? 'Random Color' : common_9.AttributeToName.get(from);
-                const toString = to == -1 ? 'Random Color' : common_9.AttributeToName.get(to);
+                const damage = common_10.addCommas(Math.ceil(percent / 100 * atk));
+                const fromString = from == -1 ? 'Random Color' : common_10.AttributeToName.get(from);
+                const toString = to == -1 ? 'Random Color' : common_10.AttributeToName.get(to);
                 return `Hit for ${skillArgs[0]}% (${damage}) and convert ${fromString} to ${toString}`;
             },
             condition: () => true,
@@ -9073,13 +9652,13 @@
         const attributeAbsorb = {
             textify: ({ skillArgs }) => {
                 const [minTurns, maxTurns, attrIdxs] = skillArgs;
-                const attrs = common_9.idxsFromBits(attrIdxs).map((c) => common_9.AttributeToName.get(c)).join(', ');
+                const attrs = common_10.idxsFromBits(attrIdxs).map((c) => common_10.AttributeToName.get(c)).join(', ');
                 return `For ${rangeTurns(minTurns, maxTurns)}, absorb ${attrs}.`;
             },
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { enemy }) => {
-                enemy.attributeAbsorb = common_9.idxsFromBits(skillArgs[2]);
+                enemy.attributeAbsorb = common_10.idxsFromBits(skillArgs[2]);
             },
             goto: () => TERMINATE,
         };
@@ -9131,7 +9710,7 @@
         };
         // 56
         const singleOrbToPoison = {
-            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_9.AttributeToName.get(skillArgs[0])} color into Poison`,
+            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_10.AttributeToName.get(skillArgs[0])} color into Poison`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9156,7 +9735,7 @@
         // 62
         const attackAndBlind = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Hits once for ${skillArgs[0]} % (${common_9.addCommas(Math.ceil(skillArgs[0] / 100 * atk))}) and blinds the board.`;
+                return `Hits once for ${skillArgs[0]} % (${common_10.addCommas(Math.ceil(skillArgs[0] / 100 * atk))}) and blinds the board.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9183,7 +9762,7 @@
                         text.push('Subs');
                     }
                 }
-                return `Hits once for ${percent} % (${common_9.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${rangeTurns(min, max)}.`;
+                return `Hits once for ${percent} % (${common_10.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${rangeTurns(min, max)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9200,7 +9779,7 @@
         const attackAndPoisonSpawn = {
             textify: ({ skillArgs }, { atk }) => {
                 const [percent, count, excludeHearts] = skillArgs;
-                const damage = common_9.addCommas(Math.ceil(percent / 100 * atk));
+                const damage = common_10.addCommas(Math.ceil(percent / 100 * atk));
                 return `Hit for ${skillArgs[0]}% (${damage}) and spawn ${count} Poison Orbs${excludeHearts ? ' ignoring hearts' : ''}`;
             },
             condition: () => true,
@@ -9242,7 +9821,7 @@
         // 68
         const skyfall = {
             textify: ({ skillArgs }) => {
-                const orbs = common_9.idxsFromBits(skillArgs[0]).map((c) => common_9.AttributeToName.get(c));
+                const orbs = common_10.idxsFromBits(skillArgs[0]).map((c) => common_10.AttributeToName.get(c));
                 return `For ${skillArgs[1]} to ${skillArgs[2]} turns, set ${orbs} skyfall bonus to ${skillArgs[3]}% `;
             },
             condition: () => true,
@@ -9260,7 +9839,7 @@
         };
         // 71
         const voidDamage = {
-            textify: ({ skillArgs }) => `Void Damage of >= ${common_9.addCommas(skillArgs[2])} for ${skillArgs[0]}} turns.`,
+            textify: ({ skillArgs }) => `Void Damage of >= ${common_10.addCommas(skillArgs[2])} for ${skillArgs[0]}} turns.`,
             // Add conditional that this can't happen again.
             condition: () => true,
             aiEffect: () => { },
@@ -9275,7 +9854,7 @@
         };
         // 72
         const attributeResist = {
-            textify: ({ skillArgs }) => `[Passive] ${skillArgs[1]}% ${common_9.idxsFromBits(skillArgs[0]).map(c => common_9.AttributeToName.get(c))} Resist.`,
+            textify: ({ skillArgs }) => `[Passive] ${skillArgs[1]}% ${common_10.idxsFromBits(skillArgs[0]).map(c => common_10.AttributeToName.get(c))} Resist.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9329,7 +9908,7 @@
                     if (c == undefined) {
                         continue;
                     }
-                    columns.push(`column(s) ${common_9.idxsFromBits(c)} into ${common_9.idxsFromBits(o).map(i => common_9.AttributeToName.get(i))}`);
+                    columns.push(`column(s) ${common_10.idxsFromBits(c)} into ${common_10.idxsFromBits(o).map(i => common_10.AttributeToName.get(i))}`);
                 }
                 text += columns.join(' and ');
                 return text + '.';
@@ -9342,13 +9921,13 @@
         const attackAndColumnChange = {
             textify: ({ skillArgs }, { atk }) => {
                 const [c1, o1, c2, o2, c3, o3, percent] = skillArgs;
-                let text = `Deal ${percent}% (${common_9.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
+                let text = `Deal ${percent}% (${common_10.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
                 let columns = [];
                 for (const [c, o] of [[c1, o1], [c2, o2], [c3, o3]]) {
                     if (c == undefined) {
                         continue;
                     }
-                    columns.push(`column(s) ${common_9.idxsFromBits(c)} into ${common_9.idxsFromBits(o).map(i => common_9.AttributeToName.get(i))}`);
+                    columns.push(`column(s) ${common_10.idxsFromBits(c)} into ${common_10.idxsFromBits(o).map(i => common_10.AttributeToName.get(i))}`);
                 }
                 text += columns.join(' and ');
                 return text + '.';
@@ -9371,7 +9950,7 @@
                     if (r == undefined) {
                         continue;
                     }
-                    columns.push(`row(s) ${common_9.idxsFromBits(r)} into ${common_9.idxsFromBits(o).map(i => common_9.AttributeToName.get(i))}`);
+                    columns.push(`row(s) ${common_10.idxsFromBits(r)} into ${common_10.idxsFromBits(o).map(i => common_10.AttributeToName.get(i))}`);
                 }
                 text += columns.join(' and ');
                 return text + '.';
@@ -9385,13 +9964,13 @@
         const attackAndRowChange = {
             textify: ({ skillArgs }, { atk }) => {
                 const [r1, o1, r2, o2, r3, o3, percent] = skillArgs;
-                let text = `Deal ${percent}% (${common_9.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
+                let text = `Deal ${percent}% (${common_10.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
                 let columns = [];
                 for (const [r, o] of [[r1, o1], [r2, o2], [r3, o3]]) {
                     if (!r == undefined) {
                         continue;
                     }
-                    columns.push(`row(s) ${common_9.idxsFromBits(r)} into ${common_9.idxsFromBits(o).map(i => common_9.AttributeToName.get(i))}`);
+                    columns.push(`row(s) ${common_10.idxsFromBits(r)} into ${common_10.idxsFromBits(o).map(i => common_10.AttributeToName.get(i))}`);
                 }
                 text += columns.join(' and ');
                 return text + '.';
@@ -9412,9 +9991,9 @@
                     if (skillArgs[i] == -1) {
                         break;
                     }
-                    colors.push(common_9.AttributeToName.get(skillArgs[i]));
+                    colors.push(common_10.AttributeToName.get(skillArgs[i]));
                 }
-                return `Attack of ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${colors.join(', ')}`;
+                return `Attack of ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${colors.join(', ')}`;
             },
             // TODO: Add conditional depending on board.
             condition: () => true,
@@ -9428,7 +10007,7 @@
         // 82
         const attackWithoutName = {
             textify: (_, { atk }) => {
-                return `Attack of ${common_9.addCommas(atk)}.`;
+                return `Attack of ${common_10.addCommas(atk)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9439,7 +10018,7 @@
         const skillset = {
             textify: (skillCtx, ctx) => {
                 const subEffects = skillCtx.skillArgs.map((skillId) => {
-                    const effect = ilmina_stripped_8.floof.model.enemySkills[skillId];
+                    const effect = ilmina_stripped_9.floof.model.enemySkills[skillId];
                     const newContext = {
                         id: skillId,
                         ai: skillCtx.ai,
@@ -9459,7 +10038,7 @@
             aiEffect: () => { },
             effect: (skillCtx, ctx) => {
                 for (const skillId of skillCtx.skillArgs) {
-                    const eff = ilmina_stripped_8.floof.model.enemySkills[skillId];
+                    const eff = ilmina_stripped_9.floof.model.enemySkills[skillId];
                     const newContext = {
                         id: skillId,
                         ai: skillCtx.ai,
@@ -9479,7 +10058,7 @@
         // 84
         const boardChange = {
             textify: ({ skillArgs }) => {
-                return `Change board to ${common_9.idxsFromBits(skillArgs[0]).map(c => common_9.AttributeToName.get(c))} `;
+                return `Change board to ${common_10.idxsFromBits(skillArgs[0]).map(c => common_10.AttributeToName.get(c))} `;
             },
             // TODO: Add conditional depending on board.
             condition: () => true,
@@ -9490,7 +10069,7 @@
         // 85
         const attackAndChangeBoard = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Attack of ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${common_9.idxsFromBits(skillArgs[1]).map(c => common_9.AttributeToName.get(c))} `;
+                return `Attack of ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${common_10.idxsFromBits(skillArgs[1]).map(c => common_10.AttributeToName.get(c))} `;
             },
             // TODO: Add conditional depending on board.
             condition: () => true,
@@ -9521,7 +10100,7 @@
         };
         // 87
         const damageAbsorb = {
-            textify: ({ skillArgs }) => `Absorb damage of ${common_9.addCommas(skillArgs[1])} or more for ${skillArgs[0]} turns`,
+            textify: ({ skillArgs }) => `Absorb damage of ${common_10.addCommas(skillArgs[1])} or more for ${skillArgs[0]} turns`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { enemy }) => {
@@ -9532,7 +10111,7 @@
         // 88
         const awokenBind = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Awoken Bind for ${skillArgs[0]} turn(s). If awoken bound and part of a skillset, attack for ${common_9.addCommas(atk)}, else Continue.`;
+                return `Awoken Bind for ${skillArgs[0]} turn(s). If awoken bound and part of a skillset, attack for ${common_10.addCommas(atk)}, else Continue.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9561,7 +10140,7 @@
         // 90
         const gotoIfCardOnTeam = {
             textify: ({ rnd, skillArgs }) => {
-                return `If any of ${skillArgs.filter(Boolean).map(id => ilmina_stripped_8.floof.model.cards[id].name)} are on the team, go to skill at ${rnd}`;
+                return `If any of ${skillArgs.filter(Boolean).map(id => ilmina_stripped_9.floof.model.cards[id].name)} are on the team, go to skill at ${rnd}`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9571,7 +10150,7 @@
         };
         // 92
         const randomOrbSpawn = {
-            textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x ${common_9.idxsFromBits(skillArgs[1]).map(c => common_9.AttributeToName.get(c))} orbs from non-[${common_9.idxsFromBits(skillArgs[2]).map((c) => common_9.AttributeToName.get(c))}], If Unable, Continue`,
+            textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x ${common_10.idxsFromBits(skillArgs[1]).map(c => common_10.AttributeToName.get(c))} orbs from non-[${common_10.idxsFromBits(skillArgs[2]).map((c) => common_10.AttributeToName.get(c))}], If Unable, Continue`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9589,7 +10168,7 @@
         const lockOrbs = {
             textify: ({ skillArgs }) => {
                 const [attrBits, maxLocked] = skillArgs;
-                const lockedOrbs = common_9.idxsFromBits(attrBits).map((c) => common_9.AttributeToName.get(c)).join(', ');
+                const lockedOrbs = common_10.idxsFromBits(attrBits).map((c) => common_10.AttributeToName.get(c)).join(', ');
                 return `Lock up to ${maxLocked} of the following orbs: ${lockedOrbs}. If unable to lock any, Continue.`;
             },
             condition: () => {
@@ -9616,7 +10195,7 @@
                 if (!attrBits || attrBits == -1) {
                     return `Lock ${percent}% skyfall for ${rangeTurns(minTurns, maxTurns)}.`;
                 }
-                const lockedOrbs = common_9.idxsFromBits(attrBits).map((c) => common_9.AttributeToName.get(c)).join(', ');
+                const lockedOrbs = common_10.idxsFromBits(attrBits).map((c) => common_10.AttributeToName.get(c)).join(', ');
                 return `Lock ${percent}% of ${lockedOrbs} skyfall for ${minTurns}-${maxTurns}`;
             },
             condition: () => true,
@@ -9642,7 +10221,7 @@
         };
         // 99
         const tapeColumns = {
-            textify: ({ skillArgs }) => `Tape columns ${common_9.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns`,
+            textify: ({ skillArgs }) => `Tape columns ${common_10.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9650,7 +10229,7 @@
         };
         // 100
         const tapeRows = {
-            textify: ({ skillArgs }) => `Tape rows ${common_9.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns`,
+            textify: ({ skillArgs }) => `Tape rows ${common_10.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9717,7 +10296,7 @@
         };
         // 107
         const unmatchable = {
-            textify: ({ skillArgs }) => `${common_9.idxsFromBits(skillArgs[1]).map(c => common_9.AttributeToName.get(c))} are unmatchable for ${skillArgs[0]} turn(s)`,
+            textify: ({ skillArgs }) => `${common_10.idxsFromBits(skillArgs[1]).map(c => common_10.AttributeToName.get(c))} are unmatchable for ${skillArgs[0]} turn(s)`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9727,9 +10306,9 @@
         const attackAndMultiOrbChange = {
             textify: ({ skillArgs }, { atk }) => {
                 const [percent, fromBits, toBits] = skillArgs;
-                const damage = common_9.addCommas(Math.ceil(percent / 100 * atk));
-                const fromString = common_9.idxsFromBits(fromBits).map(from => common_9.AttributeToName.get(from));
-                const toString = common_9.idxsFromBits(toBits).map(to => common_9.AttributeToName.get(to));
+                const damage = common_10.addCommas(Math.ceil(percent / 100 * atk));
+                const fromString = common_10.idxsFromBits(fromBits).map(from => common_10.AttributeToName.get(from));
+                const toString = common_10.idxsFromBits(toBits).map(to => common_10.AttributeToName.get(to));
                 return `Hit for ${skillArgs[0]}% (${damage}) and convert ${fromString} to ${toString}`;
             },
             condition: () => true,
@@ -9797,7 +10376,7 @@
         };
         // 118
         const resistTypes = {
-            textify: ({ skillArgs }) => `[Passive] Resist ${skillArgs[1]}% of ${common_9.idxsFromBits(skillArgs[0]).map((v) => common_9.TypeToName.get(v)).join(' and ')} damage.`,
+            textify: ({ skillArgs }) => `[Passive] Resist ${skillArgs[1]}% of ${common_10.idxsFromBits(skillArgs[0]).map((v) => common_10.TypeToName.get(v)).join(' and ')} damage.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9848,7 +10427,7 @@
         };
         // 124
         const gachadra = {
-            textify: ({ skillArgs }) => `[Pasive] GACHADRA FEVER - Requires ${skillArgs[1]}x ${common_9.AttributeToName.get(skillArgs[0])} orbs to kill`,
+            textify: ({ skillArgs }) => `[Pasive] GACHADRA FEVER - Requires ${skillArgs[1]}x ${common_10.AttributeToName.get(skillArgs[0])} orbs to kill`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9856,7 +10435,7 @@
         };
         // 125
         const transformLead = {
-            textify: ({ skillArgs }) => `Transform player lead into ${ilmina_stripped_8.floof.model.cards[skillArgs[1]].name} for ${skillArgs[0]} turns.`,
+            textify: ({ skillArgs }) => `Transform player lead into ${ilmina_stripped_9.floof.model.cards[skillArgs[1]].name} for ${skillArgs[0]} turns.`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { team }) => {
@@ -9876,7 +10455,7 @@
         };
         // 127
         const attackAndNoSkyfall = {
-            textify: ({ skillArgs }, { atk }) => skillArgs[0] ? `Attack of ${skillArgs[0]}% (${common_9.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and n` : 'N' + `o-skyfall for ${skillArgs[1]} turn(s).`,
+            textify: ({ skillArgs }, { atk }) => skillArgs[0] ? `Attack of ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and n` : 'N' + `o-skyfall for ${skillArgs[1]} turn(s).`,
             condition: () => true,
             aiEffect: () => { },
             // This will occur in the damage step.
@@ -10052,7 +10631,7 @@
             130: playerAtkDebuff,
         };
         function toSkillContext(id, skillIdx) {
-            const cardEnemySkill = ilmina_stripped_8.floof.model.cards[id].enemySkills[skillIdx];
+            const cardEnemySkill = ilmina_stripped_9.floof.model.cards[id].enemySkills[skillIdx];
             const skill = {
                 id: -1,
                 ai: -1,
@@ -10070,7 +10649,7 @@
             skill.id = cardEnemySkill.enemySkillId;
             skill.ai = cardEnemySkill.ai;
             skill.rnd = cardEnemySkill.rnd;
-            const enemySkill = ilmina_stripped_8.floof.model.enemySkills[skill.id];
+            const enemySkill = ilmina_stripped_9.floof.model.enemySkills[skill.id];
             if (!enemySkill) {
                 return skill;
             }
@@ -10105,7 +10684,7 @@
          */
         function determineSkillset(ctx) {
             const possibleEffects = [];
-            const skills = Array(ilmina_stripped_8.floof.model.cards[ctx.cardId].enemySkills.length);
+            const skills = Array(ilmina_stripped_9.floof.model.cards[ctx.cardId].enemySkills.length);
             if (!skills.length) {
                 return possibleEffects;
             }
@@ -10141,7 +10720,7 @@
                     // If neither rnd or ai are set on a terminating skill, assume it MUST happen.
                     let chance = skills[idx].rnd || skills[idx].ai || 100;
                     ctx.charges -= skill.aiArgs[3];
-                    if (ilmina_stripped_8.floof.model.cards[ctx.cardId].aiVersion == 1) {
+                    if (ilmina_stripped_9.floof.model.cards[ctx.cardId].aiVersion == 1) {
                         // Do new
                         chance = Math.min(chance, remainingChance);
                         remainingChance -= chance;
@@ -10252,14 +10831,14 @@
         exports.textifyEnemySkill = textifyEnemySkill;
         function textifyEnemySkills(enemy) {
             const val = [];
-            for (let i = 0; i < ilmina_stripped_8.floof.model.cards[enemy.id].enemySkills.length; i++) {
+            for (let i = 0; i < ilmina_stripped_9.floof.model.cards[enemy.id].enemySkills.length; i++) {
                 val.push(textifyEnemySkill(enemy, i));
             }
             return val;
         }
         exports.textifyEnemySkills = textifyEnemySkills;
     });
-    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills"], function (require, exports, common_10, ajax_2, enemy_instance_1, templates_5, enemy_skills_1) {
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills"], function (require, exports, common_11, ajax_2, enemy_instance_1, templates_5, enemy_skills_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DungeonFloor {
@@ -10297,7 +10876,7 @@
                 return floor;
             }
         }
-        const requestUrl = common_10.BASE_URL + 'assets/DungeonsAndEncounters.json';
+        const requestUrl = common_11.BASE_URL + 'assets/DungeonsAndEncounters.json';
         const DUNGEON_DATA = new Map();
         const dungeonSearchArray = [];
         const request = ajax_2.ajax(requestUrl);
@@ -10353,9 +10932,9 @@
                 this.isRogue = false; // UNIMPLEMENTED
                 this.allAttributesRequired = false;
                 this.noDupes = false;
-                this.hpMultiplier = new common_10.Rational(1);
-                this.atkMultiplier = new common_10.Rational(1);
-                this.defMultiplier = new common_10.Rational(1);
+                this.hpMultiplier = new common_11.Rational(1);
+                this.atkMultiplier = new common_11.Rational(1);
+                this.defMultiplier = new common_11.Rational(1);
                 this.activeFloor = 0;
                 this.activeEnemy = 0;
                 this.onEnemySkill = () => null;
@@ -10365,7 +10944,7 @@
                 this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
             }
             async loadDungeon(subDungeonId) {
-                await common_10.waitFor(() => dungeonsLoaded);
+                await common_11.waitFor(() => dungeonsLoaded);
                 const data = DUNGEON_DATA.get(subDungeonId);
                 if (!data) {
                     console.warn('invalid sub dungeon');
@@ -10470,15 +11049,15 @@
                     }
                     const enemy = this.getActiveEnemy();
                     if (ctx.dungeonHpMultiplier != undefined) {
-                        this.hpMultiplier = common_10.Rational.from(ctx.dungeonHpMultiplier);
+                        this.hpMultiplier = common_11.Rational.from(ctx.dungeonHpMultiplier);
                         enemy.dungeonMultipliers.hp = this.hpMultiplier;
                     }
                     if (ctx.dungeonAtkMultiplier != undefined) {
-                        this.atkMultiplier = common_10.Rational.from(ctx.dungeonAtkMultiplier);
+                        this.atkMultiplier = common_11.Rational.from(ctx.dungeonAtkMultiplier);
                         enemy.dungeonMultipliers.atk = this.atkMultiplier;
                     }
                     if (ctx.dungeonDefMultiplier != undefined) {
-                        this.defMultiplier = common_10.Rational.from(ctx.dungeonDefMultiplier);
+                        this.defMultiplier = common_11.Rational.from(ctx.dungeonDefMultiplier);
                         enemy.dungeonMultipliers.def = this.defMultiplier;
                     }
                     if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
@@ -10642,9 +11221,9 @@
                 }
                 this.activeFloor = 0;
                 this.setActiveEnemy(0);
-                this.hpMultiplier = common_10.Rational.from(json.hp || '1');
-                this.atkMultiplier = common_10.Rational.from(json.atk || '1');
-                this.defMultiplier = common_10.Rational.from(json.def || '1');
+                this.hpMultiplier = common_11.Rational.from(json.hp || '1');
+                this.atkMultiplier = common_11.Rational.from(json.atk || '1');
+                this.defMultiplier = common_11.Rational.from(json.def || '1');
                 this.update(true);
             }
         }
@@ -10665,7 +11244,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler"], function (require, exports, common_11, combo_container_1, damage_ping_2, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_1, ilmina_stripped_9, custom_base64_1, enemy_skills_2, url_handler_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_2, ilmina_stripped_10, custom_base64_1, enemy_skills_2, url_handler_1, actives_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
@@ -10767,7 +11346,7 @@
                     this.dungeon.loadDungeon(Number(dungeonId));
                 }
                 this.display.panes[2].appendChild(this.dungeon.getPane());
-                debugger_1.debug.addButton('Print Skills', () => {
+                debugger_2.debug.addButton('Print Skills', () => {
                     const enemy = this.dungeon.getActiveEnemy();
                     const id = enemy.id;
                     const skillTexts = enemy_skills_2.textifyEnemySkills({
@@ -10775,13 +11354,13 @@
                         atk: enemy.getAtk(),
                     });
                     for (let i = 0; i < skillTexts.length; i++) {
-                        debugger_1.debug.print(`${i + 1}: ${skillTexts[i]} `);
+                        debugger_2.debug.print(`${i + 1}: ${skillTexts[i]} `);
                     }
                 });
                 // debug.addButton('Use Preempt', () => {
                 //   this.usePreempt();
                 // });
-                debugger_1.debug.addButton('Use Next Skill', () => {
+                debugger_2.debug.addButton('Use Next Skill', () => {
                     const attributes = new Set();
                     const types = new Set();
                     for (const m of this.team.getActiveTeam()) {
@@ -10797,18 +11376,18 @@
                 });
                 this.dungeon.onEnemySkill = (idx, otherIdxs) => {
                     if (idx < 0) {
-                        debugger_1.debug.print('No skill to use');
+                        debugger_2.debug.print('No skill to use');
                         return;
                     }
                     const enemy = this.dungeon.getActiveEnemy();
                     if (otherIdxs.length) {
-                        debugger_1.debug.print(`  * Not using potential skills: ${otherIdxs}`);
+                        debugger_2.debug.print(`  * Not using potential skills: ${otherIdxs}`);
                     }
-                    debugger_1.debug.print('** Using the following skill **');
-                    debugger_1.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
+                    debugger_2.debug.print('** Using the following skill **');
+                    debugger_2.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
                     const skillCtx = enemy_skills_2.toSkillContext(enemy.id, idx);
                     enemy_skills_2.effect(skillCtx, { enemy, team: this.team });
-                    enemy.charges -= ilmina_stripped_9.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
+                    enemy.charges -= ilmina_stripped_10.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
                     enemy.charges += enemy.getCard().chargeGain;
                     this.dungeon.update(true);
                     this.team.updateState({});
@@ -10849,7 +11428,30 @@
                 });
             }
             updateDamage() {
-                let { pings, healing, trueBonusAttack } = this.team.getDamageCombos(this.comboContainer);
+                let pings = [];
+                let healing = 0;
+                let trueBonusAttack = 0;
+                if (this.team.action == -1) {
+                    const damageCombosInfo = this.team.getDamageCombos(this.comboContainer);
+                    pings = damageCombosInfo.pings;
+                    healing = damageCombosInfo.healing;
+                    trueBonusAttack = damageCombosInfo.trueBonusAttack;
+                }
+                else {
+                    const team = this.team.getActiveTeam();
+                    const source = team[Math.floor(this.team.action / 2)];
+                    const id = this.team.action & 1 ? source.inheritId : source.getId();
+                    const activeId = ilmina_stripped_10.floof.model.cards[id].activeSkillId;
+                    pings = actives_1.damage(activeId, {
+                        source,
+                        team,
+                        enemy: this.dungeon.getActiveEnemy(),
+                        awakeningsActive: this.team.state.awakenings,
+                        isMultiplayer: this.team.isMultiplayer(),
+                        currentHp: this.team.state.currentHp,
+                        maxHp: this.team.getHp(),
+                    });
+                }
                 if (!this.dungeon)
                     return;
                 const enemy = this.dungeon.getActiveEnemy();
@@ -10876,7 +11478,7 @@
                     }
                     ping.actualDamage = oldHp - currentHp;
                 }
-                const specialPing = new damage_ping_2.DamagePing(this.team.getActiveTeam()[0], common_11.Attribute.FIXED, false);
+                const specialPing = new damage_ping_3.DamagePing(this.team.getActiveTeam()[0], common_12.Attribute.FIXED, false);
                 specialPing.damage = trueBonusAttack;
                 specialPing.isActive = true;
                 specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.isMultiplayer(), {
@@ -10899,14 +11501,14 @@
                 if (specialPing.actualDamage) {
                     pings = [...pings, specialPing];
                 }
-                this.team.teamPane.updateDamage(pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_11.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
+                this.team.teamPane.updateDamage(pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
             }
             getElement() {
                 return this.display.getElement();
             }
         }
         async function init() {
-            await common_11.waitFor(() => ilmina_stripped_9.floof.ready);
+            await common_12.waitFor(() => ilmina_stripped_10.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
@@ -10916,7 +11518,7 @@
             }
             document.body.appendChild(valeria.getElement());
             if (localStorage.debug) {
-                document.body.appendChild(debugger_1.debug.getElement());
+                document.body.appendChild(debugger_2.debug.getElement());
             }
             window.valeria = valeria;
             const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`);
