@@ -50,7 +50,28 @@
     define("ilmina_stripped", ["require", "exports", "ajax"], function (require, exports, ajax_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        const USE_JP = false;
+        const AUGMENT_JP = Boolean(window.localStorage.augmentJp);
+        // TODO: Add more.
+        const LOADING_TEXTS = [
+            'Fluffing the Floof',
+            'Getting Grimoires Grimy',
+            'Ransacking the Library',
+            'Tossing Fluff Around',
+            'Whispering Obscene Texts',
+            'This Should Be Fun',
+            'Liberating the Librarian',
+            'Openly Discussing Data',
+            'Arguing with the Keeper',
+            'Instructing the Phantom',
+            'Looking for Romia',
+            'Definitely not PDC',
+            'Throwing Shade on the Grimore',
+            'Coloring the Books',
+            'Boosting Ilmina\'s Skills',
+            'Extending Time to Move',
+            'Translating JP to NA',
+            'Screw the Rules, I have Stones',
+        ];
         function compress(s) {
             return LZUTF8.compress(s, { outputEncoding: 'StorageBinaryString' });
         }
@@ -200,12 +221,13 @@
                 this.errorReporter = errorReporter;
             }
             static isAprilFools() {
-                const currentTime = new Date();
+                // const currentTime = new Date();
                 // 3 = April
                 // 1 = the actual date.
                 // JS is weird.
-                const isAprilFools = currentTime.getMonth() == 3 && currentTime.getDate() == 1;
-                return isAprilFools;
+                // const isAprilFools = currentTime.getMonth() == 3 && currentTime.getDate() == 1;
+                return Boolean(window.localStorage.aprilFools);
+                // return isAprilFools;
             }
             loadWithCache(label, url, callback) {
                 try {
@@ -258,25 +280,46 @@
                 });
             }
             loadCardData(callback) {
-                let url = CardAssets.baseUrl + "extract/api/download_card_data.json";
-                if (USE_JP) {
-                    url = CardAssets.baseUrl + "extract/api/jp/download_card_data.json";
-                }
+                const url = CardAssets.baseUrl + "extract/api/download_card_data.json";
+                // if (AUGMENT_JP) {
+                //   url = CardAssets.baseUrl + "extract/api/jp/download_card_data.json";
+                // }
                 this.loadWithCache("CardData", url, callback);
+            }
+            loadCardDataJP(callback) {
+                // let url = CardAssets.baseUrl + "extract/api/download_card_data.json";
+                // if (AUGMENT_JP) {
+                const url = CardAssets.baseUrl + "extract/api/jp/download_card_data.json";
+                // }
+                this.loadWithCache("CardDataJP", url, callback);
             }
             loadPlayerSkillData(callback) {
                 let url = CardAssets.baseUrl + "extract/api/download_skill_data.json";
-                if (USE_JP) {
-                    url = CardAssets.baseUrl + "extract/api/jp/download_skill_data.json";
-                }
+                // if (AUGMENT_JP) {
+                //   url = CardAssets.baseUrl + "extract/api/jp/download_skill_data.json";
+                // }
                 this.loadWithCache("PlayerSkill", url, callback);
+            }
+            loadPlayerSkillDataJP(callback) {
+                // let url = CardAssets.baseUrl + "extract/api/download_skill_data.json";
+                // if (AUGMENT_JP) {
+                let url = CardAssets.baseUrl + "extract/api/jp/download_skill_data.json";
+                // }
+                this.loadWithCache("PlayerSkillJP", url, callback);
             }
             loadEnemySkillData(callback) {
                 let url = CardAssets.baseUrl + "extract/api/download_enemy_skill_data.json";
-                if (USE_JP) {
-                    url = CardAssets.baseUrl + "extract/api/jp/download_enemy_skill_data.json";
-                }
+                // if (AUGMENT_JP) {
+                //   url = CardAssets.baseUrl + "extract/api/jp/download_enemy_skill_data.json";
+                // }
                 this.loadWithCache("EnemySkill", url, callback);
+            }
+            loadEnemySkillDataJP(callback) {
+                // let url = CardAssets.baseUrl + "extract/api/download_enemy_skill_data.json";
+                // if (AUGMENT_JP) {
+                let url = CardAssets.baseUrl + "extract/api/jp/download_enemy_skill_data.json";
+                // }
+                this.loadWithCache("EnemySkillJP", url, callback);
             }
             loadApkMetadata(callback) {
                 const url = CardAssets.baseUrl + "extract/metadata/" + CardAssets.apkVersion + ".json";
@@ -339,7 +382,8 @@
                         const loadingBar = document.getElementById('valeria-loading');
                         if (loadingBar) {
                             const percentageCleared = `${Math.round(100 * (totalCounts - countRemaining) / totalCounts)}%`;
-                            loadingBar.innerText = 'Ilmina Loading: ' + percentageCleared;
+                            const flavorText = LOADING_TEXTS[Math.floor(Math.random() * LOADING_TEXTS.length)];
+                            loadingBar.innerText = flavorText + ': ' + percentageCleared;
                             loadingBar.style.width = percentageCleared;
                         }
                         if (countRemaining == 0) {
@@ -350,7 +394,14 @@
                     totalCounts++;
                     dataSource.loadCardData((x) => {
                         this.parseCardData(x, modelBuilder);
-                        decrementCount();
+                        if (!AUGMENT_JP) {
+                            decrementCount();
+                            return;
+                        }
+                        dataSource.loadCardDataJP((y) => {
+                            this.parseCardData(y, modelBuilder);
+                            decrementCount();
+                        });
                     });
                     countRemaining++;
                     totalCounts++;
@@ -360,10 +411,30 @@
                     dataSource.loadApkMetadata((x) => { modelBuilder.buildApkMetadata(x); decrementCount(); });
                     countRemaining++;
                     totalCounts++;
-                    dataSource.loadPlayerSkillData((x) => { this.parsePlayerSkillData(x, modelBuilder); decrementCount(); });
+                    dataSource.loadPlayerSkillData((x) => {
+                        this.parsePlayerSkillData(x, modelBuilder);
+                        if (!AUGMENT_JP) {
+                            decrementCount();
+                            return;
+                        }
+                        dataSource.loadPlayerSkillDataJP((y) => {
+                            this.parsePlayerSkillData(y, modelBuilder);
+                            decrementCount();
+                        });
+                    });
                     countRemaining++;
                     totalCounts++;
-                    dataSource.loadEnemySkillData((x) => { modelBuilder.buildEnemySkillsData(x); decrementCount(); });
+                    dataSource.loadEnemySkillData((x) => {
+                        modelBuilder.buildEnemySkillsData(x);
+                        if (!AUGMENT_JP) {
+                            decrementCount();
+                            return;
+                        }
+                        dataSource.loadEnemySkillDataJP((y) => {
+                            modelBuilder.buildEnemySkillsData(y);
+                            decrementCount();
+                        });
+                    });
                 });
             }
             parseCardData(data, builder) {
@@ -917,6 +988,9 @@
             buildCard(cardData) {
                 try {
                     const card = this.buildCardInternal(cardData);
+                    if (!card.name) {
+                        return;
+                    }
                     this.buildEvoTree(card);
                 }
                 catch (e) {
@@ -925,7 +999,7 @@
             }
             buildPlayerSkillData(playerSkillData) {
                 const playerSkills = new Array(playerSkillData.length);
-                for (let i = 0; i < playerSkillData.length; i++) {
+                for (let i = this.model.playerSkills.length; i < playerSkillData.length; i++) {
                     const reader = new RawDataReader(playerSkillData[i]);
                     const skill = new PlayerSkill();
                     skill.id = i;
@@ -943,7 +1017,7 @@
                     skill.internalEffectArguments = data;
                     playerSkills[i] = skill;
                 }
-                this.model.playerSkills = playerSkills;
+                this.model.playerSkills = this.model.playerSkills.concat(playerSkills);
             }
             pushIfNotZero(ary, val) {
                 if (val == 0) {
@@ -964,6 +1038,10 @@
                 const reader = new RawDataReader(cardData);
                 // const unknownData = [];
                 c.id = reader.readNumber(); // 0
+                if (this.model.cards[c.id]) {
+                    return c;
+                }
+                // this.model.cards[c.id] = c;
                 c.name = reader.readString(); // 1
                 c.attribute = ColorAttribute[ColorAttribute[reader.readNumber()]]; // 2
                 c.subattribute = ColorAttribute[ColorAttribute[reader.readNumber()]]; // 3
@@ -1197,6 +1275,10 @@
                         }
                         const currentSkill = new EnemySkill();
                         currentSkill.id = parseInt(lineSplit[0]);
+                        if (this.model.enemySkills[currentSkill.id]) {
+                            // Ignore already defined skills.
+                            return;
+                        }
                         currentSkill.name = lineSplit[1];
                         currentSkill.internalEffectId = parseInt(lineSplit[2]);
                         const dec = parseInt(lineSplit[3], 16); //parse the paramidentifiers. It's in hex bitflags
