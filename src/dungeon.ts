@@ -201,6 +201,7 @@ class DungeonInstance {
 
   pane: DungeonPane;
   onEnemySkill: (skillIdx: number, otherSkills: number[]) => void = () => null;
+  onEnemyChange: () => void = () => { };
 
   async loadDungeon(subDungeonId: number) {
     await waitFor(() => dungeonsLoaded);
@@ -275,21 +276,34 @@ class DungeonInstance {
       if (ctx.loadDungeon != undefined) {
         this.loadDungeon(ctx.loadDungeon);
       }
-      const old = {
-        floor: this.activeFloor,
-        enemy: this.activeEnemy,
-      };
+      // const oldEnemy = {
+      //   floor: this.activeFloor,
+      //   enemy: this.activeEnemy,
+      // };
+      // const newEnemy = {
+      //   floor: this.activeFloor,
+      //   enemy: this.activeEnemy,
+      // };
+      let newEnemy = -1;
       if (ctx.activeFloor != undefined) {
         this.activeFloor = ctx.activeFloor;
-        this.setActiveEnemy(0);
+        // this.setActiveEnemy(0);
+        // newEnemy.floor = ctx.activeFloor;
+        // newEnemy.enemy = 0;
+        newEnemy = 0;
       }
       if (ctx.activeEnemy != undefined) {
         // TODO: Centralize definition of activeEnemy into either DungeonInstace or DungeonFloor.
-        this.setActiveEnemy(ctx.activeEnemy);
+        // this.setActiveEnemy(ctx.activeEnemy);
+        // newEnemy.enemy = ctx.activeEnemy;
+        newEnemy = ctx.activeEnemy;
       }
       if (ctx.addFloor) {
         this.addFloor();
-        this.setActiveEnemy(0);
+        // this.setActiveEnemy(0);
+        // newEnemy.floor = this.floors.length - 1;
+        // newEnemy.enemy = 0;
+        newEnemy = 0;
       }
       if (ctx.removeFloor != undefined) {
         if (ctx.removeFloor == 0) {
@@ -301,7 +315,15 @@ class DungeonInstance {
       if (ctx.addEnemy) {
         const floor = this.floors[this.activeFloor];
         floor.addEnemy();
-        this.setActiveEnemy(floor.enemies.length - 1);
+        // this.setActiveEnemy(floor.enemies.length - 1);
+        // newEnemy.enemy = floor.enemies.length - 1;
+        newEnemy = floor.enemies.length - 1;
+      }
+
+      const updateActiveEnemy = newEnemy >= 0;
+      if (updateActiveEnemy) {
+        // this.activeFloor = newEnemy.floor;
+        this.setActiveEnemy(newEnemy);
       }
 
       const enemy = this.getActiveEnemy();
@@ -363,12 +385,20 @@ class DungeonInstance {
         enemy.comboAbsorb = ctx.comboAbsorb;
       }
 
+      if (ctx.damageShield != undefined) {
+        enemy.shieldPercent = ctx.damageShield;
+      }
+
       if (ctx.damageAbsorb != undefined) {
         enemy.damageAbsorb = ctx.damageAbsorb;
       }
 
       if (ctx.damageVoid != undefined) {
         enemy.damageVoid = ctx.damageVoid;
+      }
+
+      if (ctx.attributeAbsorbs != undefined) {
+        enemy.attributeAbsorb = [...ctx.attributeAbsorbs];
       }
 
       if (ctx.charges != undefined) {
@@ -380,7 +410,6 @@ class DungeonInstance {
       if (ctx.flags != undefined) {
         enemy.flags = ctx.flags;
       }
-      const updateActiveEnemy = old.floor != this.activeFloor || old.enemy != this.activeEnemy;
       this.update(updateActiveEnemy);
     };
   }
@@ -425,6 +454,7 @@ class DungeonInstance {
       damageVoid: enemy.damageVoid,
       invincible: enemy.invincible,
       attributeAbsorb: enemy.attributeAbsorb,
+      damageShield: enemy.shieldPercent,
 
       maxCharges: enemy.getCard().charges,
       charges: enemy.charges,
@@ -460,6 +490,7 @@ class DungeonInstance {
       def: this.defMultiplier,
     };
     enemy.reset();
+    this.onEnemyChange();
   }
 
   getActiveEnemy(): EnemyInstance {

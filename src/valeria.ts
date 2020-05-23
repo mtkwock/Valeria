@@ -135,25 +135,9 @@ class Valeria {
       }
     });
 
-    debug.addButton('Use Preempt', () => {
-      const attributes = new Set<Attribute>();
-      const types = new Set<MonsterType>();
-      for (const m of this.team.getActiveTeam()) {
-        for (const type of m.getCard().types) {
-          types.add(type);
-        }
-        attributes.add(m.getAttribute());
-        attributes.add(m.getSubattribute());
-      }
-      this.dungeon.useEnemySkill(
-        this.team.getActiveTeam().map((m) => m.getId()), // teamIds
-        attributes,
-        types,
-        this.comboContainer.comboCount(), // combo
-        this.team.getBoardWidth() == 7, // bigBoard
-        true, // isPreempt
-      );
-    });
+    // debug.addButton('Use Preempt', () => {
+    //   this.usePreempt();
+    // });
 
     debug.addButton('Use Next Skill', () => {
       const attributes = new Set<Attribute>();
@@ -192,7 +176,29 @@ class Valeria {
       this.dungeon.update(true);
       this.team.updateState({});
     }
+    this.dungeon.onEnemyChange = () => {
+      this.usePreempt();
+    };
+  }
 
+  usePreempt() {
+    const attributes = new Set<Attribute>();
+    const types = new Set<MonsterType>();
+    for (const m of this.team.getActiveTeam()) {
+      for (const type of m.getCard().types) {
+        types.add(type);
+      }
+      attributes.add(m.getAttribute());
+      attributes.add(m.getSubattribute());
+    }
+    this.dungeon.useEnemySkill(
+      this.team.getActiveTeam().map((m) => m.getId()), // teamIds
+      attributes,
+      types,
+      this.comboContainer.comboCount(), // combo
+      this.team.getBoardWidth() == 7, // bigBoard
+      true, // isPreempt
+    );
   }
 
   updateMonsterEditor(): void {

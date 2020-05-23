@@ -2408,6 +2408,7 @@ interface DungeonUpdate {
   damageVoid?: number;
   damageAbsorb?: number;
   comboAbsorb?: number;
+  damageShield?: number;
 }
 
 type OnDungeonUpdate = (ctx: DungeonUpdate) => void;
@@ -2518,6 +2519,7 @@ interface EnemyStatsUpdate {
   damageAbsorb: number;
   damageVoid: number;
   attributeAbsorb: Attribute[];
+  damageShield: number;
 
   counter: number;
   flags: number;
@@ -2580,6 +2582,7 @@ class DungeonEditor {
   damageAbsorbInput = create('input') as HTMLInputElement;
   comboAbsorbInput = create('input') as HTMLInputElement;
   damageVoidInput = create('input') as HTMLInputElement;
+  damageShieldInput = create('input') as HTMLInputElement;
   attributeAbsorbs: LayeredAsset[] = [];
 
   constructor(dungeonNames: { s: string; value: number }[], onUpdate: OnDungeonUpdate) {
@@ -2836,6 +2839,8 @@ class DungeonEditor {
 
     this.comboAbsorbInput.type = 'number';
     this.comboAbsorbInput.style.width = '35px';
+    this.damageShieldInput.type = 'number';
+    this.damageShieldInput.style.width = '35px';
     this.damageVoidInput.style.width = '90px';
     this.damageAbsorbInput.style.width = '90px';
     this.comboAbsorbInput.value = '0';
@@ -2847,6 +2852,12 @@ class DungeonEditor {
     comboAbsorbArea.appendChild(comboAbsorbLabel.getElement());
     this.comboAbsorbInput.onchange = () => this.onUpdate({ comboAbsorb: Number(this.comboAbsorbInput.value) });
     comboAbsorbArea.appendChild(this.comboAbsorbInput);
+
+    const damageShieldArea = create('span');
+    const damageShieldLabel = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.NUMBER_0], () => this.onUpdate({ damageShield: 0 }), true, 0.7);
+    damageShieldArea.appendChild(damageShieldLabel.getElement());
+    this.damageShieldInput.onchange = () => this.onUpdate({ damageShield: Number(this.damageShieldInput.value) });
+    damageShieldArea.appendChild(this.damageShieldInput);
 
     const damageAbsorbArea = create('span');
     const damageAbsorbLabel = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.ABSORB_OVERLAY], () => this.onUpdate({ damageAbsorb: 0 }), true, 0.7);
@@ -2860,11 +2871,28 @@ class DungeonEditor {
     this.damageVoidInput.onchange = () => this.onUpdate({ damageVoid: Number(this.damageVoidInput.value) });
     damageVoidArea.appendChild(this.damageVoidInput);
 
+    const attributeAbsorbArea = create('div');
+    for (let i = 0; i < 5; i++) {
+      const absorbAsset = new LayeredAsset([AssetEnum.FIRE_TRANSPARENT + i as AssetEnum, AssetEnum.TWINKLE], () => {
+        const attributeAbsorbs: Attribute[] = [];
+        for (let j = 0; j < 5; j++) {
+          if (this.attributeAbsorbs[j].active !== (i == j)) {
+            attributeAbsorbs.push(j);
+          }
+        }
+        this.onUpdate({ attributeAbsorbs });
+      }, false, 0.7);
+      this.attributeAbsorbs.push(absorbAsset);
+      attributeAbsorbArea.appendChild(absorbAsset.getElement());
+    }
+
     statusArea.appendChild(this.statusShield.getElement());
     statusArea.appendChild(this.invincible.getElement());
     statusArea.appendChild(comboAbsorbArea);
+    statusArea.appendChild(damageShieldArea);
     statusArea.appendChild(damageAbsorbArea);
     statusArea.appendChild(damageVoidArea);
+    statusArea.appendChild(attributeAbsorbArea);
     this.element.appendChild(statusArea);
   }
 
@@ -3071,6 +3099,10 @@ class DungeonEditor {
     this.damageVoidInput.value = addCommas(s.damageVoid);
     this.damageAbsorbInput.value = addCommas(s.damageAbsorb);
     this.comboAbsorbInput.value = `${s.comboAbsorb}`;
+    this.damageShieldInput.value = `${s.damageShield}`;
+    for (let i = 0; i < this.attributeAbsorbs.length; i++) {
+      this.attributeAbsorbs[i].setActive(s.attributeAbsorb.includes(i));
+    }
 
     this.maxCharges.innerText = ` / ${s.maxCharges} `;
     this.chargesInput.value = String(s.charges);
