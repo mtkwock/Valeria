@@ -999,7 +999,7 @@ class GenericSelector<T> {
           continue;
         }
         this.options[i].className = ClassNames.SELECTOR_OPTION_ACTIVE;
-        this.options[i].innerText = `${fuzzyMatches[i]} - ${this.getName(Number(fuzzyMatches[i]))}`;
+        this.options[i].innerText = `${this.getName(Number(fuzzyMatches[i]))}`;
         this.options[i].setAttribute('value', String(fuzzyMatches[i]));
       }
       this.activeOptions = Math.min(fuzzyMatches.length, this.options.length);
@@ -1010,7 +1010,6 @@ class GenericSelector<T> {
     return () => {
       const id = Number(option.getAttribute('value'));
       this.updateCb(id);
-      // TODO: Clean this up.
       this.selector.value = this.getName(id);
       this.optionsContainer.className = ClassNames.SELECTOR_OPTIONS_INACTIVE;
     };
@@ -1059,12 +1058,13 @@ class MonsterSelector extends GenericSelector<number> {
     if (id == -1) {
       return 'None';
     } else {
-      return floof.model.cards[id].name;
+      return `${id}: ${floof.model.cards[id].name}`;
     }
   }
 
   getFuzzyMatches(text: string): number[] {
-    return fuzzyMonsterSearch(text, GenericSelector.MAX_OPTIONS * 3, this.cardArray);
+    const splits = text.split(':');
+    return fuzzyMonsterSearch(splits[splits.length - 1].trim(), GenericSelector.MAX_OPTIONS * 3, this.cardArray);
   }
 
   postFilter(matches: number[]): number[] {
