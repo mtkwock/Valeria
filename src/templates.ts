@@ -7,7 +7,7 @@
  * compiling them here so that the structure is more consistent.
  */
 
-import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType, AttributeToFontColor, addCommas, removeCommas, Shape, LetterToShape } from './common';
+import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType, AttributeToFontColor, FontColor, addCommas, removeCommas, Shape, LetterToShape } from './common';
 import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
 import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
 // import { debug } from './debugger';
@@ -1811,39 +1811,45 @@ class StoredTeamDisplay {
 
 // Information needed to populate Stat box.
 interface Stats {
-  hps: number[],
-  atks: number[],
-  rcvs: number[],
-  cds: string[],
-  totalHp: number,
-  totalRcv: number,
-  totalTime: number,
-  counts: Map<Awakening, number>,
+  hps: number[];
+  atks: number[];
+  rcvs: number[];
+  cds: string[];
+  totalHp: number;
+  totalRcv: number;
+  totalTime: number;
+  counts: Map<Awakening, number>;
 }
 
 interface TeamBattle {
-  maxHp: number,
-  currentHp: number,
-  fixedHp: number,
-  leadSwap: number,
+  maxHp: number;
+  currentHp: number;
+  fixedHp: number;
+  leadSwap: number;
 
-  voids: boolean[],
+  voids: boolean[];
+  ids: number[];
 }
 
 interface TeamUpdate {
-  teamIdx?: number,
-  monsterIdx?: number,
-  title?: string,
-  description?: string,
+  teamIdx?: number;
+  monsterIdx?: number;
+  title?: string;
+  description?: string;
 
-  currentHp?: number,
-  fixedHp?: number,
-  leadSwap?: number,
+  currentHp?: number;
+  fixedHp?: number;
+  action?: number;
+  leadSwap?: number;
 
-  voidDamageAbsorb?: boolean,
-  voidAttributeAbsorb?: boolean,
-  voidDamageVoid?: boolean,
-  voidAwakenings?: boolean,
+  voidDamageAbsorb?: boolean;
+  voidAttributeAbsorb?: boolean;
+  voidDamageVoid?: boolean;
+  voidAwakenings?: boolean;
+}
+
+enum ActionOptions {
+  COMBO = -1,
 }
 
 class TeamPane {
@@ -1865,6 +1871,8 @@ class TeamPane {
   private hpBar: HpBar;
   private fixedHpEl: LayeredAsset = new LayeredAsset([], () => { });
   private fixedHpInput: HTMLInputElement = create('input') as HTMLInputElement;
+  private actionOptions: HTMLOptionElement[] = [];
+
   private leadSwapInput = create('select') as HTMLSelectElement;
   private voidEls: LayeredAsset[] = [];
 
@@ -2092,6 +2100,24 @@ class TeamPane {
     this.battleEl.appendChild(this.fixedHpInput);
 
     // Choose combos or active.
+    const actionSelect = create('select') as HTMLSelectElement;
+    actionSelect.style.fontSize = 'xx-small';
+    actionSelect.onchange = () => {
+      this.onTeamUpdate({ action: Number(actionSelect.value) });
+    }
+    const comboOption = create('option') as HTMLOptionElement;
+    comboOption.innerText = 'Apply Combos';
+    comboOption.value = String(ActionOptions.COMBO);
+    actionSelect.appendChild(comboOption);
+    for (let i = 0; i < 12; i++) {
+      const activeOption = create('option') as HTMLOptionElement;
+      activeOption.value = String(i);
+      activeOption.innerText = `${Math.floor(i / 2) + 1}:`;
+      actionSelect.appendChild(activeOption);
+      this.actionOptions.push(activeOption);
+    }
+    this.battleEl.appendChild(actionSelect);
+
     const leadSwapLabel = create('span') as HTMLDivElement;
     leadSwapLabel.innerText = 'Lead Swap: ';
     this.battleEl.appendChild(leadSwapLabel);
@@ -2325,6 +2351,17 @@ class TeamPane {
 
   updateBattle(teamBattle: TeamBattle): void {
     this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
+    for (let i = 0; i < this.actionOptions.length; i++) {
+      const c = floof.model.cards[teamBattle.ids[i]];
+      const option = this.actionOptions[i];
+      if (!c) {
+        option.innerText = '';
+        option.disabled = true;
+      } else {
+        option.innerText = `${Math.floor(i / 2) + 1}: ${floof.model.playerSkills[c.activeSkillId].description.replace('\n', ' ')}`;
+        option.disabled = false;
+      }
+    }
     this.leadSwapInput.value = `${teamBattle.leadSwap}`;
 
     for (const idx in teamBattle.voids) {
@@ -2341,15 +2378,20 @@ class TeamPane {
     actualPings: { attribute: Attribute; damage: number }[],
     enemyHp: number,
     healing: number): void {
+    while (pings.length < 13) {
+      pings.push({ attribute: Attribute.NONE, damage: 0 });
+      rawPings.push({ attribute: Attribute.NONE, damage: 0 });
+      actualPings.push({ attribute: Attribute.NONE, damage: 0 });
+    }
     for (let i = 0; i < 12; i++) {
       this.pingCells[i].innerText = addCommas(pings[i].damage);
-      this.pingCells[i].style.color = AttributeToFontColor[pings[i].attribute];
+      this.pingCells[i].style.color = pings[i].damage ? AttributeToFontColor[pings[i].attribute] : FontColor.COLORLESS;
 
       this.rawPingCells[i].innerText = addCommas(rawPings[i].damage);
-      this.rawPingCells[i].style.color = AttributeToFontColor[rawPings[i].attribute];
+      this.rawPingCells[i].style.color = rawPings[i].damage ? AttributeToFontColor[rawPings[i].attribute] : FontColor.COLORLESS;
 
       this.actualPingCells[i].innerText = addCommas(actualPings[i].damage);
-      this.actualPingCells[i].style.color = AttributeToFontColor[actualPings[i].attribute];
+      this.actualPingCells[i].style.color = actualPings[i].damage ? AttributeToFontColor[actualPings[i].attribute] : FontColor.COLORLESS;
     }
     this.pingTotal.innerText = addCommas(pings.reduce((t, p) => t + p.damage, 0));
     this.rawPingTotal.innerText = addCommas(rawPings.reduce((t, p) => t + p.damage, 0));
@@ -2359,17 +2401,17 @@ class TeamPane {
 
     if (pings.length > 12) {
       this.bonusPing.innerText = addCommas(pings[12].damage);
-      this.bonusPing.style.color = AttributeToFontColor[pings[12].attribute];
+      this.bonusPing.style.color = pings[12].damage ? AttributeToFontColor[pings[12].attribute] : FontColor.COLORLESS;
 
       this.rawBonusPing.innerText = addCommas(rawPings[12].damage);
-      this.rawBonusPing.style.color = AttributeToFontColor[rawPings[12].attribute];
+      this.rawBonusPing.style.color = rawPings[12].damage ? AttributeToFontColor[rawPings[12].attribute] : FontColor.COLORLESS;
 
       this.actualBonusPing.innerText = addCommas(actualPings[12].damage);
-      this.actualBonusPing.style.color = AttributeToFontColor[actualPings[12].attribute];
+      this.actualBonusPing.style.color = actualPings[12].damage ? AttributeToFontColor[actualPings[12].attribute] : FontColor.COLORLESS;
     } else {
-      this.bonusPing.innerText = '0';
-      this.rawBonusPing.innerText = '0';
-      this.actualBonusPing.innerText = '0';
+      this.bonusPing.innerText = '';
+      this.rawBonusPing.innerText = '';
+      this.actualBonusPing.innerText = '';
     }
     this.hpDamage.innerText = `+${addCommas(healing)}`;
   }
@@ -3008,7 +3050,6 @@ class DungeonEditor {
   }
 
   setEnemies(enemyIdsByFloor: number[][]): void {
-    console.log(enemyIdsByFloor);
     while (this.dungeonFloorEls.length < enemyIdsByFloor.length) {
       this.addFloor();
     }

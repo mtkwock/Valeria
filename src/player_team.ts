@@ -179,6 +179,8 @@ class Team {
   activeMonster = 0;
   lastMaxHp = 0;
 
+  action = -1;
+
   storage: StoredTeams;
   state: TeamState = Object.assign({}, DEFAULT_STATE);
   teamPane: TeamPane;
@@ -235,6 +237,9 @@ class Team {
         }
         if (ctx.fixedHp != undefined) {
           this.state.fixedHp = ctx.fixedHp;
+        }
+        if (ctx.action != undefined) {
+          this.action = ctx.action;
         }
         if (ctx.leadSwap != undefined) {
           this.updateState({ leadSwap: ctx.leadSwap });
@@ -945,12 +950,14 @@ class Team {
       }
     }
     this.teamPane.updateStats(this.getStats());
+    const ns: number[] = [];
     this.teamPane.updateBattle({
       currentHp: this.state.currentHp,
       maxHp: this.getHp(),
       leadSwap: this.state.leadSwaps[this.activeTeamIdx],
       voids: [this.state.voidDamageAbsorb, this.state.voidAttributeAbsorb, this.state.voidDamageVoid, !this.state.awakenings],
       fixedHp: this.state.fixedHp,
+      ids: ns.concat(...this.getActiveTeam().map((m) => [m.getId(), m.inheritId])),
     });
     this.updateCb(this.activeMonster);
   }
@@ -975,6 +982,15 @@ class Team {
   damage(amount: number, _attr: Attribute) {
     // TODO: Account for leader skills and buffs;
     this.state.currentHp -= amount;
+    this.state.currentHp = Math.max(0, this.state.currentHp);
+  }
+
+  heal(amount: number, percent = 0) {
+    this.state.currentHp += amount;
+    if (percent) {
+      this.state.currentHp += Math.ceil(this.getHp() * percent / 100);
+    }
+    this.state.currentHp = Math.min(this.state.currentHp, this.getHp());
   }
 
   getStats(): Stats {

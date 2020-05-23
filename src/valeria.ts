@@ -14,6 +14,7 @@ import { floof } from './ilmina_stripped';
 import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
 import { textifyEnemySkills, textifyEnemySkill, effect as enemyEffect, toSkillContext } from './enemy_skills';
 import { getUrlParameter } from './url_handler';
+import { damage as activeDamage } from './actives';
 
 class Valeria {
   display: ValeriaDisplay = new ValeriaDisplay();
@@ -219,7 +220,29 @@ class Valeria {
   }
 
   updateDamage(): void {
-    let { pings, healing, trueBonusAttack } = this.team.getDamageCombos(this.comboContainer);
+    let pings: DamagePing[] = []
+    let healing: number = 0
+    let trueBonusAttack = 0;
+    if (this.team.action == -1) {
+      const damageCombosInfo = this.team.getDamageCombos(this.comboContainer);
+      pings = damageCombosInfo.pings;
+      healing = damageCombosInfo.healing;
+      trueBonusAttack = damageCombosInfo.trueBonusAttack;
+    } else {
+      const team = this.team.getActiveTeam();
+      const source = team[Math.floor(this.team.action / 2)];
+      const id = this.team.action & 1 ? source.inheritId : source.getId();
+      const activeId = floof.model.cards[id].activeSkillId;
+      pings = activeDamage(activeId, {
+        source,
+        team,
+        enemy: this.dungeon.getActiveEnemy(),
+        awakeningsActive: this.team.state.awakenings,
+        isMultiplayer: this.team.isMultiplayer(),
+        currentHp: this.team.state.currentHp,
+        maxHp: this.team.getHp(),
+      });
+    }
 
     if (!this.dungeon) return;
     const enemy = this.dungeon.getActiveEnemy();
