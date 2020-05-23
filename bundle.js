@@ -4297,6 +4297,7 @@
                 this.damageAbsorbInput = create('input');
                 this.comboAbsorbInput = create('input');
                 this.damageVoidInput = create('input');
+                this.damageShieldInput = create('input');
                 this.attributeAbsorbs = [];
                 this.onUpdate = onUpdate;
                 this.dungeonSelector = new GenericSelector(dungeonNames, (id) => {
@@ -4510,6 +4511,8 @@
                 const statusArea = create('div');
                 this.comboAbsorbInput.type = 'number';
                 this.comboAbsorbInput.style.width = '35px';
+                this.damageShieldInput.type = 'number';
+                this.damageShieldInput.style.width = '35px';
                 this.damageVoidInput.style.width = '90px';
                 this.damageAbsorbInput.style.width = '90px';
                 this.comboAbsorbInput.value = '0';
@@ -4520,6 +4523,11 @@
                 comboAbsorbArea.appendChild(comboAbsorbLabel.getElement());
                 this.comboAbsorbInput.onchange = () => this.onUpdate({ comboAbsorb: Number(this.comboAbsorbInput.value) });
                 comboAbsorbArea.appendChild(this.comboAbsorbInput);
+                const damageShieldArea = create('span');
+                const damageShieldLabel = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.NUMBER_0], () => this.onUpdate({ damageShield: 0 }), true, 0.7);
+                damageShieldArea.appendChild(damageShieldLabel.getElement());
+                this.damageShieldInput.onchange = () => this.onUpdate({ damageShield: Number(this.damageShieldInput.value) });
+                damageShieldArea.appendChild(this.damageShieldInput);
                 const damageAbsorbArea = create('span');
                 const damageAbsorbLabel = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.ABSORB_OVERLAY], () => this.onUpdate({ damageAbsorb: 0 }), true, 0.7);
                 damageAbsorbArea.appendChild(damageAbsorbLabel.getElement());
@@ -4530,11 +4538,27 @@
                 damageVoidArea.appendChild(damageVoidLabel.getElement());
                 this.damageVoidInput.onchange = () => this.onUpdate({ damageVoid: Number(this.damageVoidInput.value) });
                 damageVoidArea.appendChild(this.damageVoidInput);
+                const attributeAbsorbArea = create('div');
+                for (let i = 0; i < 5; i++) {
+                    const absorbAsset = new LayeredAsset([AssetEnum.FIRE_TRANSPARENT + i, AssetEnum.TWINKLE], () => {
+                        const attributeAbsorbs = [];
+                        for (let j = 0; j < 5; j++) {
+                            if (this.attributeAbsorbs[j].active !== (i == j)) {
+                                attributeAbsorbs.push(j);
+                            }
+                        }
+                        this.onUpdate({ attributeAbsorbs });
+                    }, false, 0.7);
+                    this.attributeAbsorbs.push(absorbAsset);
+                    attributeAbsorbArea.appendChild(absorbAsset.getElement());
+                }
                 statusArea.appendChild(this.statusShield.getElement());
                 statusArea.appendChild(this.invincible.getElement());
                 statusArea.appendChild(comboAbsorbArea);
+                statusArea.appendChild(damageShieldArea);
                 statusArea.appendChild(damageAbsorbArea);
                 statusArea.appendChild(damageVoidArea);
+                statusArea.appendChild(attributeAbsorbArea);
                 this.element.appendChild(statusArea);
             }
             setupAiArea() {
@@ -4732,6 +4756,10 @@
                 this.damageVoidInput.value = common_2.addCommas(s.damageVoid);
                 this.damageAbsorbInput.value = common_2.addCommas(s.damageAbsorb);
                 this.comboAbsorbInput.value = `${s.comboAbsorb}`;
+                this.damageShieldInput.value = `${s.damageShield}`;
+                for (let i = 0; i < this.attributeAbsorbs.length; i++) {
+                    this.attributeAbsorbs[i].setActive(s.attributeAbsorb.includes(i));
+                }
                 this.maxCharges.innerText = ` / ${s.maxCharges} `;
                 this.chargesInput.value = String(s.charges);
                 this.counterInput.value = String(s.counter);
@@ -10249,6 +10277,7 @@
                 this.activeFloor = 0;
                 this.activeEnemy = 0;
                 this.onEnemySkill = () => null;
+                this.onEnemyChange = () => { };
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
                 this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
@@ -10308,21 +10337,34 @@
                     if (ctx.loadDungeon != undefined) {
                         this.loadDungeon(ctx.loadDungeon);
                     }
-                    const old = {
-                        floor: this.activeFloor,
-                        enemy: this.activeEnemy,
-                    };
+                    // const oldEnemy = {
+                    //   floor: this.activeFloor,
+                    //   enemy: this.activeEnemy,
+                    // };
+                    // const newEnemy = {
+                    //   floor: this.activeFloor,
+                    //   enemy: this.activeEnemy,
+                    // };
+                    let newEnemy = -1;
                     if (ctx.activeFloor != undefined) {
                         this.activeFloor = ctx.activeFloor;
-                        this.setActiveEnemy(0);
+                        // this.setActiveEnemy(0);
+                        // newEnemy.floor = ctx.activeFloor;
+                        // newEnemy.enemy = 0;
+                        newEnemy = 0;
                     }
                     if (ctx.activeEnemy != undefined) {
                         // TODO: Centralize definition of activeEnemy into either DungeonInstace or DungeonFloor.
-                        this.setActiveEnemy(ctx.activeEnemy);
+                        // this.setActiveEnemy(ctx.activeEnemy);
+                        // newEnemy.enemy = ctx.activeEnemy;
+                        newEnemy = ctx.activeEnemy;
                     }
                     if (ctx.addFloor) {
                         this.addFloor();
-                        this.setActiveEnemy(0);
+                        // this.setActiveEnemy(0);
+                        // newEnemy.floor = this.floors.length - 1;
+                        // newEnemy.enemy = 0;
+                        newEnemy = 0;
                     }
                     if (ctx.removeFloor != undefined) {
                         if (ctx.removeFloor == 0) {
@@ -10335,7 +10377,14 @@
                     if (ctx.addEnemy) {
                         const floor = this.floors[this.activeFloor];
                         floor.addEnemy();
-                        this.setActiveEnemy(floor.enemies.length - 1);
+                        // this.setActiveEnemy(floor.enemies.length - 1);
+                        // newEnemy.enemy = floor.enemies.length - 1;
+                        newEnemy = floor.enemies.length - 1;
+                    }
+                    const updateActiveEnemy = newEnemy >= 0;
+                    if (updateActiveEnemy) {
+                        // this.activeFloor = newEnemy.floor;
+                        this.setActiveEnemy(newEnemy);
                     }
                     const enemy = this.getActiveEnemy();
                     if (ctx.dungeonHpMultiplier != undefined) {
@@ -10392,11 +10441,17 @@
                     if (ctx.comboAbsorb != undefined) {
                         enemy.comboAbsorb = ctx.comboAbsorb;
                     }
+                    if (ctx.damageShield != undefined) {
+                        enemy.shieldPercent = ctx.damageShield;
+                    }
                     if (ctx.damageAbsorb != undefined) {
                         enemy.damageAbsorb = ctx.damageAbsorb;
                     }
                     if (ctx.damageVoid != undefined) {
                         enemy.damageVoid = ctx.damageVoid;
+                    }
+                    if (ctx.attributeAbsorbs != undefined) {
+                        enemy.attributeAbsorb = [...ctx.attributeAbsorbs];
                     }
                     if (ctx.charges != undefined) {
                         enemy.charges = ctx.charges;
@@ -10407,7 +10462,6 @@
                     if (ctx.flags != undefined) {
                         enemy.flags = ctx.flags;
                     }
-                    const updateActiveEnemy = old.floor != this.activeFloor || old.enemy != this.activeEnemy;
                     this.update(updateActiveEnemy);
                 };
             }
@@ -10442,6 +10496,7 @@
                     damageVoid: enemy.damageVoid,
                     invincible: enemy.invincible,
                     attributeAbsorb: enemy.attributeAbsorb,
+                    damageShield: enemy.shieldPercent,
                     maxCharges: enemy.getCard().charges,
                     charges: enemy.charges,
                     counter: enemy.counter,
@@ -10473,6 +10528,7 @@
                     def: this.defMultiplier,
                 };
                 enemy.reset();
+                this.onEnemyChange();
             }
             getActiveEnemy() {
                 return this.floors[this.activeFloor].getActiveEnemy();
@@ -10640,21 +10696,9 @@
                         debugger_1.debug.print(`${i + 1}: ${skillTexts[i]} `);
                     }
                 });
-                debugger_1.debug.addButton('Use Preempt', () => {
-                    const attributes = new Set();
-                    const types = new Set();
-                    for (const m of this.team.getActiveTeam()) {
-                        for (const type of m.getCard().types) {
-                            types.add(type);
-                        }
-                        attributes.add(m.getAttribute());
-                        attributes.add(m.getSubattribute());
-                    }
-                    this.dungeon.useEnemySkill(this.team.getActiveTeam().map((m) => m.getId()), // teamIds
-                    attributes, types, this.comboContainer.comboCount(), // combo
-                    this.team.getBoardWidth() == 7, // bigBoard
-                    true);
-                });
+                // debug.addButton('Use Preempt', () => {
+                //   this.usePreempt();
+                // });
                 debugger_1.debug.addButton('Use Next Skill', () => {
                     const attributes = new Set();
                     const types = new Set();
@@ -10687,6 +10731,24 @@
                     this.dungeon.update(true);
                     this.team.updateState({});
                 };
+                this.dungeon.onEnemyChange = () => {
+                    this.usePreempt();
+                };
+            }
+            usePreempt() {
+                const attributes = new Set();
+                const types = new Set();
+                for (const m of this.team.getActiveTeam()) {
+                    for (const type of m.getCard().types) {
+                        types.add(type);
+                    }
+                    attributes.add(m.getAttribute());
+                    attributes.add(m.getSubattribute());
+                }
+                this.dungeon.useEnemySkill(this.team.getActiveTeam().map((m) => m.getId()), // teamIds
+                attributes, types, this.comboContainer.comboCount(), // combo
+                this.team.getBoardWidth() == 7, // bigBoard
+                true);
             }
             updateMonsterEditor() {
                 const monster = this.team.monsters[this.team.activeMonster];
