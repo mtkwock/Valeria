@@ -227,6 +227,15 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   background-color: #222222;
 }
 
+.hover-click {
+  cursor: pointer;
+  border: 1px solid white;
+}
+
+.hover-click:hover {
+  background-color: #444444;
+}
+
 .valeria-tabbed-label:hover {
   background-color: #444444;
 }
@@ -549,6 +558,7 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 
 .valeria-layered-asset {
   display: inline-block;
+  position: relative;
 }
 
 .valeria-layered-asset > a {

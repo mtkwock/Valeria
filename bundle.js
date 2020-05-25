@@ -3850,6 +3850,7 @@
                 this.detailTabs = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
                 this.fixedHpEl = new LayeredAsset([], () => { });
                 this.fixedHpInput = create('input');
+                this.actionSelect = create('select');
                 this.actionOptions = [];
                 this.applyActionButton = create('button');
                 this.leadSwapInput = create('select');
@@ -4058,23 +4059,23 @@
                 this.battleEl.appendChild(this.fixedHpInput);
                 this.battleEl.appendChild(create('br'));
                 // Choose combos or active.
-                const actionSelect = create('select');
-                actionSelect.style.fontSize = 'xx-small';
-                actionSelect.onchange = () => {
-                    this.onTeamUpdate({ action: Number(actionSelect.value) });
+                // const actionSelect = create('select') as HTMLSelectElement;
+                this.actionSelect.style.fontSize = 'xx-small';
+                this.actionSelect.onchange = () => {
+                    this.onTeamUpdate({ action: Number(this.actionSelect.value) });
                 };
                 const comboOption = create('option');
                 comboOption.innerText = 'Apply Combos';
                 comboOption.value = String(ActionOptions.COMBO);
-                actionSelect.appendChild(comboOption);
+                this.actionSelect.appendChild(comboOption);
                 for (let i = 0; i < 12; i++) {
                     const activeOption = create('option');
                     activeOption.value = String(i);
                     activeOption.innerText = `${Math.floor(i / 2) + 1}:`;
-                    actionSelect.appendChild(activeOption);
+                    this.actionSelect.appendChild(activeOption);
                     this.actionOptions.push(activeOption);
                 }
-                this.battleEl.appendChild(actionSelect);
+                this.battleEl.appendChild(this.actionSelect);
                 this.applyActionButton.innerText = 'Use';
                 this.battleEl.appendChild(this.applyActionButton);
                 const leadSwapArea = create('div');
@@ -4127,12 +4128,26 @@
                 };
                 const multiplierRow = create('tr');
                 const baseBurstCell = create('td');
+                const burstReset = create('span', 'hover-click');
+                burstReset.innerText = 'X';
+                burstReset.onclick = () => {
+                    this.onTeamUpdate({
+                        burst: {
+                            multiplier: 1,
+                            awakenings: [],
+                            awakeningScale: 0,
+                            attrRestrictions: [],
+                            typeRestrictions: [],
+                        }
+                    });
+                };
                 const burstMultiplierLabel = create('span');
                 burstMultiplierLabel.innerText = 'Burst ';
                 this.burstMultiplierInput.value = '1';
                 this.burstMultiplierInput.type = 'number';
                 this.burstMultiplierInput.onchange = updateBurst;
                 this.burstMultiplierInput.style.width = '35px';
+                baseBurstCell.appendChild(burstReset);
                 baseBurstCell.appendChild(burstMultiplierLabel);
                 baseBurstCell.appendChild(this.burstMultiplierInput);
                 // const awakeningScaleArea = create('div');
@@ -4410,7 +4425,8 @@
                 this.fixedHpEl.setActive(teamBattle.fixedHp > 0);
                 this.fixedHpInput.value = common_2.addCommas(teamBattle.fixedHp);
             }
-            updateDamage(pings, rawPings, actualPings, enemyHp, healing) {
+            updateDamage(action, pings, rawPings, actualPings, enemyHp, healing) {
+                this.actionSelect.value = String(action);
                 while (pings.length < 13) {
                     pings.push({ attribute: common_2.Attribute.NONE, damage: 0 });
                     rawPings.push({ attribute: common_2.Attribute.NONE, damage: 0 });
@@ -7458,6 +7474,9 @@
                 }
                 this.update();
             }
+            setAction(idx) {
+                this.action = idx;
+            }
             skillBind() {
                 const count = this.countAwakening(common_7.Awakening.SBR);
                 if (count >= 5) {
@@ -7490,6 +7509,23 @@
                     }
                 }
                 this.activeMonster = idx;
+                // If the current action equals the active, choose inherit instead.
+                // If current action is the inherit, reset to combos.
+                // Otherwise set action to the base monster's active.
+                if (this.action == 2 * idx) {
+                    if (this.getActiveTeam()[idx].inheritId > 0) {
+                        this.action++;
+                    }
+                    else {
+                        this.action = -1;
+                    }
+                }
+                else if (this.action == 2 * idx + 1) {
+                    this.action = -1;
+                }
+                else {
+                    this.action = 2 * idx;
+                }
                 this.updateCb(idx);
             }
             resetState(partial = false) {
@@ -8257,6 +8293,18 @@
             getHp() {
                 const c = this.getCard();
                 return this.dungeonMultipliers.hp.multiply(calcScaleStat(c.enemyHpAtLv10, c.enemyHpAtLv1, this.lv, c.enemyHpCurve), Math.ceil);
+            }
+            setHp(hp) {
+                if (hp > this.getHp()) {
+                    hp = this.getHp();
+                }
+                if (hp < 0) {
+                    hp = 0;
+                }
+                this.currentHp = hp;
+                if (this.getHpPercent() <= 50 && this.currentAttribute == -1 && this.getCard().subattribute >= 0) {
+                    this.currentAttribute = this.getCard().subattribute;
+                }
             }
             getHpPercent() {
                 return Math.round(100 * this.currentHp / this.getHp());
@@ -11714,10 +11762,12 @@
                 };
                 this.team.teamPane.applyActionButton.onclick = () => {
                     const action = this.team.action;
-                    this.dungeon.getActiveEnemy().currentHp = this.updateDamage();
                     if (action == -1) {
+                        this.dungeon.getActiveEnemy().setHp(this.updateDamage());
                         return;
                     }
+                    this.team.setAction(-1);
+                    this.dungeon.getActiveEnemy().setHp(this.updateDamage());
                     const team = this.team.getActiveTeam();
                     const source = team[Math.floor(action / 2)];
                     const activeId = ilmina_stripped_11.floof.model.cards[action & 1 ? source.inheritId : source.getId()].activeSkillId;
@@ -11735,6 +11785,7 @@
                         isMultiplayer: this.team.isMultiplayer(),
                     });
                     actives_1.boardEffect(activeId, this.comboContainer);
+                    this.comboContainer.update();
                     this.updateDamage();
                     this.dungeon.update(false);
                 };
@@ -11925,7 +11976,7 @@
                 if (specialPing.actualDamage) {
                     pings = [...pings, specialPing];
                 }
-                this.team.teamPane.updateDamage(pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
+                this.team.teamPane.updateDamage(this.team.action, pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
                 return currentHp;
             }
             getElement() {
