@@ -982,7 +982,7 @@ class Team {
   damage(amount: number, _attr: Attribute) {
     // TODO: Account for leader skills and buffs;
     this.state.currentHp -= amount;
-    this.state.currentHp = Math.max(0, this.state.currentHp);
+    this.state.currentHp = Math.max(0, this.state.currentHp) || 0;
   }
 
   heal(amount: number, percent = 0) {

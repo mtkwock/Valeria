@@ -551,8 +551,9 @@ const pureSuicide: MonsterActive = {
 
 // 202
 const transform: MonsterActive = {
-  teamEffect: ([id], { source }) => {
+  teamEffect: ([id], { source, team }) => {
     source.transformedTo = id;
+    team.update();
   },
 };
 

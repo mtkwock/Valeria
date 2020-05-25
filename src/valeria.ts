@@ -15,6 +15,7 @@ import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
 import { textifyEnemySkills, textifyEnemySkill, effect as enemyEffect, toSkillContext } from './enemy_skills';
 import { getUrlParameter } from './url_handler';
 import { damage as activeDamage, teamEffect, enemyEffect as activeEnemyEffect, boardEffect } from './actives';
+import { TeamPhoto } from './team_photo';
 
 class Valeria {
   display: ValeriaDisplay = new ValeriaDisplay();
@@ -22,6 +23,9 @@ class Valeria {
   monsterEditor: MonsterEditor;
   team: Team;
   dungeon: DungeonInstance;
+  teamPhotoCanvas = document.createElement('canvas') as HTMLCanvasElement;
+  teamPhoto: TeamPhoto;
+
   constructor() {
     this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
 
@@ -104,8 +108,6 @@ class Valeria {
     this.team.updateCb = (): void => {
       this.updateMonsterEditor();
       this.updateDamage();
-      // console.log(healing);
-      // console.log(trueBonusAttack);
     }
     this.team.teamPane.applyActionButton.onclick = () => {
       const action = this.team.action;
@@ -167,11 +169,7 @@ class Valeria {
       }
     });
 
-    // debug.addButton('Use Preempt', () => {
-    //   this.usePreempt();
-    // });
-
-    debug.addButton('Use Next Skill', () => {
+    debug.addButton('Simulate Next Skill', () => {
       const attributes = new Set<Attribute>();
       const types = new Set<MonsterType>();
       for (const m of this.team.getActiveTeam()) {
@@ -211,6 +209,27 @@ class Valeria {
     this.dungeon.onEnemyChange = () => {
       this.usePreempt();
     };
+    this.teamPhotoCanvas.style.width = '100%';
+    this.teamPhoto = new TeamPhoto(this.teamPhotoCanvas);
+  }
+
+  drawTeam(): void {
+    for (let i = 0; i < this.team.playerMode; i++) {
+      const team = this.team.getTeamAt(i);
+      for (let j = 0; j < 6; j++) {
+        this.teamPhoto.drawMonster({
+          id: team[j].id,
+          teamIdx: i,
+          positionIdx: j,
+        });
+        this.teamPhoto.drawMonster({
+          id: team[j].inheritId,
+          teamIdx: i,
+          positionIdx: j,
+          isInherit: true,
+        });
+      }
+    }
   }
 
   usePreempt() {
@@ -361,6 +380,14 @@ async function init(): Promise<void> {
     loadingEl.style.display = 'none';
   }
   document.body.appendChild(valeria.getElement());
+  document.body.appendChild(valeria.dungeon.skillArea.getElement());
+  valeria.team.teamPane.metaTabs.getTab('Photo (Experimental)').appendChild(valeria.teamPhotoCanvas);
+  const photoTabLabel = valeria.team.teamPane.metaTabs.getTabLabel('Photo (Experimental)');
+  photoTabLabel.onclick = (): void => {
+    valeria.team.teamPane.metaTabs.setActiveTab('Photo (Experimental)');
+    valeria.drawTeam();
+  }
+  // document.body.appendChild(valeria.teamPhotoCanvas);
   if (localStorage.debug) {
     document.body.appendChild(debug.getElement());
   }

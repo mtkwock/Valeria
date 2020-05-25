@@ -47,6 +47,7 @@ interface GameContext {
 enum SkillType {
   EFFECT = 0,
   LOGIC = 1,
+  PASSIVE = 2,
 }
 
 interface EnemySkillEffect {
@@ -64,9 +65,9 @@ interface EnemySkillEffect {
 const TO_NEXT = -1;
 const TERMINATE = 0;
 
-function rangeTurns(begin: number, end: number): string {
+function range(begin: number, end: number, singular = ' turn', plural = ' turns'): string {
   begin = begin || 0;
-  const suffix = end == 1 ? ' turn' : ' turns';
+  const suffix = ' ' + (end == 1 ? singular : plural);
   if (begin == end) {
     return addCommas(end) + suffix;
   }
@@ -77,7 +78,7 @@ function rangeTurns(begin: number, end: number): string {
 const bindRandom: EnemySkillEffect = {
   textify: ({ skillArgs }) => {
     const [count, min, max] = skillArgs;
-    return `Binds ${count} of all monsters for ${rangeTurns(min, max)}.`
+    return `Binds ${count} of all monsters for ${range(min, max)}.`
   },
   condition: () => true,
   aiEffect: () => { },
@@ -93,7 +94,7 @@ const bindRandom: EnemySkillEffect = {
 const bindAttr: EnemySkillEffect = {
   textify: ({ skillArgs }, { atk }) => {
     const [color, min, max] = skillArgs;
-    return `Binds ${AttributeToName.get(color || 0)} monsters for ${rangeTurns(min, max)}. If none exist and part of skillset, hits for ${addCommas(atk)}. Else continue.`;
+    return `Binds ${AttributeToName.get(color || 0)} monsters for ${range(min, max)}. If none exist and part of skillset, hits for ${addCommas(atk)}. Else continue.`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -113,7 +114,7 @@ const bindAttr: EnemySkillEffect = {
 const bindType: EnemySkillEffect = {
   textify: ({ skillArgs }, { atk }) => {
     const [type, min, max] = skillArgs;
-    return `Binds ${TypeToName.get(type)} monsters for ${rangeTurns(min, max)}. If none exist, hits for ${addCommas(atk)}.`;
+    return `Binds ${TypeToName.get(type)} monsters for ${range(min, max)}. If none exist, hits for ${addCommas(atk)}.`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -161,7 +162,7 @@ const dispelBuffs: EnemySkillEffect = {
 
 // 7
 const healOrAttack: EnemySkillEffect = {
-  textify: ({ skillArgs }, { atk }) => `If player health less than ${addCommas(atk)}, deal ${addCommas(atk)}, otherwise heal for ${skillArgs[0]}-${skillArgs[1]}%`,
+  textify: ({ skillArgs }, { atk }) => `If player health less than ${addCommas(atk)}, deal ${addCommas(atk)}, otherwise heal for ${range(skillArgs[0], skillArgs[1], '', '')}%`,
   condition: () => true,
   aiEffect: () => { },
   effect: ({ skillArgs }, { team, enemy }) => {
@@ -182,7 +183,7 @@ const healOrAttack: EnemySkillEffect = {
 
 // 8
 const enhanceBasicAttack: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Force next move to be a ${100 + skillArgs[0]}-${100 + skillArgs[1]}% basic attack`,
+  textify: ({ skillArgs }) => `Force next move to be a ${range(skillArgs[0] + 100, skillArgs[1] + 100, '', '')}% basic attack`,
   condition: () => true,
   aiEffect: () => { },
   effect: ({ skillArgs }, { enemy }) => {
@@ -214,7 +215,7 @@ const multiOrbToJammer: EnemySkillEffect = {
 
 // 14
 const skillBind: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Skill bind for ${rangeTurns(skillArgs[0], skillArgs[1])}.`,
+  textify: ({ skillArgs }) => `Skill bind for ${range(skillArgs[0], skillArgs[1])}.`,
   condition: () => true,
   aiEffect: () => { },
   effect: (_, { team }) => {
@@ -389,7 +390,7 @@ const decrementCounterAndContinue: EnemySkillEffect = {
 
 // 28
 const gotoIfHpBelow: EnemySkillEffect = {
-  textify: ({ ai, rnd }) => `If HP <= ${ai}, go to skill ${rnd}`,
+  textify: ({ ai, rnd }) => `If HP <= ${ai}%, go to skill ${rnd}`,
   condition: () => true,
   aiEffect: () => { },
   effect: () => { },
@@ -474,7 +475,9 @@ const fallbackAttack: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: () => { },
+  effect: (_, { team, enemy }) => {
+    team.damage(enemy.getAtk(), enemy.getAttribute());
+  },
   goto: () => TERMINATE,
 };
 
@@ -528,7 +531,7 @@ const timeDebuff: EnemySkillEffect = {
   aiEffect: () => { },
   effect: ({ skillArgs }, { team }) => {
     const [flatDebuff, timePercent] = skillArgs.slice(1);
-    team.state.timeBonus = flatDebuff ? flatDebuff / -0.1 : timePercent / 100;
+    team.state.timeBonus = flatDebuff ? flatDebuff / -10 : timePercent / 100;
     team.state.timeIsMult = !flatDebuff;
   },
   goto: () => TERMINATE,
@@ -701,7 +704,7 @@ const attributeAbsorb: EnemySkillEffect = {
   textify: ({ skillArgs }) => {
     const [minTurns, maxTurns, attrIdxs] = skillArgs;
     const attrs = idxsFromBits(attrIdxs).map((c) => AttributeToName.get(c)).join(', ');
-    return `For ${rangeTurns(minTurns, maxTurns)}, absorb ${attrs}.`;
+    return `For ${range(minTurns, maxTurns)}, absorb ${attrs}.`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -745,7 +748,7 @@ const directedBindAll: EnemySkillEffect = {
 const healPlayer: EnemySkillEffect = {
   textify: ({ skillArgs }) => {
     const [min, max] = skillArgs;
-    return `Heal player for ${min}-${max}% HP`;
+    return `Heal player for ${range(min, max, '', '')}% HP`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -817,7 +820,7 @@ const attackAndBind: EnemySkillEffect = {
         text.push('Subs');
       }
     }
-    return `Hits once for ${percent} % (${addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${rangeTurns(min, max)}.`;
+    return `Hits once for ${percent} % (${addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${range(min, max)}.`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -849,7 +852,7 @@ const attackAndPoisonSpawn: EnemySkillEffect = {
 
 // 65
 const bindSubs: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Binds ${skillArgs[0]} for ${rangeTurns(skillArgs[1], skillArgs[2])}.`,
+  textify: ({ skillArgs }) => `Binds ${skillArgs[0]} for ${range(skillArgs[1], skillArgs[2])}.`,
   condition: () => true,
   aiEffect: () => { },
   effect: () => {
@@ -869,7 +872,7 @@ const skipTurn: EnemySkillEffect = {
 
 // 67
 const comboAbsorb: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Absorb ${skillArgs[2]} or fewer combos for ${rangeTurns(skillArgs[0], skillArgs[1])}.`,
+  textify: ({ skillArgs }) => `Absorb ${skillArgs[2]} or fewer combos for ${range(skillArgs[0], skillArgs[1])}.`,
   condition: () => true,
   aiEffect: () => { },
   effect: ({ skillArgs }, { enemy }) => {
@@ -897,6 +900,7 @@ const transformAnimation: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TO_NEXT,
+  type: SkillType.PASSIVE,
 };
 
 // 71
@@ -922,6 +926,7 @@ const attributeResist: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TO_NEXT,
+  type: SkillType.PASSIVE,
 };
 
 // 73
@@ -931,6 +936,7 @@ const resolve: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TO_NEXT,
+  type: SkillType.PASSIVE,
 };
 
 // 74
@@ -1160,7 +1166,7 @@ const attackAndChangeBoard: EnemySkillEffect = {
 
 // 86
 const healPercent: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Heal for ${skillArgs[0]}-${skillArgs[1]}% of max HP.`,
+  textify: ({ skillArgs }) => `Heal for ${range(skillArgs[0], skillArgs[1], '', '')}% of max HP.`,
   condition: () => true,
   aiEffect: () => { },
   effect: ({ skillArgs }, { enemy }) => {
@@ -1209,7 +1215,7 @@ const awokenBind: EnemySkillEffect = {
 // 89
 const skillDelay: EnemySkillEffect = {
   textify: ({ skillArgs }) => {
-    return `Skill Delay for ${skillArgs[0]}-${skillArgs[1]} turn(s)`;
+    return `Skill Delay for ${range(skillArgs[0], skillArgs[1])}.`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -1278,10 +1284,10 @@ const lockSkyfall: EnemySkillEffect = {
   textify: ({ skillArgs }) => {
     const [attrBits, minTurns, maxTurns, percent] = skillArgs;
     if (!attrBits || attrBits == -1) {
-      return `Lock ${percent}% skyfall for ${rangeTurns(minTurns, maxTurns)}.`;
+      return `Lock ${percent}% skyfall for ${range(minTurns, maxTurns)}.`;
     }
     const lockedOrbs = idxsFromBits(attrBits).map((c) => AttributeToName.get(c)).join(', ');
-    return `Lock ${percent}% of ${lockedOrbs} skyfall for ${minTurns}-${maxTurns}`;
+    return `Lock ${percent}% of ${lockedOrbs} skyfall for ${range(minTurns, maxTurns)}`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -1291,7 +1297,7 @@ const lockSkyfall: EnemySkillEffect = {
 
 // 97
 const randomStickyBlind: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Randomly sticky blind ${skillArgs[1]}-${skillArgs[2]} orbs for ${skillArgs[0]} turns.`,
+  textify: ({ skillArgs }) => `Randomly sticky blind ${range(skillArgs[1], skillArgs[2], ' orb', ' orbs')} for ${skillArgs[0]} turns.`,
   condition: () => true,
   aiEffect: () => { },
   effect: () => { }, // Implement later?!
@@ -1388,6 +1394,7 @@ const changeTurnTimer: EnemySkillEffect = {
   // This will occur in the damage step.
   effect: () => { },
   goto: () => TERMINATE,
+  type: SkillType.PASSIVE,
 }
 
 // 107
@@ -1404,7 +1411,7 @@ const attackAndMultiOrbChange: EnemySkillEffect = {
   textify: ({ skillArgs }, { atk }) => {
     const [percent, fromBits, toBits] = skillArgs;
     const damage = addCommas(Math.ceil(percent / 100 * atk));
-    const fromString = idxsFromBits(fromBits).map(from => AttributeToName.get(from));
+    const fromString = idxsFromBits(fromBits).map(from => AttributeToName.get(from) || 'Fire');
     const toString = idxsFromBits(toBits).map(to => AttributeToName.get(to));
     return `Hit for ${skillArgs[0]}% (${damage}) and convert ${fromString} to ${toString}`;
   },
@@ -1484,6 +1491,7 @@ const resistTypes: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TO_NEXT,
+  type: SkillType.PASSIVE,
 };
 
 // 119
@@ -1593,6 +1601,7 @@ const superResolve: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TO_NEXT,
+  type: SkillType.PASSIVE,
 };
 
 // 130
@@ -1842,7 +1851,7 @@ function determineSkillset(ctx: AiContext): EnemyEffect[] {
   while (idx < skills.length) {
     const skill = skills[idx];
     // Remaining charge cost insufficient.
-    if (skillType(ctx, idx) == SkillType.EFFECT && skill.aiArgs[3] > ctx.charges) {
+    if (skillType(ctx.cardId, idx) == SkillType.EFFECT && skill.aiArgs[3] > ctx.charges) {
       path.push({ idx, unusedReason: UnusedReason.INSUFFICIENT_CHARGES });
       idx++;
       continue;
@@ -1925,11 +1934,13 @@ export function aiEffect(ctx: AiContext, skillIdx: number) {
   return effect.aiEffect(skill, ctx);
 }
 
-export function skillType(ctx: AiContext, skillIdx: number): SkillType {
-  const skill = toSkillContext(ctx.cardId, skillIdx);
-  const effect = ENEMY_SKILL_GENERATORS[skill.effectId];
+export function skillType(enemyId: number, skillIdx: number): SkillType {
+  const baseSkill = floof.model.cards[enemyId].enemySkills[skillIdx];
+  const effectId = floof.model.enemySkills[baseSkill.enemySkillId].internalEffectId;
+  // const skill = toSkillContext(ctx.cardId, skillIdx);
+  const effect = ENEMY_SKILL_GENERATORS[effectId];
   if (!effect) {
-    console.error(`UNIMPLEMENTED EFFECT ID: ${skill.effectId} `);
+    console.error(`UNIMPLEMENTED EFFECT ID: ${effectId} `);
     return SkillType.EFFECT;
   }
   return effect.type || SkillType.EFFECT;

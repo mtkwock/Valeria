@@ -1,8 +1,8 @@
 import { BASE_URL, waitFor, Rational, Attribute, MonsterType } from './common';
 import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
-import { DungeonPane, DungeonUpdate } from './templates';
-import { determineSkillset } from './enemy_skills';
+import { DungeonPane, DungeonUpdate, EnemySkillArea } from './templates';
+import { determineSkillset, textifyEnemySkill, skillType } from './enemy_skills';
 // import { debug } from './debugger';
 // import { floof } from './ilmina_stripped';
 // import {DungeonEditor} from './templates';
@@ -200,6 +200,7 @@ class DungeonInstance {
   activeEnemy: number = 0;
 
   pane: DungeonPane;
+  skillArea: EnemySkillArea;
   onEnemySkill: (skillIdx: number, otherSkills: number[]) => void = () => null;
   onEnemyChange: () => void = () => { };
 
@@ -219,6 +220,9 @@ class DungeonInstance {
     // Sets all of your monsters to level 1 temporarily.
     this.floors = [new DungeonFloor()];
     this.pane = new DungeonPane(dungeonSearchArray, this.getUpdateFunction());
+    this.skillArea = new EnemySkillArea((idx: number) => {
+      this.onEnemySkill(idx, []);
+    });
   }
 
   useEnemySkill(
@@ -322,7 +326,6 @@ class DungeonInstance {
 
       const updateActiveEnemy = newEnemy >= 0;
       if (updateActiveEnemy) {
-        // this.activeFloor = newEnemy.floor;
         this.setActiveEnemy(newEnemy);
       }
 
@@ -421,7 +424,16 @@ class DungeonInstance {
   update(updateActiveEnemy: boolean) {
     this.pane.dungeonEditor.setEnemies(this.floors.map((floor) => floor.getEnemyIds()));
     if (updateActiveEnemy) {
+      const e = this.getActiveEnemy();
+      const c = e.getCard();
+      const a = e.getAtk();
+      const skillTexts = this.getActiveEnemy().getCard().enemySkills
+        .map((_, i) => ({
+          description: textifyEnemySkill({ id: c.id, atk: a }, i),
+          active: skillType(c.id, i) == 0,
+        }))
       this.pane.dungeonEditor.setActiveEnemy(this.activeFloor, this.activeEnemy);
+      this.skillArea.update(skillTexts);
     }
     const enemy = this.getActiveEnemy();
     this.pane.dungeonEditor.setDungeonMultipliers(

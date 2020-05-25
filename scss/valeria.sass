@@ -252,6 +252,19 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   border-left: $white-border
   border-bottom: $white-border
   border-right: $white-border
+  // min-height: 400px
+  // max-height: 800px
+  overflow-y: scroll
+
+.valeria > table > tr > td > div.valeria-tabbed > .valeria-tabbed-tab-selected
+  height: 750px
+  // overflow-y: scroll
+
+.valeria > table > tr > td > div > div.valeria-tabbed > .valeria-tabbed-tab-selected
+  height: 750px
+
+.valeria-tabbed-tab-selected::-webkit-scrollbar
+  display: none
 
 .valeria-team-storage
   cursor: auto
@@ -462,11 +475,8 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   width: $icon-size - 1
 
 .valeria-floor-container
-  max-height: 100px
+  max-height: 300px
   overflow-y: scroll
-
-.valeria-floor-container:hover
-  max-height: 400px
 
 .valeria-enemy-picture-container
   width: 100%
@@ -478,6 +488,16 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   display: block
   margin-left: auto
   margin-right: auto
+
+.valeria-enemy-skill-area
+  font-size: x-small
+  max-height: 250px
+  overflow-y: scroll
+  border: $white-border
+
+.valeria-enemy-skill-area > li:not(.valeria-half-opacity):hover
+  cursor: pointer
+  background-color: gray
 
 // .valeria-floor-add
 // valeria-floor-delete

@@ -114,6 +114,7 @@ enum ClassNames {
   FLOOR_ENEMY_ADD = 'valeria-floor-enemy-add',
   FLOOR_ENEMY_DELETE = 'valeria-floor-delete',
   ENEMY_STAT_TABLE = 'valeria-enemy-stat-table',
+  ENEMY_SKILL_AREA = 'valeria-enemy-skill-area',
 
   VALERIA = 'valeria',
 }
@@ -819,10 +820,10 @@ class ComboEditor {
 }
 
 class TabbedComponent {
-  tabNames_: string[];
-  element_: HTMLElement;
-  labels_: Record<string, HTMLTableColElement>;
-  tabs_: Record<string, HTMLElement>;
+  private tabNames: string[];
+  private element: HTMLElement;
+  private labels: Record<string, HTMLTableColElement>;
+  private tabs: Record<string, HTMLElement>;
 
   constructor(tabNames: string[], defaultTab: string = '') {
     if (!tabNames.length) {
@@ -831,16 +832,16 @@ class TabbedComponent {
     if (!defaultTab || !tabNames.some((name) => name == defaultTab)) {
       defaultTab = tabNames[0];
     }
-    this.element_ = create('div', ClassNames.TABBED);
-    this.tabNames_ = [...tabNames];
+    this.element = create('div', ClassNames.TABBED);
+    this.tabNames = [...tabNames];
 
     const labelTable = create('table') as HTMLTableElement;
     const labelRow = create('tr') as HTMLTableRowElement;
     labelTable.appendChild(labelRow);
-    this.element_.appendChild(labelTable);
+    this.element.appendChild(labelTable);
 
-    this.labels_ = {};
-    this.tabs_ = {};
+    this.labels = {};
+    this.tabs = {};
 
     for (const tabName of tabNames) {
       const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABEL_SELECTED : ClassNames.TABBED_LABEL;
@@ -848,36 +849,40 @@ class TabbedComponent {
       label.innerText = tabName;
       label.onclick = () => this.setActiveTab(tabName);
       labelRow.appendChild(label);
-      this.labels_[tabName] = label;
+      this.labels[tabName] = label;
 
       const tabClassName = tabName == defaultTab ? ClassNames.TABBED_TAB_SELECTED : ClassNames.TABBED_TAB;
       const tab = create('div', tabClassName);
-      this.element_.appendChild(tab);
-      this.tabs_[tabName] = tab;
+      this.element.appendChild(tab);
+      this.tabs[tabName] = tab;
     }
   }
 
   getElement(): HTMLElement {
-    return this.element_;
+    return this.element;
+  }
+
+  getTabLabel(tabName: string): HTMLElement {
+    return this.labels[tabName];
   }
 
   setActiveTab(activeTabName: string): void {
-    for (const tabName of this.tabNames_) {
+    for (const tabName of this.tabNames) {
       if (tabName == activeTabName) {
-        this.labels_[tabName].className = ClassNames.TABBED_LABEL_SELECTED;
-        this.tabs_[tabName].className = ClassNames.TABBED_TAB_SELECTED;
+        this.labels[tabName].className = ClassNames.TABBED_LABEL_SELECTED;
+        this.tabs[tabName].className = ClassNames.TABBED_TAB_SELECTED;
       } else {
-        this.labels_[tabName].className = ClassNames.TABBED_LABEL;
-        this.tabs_[tabName].className = ClassNames.TABBED_TAB;
+        this.labels[tabName].className = ClassNames.TABBED_LABEL;
+        this.tabs[tabName].className = ClassNames.TABBED_TAB;
       }
     }
   }
 
   getTab(tabName: string): HTMLElement {
-    if (!(tabName in this.tabs_)) {
+    if (!(tabName in this.tabs)) {
       throw 'Invalid tab name: ' + tabName;
     }
-    return this.tabs_[tabName];
+    return this.tabs[tabName];
   }
 }
 
@@ -1862,7 +1867,7 @@ class TeamPane {
   private totalTimeValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   battleEl: HTMLDivElement = create('div') as HTMLDivElement;
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
-  private metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load']);
+  metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load', 'Photo (Experimental)']);
   private detailTabs: TabbedComponent = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
   private onTeamUpdate: (ctx: TeamUpdate) => void;
   private hpBar: HpBar;
@@ -2576,6 +2581,60 @@ interface EnemyStatsUpdate {
   maxCharges: number;
 }
 
+class EnemySkillArea {
+  private static MAX_SKILLS = 75;
+
+  private element: HTMLElement = create('div');
+  private skillDescriptors: HTMLElement[] = [];
+  private onSkillCb: (id: number) => void;
+
+  constructor(onSkillCb: (id: number) => void) {
+    this.onSkillCb = onSkillCb;
+
+    const skillList = create('ol', ClassNames.ENEMY_SKILL_AREA) as HTMLOListElement;
+
+    for (let i = 0; i < EnemySkillArea.MAX_SKILLS; i++) {
+      const descriptor = create('li') as HTMLLIElement;
+      descriptor.onclick = () => {
+        if (descriptor.classList.contains(ClassNames.HALF_OPACITY)) {
+          return;
+        }
+        this.onSkillCb(i);
+      };
+      superHide(descriptor);
+      this.skillDescriptors.push(descriptor);
+      skillList.appendChild(descriptor);
+    }
+
+    this.element.appendChild(skillList);
+  }
+
+  getElement(): HTMLElement {
+    return this.element;
+  }
+
+  update(skills: { description: string; active: boolean }[]): void {
+    for (let i = 0; i < EnemySkillArea.MAX_SKILLS; i++) {
+      const descriptor = this.skillDescriptors[i];
+      if (!skills[i]) {
+        superHide(descriptor);
+        continue;
+      }
+      superShow(descriptor);
+      const { description, active } = skills[i];
+      descriptor.innerText = description;
+
+      if (active) {
+        descriptor.classList.remove(ClassNames.HALF_OPACITY);
+        // descriptor.style.cursor = 'pointer';
+      } else {
+        descriptor.classList.add(ClassNames.HALF_OPACITY);
+        // descriptor.style.cursor = '';
+      }
+    }
+  }
+}
+
 class DungeonEditor {
   element: HTMLElement = create('div');
   dungeonFloorTable: HTMLTableElement = create('table', ClassNames.DUNGEON_EDITOR_FLOORS) as HTMLTableElement;
@@ -3036,7 +3095,7 @@ class DungeonEditor {
         const el = this.dungeonEnemies[i][j].getElement();
         if (i == floor && j == monster) {
           el.className = ClassNames.ICON_SELECTED;
-          el.scrollIntoView({ block: 'nearest' });
+          // el.scrollIntoView({ block: 'nearest' });
           const id = this.dungeonEnemies[i][j].id;
           this.enemyPicture.updateId(id);
           const card = floof.model.cards[id];
@@ -3242,4 +3301,5 @@ export {
   create,
   MonsterUpdate, OnMonsterUpdate,
   LayeredAsset, AssetEnum,
+  EnemySkillArea,
 }
