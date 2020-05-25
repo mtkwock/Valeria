@@ -3854,6 +3854,14 @@
                 this.applyActionButton = create('button');
                 this.leadSwapInput = create('select');
                 this.voidEls = [];
+                this.burstMultiplierInput = create('input');
+                this.burstAwakeningScaleInput = create('input');
+                this.burstAwakeningSelect1 = create('select');
+                this.burstAwakeningSelect2 = create('select');
+                this.burstTypeSelect1 = create('select');
+                this.burstTypeSelect2 = create('select');
+                this.burstAttrSelect1 = create('select');
+                this.burstAttrSelect2 = create('select');
                 this.pingCells = [];
                 this.bonusPing = create('td');
                 this.pingTotal = create('td');
@@ -4095,6 +4103,102 @@
                 leadSwapArea.appendChild(leadSwapLabel);
                 leadSwapArea.appendChild(this.leadSwapInput);
                 this.battleEl.appendChild(leadSwapArea);
+                /**
+                Burst [  ]  +[  ]x per    [Awakening1]
+                                          [Awakening2]
+                Restricted  [Attribute1]  [Type1]
+                            [Attribute2]  [Type2]
+                 */
+                const burstTable = create('table');
+                burstTable.style.fontSize = 'small';
+                const updateBurst = () => {
+                    const awakenings = [this.burstAwakeningSelect1.value, this.burstAwakeningSelect2.value].map(Number).filter(Boolean);
+                    const attrRestrictions = [this.burstAttrSelect1.value, this.burstAttrSelect2.value].map(Number).filter(n => n >= 0);
+                    const typeRestrictions = [this.burstTypeSelect1.value, this.burstTypeSelect2.value].map(Number).filter(n => n >= 0);
+                    this.onTeamUpdate({
+                        burst: {
+                            multiplier: Number(this.burstMultiplierInput.value) || 1,
+                            awakenings,
+                            awakeningScale: Number(this.burstAwakeningScaleInput.value) || 0,
+                            attrRestrictions,
+                            typeRestrictions,
+                        },
+                    });
+                };
+                const multiplierRow = create('tr');
+                const baseBurstCell = create('td');
+                const burstMultiplierLabel = create('span');
+                burstMultiplierLabel.innerText = 'Burst ';
+                this.burstMultiplierInput.value = '1';
+                this.burstMultiplierInput.type = 'number';
+                this.burstMultiplierInput.onchange = updateBurst;
+                this.burstMultiplierInput.style.width = '35px';
+                baseBurstCell.appendChild(burstMultiplierLabel);
+                baseBurstCell.appendChild(this.burstMultiplierInput);
+                // const awakeningScaleArea = create('div');
+                const burstScaleCell = create('td');
+                burstScaleCell.appendChild(document.createTextNode('+ '));
+                this.burstAwakeningScaleInput.onchange = updateBurst;
+                this.burstAwakeningScaleInput.style.width = '35px';
+                burstScaleCell.appendChild(this.burstAwakeningScaleInput);
+                burstScaleCell.appendChild(document.createTextNode('x per '));
+                const burstAwakeningCell = create('td');
+                for (let i = 0; i < common_2.AwakeningToName.length; i++) {
+                    const option1 = create('option');
+                    const option2 = create('option');
+                    option1.innerText = i == 0 ? 'Awakening1' : common_2.AwakeningToName[i];
+                    option2.innerText = i == 0 ? 'Awakening2' : common_2.AwakeningToName[i];
+                    option1.value = String(i);
+                    option2.value = String(i);
+                    this.burstAwakeningSelect1.appendChild(option1);
+                    this.burstAwakeningSelect2.appendChild(option2);
+                }
+                this.burstAwakeningSelect1.onchange = updateBurst;
+                burstAwakeningCell.appendChild(this.burstAwakeningSelect1);
+                this.burstAwakeningSelect2.onchange = updateBurst;
+                burstAwakeningCell.appendChild(this.burstAwakeningSelect2);
+                multiplierRow.appendChild(baseBurstCell);
+                multiplierRow.appendChild(burstScaleCell);
+                multiplierRow.appendChild(burstAwakeningCell);
+                const restrictionRow = create('tr');
+                const restrictionLabelCell = create('td');
+                restrictionLabelCell.innerText = 'Restrictions';
+                const attrRestrictionCell = create('td');
+                for (let i = -1; i < 5; i++) {
+                    const option1 = create('option');
+                    const option2 = create('option');
+                    option1.innerText = i == -1 ? 'Attr' : common_2.AttributeToName.get(i) || '';
+                    option2.innerText = i == -1 ? 'Attr' : common_2.AttributeToName.get(i) || '';
+                    option1.value = String(i);
+                    option2.value = String(i);
+                    this.burstAttrSelect1.appendChild(option1);
+                    this.burstAttrSelect2.appendChild(option2);
+                }
+                this.burstAttrSelect1.onchange = updateBurst;
+                attrRestrictionCell.appendChild(this.burstAttrSelect1);
+                this.burstAttrSelect2.onchange = updateBurst;
+                attrRestrictionCell.appendChild(this.burstAttrSelect2);
+                const typeRestrictionCell = create('td');
+                for (const i of [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 14, 15,]) {
+                    const option1 = create('option');
+                    const option2 = create('option');
+                    option1.innerText = i == -1 ? 'Type' : common_2.TypeToName.get(i) || '';
+                    option2.innerText = i == -1 ? 'Type' : common_2.TypeToName.get(i) || '';
+                    option1.value = String(i);
+                    option2.value = String(i);
+                    this.burstTypeSelect1.appendChild(option1);
+                    this.burstTypeSelect2.appendChild(option2);
+                }
+                this.burstTypeSelect1.onchange = updateBurst;
+                typeRestrictionCell.appendChild(this.burstTypeSelect1);
+                this.burstTypeSelect2.onchange = updateBurst;
+                typeRestrictionCell.appendChild(this.burstTypeSelect2);
+                restrictionRow.appendChild(restrictionLabelCell);
+                restrictionRow.appendChild(attrRestrictionCell);
+                restrictionRow.appendChild(typeRestrictionCell);
+                burstTable.appendChild(multiplierRow);
+                burstTable.appendChild(restrictionRow);
+                this.battleEl.appendChild(burstTable);
                 // Player State including
                 // * Void Attr, Void
                 const voidDamageAbsorb = new LayeredAsset([AssetEnum.SHIELD_BASE, AssetEnum.ABSORB_OVERLAY, AssetEnum.VOID], (active) => {
@@ -4284,6 +4388,22 @@
                     }
                 }
                 this.leadSwapInput.value = `${teamBattle.leadSwap}`;
+                this.burstMultiplierInput.value = String(teamBattle.burst.multiplier);
+                this.burstAwakeningScaleInput.value = String(teamBattle.burst.awakeningScale);
+                this.burstAwakeningSelect1.value = String(teamBattle.burst.awakenings[0] || 0);
+                this.burstAwakeningSelect2.value = String(teamBattle.burst.awakenings[1] || 0);
+                this.burstAttrSelect1.value = teamBattle.burst.attrRestrictions.length
+                    ? String(teamBattle.burst.attrRestrictions[0])
+                    : '-1';
+                this.burstAttrSelect2.value = teamBattle.burst.attrRestrictions.length > 1
+                    ? String(teamBattle.burst.attrRestrictions[1])
+                    : '-1';
+                this.burstTypeSelect1.value = teamBattle.burst.typeRestrictions.length
+                    ? String(teamBattle.burst.typeRestrictions[0])
+                    : '-1';
+                this.burstTypeSelect2.value = teamBattle.burst.typeRestrictions.length > 1
+                    ? String(teamBattle.burst.typeRestrictions[1])
+                    : '-1';
                 for (const idx in teamBattle.voids) {
                     this.voidEls[idx].setActive(teamBattle.voids[idx]);
                 }
@@ -7319,6 +7439,9 @@
                     if (ctx.voidAwakenings != undefined) {
                         this.state.awakenings = !ctx.voidAwakenings;
                     }
+                    if (ctx.burst != undefined) {
+                        this.state.burst = ctx.burst;
+                    }
                     this.update();
                 });
                 this.updateCb = () => { };
@@ -7961,6 +8084,7 @@
                     voids: [this.state.voidDamageAbsorb, this.state.voidAttributeAbsorb, this.state.voidDamageVoid, !this.state.awakenings],
                     fixedHp: this.state.fixedHp,
                     ids: ns.concat(...this.getActiveTeam().map((m) => [m.getId(), m.inheritId])),
+                    burst: this.state.burst,
                 });
                 this.updateCb(this.activeMonster);
             }
@@ -8435,6 +8559,7 @@
         const shield = {
             teamEffect: ([_, shieldPercent], { team }) => {
                 team.state.shieldPercent = shieldPercent;
+                team.update();
             },
         };
         // 4
@@ -8462,6 +8587,7 @@
         const flatHeal = {
             teamEffect: ([amount], { team }) => {
                 team.heal(amount);
+                team.update();
             },
         };
         // 9
@@ -8517,6 +8643,7 @@
                 })[0];
                 const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
                 ctx.team.heal(healAmount);
+                ctx.team.update();
             },
         };
         // 37
@@ -8549,6 +8676,7 @@
                         awakenings: [],
                     };
                 }
+                team.update();
             },
         };
         // 51
@@ -8593,6 +8721,7 @@
             teamEffect: ([_, _a, _b, suicideTo], { team }) => {
                 suicideTo = suicideTo || 0;
                 team.state.currentHp = Math.max(1, Math.floor(team.state.currentHp * suicideTo / 100));
+                team.update();
             },
         };
         // 85
@@ -8614,6 +8743,7 @@
                     awakenings: [],
                     awakeningScale: 0,
                 };
+                team.update();
             },
         };
         // 90
@@ -8626,6 +8756,7 @@
                     awakenings: [],
                     awakeningScale: 0,
                 };
+                team.update();
             },
         };
         // 92
@@ -8684,6 +8815,7 @@
                 })[0];
                 const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
                 ctx.team.heal(healAmount);
+                ctx.team.update();
             },
         };
         // 116 + 138
@@ -8732,6 +8864,7 @@
                 if (healing) {
                     team.heal(healing);
                 }
+                team.update();
             },
         };
         // 127
@@ -8747,14 +8880,16 @@
                     team.state.timeBonus = seconds10 / 10;
                     team.state.timeIsMult = false;
                 }
+                team.update();
             },
         };
         // 141
         const randomOrbSpawn = {};
         // 142
         const selfAttributeChange = {
-            teamEffect: ([_, attr], { source }) => {
+            teamEffect: ([_, attr], { source, team }) => {
                 source.attribute = attr;
+                team.update();
             },
         };
         // 144
@@ -8813,7 +8948,8 @@
                     const shieldPercent = Math.min(100, count * mult100);
                     team.state.shieldPercent = shieldPercent;
                 }
-            }
+                team.update();
+            },
         };
         // 160
         const addCombos = {
@@ -8830,11 +8966,26 @@
                 return [ping];
             },
         };
+        // 168
+        const burstFromAwakeningCount = {
+            teamEffect: ([_turns, awakening1, awakening2, awakening3, awakening4, awakening5, awakening6, mult100], { team }) => {
+                const awakenings = [awakening1, awakening2, awakening3, awakening4, awakening5, awakening6].filter(Boolean);
+                team.state.burst = {
+                    awakenings,
+                    awakeningScale: mult100 / 100,
+                    multiplier: 1,
+                    typeRestrictions: [],
+                    attrRestrictions: [],
+                };
+                team.update();
+            },
+        };
         // 173
         const voidAbsorb = {
             teamEffect: ([_, includeAttribute, _a, includeDamage], { team }) => {
                 team.state.voidAttributeAbsorb = team.state.voidAttributeAbsorb || Boolean(includeAttribute);
                 team.state.voidDamageAbsorb = team.state.voidDamageAbsorb || Boolean(includeDamage);
+                team.update();
             },
         };
         // 184
@@ -8843,12 +8994,14 @@
         const voidDamageVoid = {
             teamEffect: (_, { team }) => {
                 team.state.voidDamageVoid = true;
+                team.update();
             },
         };
         // 195
         const pureSuicide = {
             teamEffect: ([suicideTo], { team }) => {
                 team.state.currentHp = Math.max(1, Math.floor(team.state.currentHp * suicideTo / 100));
+                team.update();
             },
         };
         // 202
@@ -8906,6 +9059,7 @@
             156: effectFromAwakeningCount,
             160: addCombos,
             161: trueGravity,
+            168: burstFromAwakeningCount,
             173: voidAbsorb,
             184: noSkyfall,
             188: fixedDamageToOneEnemy,
