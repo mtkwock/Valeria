@@ -245,6 +245,19 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   border-left: 1px solid white;
   border-bottom: 1px solid white;
   border-right: 1px solid white;
+  overflow-y: scroll;
+}
+
+.valeria > table > tr > td > div.valeria-tabbed > .valeria-tabbed-tab-selected {
+  height: 750px;
+}
+
+.valeria > table > tr > td > div > div.valeria-tabbed > .valeria-tabbed-tab-selected {
+  height: 750px;
+}
+
+.valeria-tabbed-tab-selected::-webkit-scrollbar {
+  display: none;
 }
 
 .valeria-team-storage {
@@ -501,12 +514,8 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 }
 
 .valeria-floor-container {
-  max-height: 100px;
+  max-height: 300px;
   overflow-y: scroll;
-}
-
-.valeria-floor-container:hover {
-  max-height: 400px;
 }
 
 .valeria-enemy-picture-container {
@@ -520,6 +529,18 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   display: block;
   margin-left: auto;
   margin-right: auto;
+}
+
+.valeria-enemy-skill-area {
+  font-size: x-small;
+  max-height: 250px;
+  overflow-y: scroll;
+  border: 1px solid white;
+}
+
+.valeria-enemy-skill-area > li:not(.valeria-half-opacity):hover {
+  cursor: pointer;
+  background-color: gray;
 }
 
 .valeria-floor-enemy-add {

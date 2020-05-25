@@ -2363,6 +2363,7 @@
             ClassNames["FLOOR_ENEMY_ADD"] = "valeria-floor-enemy-add";
             ClassNames["FLOOR_ENEMY_DELETE"] = "valeria-floor-delete";
             ClassNames["ENEMY_STAT_TABLE"] = "valeria-enemy-stat-table";
+            ClassNames["ENEMY_SKILL_AREA"] = "valeria-enemy-skill-area";
             ClassNames["VALERIA"] = "valeria";
         })(ClassNames || (ClassNames = {}));
         exports.ClassNames = ClassNames;
@@ -3002,47 +3003,50 @@
                 if (!defaultTab || !tabNames.some((name) => name == defaultTab)) {
                     defaultTab = tabNames[0];
                 }
-                this.element_ = create('div', ClassNames.TABBED);
-                this.tabNames_ = [...tabNames];
+                this.element = create('div', ClassNames.TABBED);
+                this.tabNames = [...tabNames];
                 const labelTable = create('table');
                 const labelRow = create('tr');
                 labelTable.appendChild(labelRow);
-                this.element_.appendChild(labelTable);
-                this.labels_ = {};
-                this.tabs_ = {};
+                this.element.appendChild(labelTable);
+                this.labels = {};
+                this.tabs = {};
                 for (const tabName of tabNames) {
                     const labelClassName = tabName == defaultTab ? ClassNames.TABBED_LABEL_SELECTED : ClassNames.TABBED_LABEL;
                     const label = create('td', labelClassName);
                     label.innerText = tabName;
                     label.onclick = () => this.setActiveTab(tabName);
                     labelRow.appendChild(label);
-                    this.labels_[tabName] = label;
+                    this.labels[tabName] = label;
                     const tabClassName = tabName == defaultTab ? ClassNames.TABBED_TAB_SELECTED : ClassNames.TABBED_TAB;
                     const tab = create('div', tabClassName);
-                    this.element_.appendChild(tab);
-                    this.tabs_[tabName] = tab;
+                    this.element.appendChild(tab);
+                    this.tabs[tabName] = tab;
                 }
             }
             getElement() {
-                return this.element_;
+                return this.element;
+            }
+            getTabLabel(tabName) {
+                return this.labels[tabName];
             }
             setActiveTab(activeTabName) {
-                for (const tabName of this.tabNames_) {
+                for (const tabName of this.tabNames) {
                     if (tabName == activeTabName) {
-                        this.labels_[tabName].className = ClassNames.TABBED_LABEL_SELECTED;
-                        this.tabs_[tabName].className = ClassNames.TABBED_TAB_SELECTED;
+                        this.labels[tabName].className = ClassNames.TABBED_LABEL_SELECTED;
+                        this.tabs[tabName].className = ClassNames.TABBED_TAB_SELECTED;
                     }
                     else {
-                        this.labels_[tabName].className = ClassNames.TABBED_LABEL;
-                        this.tabs_[tabName].className = ClassNames.TABBED_TAB;
+                        this.labels[tabName].className = ClassNames.TABBED_LABEL;
+                        this.tabs[tabName].className = ClassNames.TABBED_TAB;
                     }
                 }
             }
             getTab(tabName) {
-                if (!(tabName in this.tabs_)) {
+                if (!(tabName in this.tabs)) {
                     throw 'Invalid tab name: ' + tabName;
                 }
-                return this.tabs_[tabName];
+                return this.tabs[tabName];
             }
         }
         exports.TabbedComponent = TabbedComponent;
@@ -3842,7 +3846,7 @@
                 this.totalTimeValue = create('span', ClassNames.STAT_TOTAL_VALUE);
                 this.battleEl = create('div');
                 this.aggregatedAwakeningCounts = new Map();
-                this.metaTabs = new TabbedComponent(['Team', 'Save/Load']);
+                this.metaTabs = new TabbedComponent(['Team', 'Save/Load', 'Photo (Experimental)']);
                 this.detailTabs = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
                 this.fixedHpEl = new LayeredAsset([], () => { });
                 this.fixedHpInput = create('input');
@@ -4380,6 +4384,52 @@
                 this.setType(this.type);
             }
         }
+        class EnemySkillArea {
+            constructor(onSkillCb) {
+                this.element = create('div');
+                this.skillDescriptors = [];
+                this.onSkillCb = onSkillCb;
+                const skillList = create('ol', ClassNames.ENEMY_SKILL_AREA);
+                for (let i = 0; i < EnemySkillArea.MAX_SKILLS; i++) {
+                    const descriptor = create('li');
+                    descriptor.onclick = () => {
+                        if (descriptor.classList.contains(ClassNames.HALF_OPACITY)) {
+                            return;
+                        }
+                        this.onSkillCb(i);
+                    };
+                    superHide(descriptor);
+                    this.skillDescriptors.push(descriptor);
+                    skillList.appendChild(descriptor);
+                }
+                this.element.appendChild(skillList);
+            }
+            getElement() {
+                return this.element;
+            }
+            update(skills) {
+                for (let i = 0; i < EnemySkillArea.MAX_SKILLS; i++) {
+                    const descriptor = this.skillDescriptors[i];
+                    if (!skills[i]) {
+                        superHide(descriptor);
+                        continue;
+                    }
+                    superShow(descriptor);
+                    const { description, active } = skills[i];
+                    descriptor.innerText = description;
+                    if (active) {
+                        descriptor.classList.remove(ClassNames.HALF_OPACITY);
+                        // descriptor.style.cursor = 'pointer';
+                    }
+                    else {
+                        descriptor.classList.add(ClassNames.HALF_OPACITY);
+                        // descriptor.style.cursor = '';
+                    }
+                }
+            }
+        }
+        exports.EnemySkillArea = EnemySkillArea;
+        EnemySkillArea.MAX_SKILLS = 75;
         class DungeonEditor {
             constructor(dungeonNames, onUpdate) {
                 this.element = create('div');
@@ -4769,7 +4819,7 @@
                         const el = this.dungeonEnemies[i][j].getElement();
                         if (i == floor && j == monster) {
                             el.className = ClassNames.ICON_SELECTED;
-                            el.scrollIntoView({ block: 'nearest' });
+                            // el.scrollIntoView({ block: 'nearest' });
                             const id = this.dungeonEnemies[i][j].id;
                             this.enemyPicture.updateId(id);
                             const card = ilmina_stripped_3.floof.model.cards[id];
@@ -7930,7 +7980,7 @@
             damage(amount, _attr) {
                 // TODO: Account for leader skills and buffs;
                 this.state.currentHp -= amount;
-                this.state.currentHp = Math.max(0, this.state.currentHp);
+                this.state.currentHp = Math.max(0, this.state.currentHp) || 0;
             }
             heal(amount, percent = 0) {
                 this.state.currentHp += amount;
@@ -8803,8 +8853,9 @@
         };
         // 202
         const transform = {
-            teamEffect: ([id], { source }) => {
+            teamEffect: ([id], { source, team }) => {
                 source.transformedTo = id;
+                team.update();
             },
         };
         const ACTIVE_GENERATORS = {
@@ -9098,12 +9149,13 @@
         (function (SkillType) {
             SkillType[SkillType["EFFECT"] = 0] = "EFFECT";
             SkillType[SkillType["LOGIC"] = 1] = "LOGIC";
+            SkillType[SkillType["PASSIVE"] = 2] = "PASSIVE";
         })(SkillType || (SkillType = {}));
         const TO_NEXT = -1;
         const TERMINATE = 0;
-        function rangeTurns(begin, end) {
+        function range(begin, end, singular = ' turn', plural = ' turns') {
             begin = begin || 0;
-            const suffix = end == 1 ? ' turn' : ' turns';
+            const suffix = ' ' + (end == 1 ? singular : plural);
             if (begin == end) {
                 return common_10.addCommas(end) + suffix;
             }
@@ -9113,7 +9165,7 @@
         const bindRandom = {
             textify: ({ skillArgs }) => {
                 const [count, min, max] = skillArgs;
-                return `Binds ${count} of all monsters for ${rangeTurns(min, max)}.`;
+                return `Binds ${count} of all monsters for ${range(min, max)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9128,7 +9180,7 @@
         const bindAttr = {
             textify: ({ skillArgs }, { atk }) => {
                 const [color, min, max] = skillArgs;
-                return `Binds ${common_10.AttributeToName.get(color || 0)} monsters for ${rangeTurns(min, max)}. If none exist and part of skillset, hits for ${common_10.addCommas(atk)}. Else continue.`;
+                return `Binds ${common_10.AttributeToName.get(color || 0)} monsters for ${range(min, max)}. If none exist and part of skillset, hits for ${common_10.addCommas(atk)}. Else continue.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9147,7 +9199,7 @@
         const bindType = {
             textify: ({ skillArgs }, { atk }) => {
                 const [type, min, max] = skillArgs;
-                return `Binds ${common_10.TypeToName.get(type)} monsters for ${rangeTurns(min, max)}. If none exist, hits for ${common_10.addCommas(atk)}.`;
+                return `Binds ${common_10.TypeToName.get(type)} monsters for ${range(min, max)}. If none exist, hits for ${common_10.addCommas(atk)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9191,7 +9243,7 @@
         };
         // 7
         const healOrAttack = {
-            textify: ({ skillArgs }, { atk }) => `If player health less than ${common_10.addCommas(atk)}, deal ${common_10.addCommas(atk)}, otherwise heal for ${skillArgs[0]}-${skillArgs[1]}%`,
+            textify: ({ skillArgs }, { atk }) => `If player health less than ${common_10.addCommas(atk)}, deal ${common_10.addCommas(atk)}, otherwise heal for ${range(skillArgs[0], skillArgs[1], '', '')}%`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { team, enemy }) => {
@@ -9212,7 +9264,7 @@
         };
         // 8
         const enhanceBasicAttack = {
-            textify: ({ skillArgs }) => `Force next move to be a ${100 + skillArgs[0]}-${100 + skillArgs[1]}% basic attack`,
+            textify: ({ skillArgs }) => `Force next move to be a ${range(skillArgs[0] + 100, skillArgs[1] + 100, '', '')}% basic attack`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { enemy }) => {
@@ -9241,7 +9293,7 @@
         };
         // 14
         const skillBind = {
-            textify: ({ skillArgs }) => `Skill bind for ${rangeTurns(skillArgs[0], skillArgs[1])}.`,
+            textify: ({ skillArgs }) => `Skill bind for ${range(skillArgs[0], skillArgs[1])}.`,
             condition: () => true,
             aiEffect: () => { },
             effect: (_, { team }) => {
@@ -9404,7 +9456,7 @@
         };
         // 28
         const gotoIfHpBelow = {
-            textify: ({ ai, rnd }) => `If HP <= ${ai}, go to skill ${rnd}`,
+            textify: ({ ai, rnd }) => `If HP <= ${ai}%, go to skill ${rnd}`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -9481,7 +9533,9 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: () => { },
+            effect: (_, { team, enemy }) => {
+                team.damage(enemy.getAtk(), enemy.getAttribute());
+            },
             goto: () => TERMINATE,
         };
         // 37
@@ -9533,7 +9587,7 @@
             aiEffect: () => { },
             effect: ({ skillArgs }, { team }) => {
                 const [flatDebuff, timePercent] = skillArgs.slice(1);
-                team.state.timeBonus = flatDebuff ? flatDebuff / -0.1 : timePercent / 100;
+                team.state.timeBonus = flatDebuff ? flatDebuff / -10 : timePercent / 100;
                 team.state.timeIsMult = !flatDebuff;
             },
             goto: () => TERMINATE,
@@ -9695,7 +9749,7 @@
             textify: ({ skillArgs }) => {
                 const [minTurns, maxTurns, attrIdxs] = skillArgs;
                 const attrs = common_10.idxsFromBits(attrIdxs).map((c) => common_10.AttributeToName.get(c)).join(', ');
-                return `For ${rangeTurns(minTurns, maxTurns)}, absorb ${attrs}.`;
+                return `For ${range(minTurns, maxTurns)}, absorb ${attrs}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9737,7 +9791,7 @@
         const healPlayer = {
             textify: ({ skillArgs }) => {
                 const [min, max] = skillArgs;
-                return `Heal player for ${min}-${max}% HP`;
+                return `Heal player for ${range(min, max, '', '')}% HP`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9804,7 +9858,7 @@
                         text.push('Subs');
                     }
                 }
-                return `Hits once for ${percent} % (${common_10.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${rangeTurns(min, max)}.`;
+                return `Hits once for ${percent} % (${common_10.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${range(min, max)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -9834,7 +9888,7 @@
         };
         // 65
         const bindSubs = {
-            textify: ({ skillArgs }) => `Binds ${skillArgs[0]} for ${rangeTurns(skillArgs[1], skillArgs[2])}.`,
+            textify: ({ skillArgs }) => `Binds ${skillArgs[0]} for ${range(skillArgs[1], skillArgs[2])}.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => {
@@ -9852,7 +9906,7 @@
         };
         // 67
         const comboAbsorb = {
-            textify: ({ skillArgs }) => `Absorb ${skillArgs[2]} or fewer combos for ${rangeTurns(skillArgs[0], skillArgs[1])}.`,
+            textify: ({ skillArgs }) => `Absorb ${skillArgs[2]} or fewer combos for ${range(skillArgs[0], skillArgs[1])}.`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { enemy }) => {
@@ -9878,6 +9932,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.PASSIVE,
         };
         // 71
         const voidDamage = {
@@ -9901,6 +9956,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.PASSIVE,
         };
         // 73
         const resolve = {
@@ -9909,6 +9965,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.PASSIVE,
         };
         // 74
         const shield = {
@@ -10124,7 +10181,7 @@
         };
         // 86
         const healPercent = {
-            textify: ({ skillArgs }) => `Heal for ${skillArgs[0]}-${skillArgs[1]}% of max HP.`,
+            textify: ({ skillArgs }) => `Heal for ${range(skillArgs[0], skillArgs[1], '', '')}% of max HP.`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { enemy }) => {
@@ -10172,7 +10229,7 @@
         // 89
         const skillDelay = {
             textify: ({ skillArgs }) => {
-                return `Skill Delay for ${skillArgs[0]}-${skillArgs[1]} turn(s)`;
+                return `Skill Delay for ${range(skillArgs[0], skillArgs[1])}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -10235,10 +10292,10 @@
             textify: ({ skillArgs }) => {
                 const [attrBits, minTurns, maxTurns, percent] = skillArgs;
                 if (!attrBits || attrBits == -1) {
-                    return `Lock ${percent}% skyfall for ${rangeTurns(minTurns, maxTurns)}.`;
+                    return `Lock ${percent}% skyfall for ${range(minTurns, maxTurns)}.`;
                 }
                 const lockedOrbs = common_10.idxsFromBits(attrBits).map((c) => common_10.AttributeToName.get(c)).join(', ');
-                return `Lock ${percent}% of ${lockedOrbs} skyfall for ${minTurns}-${maxTurns}`;
+                return `Lock ${percent}% of ${lockedOrbs} skyfall for ${range(minTurns, maxTurns)}`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -10247,7 +10304,7 @@
         };
         // 97
         const randomStickyBlind = {
-            textify: ({ skillArgs }) => `Randomly sticky blind ${skillArgs[1]}-${skillArgs[2]} orbs for ${skillArgs[0]} turns.`,
+            textify: ({ skillArgs }) => `Randomly sticky blind ${range(skillArgs[1], skillArgs[2], ' orb', ' orbs')} for ${skillArgs[0]} turns.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -10335,6 +10392,7 @@
             // This will occur in the damage step.
             effect: () => { },
             goto: () => TERMINATE,
+            type: SkillType.PASSIVE,
         };
         // 107
         const unmatchable = {
@@ -10349,7 +10407,7 @@
             textify: ({ skillArgs }, { atk }) => {
                 const [percent, fromBits, toBits] = skillArgs;
                 const damage = common_10.addCommas(Math.ceil(percent / 100 * atk));
-                const fromString = common_10.idxsFromBits(fromBits).map(from => common_10.AttributeToName.get(from));
+                const fromString = common_10.idxsFromBits(fromBits).map(from => common_10.AttributeToName.get(from) || 'Fire');
                 const toString = common_10.idxsFromBits(toBits).map(to => common_10.AttributeToName.get(to));
                 return `Hit for ${skillArgs[0]}% (${damage}) and convert ${fromString} to ${toString}`;
             },
@@ -10423,6 +10481,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.PASSIVE,
         };
         // 119
         const addInvincibility = {
@@ -10522,6 +10581,7 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TO_NEXT,
+            type: SkillType.PASSIVE,
         };
         // 130
         const playerAtkDebuff = {
@@ -10745,7 +10805,7 @@
             while (idx < skills.length) {
                 const skill = skills[idx];
                 // Remaining charge cost insufficient.
-                if (skillType(ctx, idx) == SkillType.EFFECT && skill.aiArgs[3] > ctx.charges) {
+                if (skillType(ctx.cardId, idx) == SkillType.EFFECT && skill.aiArgs[3] > ctx.charges) {
                     path.push({ idx, unusedReason: UnusedReason.INSUFFICIENT_CHARGES });
                     idx++;
                     continue;
@@ -10829,11 +10889,13 @@
             return effect.aiEffect(skill, ctx);
         }
         exports.aiEffect = aiEffect;
-        function skillType(ctx, skillIdx) {
-            const skill = toSkillContext(ctx.cardId, skillIdx);
-            const effect = ENEMY_SKILL_GENERATORS[skill.effectId];
+        function skillType(enemyId, skillIdx) {
+            const baseSkill = ilmina_stripped_9.floof.model.cards[enemyId].enemySkills[skillIdx];
+            const effectId = ilmina_stripped_9.floof.model.enemySkills[baseSkill.enemySkillId].internalEffectId;
+            // const skill = toSkillContext(ctx.cardId, skillIdx);
+            const effect = ENEMY_SKILL_GENERATORS[effectId];
             if (!effect) {
-                console.error(`UNIMPLEMENTED EFFECT ID: ${skill.effectId} `);
+                console.error(`UNIMPLEMENTED EFFECT ID: ${effectId} `);
                 return SkillType.EFFECT;
             }
             return effect.type || SkillType.EFFECT;
@@ -10984,6 +11046,9 @@
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
                 this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
+                this.skillArea = new templates_5.EnemySkillArea((idx) => {
+                    this.onEnemySkill(idx, []);
+                });
             }
             async loadDungeon(subDungeonId) {
                 await common_11.waitFor(() => dungeonsLoaded);
@@ -11086,7 +11151,6 @@
                     }
                     const updateActiveEnemy = newEnemy >= 0;
                     if (updateActiveEnemy) {
-                        // this.activeFloor = newEnemy.floor;
                         this.setActiveEnemy(newEnemy);
                     }
                     const enemy = this.getActiveEnemy();
@@ -11174,7 +11238,16 @@
             update(updateActiveEnemy) {
                 this.pane.dungeonEditor.setEnemies(this.floors.map((floor) => floor.getEnemyIds()));
                 if (updateActiveEnemy) {
+                    const e = this.getActiveEnemy();
+                    const c = e.getCard();
+                    const a = e.getAtk();
+                    const skillTexts = this.getActiveEnemy().getCard().enemySkills
+                        .map((_, i) => ({
+                        description: enemy_skills_1.textifyEnemySkill({ id: c.id, atk: a }, i),
+                        active: enemy_skills_1.skillType(c.id, i) == 0,
+                    }));
                     this.pane.dungeonEditor.setActiveEnemy(this.activeFloor, this.activeEnemy);
+                    this.skillArea.update(skillTexts);
                 }
                 const enemy = this.getActiveEnemy();
                 this.pane.dungeonEditor.setDungeonMultipliers(this.hpMultiplier.toString(), this.atkMultiplier.toString(), this.defMultiplier.toString());
@@ -11271,6 +11344,119 @@
         }
         exports.DungeonInstance = DungeonInstance;
     });
+    define("team_photo", ["require", "exports", "ilmina_stripped"], function (require, exports, ilmina_stripped_10) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        /*
+        [Title]
+        
+        |+297  *|+297  *|+297  *|+297  *|+297  *|+297  *|
+        |     SA|     SA|     SA|     SA|     SA|     SA|
+        |Lv   ID|Lv   ID|Lv   ID|Lv   ID|Lv   ID|Lv   ID|
+        LATENTS LATENTS LATENTS LATENTS LATENTS LATENTS
+        
+        SB, Resists, SBR, FUA, SFUa (Have a toggle above which changes this.)
+        Max 6 per row?
+        
+        x1-3 times depending on playerMode.
+        
+        [Team Description occurs on second column]
+        What type of special text should be here? Bold?  Title things?
+         */
+        class TeamPhoto {
+            constructor(canvas) {
+                this.attributeBorders = document.createElement('img');
+                this.titleHeight = 20;
+                this.canvasWidth = 600;
+                this.canvasHeight = 960;
+                this.canvas = canvas;
+                this.context = this.canvas.getContext('2d');
+                canvas.width = this.canvasWidth;
+                canvas.height = this.canvasHeight;
+                this.monsterWidth = this.canvasWidth / 6;
+                this.latentHeight = this.monsterWidth / 8;
+                this.latentWidth = this.latentHeight;
+                this.superLatentWidth = 2 * this.latentWidth;
+                this.hyperLatentWidth = 6 * this.latentWidth;
+                this.monsterTotalHeight = 1.5 * this.monsterWidth + this.latentHeight;
+                const assetInfo = ilmina_stripped_10.CardUiAssets.getIconFrame(0, false, ilmina_stripped_10.floof.model);
+                if (assetInfo) {
+                    this.queue = new Promise((resolve) => {
+                        this.loadImage(assetInfo.url).then((image) => {
+                            this.attributeBorders = image;
+                            resolve();
+                        });
+                    });
+                }
+                else {
+                    this.queue = Promise.resolve();
+                }
+            }
+            async loadImage(url) {
+                const image = document.createElement('img');
+                image.src = url;
+                image.style.display = 'none';
+                document.body.appendChild(image);
+                // const oldQueue = this.queue;
+                return new Promise((resolve) => {
+                    image.onload = () => {
+                        resolve(image);
+                    };
+                });
+            }
+            drawAttributes(card, width, drawnOffsetX, drawnOffsetY, drawSubattribute = false) {
+                const attributeDescriptor = ilmina_stripped_10.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_10.floof.model);
+                if (!attributeDescriptor) {
+                    return;
+                }
+                this.context.drawImage(this.attributeBorders, attributeDescriptor.offsetX, attributeDescriptor.offsetY, attributeDescriptor.width, attributeDescriptor.height, drawnOffsetX, drawnOffsetY, width, width);
+                if (drawSubattribute && card.subattribute >= 0) {
+                    const subattributeDescriptor = ilmina_stripped_10.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_10.floof.model);
+                    if (!subattributeDescriptor) {
+                        return;
+                    }
+                    this.context.drawImage(this.attributeBorders, subattributeDescriptor.offsetX, subattributeDescriptor.offsetY, subattributeDescriptor.width, subattributeDescriptor.height, drawnOffsetX, drawnOffsetY, width, width);
+                }
+            }
+            drawMonster(drawData) {
+                const card = ilmina_stripped_10.floof.model.cards[drawData.id];
+                if (!card) {
+                    return;
+                }
+                const { offsetX, offsetY, width, height, url } = ilmina_stripped_10.CardAssets.getIconImageData(card);
+                const drawnWidth = drawData.isInherit ? this.monsterWidth / 2 : this.monsterWidth;
+                let drawnOffsetY = this.titleHeight + (this.monsterTotalHeight) * drawData.teamIdx;
+                if (!drawData.isInherit) {
+                    drawnOffsetY += this.monsterWidth / 2;
+                }
+                const drawnOffsetX = this.monsterWidth * drawData.positionIdx;
+                const oldQueue = this.queue;
+                this.queue = new Promise((resolve) => {
+                    // Await image load before drawing.
+                    this.loadImage(url).then((image) => {
+                        // Await other draw processes before drawing.
+                        oldQueue.then(() => {
+                            this.context.drawImage(image, offsetX, // x coordinate to being clipping.
+                            offsetY, // y coordinate to begin clipping.
+                            width, // width of the clipped image.
+                            height, // Height of the clipped image
+                            drawnOffsetX, // X Coordinate on canvas.
+                            drawnOffsetY, // y coordinate on canvas.
+                            drawnWidth, // width of the drawn image.
+                            drawnWidth);
+                            this.drawAttributes(card, drawnWidth, drawnOffsetX, drawnOffsetY, !drawData.isInherit);
+                            document.body.removeChild(image);
+                            resolve();
+                        });
+                    });
+                });
+            }
+            clear() {
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+        }
+        exports.TeamPhoto = TeamPhoto;
+    });
     define("url_handler", ["require", "exports"], function (require, exports) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
@@ -11286,13 +11472,14 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_2, ilmina_stripped_10, custom_base64_1, enemy_skills_2, url_handler_1, actives_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_2, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
             constructor() {
                 this.display = new templates_6.ValeriaDisplay();
                 this.comboContainer = new combo_container_1.ComboContainer();
+                this.teamPhotoCanvas = document.createElement('canvas');
                 this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
                 this.comboContainer.onUpdate.push(() => {
                     this.updateDamage();
@@ -11370,8 +11557,6 @@
                 this.team.updateCb = () => {
                     this.updateMonsterEditor();
                     this.updateDamage();
-                    // console.log(healing);
-                    // console.log(trueBonusAttack);
                 };
                 this.team.teamPane.applyActionButton.onclick = () => {
                     const action = this.team.action;
@@ -11381,7 +11566,7 @@
                     }
                     const team = this.team.getActiveTeam();
                     const source = team[Math.floor(action / 2)];
-                    const activeId = ilmina_stripped_10.floof.model.cards[action & 1 ? source.inheritId : source.getId()].activeSkillId;
+                    const activeId = ilmina_stripped_11.floof.model.cards[action & 1 ? source.inheritId : source.getId()].activeSkillId;
                     const enemy = this.dungeon.getActiveEnemy();
                     actives_1.teamEffect(activeId, {
                         source,
@@ -11425,10 +11610,7 @@
                         debugger_2.debug.print(`${i + 1}: ${skillTexts[i]} `);
                     }
                 });
-                // debug.addButton('Use Preempt', () => {
-                //   this.usePreempt();
-                // });
-                debugger_2.debug.addButton('Use Next Skill', () => {
+                debugger_2.debug.addButton('Simulate Next Skill', () => {
                     const attributes = new Set();
                     const types = new Set();
                     for (const m of this.team.getActiveTeam()) {
@@ -11455,7 +11637,7 @@
                     debugger_2.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
                     const skillCtx = enemy_skills_2.toSkillContext(enemy.id, idx);
                     enemy_skills_2.effect(skillCtx, { enemy, team: this.team });
-                    enemy.charges -= ilmina_stripped_10.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
+                    enemy.charges -= ilmina_stripped_11.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
                     enemy.charges += enemy.getCard().chargeGain;
                     this.dungeon.update(true);
                     this.team.updateState({});
@@ -11463,6 +11645,26 @@
                 this.dungeon.onEnemyChange = () => {
                     this.usePreempt();
                 };
+                this.teamPhotoCanvas.style.width = '100%';
+                this.teamPhoto = new team_photo_1.TeamPhoto(this.teamPhotoCanvas);
+            }
+            drawTeam() {
+                for (let i = 0; i < this.team.playerMode; i++) {
+                    const team = this.team.getTeamAt(i);
+                    for (let j = 0; j < 6; j++) {
+                        this.teamPhoto.drawMonster({
+                            id: team[j].id,
+                            teamIdx: i,
+                            positionIdx: j,
+                        });
+                        this.teamPhoto.drawMonster({
+                            id: team[j].inheritId,
+                            teamIdx: i,
+                            positionIdx: j,
+                            isInherit: true,
+                        });
+                    }
+                }
             }
             usePreempt() {
                 const attributes = new Set();
@@ -11509,7 +11711,7 @@
                     const team = this.team.getActiveTeam();
                     const source = team[Math.floor(this.team.action / 2)];
                     const id = this.team.action & 1 ? source.inheritId : source.getId();
-                    const activeId = ilmina_stripped_10.floof.model.cards[id].activeSkillId;
+                    const activeId = ilmina_stripped_11.floof.model.cards[id].activeSkillId;
                     pings = actives_1.damage(activeId, {
                         source,
                         team,
@@ -11577,7 +11779,7 @@
             }
         }
         async function init() {
-            await common_12.waitFor(() => ilmina_stripped_10.floof.ready);
+            await common_12.waitFor(() => ilmina_stripped_11.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
@@ -11586,6 +11788,14 @@
                 loadingEl.style.display = 'none';
             }
             document.body.appendChild(valeria.getElement());
+            document.body.appendChild(valeria.dungeon.skillArea.getElement());
+            valeria.team.teamPane.metaTabs.getTab('Photo (Experimental)').appendChild(valeria.teamPhotoCanvas);
+            const photoTabLabel = valeria.team.teamPane.metaTabs.getTabLabel('Photo (Experimental)');
+            photoTabLabel.onclick = () => {
+                valeria.team.teamPane.metaTabs.setActiveTab('Photo (Experimental)');
+                valeria.drawTeam();
+            };
+            // document.body.appendChild(valeria.teamPhotoCanvas);
             if (localStorage.debug) {
                 document.body.appendChild(debugger_2.debug.getElement());
             }
