@@ -79,6 +79,7 @@ const scalingAttackRandomToSingleEnemy: MonsterActive = {
 const shield: MonsterActive = {
   teamEffect: ([_, shieldPercent], { team }) => {
     team.state.shieldPercent = shieldPercent;
+    team.update();
   },
 };
 
@@ -111,6 +112,7 @@ const gravity: MonsterActive = {
 const flatHeal: MonsterActive = {
   teamEffect: ([amount], { team }) => {
     team.heal(amount);
+    team.update();
   },
 };
 
@@ -177,6 +179,7 @@ const scalingAttackAndHeal: MonsterActive = {
 
     const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
     ctx.team.heal(healAmount);
+    ctx.team.update();
   },
 };
 
@@ -212,6 +215,7 @@ const attrOrRcvBurst: MonsterActive = {
         awakenings: [],
       };
     }
+    team.update();
   },
 };
 
@@ -265,6 +269,7 @@ const scalingAttackAndSuicideSingle: MonsterActive = {
   teamEffect: ([_, _a, _b, suicideTo], { team }) => {
     suicideTo = suicideTo || 0;
     team.state.currentHp = Math.max(1, Math.floor(team.state.currentHp * suicideTo / 100));
+    team.update();
   },
 };
 
@@ -290,6 +295,7 @@ const burstForOneType: MonsterActive = {
       awakenings: [],
       awakeningScale: 0,
     };
+    team.update();
   },
 };
 
@@ -303,6 +309,7 @@ const burstForTwoAttributes: MonsterActive = {
       awakenings: [],
       awakeningScale: 0,
     };
+    team.update();
   },
 };
 
@@ -366,6 +373,7 @@ const elementalScalingAttackAndHeal: MonsterActive = {
 
     const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
     ctx.team.heal(healAmount);
+    ctx.team.update();
   },
 };
 
@@ -416,6 +424,7 @@ const catchAllCleric: MonsterActive = {
     if (healing) {
       team.heal(healing);
     }
+    team.update();
   },
 };
 
@@ -432,6 +441,7 @@ const timeExtend: MonsterActive = {
       team.state.timeBonus = seconds10 / 10;
       team.state.timeIsMult = false;
     }
+    team.update();
   },
 };
 
@@ -440,8 +450,9 @@ const randomOrbSpawn: MonsterActive = {};
 
 // 142
 const selfAttributeChange: MonsterActive = {
-  teamEffect: ([_, attr], { source }) => {
+  teamEffect: ([_, attr], { source, team }) => {
     source.attribute = attr;
+    team.update();
   },
 };
 
@@ -504,8 +515,9 @@ const effectFromAwakeningCount: MonsterActive = {
       const shieldPercent = Math.min(100, count * mult100);
       team.state.shieldPercent = shieldPercent;
     }
-  }
-}
+    team.update();
+  },
+};
 
 // 160
 const addCombos: MonsterActive = {
@@ -524,11 +536,27 @@ const trueGravity: MonsterActive = {
   },
 };
 
+// 168
+const burstFromAwakeningCount: MonsterActive = {
+  teamEffect: ([_turns, awakening1, awakening2, awakening3, awakening4, awakening5, awakening6, mult100], { team }) => {
+    const awakenings = [awakening1, awakening2, awakening3, awakening4, awakening5, awakening6].filter(Boolean);
+    team.state.burst = {
+      awakenings,
+      awakeningScale: mult100 / 100,
+      multiplier: 1,
+      typeRestrictions: [],
+      attrRestrictions: [],
+    };
+    team.update();
+  },
+};
+
 // 173
 const voidAbsorb: MonsterActive = {
   teamEffect: ([_, includeAttribute, _a, includeDamage], { team }) => {
     team.state.voidAttributeAbsorb = team.state.voidAttributeAbsorb || Boolean(includeAttribute);
     team.state.voidDamageAbsorb = team.state.voidDamageAbsorb || Boolean(includeDamage);
+    team.update();
   },
 };
 
@@ -539,6 +567,7 @@ const noSkyfall: MonsterActive = {};
 const voidDamageVoid: MonsterActive = {
   teamEffect: (_, { team }) => {
     team.state.voidDamageVoid = true;
+    team.update();
   },
 };
 
@@ -546,6 +575,7 @@ const voidDamageVoid: MonsterActive = {
 const pureSuicide: MonsterActive = {
   teamEffect: ([suicideTo], { team }) => {
     team.state.currentHp = Math.max(1, Math.floor(team.state.currentHp * suicideTo / 100));
+    team.update();
   },
 };
 
@@ -605,6 +635,7 @@ const ACTIVE_GENERATORS: Record<number, MonsterActive> = {
   156: effectFromAwakeningCount,
   160: addCombos,
   161: trueGravity,
+  168: burstFromAwakeningCount,
   173: voidAbsorb,
   184: noSkyfall, // No effect.
   188: fixedDamageToOneEnemy, // Same as 55.

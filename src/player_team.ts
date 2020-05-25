@@ -257,6 +257,9 @@ class Team {
         if (ctx.voidAwakenings != undefined) {
           this.state.awakenings = !ctx.voidAwakenings;
         }
+        if (ctx.burst != undefined) {
+          this.state.burst = ctx.burst;
+        }
 
         this.update();
       }
@@ -958,6 +961,7 @@ class Team {
       voids: [this.state.voidDamageAbsorb, this.state.voidAttributeAbsorb, this.state.voidDamageVoid, !this.state.awakenings],
       fixedHp: this.state.fixedHp,
       ids: ns.concat(...this.getActiveTeam().map((m) => [m.getId(), m.inheritId])),
+      burst: this.state.burst,
     });
     this.updateCb(this.activeMonster);
   }

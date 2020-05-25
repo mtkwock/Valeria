@@ -7,7 +7,14 @@
  * compiling them here so that the structure is more consistent.
  */
 
-import { BASE_URL, COLORS, DEFAULT_CARD, Attribute, Awakening, Latent, MonsterType, AttributeToFontColor, FontColor, addCommas, removeCommas, Shape, LetterToShape } from './common';
+import {
+  BASE_URL, COLORS, DEFAULT_CARD,
+  Attribute, AttributeToFontColor, FontColor, AttributeToName,
+  Awakening, AwakeningToName, Latent,
+  MonsterType, TypeToName,
+  addCommas, removeCommas,
+  Shape, LetterToShape
+} from './common';
 import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
 import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
 // import { debug } from './debugger';
@@ -1831,6 +1838,14 @@ interface TeamBattle {
 
   voids: boolean[];
   ids: number[];
+
+  burst: {
+    multiplier: number;
+    awakenings: Awakening[];
+    awakeningScale: number;
+    attrRestrictions: Attribute[];
+    typeRestrictions: MonsterType[];
+  };
 }
 
 interface TeamUpdate {
@@ -1848,6 +1863,14 @@ interface TeamUpdate {
   voidAttributeAbsorb?: boolean;
   voidDamageVoid?: boolean;
   voidAwakenings?: boolean;
+
+  burst?: {
+    multiplier: number;
+    awakenings: Awakening[];
+    awakeningScale: number;
+    attrRestrictions: Attribute[];
+    typeRestrictions: MonsterType[];
+  };
 }
 
 enum ActionOptions {
@@ -1878,6 +1901,15 @@ class TeamPane {
 
   private leadSwapInput = create('select') as HTMLSelectElement;
   private voidEls: LayeredAsset[] = [];
+
+  private burstMultiplierInput = create('input') as HTMLInputElement;
+  private burstAwakeningScaleInput = create('input') as HTMLInputElement;
+  private burstAwakeningSelect1 = create('select') as HTMLSelectElement;
+  private burstAwakeningSelect2 = create('select') as HTMLSelectElement;
+  private burstTypeSelect1 = create('select') as HTMLSelectElement;
+  private burstTypeSelect2 = create('select') as HTMLSelectElement;
+  private burstAttrSelect1 = create('select') as HTMLSelectElement;
+  private burstAttrSelect2 = create('select') as HTMLSelectElement;
 
   private pingCells: HTMLTableCellElement[] = [];
   private bonusPing = create('td') as HTMLTableCellElement;
@@ -2152,6 +2184,112 @@ class TeamPane {
     leadSwapArea.appendChild(this.leadSwapInput);
     this.battleEl.appendChild(leadSwapArea);
 
+    /**
+    Burst [  ]  +[  ]x per    [Awakening1]
+                              [Awakening2]
+    Restricted  [Attribute1]  [Type1]
+                [Attribute2]  [Type2]
+     */
+    const burstTable = create('table') as HTMLTableElement;
+    burstTable.style.fontSize = 'small';
+    const updateBurst = () => {
+      const awakenings = [this.burstAwakeningSelect1.value, this.burstAwakeningSelect2.value].map(Number).filter(Boolean);
+      const attrRestrictions = [this.burstAttrSelect1.value, this.burstAttrSelect2.value].map(Number).filter(n => n >= 0);
+      const typeRestrictions = [this.burstTypeSelect1.value, this.burstTypeSelect2.value].map(Number).filter(n => n >= 0);
+      this.onTeamUpdate({
+        burst: {
+          multiplier: Number(this.burstMultiplierInput.value) || 1,
+          awakenings,
+          awakeningScale: Number(this.burstAwakeningScaleInput.value) || 0,
+          attrRestrictions,
+          typeRestrictions,
+        },
+      });
+    }
+    const multiplierRow = create('tr') as HTMLTableRowElement;
+    const baseBurstCell = create('td') as HTMLTableCellElement;
+    const burstMultiplierLabel = create('span');
+    burstMultiplierLabel.innerText = 'Burst ';
+    this.burstMultiplierInput.value = '1';
+    this.burstMultiplierInput.type = 'number';
+    this.burstMultiplierInput.onchange = updateBurst;
+    this.burstMultiplierInput.style.width = '35px';
+    baseBurstCell.appendChild(burstMultiplierLabel);
+    baseBurstCell.appendChild(this.burstMultiplierInput);
+
+    // const awakeningScaleArea = create('div');
+    const burstScaleCell = create('td') as HTMLTableCellElement;
+    burstScaleCell.appendChild(document.createTextNode('+ '));
+    this.burstAwakeningScaleInput.onchange = updateBurst;
+    this.burstAwakeningScaleInput.style.width = '35px';
+    burstScaleCell.appendChild(this.burstAwakeningScaleInput);
+    burstScaleCell.appendChild(document.createTextNode('x per '));
+
+    const burstAwakeningCell = create('td') as HTMLTableCellElement;
+    for (let i = 0; i < AwakeningToName.length; i++) {
+      const option1 = create('option') as HTMLOptionElement;
+      const option2 = create('option') as HTMLOptionElement;
+      option1.innerText = i == 0 ? 'Awakening1' : AwakeningToName[i];
+      option2.innerText = i == 0 ? 'Awakening2' : AwakeningToName[i];
+      option1.value = String(i);
+      option2.value = String(i);
+
+      this.burstAwakeningSelect1.appendChild(option1);
+      this.burstAwakeningSelect2.appendChild(option2);
+    }
+    this.burstAwakeningSelect1.onchange = updateBurst;
+    burstAwakeningCell.appendChild(this.burstAwakeningSelect1);
+    this.burstAwakeningSelect2.onchange = updateBurst;
+    burstAwakeningCell.appendChild(this.burstAwakeningSelect2);
+
+    multiplierRow.appendChild(baseBurstCell);
+    multiplierRow.appendChild(burstScaleCell);
+    multiplierRow.appendChild(burstAwakeningCell);
+
+    const restrictionRow = create('tr') as HTMLTableRowElement;
+    const restrictionLabelCell = create('td') as HTMLTableCellElement;
+    restrictionLabelCell.innerText = 'Restrictions';
+
+    const attrRestrictionCell = create('td') as HTMLTableCellElement;
+    for (let i = -1; i < 5; i++) {
+      const option1 = create('option') as HTMLOptionElement;
+      const option2 = create('option') as HTMLOptionElement;
+      option1.innerText = i == -1 ? 'Attr' : AttributeToName.get(i) || '';
+      option2.innerText = i == -1 ? 'Attr' : AttributeToName.get(i) || '';
+      option1.value = String(i);
+      option2.value = String(i);
+      this.burstAttrSelect1.appendChild(option1);
+      this.burstAttrSelect2.appendChild(option2);
+    }
+    this.burstAttrSelect1.onchange = updateBurst;
+    attrRestrictionCell.appendChild(this.burstAttrSelect1);
+    this.burstAttrSelect2.onchange = updateBurst;
+    attrRestrictionCell.appendChild(this.burstAttrSelect2);
+
+    const typeRestrictionCell = create('td') as HTMLTableCellElement;
+    for (const i of [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 14, 15,]) {
+      const option1 = create('option') as HTMLOptionElement;
+      const option2 = create('option') as HTMLOptionElement;
+      option1.innerText = i == -1 ? 'Type' : TypeToName.get(i) || '';
+      option2.innerText = i == -1 ? 'Type' : TypeToName.get(i) || '';
+      option1.value = String(i);
+      option2.value = String(i);
+      this.burstTypeSelect1.appendChild(option1);
+      this.burstTypeSelect2.appendChild(option2);
+    }
+    this.burstTypeSelect1.onchange = updateBurst;
+    typeRestrictionCell.appendChild(this.burstTypeSelect1);
+    this.burstTypeSelect2.onchange = updateBurst;
+    typeRestrictionCell.appendChild(this.burstTypeSelect2);
+
+    restrictionRow.appendChild(restrictionLabelCell);
+    restrictionRow.appendChild(attrRestrictionCell);
+    restrictionRow.appendChild(typeRestrictionCell);
+
+    burstTable.appendChild(multiplierRow);
+    burstTable.appendChild(restrictionRow);
+
+    this.battleEl.appendChild(burstTable);
 
     // Player State including
     // * Void Attr, Void
@@ -2375,6 +2513,24 @@ class TeamPane {
       }
     }
     this.leadSwapInput.value = `${teamBattle.leadSwap}`;
+
+    this.burstMultiplierInput.value = String(teamBattle.burst.multiplier);
+    this.burstAwakeningScaleInput.value = String(teamBattle.burst.awakeningScale);
+    this.burstAwakeningSelect1.value = String(teamBattle.burst.awakenings[0] || 0);
+    this.burstAwakeningSelect2.value = String(teamBattle.burst.awakenings[1] || 0);
+    this.burstAttrSelect1.value = teamBattle.burst.attrRestrictions.length
+      ? String(teamBattle.burst.attrRestrictions[0])
+      : '-1';
+    this.burstAttrSelect2.value = teamBattle.burst.attrRestrictions.length > 1
+      ? String(teamBattle.burst.attrRestrictions[1])
+      : '-1';
+
+    this.burstTypeSelect1.value = teamBattle.burst.typeRestrictions.length
+      ? String(teamBattle.burst.typeRestrictions[0])
+      : '-1';
+    this.burstTypeSelect2.value = teamBattle.burst.typeRestrictions.length > 1
+      ? String(teamBattle.burst.typeRestrictions[1])
+      : '-1';
 
     for (const idx in teamBattle.voids) {
       this.voidEls[idx].setActive(teamBattle.voids[idx]);
