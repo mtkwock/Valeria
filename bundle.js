@@ -1926,7 +1926,32 @@
         const INT_CAP = 2 ** 31 - 1;
         exports.INT_CAP = INT_CAP;
     });
-    define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_1, ilmina_stripped_2) {
+    /**
+     All aliases of monsters and dungeons. Keep these in alphabetical order by
+     alias. The value must be the exact ID of the monster or dungeon.
+    
+     Also, the alias MUST BE all lower-case.
+    */
+    define("fuzzy_search_aliases", ["require", "exports"], function (require, exports) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        const MONSTER_ALIASES = {};
+        exports.MONSTER_ALIASES = MONSTER_ALIASES;
+        const DUNGEON_ALIASES = {
+            'a1': 1022001,
+            'a2': 1022002,
+            'a3': 1022003,
+            'a4': 1022004,
+            'a5': 1022005,
+            'a6': 1022006,
+            'aa1': 2660001,
+            'aa2': 2660002,
+            'aa3': 2660003,
+            'aa4': 2660004,
+        };
+        exports.DUNGEON_ALIASES = DUNGEON_ALIASES;
+    });
+    define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search_aliases"], function (require, exports, common_1, ilmina_stripped_2, fuzzy_search_aliases_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const prefixToCardIds = {};
@@ -2008,8 +2033,12 @@
             if (!text || text == '-1') {
                 return [-1];
             }
+            const result = [];
             searchArray = searchArray || prioritizedMonsterSearch;
             text = text.toLowerCase();
+            if (fuzzy_search_aliases_1.MONSTER_ALIASES[text]) {
+                result.push(fuzzy_search_aliases_1.MONSTER_ALIASES[text]);
+            }
             let toEquip = false;
             let toBase = false;
             if (text.startsWith('equip')) {
@@ -2026,7 +2055,6 @@
             else if (text.startsWith('srevo')) {
                 text = text.replace('srevo', 'super reincarnated');
             }
-            const result = [];
             // Test for exact match.
             if (text in ilmina_stripped_2.floof.model.cards) {
                 result.push(Number(text));
@@ -2198,12 +2226,15 @@
             return result;
         }
         exports.fuzzyMonsterSearch = fuzzyMonsterSearch;
-        function fuzzySearch(text, maxResults = 15, searchArray) {
+        function fuzzySearch(text, maxResults = 15, searchArray = [], aliases = {}) {
             if (!text) {
                 return [];
             }
             text = text.toLowerCase();
             const result = [];
+            if (aliases[text]) {
+                result.push(aliases[text]);
+            }
             for (const { s, value } of searchArray) {
                 if (s == text) {
                     result.push(value);
@@ -2268,7 +2299,7 @@
      * TODO: Consider making some of these into proper soy templates and then
      * compiling them here so that the structure is more consistent.
      */
-    define("templates", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search"], function (require, exports, common_2, ilmina_stripped_3, fuzzy_search_1) {
+    define("templates", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search", "fuzzy_search_aliases"], function (require, exports, common_2, ilmina_stripped_3, fuzzy_search_1, fuzzy_search_aliases_2) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // import { debug } from './debugger';
@@ -3051,15 +3082,17 @@
         }
         exports.TabbedComponent = TabbedComponent;
         class GenericSelector {
-            constructor(searchArray, updateCb) {
+            constructor(searchArray, updateCb, aliases = {}) {
                 this.el = create('div');
                 this.selector = create('input', ClassNames.MONSTER_SELECTOR);
                 this.optionsContainer = create('div', ClassNames.SELECTOR_OPTIONS_INACTIVE);
                 this.options = [];
                 this.selectedOption = 0;
                 this.activeOptions = 0;
+                this.aliases = {};
                 this.searchArray = searchArray;
                 this.updateCb = updateCb;
+                this.aliases = aliases;
                 this.selector.placeholder = 'Search';
                 this.selector.onkeydown = this.onKeyDown();
                 this.selector.onkeyup = this.onKeyUp();
@@ -3114,7 +3147,7 @@
                 return matches;
             }
             getFuzzyMatches(text) {
-                return fuzzy_search_1.fuzzySearch(text, GenericSelector.MAX_OPTIONS * 3, this.searchArray);
+                return fuzzy_search_1.fuzzySearch(text, GenericSelector.MAX_OPTIONS * 3, this.searchArray, this.aliases);
             }
             onKeyUp() {
                 return (e) => {
@@ -4146,7 +4179,7 @@
                 this.burstMultiplierInput.value = '1';
                 this.burstMultiplierInput.type = 'number';
                 this.burstMultiplierInput.onchange = updateBurst;
-                this.burstMultiplierInput.style.width = '35px';
+                this.burstMultiplierInput.style.width = '45px';
                 baseBurstCell.appendChild(burstReset);
                 baseBurstCell.appendChild(burstMultiplierLabel);
                 baseBurstCell.appendChild(this.burstMultiplierInput);
@@ -4403,7 +4436,7 @@
                     }
                 }
                 this.leadSwapInput.value = `${teamBattle.leadSwap}`;
-                this.burstMultiplierInput.value = String(teamBattle.burst.multiplier);
+                this.burstMultiplierInput.value = String(teamBattle.burst.multiplier).substring(0, 4);
                 this.burstAwakeningScaleInput.value = String(teamBattle.burst.awakeningScale);
                 this.burstAwakeningSelect1.value = String(teamBattle.burst.awakenings[0] || 0);
                 this.burstAwakeningSelect2.value = String(teamBattle.burst.awakenings[1] || 0);
@@ -4614,7 +4647,7 @@
                 this.onUpdate = onUpdate;
                 this.dungeonSelector = new GenericSelector(dungeonNames, (id) => {
                     this.onUpdate({ loadDungeon: id });
-                });
+                }, fuzzy_search_aliases_2.DUNGEON_ALIASES);
                 const selectorEl = this.dungeonSelector.getElement();
                 this.dungeonSelector.selector.placeholder = 'Dungeon Search';
                 selectorEl.style.padding = '6px';
