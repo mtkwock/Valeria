@@ -1896,6 +1896,7 @@ class TeamPane {
   private hpBar: HpBar;
   private fixedHpEl: LayeredAsset = new LayeredAsset([], () => { });
   private fixedHpInput: HTMLInputElement = create('input') as HTMLInputElement;
+  private actionSelect: HTMLSelectElement = create('select') as HTMLSelectElement;
   private actionOptions: HTMLOptionElement[] = [];
   public applyActionButton: HTMLButtonElement = create('button') as HTMLButtonElement;
 
@@ -2135,23 +2136,23 @@ class TeamPane {
     this.battleEl.appendChild(create('br'));
 
     // Choose combos or active.
-    const actionSelect = create('select') as HTMLSelectElement;
-    actionSelect.style.fontSize = 'xx-small';
-    actionSelect.onchange = () => {
-      this.onTeamUpdate({ action: Number(actionSelect.value) });
+    // const actionSelect = create('select') as HTMLSelectElement;
+    this.actionSelect.style.fontSize = 'xx-small';
+    this.actionSelect.onchange = () => {
+      this.onTeamUpdate({ action: Number(this.actionSelect.value) });
     }
     const comboOption = create('option') as HTMLOptionElement;
     comboOption.innerText = 'Apply Combos';
     comboOption.value = String(ActionOptions.COMBO);
-    actionSelect.appendChild(comboOption);
+    this.actionSelect.appendChild(comboOption);
     for (let i = 0; i < 12; i++) {
       const activeOption = create('option') as HTMLOptionElement;
       activeOption.value = String(i);
       activeOption.innerText = `${Math.floor(i / 2) + 1}:`;
-      actionSelect.appendChild(activeOption);
+      this.actionSelect.appendChild(activeOption);
       this.actionOptions.push(activeOption);
     }
-    this.battleEl.appendChild(actionSelect);
+    this.battleEl.appendChild(this.actionSelect);
     this.applyActionButton.innerText = 'Use';
     this.battleEl.appendChild(this.applyActionButton);
 
@@ -2205,15 +2206,29 @@ class TeamPane {
           typeRestrictions,
         },
       });
-    }
+    };
     const multiplierRow = create('tr') as HTMLTableRowElement;
     const baseBurstCell = create('td') as HTMLTableCellElement;
+    const burstReset = create('span', 'hover-click');
+    burstReset.innerText = 'X';
+    burstReset.onclick = () => {
+      this.onTeamUpdate({
+        burst: {
+          multiplier: 1,
+          awakenings: [],
+          awakeningScale: 0,
+          attrRestrictions: [],
+          typeRestrictions: [],
+        }
+      });
+    };
     const burstMultiplierLabel = create('span');
     burstMultiplierLabel.innerText = 'Burst ';
     this.burstMultiplierInput.value = '1';
     this.burstMultiplierInput.type = 'number';
     this.burstMultiplierInput.onchange = updateBurst;
     this.burstMultiplierInput.style.width = '35px';
+    baseBurstCell.appendChild(burstReset);
     baseBurstCell.appendChild(burstMultiplierLabel);
     baseBurstCell.appendChild(this.burstMultiplierInput);
 
@@ -2541,11 +2556,13 @@ class TeamPane {
   }
 
   updateDamage(
+    action: number,
     pings: { attribute: Attribute; damage: number }[],
     rawPings: { attribute: Attribute; damage: number }[],
     actualPings: { attribute: Attribute; damage: number }[],
     enemyHp: number,
     healing: number): void {
+    this.actionSelect.value = String(action);
     while (pings.length < 13) {
       pings.push({ attribute: Attribute.NONE, damage: 0 });
       rawPings.push({ attribute: Attribute.NONE, damage: 0 });

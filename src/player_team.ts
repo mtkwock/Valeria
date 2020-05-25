@@ -282,6 +282,10 @@ class Team {
     this.update();
   }
 
+  setAction(idx: number): void {
+    this.action = idx;
+  }
+
   skillBind(): void {
     const count = this.countAwakening(Awakening.SBR);
     if (count >= 5) {
@@ -315,6 +319,20 @@ class Team {
       }
     }
     this.activeMonster = idx;
+    // If the current action equals the active, choose inherit instead.
+    // If current action is the inherit, reset to combos.
+    // Otherwise set action to the base monster's active.
+    if (this.action == 2 * idx) {
+      if (this.getActiveTeam()[idx].inheritId > 0) {
+        this.action++;
+      } else {
+        this.action = -1;
+      }
+    } else if (this.action == 2 * idx + 1) {
+      this.action = -1;
+    } else {
+      this.action = 2 * idx;
+    }
     this.updateCb(idx);
   }
 

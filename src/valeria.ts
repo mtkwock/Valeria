@@ -111,10 +111,12 @@ class Valeria {
     }
     this.team.teamPane.applyActionButton.onclick = () => {
       const action = this.team.action;
-      this.dungeon.getActiveEnemy().currentHp = this.updateDamage();
       if (action == -1) {
+        this.dungeon.getActiveEnemy().setHp(this.updateDamage());
         return;
       }
+      this.team.setAction(-1);
+      this.dungeon.getActiveEnemy().setHp(this.updateDamage());
 
       const team = this.team.getActiveTeam();
       const source = team[Math.floor(action / 2)];
@@ -136,6 +138,7 @@ class Valeria {
       });
 
       boardEffect(activeId, this.comboContainer);
+      this.comboContainer.update();
 
       this.updateDamage();
       this.dungeon.update(false);
@@ -349,6 +352,7 @@ class Valeria {
     }
 
     this.team.teamPane.updateDamage(
+      this.team.action,
       pings.map((ping) => ({ attribute: ping ? ping.attribute : Attribute.NONE, damage: ping ? ping.damage : 0 })),
       pings.map((ping) => ({ attribute: ping ? ping.attribute : Attribute.NONE, damage: ping ? ping.rawDamage : 0 })),
       pings.map((ping) => ({ attribute: ping ? ping.attribute : Attribute.NONE, damage: ping ? ping.actualDamage : 0 })),

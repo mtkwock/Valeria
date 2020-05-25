@@ -64,7 +64,7 @@ class EnemyInstance {
     hp: new Rational(),
     atk: new Rational(),
     def: new Rational(),
-  }
+  };
 
   constructor() {
   }
@@ -81,6 +81,19 @@ class EnemyInstance {
       this.lv,
       c.enemyHpCurve,
     ), Math.ceil);
+  }
+
+  setHp(hp: number): void {
+    if (hp > this.getHp()) {
+      hp = this.getHp();
+    }
+    if (hp < 0) {
+      hp = 0;
+    }
+    this.currentHp = hp;
+    if (this.getHpPercent() <= 50 && this.currentAttribute == -1 && this.getCard().subattribute >= 0) {
+      this.currentAttribute = this.getCard().subattribute;
+    }
   }
 
   getHpPercent(): number {
