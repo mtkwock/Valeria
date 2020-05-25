@@ -1,6 +1,8 @@
 import { Awakening } from './common';
 import { floof, Card } from './ilmina_stripped';
 
+import { MONSTER_ALIASES } from './fuzzy_search_aliases';
+
 const prefixToCardIds: Record<string, number[]> = {};
 
 let prioritizedEnemySearch: Card[] = [];
@@ -86,8 +88,12 @@ function fuzzyMonsterSearch(
   if (!text || text == '-1') {
     return [-1];
   }
+  const result: number[] = [];
   searchArray = searchArray || prioritizedMonsterSearch;
   text = text.toLowerCase();
+  if (MONSTER_ALIASES[text]) {
+    result.push(MONSTER_ALIASES[text]);
+  }
   let toEquip = false;
   let toBase = false;
   if (text.startsWith('equip')) {
@@ -101,7 +107,6 @@ function fuzzyMonsterSearch(
   } else if (text.startsWith('srevo')) {
     text = text.replace('srevo', 'super reincarnated');
   }
-  const result: number[] = [];
   // Test for exact match.
   if (text in floof.model.cards) {
     result.push(Number(text));
@@ -272,12 +277,20 @@ function fuzzyMonsterSearch(
   return result;
 }
 
-function fuzzySearch<T>(text: string, maxResults: number = 15, searchArray: { s: string, value: T }[]): T[] {
+function fuzzySearch<T>(
+  text: string,
+  maxResults = 15,
+  searchArray: { s: string, value: T }[] = [],
+  aliases: Record<string, T> = {},
+): T[] {
   if (!text) {
     return [];
   }
   text = text.toLowerCase();
   const result: T[] = [];
+  if (aliases[text]) {
+    result.push(aliases[text]);
+  }
 
   for (const { s, value } of searchArray) {
     if (s == text) {

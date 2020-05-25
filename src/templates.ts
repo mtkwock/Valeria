@@ -17,6 +17,7 @@ import {
 } from './common';
 import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
 import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
+import { DUNGEON_ALIASES } from './fuzzy_search_aliases';
 // import { debug } from './debugger';
 
 function create(tag: string, cls = ''): HTMLElement {
@@ -942,6 +943,7 @@ class GenericSelector<T> {
   protected activeOptions: number = 0;
   protected updateCb: (value: number) => void;
   protected searchArray: { s: string, value: T }[];
+  private aliases: Record<string, T> = {};
 
   onKeyDown(): (e: KeyboardEvent) => void {
     return (e: KeyboardEvent) => {
@@ -983,7 +985,7 @@ class GenericSelector<T> {
   }
 
   getFuzzyMatches(text: string): T[] {
-    return fuzzySearch(text, GenericSelector.MAX_OPTIONS * 3, this.searchArray);
+    return fuzzySearch(text, GenericSelector.MAX_OPTIONS * 3, this.searchArray, this.aliases);
   }
 
   onKeyUp(): (e: KeyboardEvent) => void {
@@ -1024,9 +1026,14 @@ class GenericSelector<T> {
     };
   }
 
-  constructor(searchArray: { s: string, value: T }[], updateCb: (value: number) => void) {
+  constructor(
+    searchArray: { s: string, value: T }[],
+    updateCb: (value: number) => void,
+    aliases: Record<string, T> = {},
+  ) {
     this.searchArray = searchArray;
     this.updateCb = updateCb;
+    this.aliases = aliases;
 
     this.selector.placeholder = 'Search';
     this.selector.onkeydown = this.onKeyDown();
@@ -2227,7 +2234,7 @@ class TeamPane {
     this.burstMultiplierInput.value = '1';
     this.burstMultiplierInput.type = 'number';
     this.burstMultiplierInput.onchange = updateBurst;
-    this.burstMultiplierInput.style.width = '35px';
+    this.burstMultiplierInput.style.width = '45px';
     baseBurstCell.appendChild(burstReset);
     baseBurstCell.appendChild(burstMultiplierLabel);
     baseBurstCell.appendChild(this.burstMultiplierInput);
@@ -2529,7 +2536,7 @@ class TeamPane {
     }
     this.leadSwapInput.value = `${teamBattle.leadSwap}`;
 
-    this.burstMultiplierInput.value = String(teamBattle.burst.multiplier);
+    this.burstMultiplierInput.value = String(teamBattle.burst.multiplier).substring(0, 4);
     this.burstAwakeningScaleInput.value = String(teamBattle.burst.awakeningScale);
     this.burstAwakeningSelect1.value = String(teamBattle.burst.awakenings[0] || 0);
     this.burstAwakeningSelect2.value = String(teamBattle.burst.awakenings[1] || 0);
@@ -2870,7 +2877,7 @@ class DungeonEditor {
     this.onUpdate = onUpdate;
     this.dungeonSelector = new GenericSelector<number>(dungeonNames, (id: number) => {
       this.onUpdate({ loadDungeon: id });
-    });
+    }, DUNGEON_ALIASES);
     const selectorEl = this.dungeonSelector.getElement();
     this.dungeonSelector.selector.placeholder = 'Dungeon Search';
     selectorEl.style.padding = '6px';
