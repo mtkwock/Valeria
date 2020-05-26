@@ -6,7 +6,7 @@
 */
 
 const MONSTER_ALIASES: Record<string, number> = {
-
+  'bj': 5488,
 };
 
 const DUNGEON_ALIASES: Record<string, number> = {

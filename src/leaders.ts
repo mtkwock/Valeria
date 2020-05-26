@@ -4,11 +4,6 @@ import { MonsterInstance } from './monster_instance';
 import { ComboContainer } from './combo_container';
 import { floof } from './ilmina_stripped';
 
-// TODO: Figure out enemies.
-interface EnemyInstance {
-  getAttribute: () => Attribute,
-}
-
 export interface AttackContext {
   ping: DamagePing;
   team: MonsterInstance[];
@@ -41,7 +36,7 @@ export interface RcvPostContext {
 }
 
 export interface DamageMultContext {
-  enemy: EnemyInstance;
+  attribute: Attribute;
   team: MonsterInstance[];
   comboContainer: ComboContainer;
   percentHp: number;
@@ -125,7 +120,7 @@ const shieldAgainstAll: LeaderSkill = { // 16
 };
 
 const shieldAgainstAttr: LeaderSkill = { // 17
-  damageMult: ([attr, shield100], { enemy }) => (enemy.getAttribute() == attr) ? 1 - shield100 / 100 : 1,
+  damageMult: ([attr, shield100], { attribute }) => (attribute == attr) ? 1 - shield100 / 100 : 1,
 };
 
 const atkFromType: LeaderSkill = { // 22
@@ -168,7 +163,7 @@ const drumSounds: LeaderSkill = { // 33
 };
 
 const shieldAgainstTwoAttr: LeaderSkill = { // 36
-  damageMult: ([attr1, attr2, shield100], { enemy }) => (enemy.getAttribute() == attr1 || enemy.getAttribute() == attr2) ? 1 - shield100 / 100 : 1,
+  damageMult: ([attr1, attr2, shield100], { attribute }) => (attribute == attr1 || attribute == attr2) ? 1 - shield100 / 100 : 1,
 };
 
 const shieldFromHp: LeaderSkill = { // 38
@@ -515,7 +510,7 @@ const baseStatShieldFromAttributeType: LeaderSkill = { // 129
   hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? hp100 / 100 : 1,
   atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
   rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
-  damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], { enemy }) => shield && idxsFromBits(attrBits).some((attr) => attr == enemy.getAttribute()) ? 1 - shield / 100 : 1,
+  damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], { attribute }) => shield && idxsFromBits(attrBits).some((attr) => attr == attribute) ? 1 - shield / 100 : 1,
 };
 
 const atkRcvShieldFromSubHp: LeaderSkill = { // 130

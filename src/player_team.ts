@@ -1,10 +1,11 @@
-import { Attribute, MonsterType, Awakening, Latent, Round, Shape, COLORS, AwakeningToPlusAwakening, PlusAwakeningMultiplier } from './common';
+import { Attribute, AttributeToName, MonsterType, Awakening, Latent, Round, Shape, COLORS, AwakeningToPlusAwakening, PlusAwakeningMultiplier } from './common';
 import { MonsterInstance, MonsterJson } from './monster_instance';
 import { DamagePing } from './damage_ping';
 import { StoredTeamDisplay, TeamPane, TeamUpdate, Stats, MonsterUpdate } from './templates';
 import { ComboContainer } from './combo_container';
 import { floof, compress, decompress } from './ilmina_stripped';
 import * as leaders from './leaders';
+import { debug } from './debugger';
 
 interface Burst {
   attrRestrictions: Attribute[];
@@ -64,9 +65,7 @@ const DEFAULT_STATE: TeamState = {
   skills: true,
   skillUsed: true,
   shieldPercent: 0,
-  attributesShielded: [
-    Attribute.FIRE, Attribute.WATER, Attribute.WOOD,
-    Attribute.LIGHT, Attribute.DARK],
+  attributesShielded: [],
   burst: {
     attrRestrictions: [],
     typeRestrictions: [],
@@ -301,6 +300,7 @@ class Team {
   }
 
   setActiveMonsterIdx(idx: number) {
+    const relativeIdx = idx % 6;
     if (this.playerMode == 2) {
       if (idx == 5) {
         idx = 6;
@@ -322,16 +322,16 @@ class Team {
     // If the current action equals the active, choose inherit instead.
     // If current action is the inherit, reset to combos.
     // Otherwise set action to the base monster's active.
-    if (this.action == 2 * idx) {
-      if (this.getActiveTeam()[idx].inheritId > 0) {
+    if (this.action == 2 * relativeIdx) {
+      if (this.getActiveTeam()[relativeIdx].inheritId > 0) {
         this.action++;
       } else {
         this.action = -1;
       }
-    } else if (this.action == 2 * idx + 1) {
+    } else if (this.action == 2 * relativeIdx + 1 || this.getActiveTeam()[relativeIdx].getId() <= 0) {
       this.action = -1;
     } else {
-      this.action = 2 * idx;
+      this.action = 2 * relativeIdx;
     }
     this.updateCb(idx);
   }
@@ -1001,10 +1001,106 @@ class Team {
       0);
   }
 
-  damage(amount: number, _attr: Attribute) {
-    // TODO: Account for leader skills and buffs;
+  countLatent(latent: Latent): number {
+    if (!this.state.awakenings) {
+      return 0;
+    }
+    const monsters = this.getActiveTeam();
+    return monsters.reduce((total, monster) => total + monster.latents.filter((l) => l == latent).length, 0);
+  }
+
+  damage(amount: number, attribute: Attribute, comboContainer: ComboContainer) {
+    debug.print(`Team being hit for ${amount} of ${AttributeToName.get(attribute)}`);
+    let multiplier = 1;
+    if (this.state.attributesShielded.includes(attribute)) {
+      multiplier = 0;
+      debug.print('Team is avoiding all damage from ' + AttributeToName.get(attribute));
+    }
+    const team = this.getActiveTeam();
+    const leader = team[0].getCard().leaderSkillId;
+    const helper = team[5].getCard().leaderSkillId;
+    const percentHp = this.getHpPercent();
+    const ctx = {
+      attribute,
+      team,
+      comboContainer,
+      percentHp,
+      healing: 0,
+    };
+    const leaderMultiplier = leaders.damageMult(leader, ctx) * leaders.damageMult(helper, ctx);
+    if (leaderMultiplier != 1) {
+      debug.print(`Damage reduced to ${(leaderMultiplier * 100).toFixed(2)}% from leader skills.`);
+      multiplier *= leaderMultiplier;
+    }
+    if (this.state.shieldPercent) {
+      const shieldMultiplier = (100 - this.state.shieldPercent) / 100;
+      multiplier *= shieldMultiplier;
+
+      debug.print(`Damage reduced to ${shieldMultiplier.toFixed(2)}x due to shields.`);
+    }
+
+    // Assuming stacking L-Guards.
+    let lGuardMultiplier = 1 - this.countAwakening(Awakening.L_GUARD) * comboContainer.combos['h'].filter((c) => c.shape == Shape.L).length;
+    if (lGuardMultiplier < 0) {
+      lGuardMultiplier = 0;
+    }
+    if (lGuardMultiplier != 1) {
+      multiplier *= lGuardMultiplier;
+      debug.print(`Damage reduced to ${lGuardMultiplier.toFixed(2)}x due to L-Guard`);
+    }
+
+    let attrMultiplier = 1;
+    switch (attribute) {
+      case Attribute.FIRE:
+        attrMultiplier -= this.countAwakening(Awakening.RESIST_FIRE) * 0.07;
+        attrMultiplier -= this.countLatent(Latent.RESIST_FIRE) * 0.01;
+        attrMultiplier -= this.countLatent(Latent.RESIST_FIRE_PLUS) * 0.025;
+        break;
+      case Attribute.WATER:
+        attrMultiplier -= this.countAwakening(Awakening.RESIST_WATER) * 0.07;
+        attrMultiplier -= this.countLatent(Latent.RESIST_WATER) * 0.01;
+        attrMultiplier -= this.countLatent(Latent.RESIST_WATER_PLUS) * 0.025;
+        break;
+      case Attribute.WOOD:
+        attrMultiplier -= this.countAwakening(Awakening.RESIST_WOOD) * 0.07;
+        attrMultiplier -= this.countLatent(Latent.RESIST_WOOD) * 0.01;
+        attrMultiplier -= this.countLatent(Latent.RESIST_WOOD_PLUS) * 0.025;
+        break;
+      case Attribute.LIGHT:
+        attrMultiplier -= this.countAwakening(Awakening.RESIST_LIGHT) * 0.07;
+        attrMultiplier -= this.countLatent(Latent.RESIST_LIGHT) * 0.01;
+        attrMultiplier -= this.countLatent(Latent.RESIST_LIGHT_PLUS) * 0.025;
+        break;
+      case Attribute.DARK:
+        attrMultiplier -= this.countAwakening(Awakening.RESIST_DARK) * 0.07;
+        attrMultiplier -= this.countLatent(Latent.RESIST_DARK) * 0.01;
+        attrMultiplier -= this.countLatent(Latent.RESIST_DARK_PLUS) * 0.025;
+        break;
+      default:
+        console.warn('Unhandled damage: ' + attribute);
+    }
+    attrMultiplier = Math.max(0, attrMultiplier);
+    if (attrMultiplier != 1) {
+      multiplier *= (attrMultiplier);
+      debug.print(`Damage reduced to ${(100 * attrMultiplier).toFixed(1)}% due to Attribute Resist Awakenings and Latents`);
+    }
+
+    amount = Math.ceil(amount * multiplier);
+    debug.print(`Team hit for ${amount}, which is ${(multiplier * 100).toFixed(2)}% of the original damage`);
+
     this.state.currentHp -= amount;
+    if (this.state.currentHp < 0) {
+      debug.print(`Team was overkilled by ${-1 * this.state.currentHp}`);
+    }
     this.state.currentHp = Math.max(0, this.state.currentHp) || 0;
+    // Resolve
+    // TODO: Account for 1-2 HP.
+    if (this.state.currentHp == 0) {
+      if (percentHp >= Math.min(leaders.resolve(leader), leaders.resolve(helper))) {
+        this.state.currentHp = 1;
+        debug.print('RESOLVE TRIGGERED, team maintains 1 HP');
+      }
+    }
   }
 
   heal(amount: number, percent = 0) {

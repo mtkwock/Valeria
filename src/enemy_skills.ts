@@ -2,6 +2,7 @@ import { floof } from './ilmina_stripped';
 import { EnemyInstance } from './enemy_instance';
 import { idxsFromBits, AttributeToName, TypeToName, addCommas } from './common';
 import { Team } from './player_team';
+import { ComboContainer } from './combo_container';
 
 interface SkillContext {
   ai: number;
@@ -40,8 +41,9 @@ interface AiContext {
 }
 
 interface GameContext {
-  enemy: EnemyInstance,
-  team: Team,
+  enemy: EnemyInstance;
+  team: Team;
+  comboContainer: ComboContainer;
 }
 
 enum SkillType {
@@ -98,10 +100,10 @@ const bindAttr: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
     const a = skillArgs[0];
     if (team.getActiveTeam().every((m) => !m.isAttribute(a))) {
-      team.damage(enemy.getAtk(), enemy.getAttribute());
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
       return;
     }
     console.warn('Bind not yet supported');
@@ -118,10 +120,10 @@ const bindType: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { enemy, team }) => {
+  effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
     const t = skillArgs[0];
     if (team.getActiveTeam().every((m) => !m.isType(t))) {
-      team.damage(enemy.getAtk(), enemy.getAttribute());
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
       return;
     }
     console.warn('Bind not yet supported');
@@ -165,9 +167,9 @@ const healOrAttack: EnemySkillEffect = {
   textify: ({ skillArgs }, { atk }) => `If player health less than ${addCommas(atk)}, deal ${addCommas(atk)}, otherwise heal for ${range(skillArgs[0], skillArgs[1], '', '')}%`,
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
     if (team.state.currentHp <= enemy.getAtk()) {
-      team.damage(enemy.getAtk(), enemy.getAttribute());
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
       return;
     }
     const [min, max] = skillArgs;
@@ -235,12 +237,12 @@ const multihit: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { enemy, team }) => {
+  effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
     const [min, max, percent] = skillArgs;
     const hitTimes = Math.floor(Math.random() * (max - min)) + min;
     const damage = Math.ceil(percent / 100 * enemy.getAtk());
     for (let i = 0; i < hitTimes; i++) {
-      team.damage(damage, enemy.getAttribute());
+      team.damage(damage, enemy.getAttribute(), comboContainer);
     }
   },
   goto: () => TERMINATE,
@@ -475,8 +477,8 @@ const fallbackAttack: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: (_, { team, enemy }) => {
-    team.damage(enemy.getAtk(), enemy.getAttribute());
+  effect: (_, { team, enemy, comboContainer }) => {
+    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
 };
@@ -632,8 +634,8 @@ const oldPreemptiveAttack: EnemySkillEffect = {
     return `Preemptive: Do ${skillArgs[0]}% (${addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
   },
   condition: () => true,
-  effect: ({ skillArgs }, { team, enemy }) => {
-    team.damage(Math.ceil(enemy.getAtk() * skillArgs[1] / 100), enemy.getAttribute());
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+    team.damage(Math.ceil(enemy.getAtk() * skillArgs[1] / 100), enemy.getAttribute(), comboContainer);
   },
   aiEffect: () => { },
   goto: (_, ctx: AiContext) => ctx.isPreempt ? TERMINATE : TO_NEXT,
@@ -650,8 +652,8 @@ const attackAndSingleOrbChange: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
-    team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+    team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute(), comboContainer);
     // Convert orbs?!
   },
   goto: () => TERMINATE,
@@ -681,8 +683,9 @@ const gravity: EnemySkillEffect = {
   textify: ({ skillArgs }) => `${skillArgs[0]}% gravity of player's current health (rounded down)`,
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
-    team.damage(Math.floor(team.state.currentHp * skillArgs[0] / 100), enemy.getAttribute());
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+    team.damage(Math.floor(team.state.currentHp * skillArgs[0] / 100), enemy.getAttribute(), comboContainer);
+    team.update();
   },
   goto: () => TERMINATE,
 };
@@ -796,9 +799,9 @@ const attackAndBlind: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
     let [percent] = skillArgs;
-    team.damage(Math.ceil(enemy.getAtk() * percent / 100), enemy.getAttribute());
+    team.damage(Math.ceil(enemy.getAtk() * percent / 100), enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
 };
@@ -824,9 +827,9 @@ const attackAndBind: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
     // let [percent, _min, _max, positionMask, count] = skillArgs;
-    team.damage(Math.ceil(enemy.getAtk() * skillArgs[0] / 100), enemy.getAttribute());
+    team.damage(Math.ceil(enemy.getAtk() * skillArgs[0] / 100), enemy.getAttribute(), comboContainer);
     console.warn('Bind not yet supported');
     // positionMask = positionMask || 7;
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
@@ -843,8 +846,8 @@ const attackAndPoisonSpawn: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
-    team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+    team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute(), comboContainer);
     // Convert orbs?!
   },
   goto: () => TERMINATE,
@@ -909,9 +912,9 @@ const voidDamage: EnemySkillEffect = {
   // Add conditional that this can't happen again.
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { enemy, team }) => {
+  effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
     if (enemy.damageVoid) {
-      team.damage(enemy.getAtk(), enemy.getAttribute());
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
       return;
     }
     enemy.damageVoid = skillArgs[2];
@@ -957,11 +960,11 @@ const leadSwap: EnemySkillEffect = {
   // TODO: skip if active.
   condition: () => true,
   aiEffect: () => { },
-  effect: (_, { team, enemy }) => {
+  effect: (_, { team, enemy, comboContainer }) => {
     // Cannot swap an already swapped team.
     const subs = team.getActiveTeam().slice(1, 5).filter(m => m.getId() > 0).length;
     if (team.state.leadSwaps[team.activeTeamIdx] || !subs) {
-      team.damage(enemy.getAtk(), enemy.getAttribute());
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
       return;
     }
     team.updateState({
@@ -1008,9 +1011,9 @@ const attackAndColumnChange: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
     const damage = Math.ceil(enemy.getAtk() / 100 * skillArgs[6]);
-    team.damage(damage, enemy.getAttribute());
+    team.damage(damage, enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
 };
@@ -1053,9 +1056,9 @@ const attackAndRowChange: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
     const damage = Math.ceil(enemy.getAtk() / 100 * skillArgs[6]);
-    team.damage(damage, enemy.getAttribute());
+    team.damage(damage, enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
 };
@@ -1075,9 +1078,9 @@ const attackAndChangeBoardOld: EnemySkillEffect = {
   // TODO: Add conditional depending on board.
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { enemy, team }) => {
+  effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
     const damage = Math.ceil(skillArgs[0] / 100 * enemy.getAtk());
-    team.damage(damage, enemy.getAttribute());
+    team.damage(damage, enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
 }
@@ -1157,9 +1160,9 @@ const attackAndChangeBoard: EnemySkillEffect = {
   // TODO: Add conditional depending on board.
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { enemy, team }) => {
+  effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
     const damage = Math.ceil(skillArgs[0] / 100 * enemy.getAtk());
-    team.damage(damage, enemy.getAttribute());
+    team.damage(damage, enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
 }
@@ -1200,12 +1203,12 @@ const awokenBind: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: (_, { team, enemy }) => {
+  effect: (_, { team, enemy, comboContainer }) => {
     if (team.state.awakenings) {
       team.state.awakenings = false;
     } else {
       // Should we do a basic attack here?
-      team.damage(enemy.getAtk(), enemy.getAttribute());
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
     }
   },
   // TODO: If player is awoken bound, this should be TO_NEXT
@@ -1376,9 +1379,9 @@ const rcv: EnemySkillEffect = {
   // Determine if already debuffed by opponent?!
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
     if (team.state.rcvMult != 1) {
-      team.damage(enemy.getAtk(), enemy.getAttribute());
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
       return;
     }
     team.state.rcvMult = skillArgs[1] / 100;
@@ -1417,8 +1420,8 @@ const attackAndMultiOrbChange: EnemySkillEffect = {
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy }) => {
-    team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+    team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute(), comboContainer);
     // Convert orbs?!
   },
   goto: () => TERMINATE,
@@ -1578,8 +1581,10 @@ const attackAndNoSkyfall: EnemySkillEffect = {
   condition: () => true,
   aiEffect: () => { },
   // This will occur in the damage step.
-  effect: ({ skillArgs }, { team, enemy }) => {
-    team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+    if (skillArgs[0]) {
+      team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute(), comboContainer);
+    }
     // No skyfall?!
   },
   goto: (_, { bigBoard }) => bigBoard ? TO_NEXT : TERMINATE,

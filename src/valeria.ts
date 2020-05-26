@@ -203,7 +203,7 @@ class Valeria {
       debug.print('** Using the following skill **');
       debug.print(textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
       const skillCtx = toSkillContext(enemy.id, idx);
-      enemyEffect(skillCtx, { enemy, team: this.team });
+      enemyEffect(skillCtx, { enemy, team: this.team, comboContainer: this.comboContainer });
       enemy.charges -= floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
       enemy.charges += enemy.getCard().chargeGain;
       this.dungeon.update(true);
