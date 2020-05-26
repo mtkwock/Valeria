@@ -1935,7 +1935,9 @@
     define("fuzzy_search_aliases", ["require", "exports"], function (require, exports) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        const MONSTER_ALIASES = {};
+        const MONSTER_ALIASES = {
+            'bj': 5488,
+        };
         exports.MONSTER_ALIASES = MONSTER_ALIASES;
         const DUNGEON_ALIASES = {
             'a1': 1022001,
@@ -6276,7 +6278,7 @@
             damageMult: ([shield100]) => (1 - shield100 / 100),
         };
         const shieldAgainstAttr = {
-            damageMult: ([attr, shield100], { enemy }) => (enemy.getAttribute() == attr) ? 1 - shield100 / 100 : 1,
+            damageMult: ([attr, shield100], { attribute }) => (attribute == attr) ? 1 - shield100 / 100 : 1,
         };
         const atkFromType = {
             atk: ([type, atk100], { ping }) => ping.source.isType(type) ? atk100 / 100 : 1,
@@ -6309,7 +6311,7 @@
             drumEffect: true,
         };
         const shieldAgainstTwoAttr = {
-            damageMult: ([attr1, attr2, shield100], { enemy }) => (enemy.getAttribute() == attr1 || enemy.getAttribute() == attr2) ? 1 - shield100 / 100 : 1,
+            damageMult: ([attr1, attr2, shield100], { attribute }) => (attribute == attr1 || attribute == attr2) ? 1 - shield100 / 100 : 1,
         };
         const shieldFromHp = {
             damageMult: ([threshold, UNKNOWN, shield100], { percentHp }) => {
@@ -6600,7 +6602,7 @@
             hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? hp100 / 100 : 1,
             atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
             rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
-            damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], { enemy }) => shield && common_6.idxsFromBits(attrBits).some((attr) => attr == enemy.getAttribute()) ? 1 - shield / 100 : 1,
+            damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], { attribute }) => shield && common_6.idxsFromBits(attrBits).some((attr) => attr == attribute) ? 1 - shield / 100 : 1,
         };
         const atkRcvShieldFromSubHp = {
             atk: ([thresh, ...remaining], context) => thresh <= context.percentHp ? (baseStatFromAttrType.atk || (() => 1))(remaining, context) : 1,
@@ -7315,7 +7317,46 @@
         }
         exports.awokenBindClear = awokenBindClear;
     });
-    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_3, ilmina_stripped_6, leaders) {
+    define("debugger", ["require", "exports", "templates"], function (require, exports, templates_3) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        class DebuggerEl {
+            constructor() {
+                this.el = templates_3.create('div');
+                this.inputEl = templates_3.create('input');
+                this.buttons = [];
+                this.textarea = templates_3.create('textarea');
+                this.text = '';
+                this.el.appendChild(this.inputEl);
+                this.el.appendChild(this.textarea);
+                this.addButton('Clear', () => {
+                    this.text = '';
+                    this.textarea.value = '';
+                });
+                this.textarea.style.width = `100%`;
+                this.textarea.style.fontSize = 'small';
+                this.textarea.style.height = '250px';
+                this.textarea.style.fontFamily = 'monospace';
+            }
+            addButton(text, onclick) {
+                const button = templates_3.create('button');
+                button.innerText = text;
+                button.onclick = onclick;
+                this.el.insertBefore(button, this.textarea);
+                this.buttons.push(button);
+            }
+            getElement() {
+                return this.el;
+            }
+            print(text) {
+                this.text += `\n${text}`;
+                this.textarea.value = this.text;
+            }
+        }
+        const debug = new DebuggerEl();
+        exports.debug = debug;
+    });
+    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_6, leaders, debugger_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const DEFAULT_STATE = {
@@ -7324,10 +7365,7 @@
             skills: true,
             skillUsed: true,
             shieldPercent: 0,
-            attributesShielded: [
-                common_7.Attribute.FIRE, common_7.Attribute.WATER, common_7.Attribute.WOOD,
-                common_7.Attribute.LIGHT, common_7.Attribute.DARK
-            ],
+            attributesShielded: [],
             burst: {
                 attrRestrictions: [],
                 typeRestrictions: [],
@@ -7357,7 +7395,7 @@
                         window.localStorage.idcStoredTeams = ilmina_stripped_6.compress(window.localStorage.idcStoredTeams);
                     }
                 }
-                this.display = new templates_3.StoredTeamDisplay(
+                this.display = new templates_4.StoredTeamDisplay(
                 // On Save Click
                 () => {
                     this.saveTeam(team.toJson());
@@ -7443,7 +7481,7 @@
                     }));
                 }
                 this.storage = new StoredTeams(this);
-                this.teamPane = new templates_3.TeamPane(this.storage.getElement(), this.monsters.map((monster) => monster.getElement()), (ctx) => {
+                this.teamPane = new templates_4.TeamPane(this.storage.getElement(), this.monsters.map((monster) => monster.getElement()), (ctx) => {
                     if (ctx.title) {
                         this.teamName = ctx.title;
                     }
@@ -7523,6 +7561,7 @@
                 this.teamPane.goToTab('Team');
             }
             setActiveMonsterIdx(idx) {
+                const relativeIdx = idx % 6;
                 if (this.playerMode == 2) {
                     if (idx == 5) {
                         idx = 6;
@@ -7545,19 +7584,19 @@
                 // If the current action equals the active, choose inherit instead.
                 // If current action is the inherit, reset to combos.
                 // Otherwise set action to the base monster's active.
-                if (this.action == 2 * idx) {
-                    if (this.getActiveTeam()[idx].inheritId > 0) {
+                if (this.action == 2 * relativeIdx) {
+                    if (this.getActiveTeam()[relativeIdx].inheritId > 0) {
                         this.action++;
                     }
                     else {
                         this.action = -1;
                     }
                 }
-                else if (this.action == 2 * idx + 1) {
+                else if (this.action == 2 * relativeIdx + 1 || this.getActiveTeam()[relativeIdx].getId() <= 0) {
                     this.action = -1;
                 }
                 else {
-                    this.action = 2 * idx;
+                    this.action = 2 * relativeIdx;
                 }
                 this.updateCb(idx);
             }
@@ -8170,10 +8209,100 @@
                 }
                 return monsters.reduce((total, monster) => total + monster.countAwakening(awakening, this.isMultiplayer()), 0);
             }
-            damage(amount, _attr) {
-                // TODO: Account for leader skills and buffs;
+            countLatent(latent) {
+                if (!this.state.awakenings) {
+                    return 0;
+                }
+                const monsters = this.getActiveTeam();
+                return monsters.reduce((total, monster) => total + monster.latents.filter((l) => l == latent).length, 0);
+            }
+            damage(amount, attribute, comboContainer) {
+                debugger_1.debug.print(`Team being hit for ${amount} of ${common_7.AttributeToName.get(attribute)}`);
+                let multiplier = 1;
+                if (this.state.attributesShielded.includes(attribute)) {
+                    multiplier = 0;
+                    debugger_1.debug.print('Team is avoiding all damage from ' + common_7.AttributeToName.get(attribute));
+                }
+                const team = this.getActiveTeam();
+                const leader = team[0].getCard().leaderSkillId;
+                const helper = team[5].getCard().leaderSkillId;
+                const percentHp = this.getHpPercent();
+                const ctx = {
+                    attribute,
+                    team,
+                    comboContainer,
+                    percentHp,
+                    healing: 0,
+                };
+                const leaderMultiplier = leaders.damageMult(leader, ctx) * leaders.damageMult(helper, ctx);
+                if (leaderMultiplier != 1) {
+                    debugger_1.debug.print(`Damage reduced to ${(leaderMultiplier * 100).toFixed(2)}% from leader skills.`);
+                    multiplier *= leaderMultiplier;
+                }
+                if (this.state.shieldPercent) {
+                    const shieldMultiplier = (100 - this.state.shieldPercent) / 100;
+                    multiplier *= shieldMultiplier;
+                    debugger_1.debug.print(`Damage reduced to ${shieldMultiplier.toFixed(2)}x due to shields.`);
+                }
+                // Assuming stacking L-Guards.
+                let lGuardMultiplier = 1 - this.countAwakening(common_7.Awakening.L_GUARD) * comboContainer.combos['h'].filter((c) => c.shape == common_7.Shape.L).length;
+                if (lGuardMultiplier < 0) {
+                    lGuardMultiplier = 0;
+                }
+                if (lGuardMultiplier != 1) {
+                    multiplier *= lGuardMultiplier;
+                    debugger_1.debug.print(`Damage reduced to ${lGuardMultiplier.toFixed(2)}x due to L-Guard`);
+                }
+                let attrMultiplier = 1;
+                switch (attribute) {
+                    case common_7.Attribute.FIRE:
+                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_FIRE) * 0.07;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_FIRE) * 0.01;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_FIRE_PLUS) * 0.025;
+                        break;
+                    case common_7.Attribute.WATER:
+                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_WATER) * 0.07;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_WATER) * 0.01;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_WATER_PLUS) * 0.025;
+                        break;
+                    case common_7.Attribute.WOOD:
+                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_WOOD) * 0.07;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_WOOD) * 0.01;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_WOOD_PLUS) * 0.025;
+                        break;
+                    case common_7.Attribute.LIGHT:
+                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_LIGHT) * 0.07;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_LIGHT) * 0.01;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_LIGHT_PLUS) * 0.025;
+                        break;
+                    case common_7.Attribute.DARK:
+                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_DARK) * 0.07;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_DARK) * 0.01;
+                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_DARK_PLUS) * 0.025;
+                        break;
+                    default:
+                        console.warn('Unhandled damage: ' + attribute);
+                }
+                attrMultiplier = Math.max(0, attrMultiplier);
+                if (attrMultiplier != 1) {
+                    multiplier *= (attrMultiplier);
+                    debugger_1.debug.print(`Damage reduced to ${(100 * attrMultiplier).toFixed(1)}% due to Attribute Resist Awakenings and Latents`);
+                }
+                amount = Math.ceil(amount * multiplier);
+                debugger_1.debug.print(`Team hit for ${amount}, which is ${(multiplier * 100).toFixed(2)}% of the original damage`);
                 this.state.currentHp -= amount;
+                if (this.state.currentHp < 0) {
+                    debugger_1.debug.print(`Team was overkilled by ${-1 * this.state.currentHp}`);
+                }
                 this.state.currentHp = Math.max(0, this.state.currentHp) || 0;
+                // Resolve
+                // TODO: Account for 1-2 HP.
+                if (this.state.currentHp == 0) {
+                    if (percentHp >= Math.min(leaders.resolve(leader), leaders.resolve(helper))) {
+                        this.state.currentHp = 1;
+                        debugger_1.debug.print('RESOLVE TRIGGERED, team maintains 1 HP');
+                    }
+                }
             }
             heal(amount, percent = 0) {
                 this.state.currentHp += amount;
@@ -8560,46 +8689,7 @@
         }
         exports.EnemyInstance = EnemyInstance;
     });
-    define("debugger", ["require", "exports", "templates"], function (require, exports, templates_4) {
-        "use strict";
-        Object.defineProperty(exports, "__esModule", { value: true });
-        class DebuggerEl {
-            constructor() {
-                this.el = templates_4.create('div');
-                this.inputEl = templates_4.create('input');
-                this.buttons = [];
-                this.textarea = templates_4.create('textarea');
-                this.text = '';
-                this.el.appendChild(this.inputEl);
-                this.el.appendChild(this.textarea);
-                this.addButton('Clear', () => {
-                    this.text = '';
-                    this.textarea.value = '';
-                });
-                this.textarea.style.width = `100%`;
-                this.textarea.style.fontSize = 'small';
-                this.textarea.style.height = '250px';
-                this.textarea.style.fontFamily = 'monospace';
-            }
-            addButton(text, onclick) {
-                const button = templates_4.create('button');
-                button.innerText = text;
-                button.onclick = onclick;
-                this.el.insertBefore(button, this.textarea);
-                this.buttons.push(button);
-            }
-            getElement() {
-                return this.el;
-            }
-            print(text) {
-                this.text += `\n${text}`;
-                this.textarea.value = this.text;
-            }
-        }
-        const debug = new DebuggerEl();
-        exports.debug = debug;
-    });
-    define("actives", ["require", "exports", "common", "damage_ping", "ilmina_stripped", "debugger"], function (require, exports, common_9, damage_ping_2, ilmina_stripped_8, debugger_1) {
+    define("actives", ["require", "exports", "common", "damage_ping", "ilmina_stripped", "debugger"], function (require, exports, common_9, damage_ping_2, ilmina_stripped_8, debugger_2) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // 0
@@ -8631,7 +8721,7 @@
                 const multiplier100 = atk100base + Math.floor(Math.random() * (atk100max - atk100base));
                 ping.multiply(multiplier100 / 100, common_9.Round.UP);
                 if (atk100base != atk100max) {
-                    debugger_1.debug.print('Random scaling active used. Damage is inconsistent');
+                    debugger_2.debug.print('Random scaling active used. Damage is inconsistent');
                 }
                 return [ping];
             },
@@ -9150,13 +9240,13 @@
         };
         function getGeneratorIfExists(activeId) {
             if (!ilmina_stripped_8.floof.model.playerSkills[activeId]) {
-                debugger_1.debug.print(`Active ID not found: ${activeId}`);
+                debugger_2.debug.print(`Active ID not found: ${activeId}`);
                 return;
             }
             const active = ilmina_stripped_8.floof.model.playerSkills[activeId];
             const generator = ACTIVE_GENERATORS[active.internalEffectId];
             if (!generator) {
-                debugger_1.debug.print(`Active Internal Effect ${active.internalEffectId} not implemented`);
+                debugger_2.debug.print(`Active Internal Effect ${active.internalEffectId} not implemented`);
                 return;
             }
             return generator;
@@ -9419,10 +9509,10 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
                 const a = skillArgs[0];
                 if (team.getActiveTeam().every((m) => !m.isAttribute(a))) {
-                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                     return;
                 }
                 console.warn('Bind not yet supported');
@@ -9438,10 +9528,10 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { enemy, team }) => {
+            effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
                 const t = skillArgs[0];
                 if (team.getActiveTeam().every((m) => !m.isType(t))) {
-                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                     return;
                 }
                 console.warn('Bind not yet supported');
@@ -9481,9 +9571,9 @@
             textify: ({ skillArgs }, { atk }) => `If player health less than ${common_10.addCommas(atk)}, deal ${common_10.addCommas(atk)}, otherwise heal for ${range(skillArgs[0], skillArgs[1], '', '')}%`,
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
                 if (team.state.currentHp <= enemy.getAtk()) {
-                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                     return;
                 }
                 const [min, max] = skillArgs;
@@ -9547,12 +9637,12 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { enemy, team }) => {
+            effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
                 const [min, max, percent] = skillArgs;
                 const hitTimes = Math.floor(Math.random() * (max - min)) + min;
                 const damage = Math.ceil(percent / 100 * enemy.getAtk());
                 for (let i = 0; i < hitTimes; i++) {
-                    team.damage(damage, enemy.getAttribute());
+                    team.damage(damage, enemy.getAttribute(), comboContainer);
                 }
             },
             goto: () => TERMINATE,
@@ -9768,8 +9858,8 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: (_, { team, enemy }) => {
-                team.damage(enemy.getAtk(), enemy.getAttribute());
+            effect: (_, { team, enemy, comboContainer }) => {
+                team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
         };
@@ -9917,8 +10007,8 @@
                 return `Preemptive: Do ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
             },
             condition: () => true,
-            effect: ({ skillArgs }, { team, enemy }) => {
-                team.damage(Math.ceil(enemy.getAtk() * skillArgs[1] / 100), enemy.getAttribute());
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+                team.damage(Math.ceil(enemy.getAtk() * skillArgs[1] / 100), enemy.getAttribute(), comboContainer);
             },
             aiEffect: () => { },
             goto: (_, ctx) => ctx.isPreempt ? TERMINATE : TO_NEXT,
@@ -9934,8 +10024,8 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
-                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute(), comboContainer);
                 // Convert orbs?!
             },
             goto: () => TERMINATE,
@@ -9963,8 +10053,9 @@
             textify: ({ skillArgs }) => `${skillArgs[0]}% gravity of player's current health (rounded down)`,
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
-                team.damage(Math.floor(team.state.currentHp * skillArgs[0] / 100), enemy.getAttribute());
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+                team.damage(Math.floor(team.state.currentHp * skillArgs[0] / 100), enemy.getAttribute(), comboContainer);
+                team.update();
             },
             goto: () => TERMINATE,
         };
@@ -10070,9 +10161,9 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
                 let [percent] = skillArgs;
-                team.damage(Math.ceil(enemy.getAtk() * percent / 100), enemy.getAttribute());
+                team.damage(Math.ceil(enemy.getAtk() * percent / 100), enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
         };
@@ -10097,9 +10188,9 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
                 // let [percent, _min, _max, positionMask, count] = skillArgs;
-                team.damage(Math.ceil(enemy.getAtk() * skillArgs[0] / 100), enemy.getAttribute());
+                team.damage(Math.ceil(enemy.getAtk() * skillArgs[0] / 100), enemy.getAttribute(), comboContainer);
                 console.warn('Bind not yet supported');
                 // positionMask = positionMask || 7;
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
@@ -10115,8 +10206,8 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
-                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute(), comboContainer);
                 // Convert orbs?!
             },
             goto: () => TERMINATE,
@@ -10175,9 +10266,9 @@
             // Add conditional that this can't happen again.
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { enemy, team }) => {
+            effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
                 if (enemy.damageVoid) {
-                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                     return;
                 }
                 enemy.damageVoid = skillArgs[2];
@@ -10219,11 +10310,11 @@
             // TODO: skip if active.
             condition: () => true,
             aiEffect: () => { },
-            effect: (_, { team, enemy }) => {
+            effect: (_, { team, enemy, comboContainer }) => {
                 // Cannot swap an already swapped team.
                 const subs = team.getActiveTeam().slice(1, 5).filter(m => m.getId() > 0).length;
                 if (team.state.leadSwaps[team.activeTeamIdx] || !subs) {
-                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                     return;
                 }
                 team.updateState({
@@ -10268,9 +10359,9 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
                 const damage = Math.ceil(enemy.getAtk() / 100 * skillArgs[6]);
-                team.damage(damage, enemy.getAttribute());
+                team.damage(damage, enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
         };
@@ -10311,9 +10402,9 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
                 const damage = Math.ceil(enemy.getAtk() / 100 * skillArgs[6]);
-                team.damage(damage, enemy.getAttribute());
+                team.damage(damage, enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
         };
@@ -10332,9 +10423,9 @@
             // TODO: Add conditional depending on board.
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { enemy, team }) => {
+            effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
                 const damage = Math.ceil(skillArgs[0] / 100 * enemy.getAtk());
-                team.damage(damage, enemy.getAttribute());
+                team.damage(damage, enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
         };
@@ -10408,9 +10499,9 @@
             // TODO: Add conditional depending on board.
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { enemy, team }) => {
+            effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
                 const damage = Math.ceil(skillArgs[0] / 100 * enemy.getAtk());
-                team.damage(damage, enemy.getAttribute());
+                team.damage(damage, enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
         };
@@ -10449,13 +10540,13 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: (_, { team, enemy }) => {
+            effect: (_, { team, enemy, comboContainer }) => {
                 if (team.state.awakenings) {
                     team.state.awakenings = false;
                 }
                 else {
                     // Should we do a basic attack here?
-                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                 }
             },
             // TODO: If player is awoken bound, this should be TO_NEXT
@@ -10610,9 +10701,9 @@
             // Determine if already debuffed by opponent?!
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
                 if (team.state.rcvMult != 1) {
-                    team.damage(enemy.getAtk(), enemy.getAttribute());
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                     return;
                 }
                 team.state.rcvMult = skillArgs[1] / 100;
@@ -10648,8 +10739,8 @@
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy }) => {
-                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute(), comboContainer);
                 // Convert orbs?!
             },
             goto: () => TERMINATE,
@@ -10795,8 +10886,10 @@
             condition: () => true,
             aiEffect: () => { },
             // This will occur in the damage step.
-            effect: ({ skillArgs }, { team, enemy }) => {
-                team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute());
+            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+                if (skillArgs[0]) {
+                    team.damage(Math.ceil(skillArgs[0] * enemy.getAtk() / 100), enemy.getAttribute(), comboContainer);
+                }
                 // No skyfall?!
             },
             goto: (_, { bigBoard }) => bigBoard ? TO_NEXT : TERMINATE,
@@ -11707,7 +11800,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_2, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_3, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
@@ -11837,7 +11930,7 @@
                     this.dungeon.loadDungeon(Number(dungeonId));
                 }
                 this.display.panes[2].appendChild(this.dungeon.getPane());
-                debugger_2.debug.addButton('Print Skills', () => {
+                debugger_3.debug.addButton('Print Skills', () => {
                     const enemy = this.dungeon.getActiveEnemy();
                     const id = enemy.id;
                     const skillTexts = enemy_skills_2.textifyEnemySkills({
@@ -11845,10 +11938,10 @@
                         atk: enemy.getAtk(),
                     });
                     for (let i = 0; i < skillTexts.length; i++) {
-                        debugger_2.debug.print(`${i + 1}: ${skillTexts[i]} `);
+                        debugger_3.debug.print(`${i + 1}: ${skillTexts[i]} `);
                     }
                 });
-                debugger_2.debug.addButton('Simulate Next Skill', () => {
+                debugger_3.debug.addButton('Simulate Next Skill', () => {
                     const attributes = new Set();
                     const types = new Set();
                     for (const m of this.team.getActiveTeam()) {
@@ -11864,17 +11957,17 @@
                 });
                 this.dungeon.onEnemySkill = (idx, otherIdxs) => {
                     if (idx < 0) {
-                        debugger_2.debug.print('No skill to use');
+                        debugger_3.debug.print('No skill to use');
                         return;
                     }
                     const enemy = this.dungeon.getActiveEnemy();
                     if (otherIdxs.length) {
-                        debugger_2.debug.print(`  * Not using potential skills: ${otherIdxs}`);
+                        debugger_3.debug.print(`  * Not using potential skills: ${otherIdxs}`);
                     }
-                    debugger_2.debug.print('** Using the following skill **');
-                    debugger_2.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
+                    debugger_3.debug.print('** Using the following skill **');
+                    debugger_3.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
                     const skillCtx = enemy_skills_2.toSkillContext(enemy.id, idx);
-                    enemy_skills_2.effect(skillCtx, { enemy, team: this.team });
+                    enemy_skills_2.effect(skillCtx, { enemy, team: this.team, comboContainer: this.comboContainer });
                     enemy.charges -= ilmina_stripped_11.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
                     enemy.charges += enemy.getCard().chargeGain;
                     this.dungeon.update(true);
@@ -12035,7 +12128,7 @@
             };
             // document.body.appendChild(valeria.teamPhotoCanvas);
             if (localStorage.debug) {
-                document.body.appendChild(debugger_2.debug.getElement());
+                document.body.appendChild(debugger_3.debug.getElement());
             }
             window.valeria = valeria;
             const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`);
