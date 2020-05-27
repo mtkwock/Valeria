@@ -6995,7 +6995,7 @@
             trueBonusAttack: ([attrBits, minLinked, trueDamage], { comboContainer }) => {
                 return common_6.idxsFromBits(attrBits)
                     .some((attr) => comboContainer.combos[common_6.COLORS[attr]]
-                    .some((c) => c.count >= minLinked)) ? trueDamage : 1;
+                    .some((c) => c.count >= minLinked)) ? trueDamage : 0;
             },
         };
         const trueBonusFromColorMatches = {
