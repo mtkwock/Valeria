@@ -951,7 +951,7 @@ const trueBonusFromLinkedOrbs: LeaderSkill = { // 200
   trueBonusAttack: ([attrBits, minLinked, trueDamage], { comboContainer }) => {
     return idxsFromBits(attrBits)
       .some((attr) => comboContainer.combos[COLORS[attr]]
-        .some((c) => c.count >= minLinked)) ? trueDamage : 1;
+        .some((c) => c.count >= minLinked)) ? trueDamage : 0;
   },
 };
 
