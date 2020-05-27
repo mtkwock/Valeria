@@ -30,6 +30,7 @@ class Valeria {
     this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
 
     this.comboContainer.onUpdate.push(() => {
+      this.team.action = -1;
       this.updateDamage();
     });
 
