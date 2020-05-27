@@ -11814,6 +11814,7 @@
                 this.teamPhotoCanvas = document.createElement('canvas');
                 this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
                 this.comboContainer.onUpdate.push(() => {
+                    this.team.action = -1;
                     this.updateDamage();
                 });
                 this.monsterEditor = new templates_6.MonsterEditor((ctx) => {
