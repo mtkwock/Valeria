@@ -1,4 +1,10 @@
-import { Attribute, AttributeToName, MonsterType, Awakening, Latent, Round, Shape, COLORS, AwakeningToPlusAwakening, PlusAwakeningMultiplier } from './common';
+import {
+  Attribute, AttributeToName, COLORS,
+  MonsterType,
+  Awakening, AwakeningToPlusAwakening, PlusAwakeningMultiplier,
+  Latent,
+  Round, Shape,
+} from './common';
 import { MonsterInstance, MonsterJson } from './monster_instance';
 import { DamagePing } from './damage_ping';
 import { StoredTeamDisplay, TeamPane, TeamUpdate, Stats, MonsterUpdate } from './templates';
@@ -61,7 +67,7 @@ interface TeamStateContext {
 
 const DEFAULT_STATE: TeamState = {
   awakenings: true,
-  currentHp: 0,
+  currentHp: -1,
   skills: true,
   skillUsed: true,
   shieldPercent: 0,
@@ -80,7 +86,7 @@ const DEFAULT_STATE: TeamState = {
   timeBonus: 0,
   timeIsMult: false,
 
-  rcvMult: 0,
+  rcvMult: 1,
   fixedHp: 0,
 
   leadSwaps: [0, 0, 0],
@@ -373,7 +379,6 @@ class Team {
   }
 
   fromPdchu(s: string): void {
-    this.resetState();
     const teamStrings = s.split(';');
     // We don't support >3P.
     if (teamStrings.length > 3) {
@@ -422,6 +427,7 @@ class Team {
       }
     }
 
+    this.resetState();
     this.update();
   }
 
@@ -1040,13 +1046,16 @@ class Team {
     }
 
     // Assuming stacking L-Guards.
-    let lGuardMultiplier = 1 - this.countAwakening(Awakening.L_GUARD) * comboContainer.combos['h'].filter((c) => c.shape == Shape.L).length;
-    if (lGuardMultiplier < 0) {
-      lGuardMultiplier = 0;
-    }
-    if (lGuardMultiplier != 1) {
-      multiplier *= lGuardMultiplier;
-      debug.print(`Damage reduced to ${lGuardMultiplier.toFixed(2)}x due to L-Guard`);
+    if (comboContainer.combos['h'].some((c) => c.shape == Shape.L)) {
+      let lGuardMultiplier = 1 - this.countAwakening(Awakening.L_GUARD) * 0.05;
+
+      if (lGuardMultiplier < 0) {
+        lGuardMultiplier = 0;
+      }
+      if (lGuardMultiplier != 1) {
+        multiplier *= lGuardMultiplier;
+        debug.print(`Damage reduced to ${lGuardMultiplier.toFixed(2)}x due to L-Guard`);
+      }
     }
 
     let attrMultiplier = 1;

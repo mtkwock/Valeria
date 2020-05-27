@@ -7,46 +7,6 @@ import { determineSkillset, textifyEnemySkill, skillType } from './enemy_skills'
 // import { floof } from './ilmina_stripped';
 // import {DungeonEditor} from './templates';
 
-// function createHpEl() {
-//   const hpEl = document.createElement('div');
-//   hpEl.style.paddingTop = '5px';
-//   hpEl.style.paddingBottom = '10px';
-//   hpEl.style.paddingLeft = '5%';
-//   hpEl.style.paddingRight = '5%';
-//   const hpSlider = document.createElement('input');
-//   hpSlider.className = 'idc-hp-slider';
-//   hpSlider.type = 'range';
-//   hpSlider.min = 0;
-//   hpSlider.max = 1;
-//   hpSlider.style.webkitAppearance = 'none';
-//   hpSlider.style.width = '100%';
-//   hpSlider.style.height = '5px';
-//   hpSlider.style.marginBottom = '5px';
-//   hpEl.appendChild(hpSlider);
-//
-//   const hpInput = document.createElement('input');
-//   hpInput.className = 'idc-hp-input';
-//   hpInput.type = 'number';
-//   hpInput.style.width = '100px';
-//   hpEl.appendChild(hpInput);
-//
-//   const divisionSpan = document.createElement('span');
-//   divisionSpan.innerText = '/';
-//   hpEl.appendChild(divisionSpan);
-//
-//   const hpMax = document.createElement('span');
-//   hpMax.className = 'idc-hp-max';
-//   hpMax.innerText = '1';
-//   hpMax.style.marginRight = '15px';
-//   hpEl.appendChild(hpMax);
-//
-//   const hpPercent = document.createElement('span');
-//   hpPercent.className = 'idc-hp-percent';
-//   hpPercent.innerText = '100%';
-//   hpEl.appendChild(hpPercent);
-//   return hpEl;
-// }
-
 interface DungeonFloorJson {
   enemies: EnemyInstanceJson[];
 }
@@ -202,7 +162,8 @@ class DungeonInstance {
   pane: DungeonPane;
   skillArea: EnemySkillArea;
   onEnemySkill: (skillIdx: number, otherSkills: number[]) => void = () => null;
-  onEnemyChange: () => void = () => { };
+  public onEnemyChange: () => void = () => { };
+  public onEnemyUpdate: () => void = () => { };
 
   async loadDungeon(subDungeonId: number) {
     await waitFor(() => dungeonsLoaded);
@@ -274,7 +235,7 @@ class DungeonInstance {
     }
   }
 
-  getUpdateFunction(): (ctx: DungeonUpdate) => void {
+  private getUpdateFunction(): (ctx: DungeonUpdate) => void {
     return (ctx: DungeonUpdate) => {
       console.log(ctx);
       if (ctx.loadDungeon != undefined) {
@@ -414,6 +375,7 @@ class DungeonInstance {
         enemy.flags = ctx.flags;
       }
       this.update(updateActiveEnemy);
+      this.onEnemyUpdate();
     };
   }
 

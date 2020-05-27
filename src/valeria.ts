@@ -111,12 +111,16 @@ class Valeria {
     }
     this.team.teamPane.applyActionButton.onclick = () => {
       const action = this.team.action;
+      const { endEnemyHp, healing } = this.updateDamage();
       if (action == -1) {
-        this.dungeon.getActiveEnemy().setHp(this.updateDamage());
+        this.dungeon.getActiveEnemy().setHp(endEnemyHp);
+        this.team.heal(healing);
+        this.team.update();
+        this.dungeon.update(false);
         return;
       }
       this.team.setAction(-1);
-      this.dungeon.getActiveEnemy().setHp(this.updateDamage());
+      this.dungeon.getActiveEnemy().setHp(endEnemyHp);
 
       const team = this.team.getActiveTeam();
       const source = team[Math.floor(action / 2)];
@@ -141,6 +145,7 @@ class Valeria {
       this.comboContainer.update();
 
       this.updateDamage();
+      this.team.update();
       this.dungeon.update(false);
     }
     let team = getUrlParameter('team');
@@ -211,7 +216,11 @@ class Valeria {
     }
     this.dungeon.onEnemyChange = () => {
       this.usePreempt();
+      this.updateDamage();
     };
+    this.dungeon.onEnemyUpdate = () => {
+      this.updateDamage();
+    }
     this.teamPhotoCanvas.style.width = '100%';
     this.teamPhoto = new TeamPhoto(this.teamPhotoCanvas);
   }
@@ -272,7 +281,7 @@ class Valeria {
     });
   }
 
-  updateDamage(): number {
+  updateDamage(): { endEnemyHp: number; healing: number } {
     let pings: DamagePing[] = []
     let healing: number = 0
     let trueBonusAttack = 0;
@@ -297,7 +306,7 @@ class Valeria {
       });
     }
 
-    if (!this.dungeon) return 0;
+    if (!this.dungeon) return { endEnemyHp: 0, healing: 0 };
     const enemy = this.dungeon.getActiveEnemy();
     let currentHp = enemy.currentHp;
     const maxHp = enemy.getHp();
@@ -360,7 +369,7 @@ class Valeria {
       healing,
     );
 
-    return currentHp;
+    return { endEnemyHp: currentHp, healing };
   }
 
   getElement(): HTMLElement {
