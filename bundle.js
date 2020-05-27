@@ -7361,7 +7361,7 @@
         Object.defineProperty(exports, "__esModule", { value: true });
         const DEFAULT_STATE = {
             awakenings: true,
-            currentHp: 0,
+            currentHp: -1,
             skills: true,
             skillUsed: true,
             shieldPercent: 0,
@@ -7378,7 +7378,7 @@
             voidDamageVoid: false,
             timeBonus: 0,
             timeIsMult: false,
-            rcvMult: 0,
+            rcvMult: 1,
             fixedHp: 0,
             leadSwaps: [0, 0, 0],
             bigBoard: false,
@@ -7633,7 +7633,6 @@
                 return '';
             }
             fromPdchu(s) {
-                this.resetState();
                 const teamStrings = s.split(';');
                 // We don't support >3P.
                 if (teamStrings.length > 3) {
@@ -7681,6 +7680,7 @@
                         team[j].fromPdchu(monsterStrings[j]);
                     }
                 }
+                this.resetState();
                 this.update();
             }
             getTeamAt(teamIdx) {
@@ -8245,13 +8245,15 @@
                     debugger_1.debug.print(`Damage reduced to ${shieldMultiplier.toFixed(2)}x due to shields.`);
                 }
                 // Assuming stacking L-Guards.
-                let lGuardMultiplier = 1 - this.countAwakening(common_7.Awakening.L_GUARD) * comboContainer.combos['h'].filter((c) => c.shape == common_7.Shape.L).length;
-                if (lGuardMultiplier < 0) {
-                    lGuardMultiplier = 0;
-                }
-                if (lGuardMultiplier != 1) {
-                    multiplier *= lGuardMultiplier;
-                    debugger_1.debug.print(`Damage reduced to ${lGuardMultiplier.toFixed(2)}x due to L-Guard`);
+                if (comboContainer.combos['h'].some((c) => c.shape == common_7.Shape.L)) {
+                    let lGuardMultiplier = 1 - this.countAwakening(common_7.Awakening.L_GUARD) * 0.05;
+                    if (lGuardMultiplier < 0) {
+                        lGuardMultiplier = 0;
+                    }
+                    if (lGuardMultiplier != 1) {
+                        multiplier *= lGuardMultiplier;
+                        debugger_1.debug.print(`Damage reduced to ${lGuardMultiplier.toFixed(2)}x due to L-Guard`);
+                    }
                 }
                 let attrMultiplier = 1;
                 switch (attribute) {
@@ -11371,6 +11373,7 @@
                 this.activeEnemy = 0;
                 this.onEnemySkill = () => null;
                 this.onEnemyChange = () => { };
+                this.onEnemyUpdate = () => { };
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
                 this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
@@ -11558,6 +11561,7 @@
                         enemy.flags = ctx.flags;
                     }
                     this.update(updateActiveEnemy);
+                    this.onEnemyUpdate();
                 };
             }
             getPane() {
@@ -11888,12 +11892,16 @@
                 };
                 this.team.teamPane.applyActionButton.onclick = () => {
                     const action = this.team.action;
+                    const { endEnemyHp, healing } = this.updateDamage();
                     if (action == -1) {
-                        this.dungeon.getActiveEnemy().setHp(this.updateDamage());
+                        this.dungeon.getActiveEnemy().setHp(endEnemyHp);
+                        this.team.heal(healing);
+                        this.team.update();
+                        this.dungeon.update(false);
                         return;
                     }
                     this.team.setAction(-1);
-                    this.dungeon.getActiveEnemy().setHp(this.updateDamage());
+                    this.dungeon.getActiveEnemy().setHp(endEnemyHp);
                     const team = this.team.getActiveTeam();
                     const source = team[Math.floor(action / 2)];
                     const activeId = ilmina_stripped_11.floof.model.cards[action & 1 ? source.inheritId : source.getId()].activeSkillId;
@@ -11913,6 +11921,7 @@
                     actives_1.boardEffect(activeId, this.comboContainer);
                     this.comboContainer.update();
                     this.updateDamage();
+                    this.team.update();
                     this.dungeon.update(false);
                 };
                 let team = url_handler_1.getUrlParameter('team');
@@ -11975,6 +11984,10 @@
                 };
                 this.dungeon.onEnemyChange = () => {
                     this.usePreempt();
+                    this.updateDamage();
+                };
+                this.dungeon.onEnemyUpdate = () => {
+                    this.updateDamage();
                 };
                 this.teamPhotoCanvas.style.width = '100%';
                 this.teamPhoto = new team_photo_1.TeamPhoto(this.teamPhotoCanvas);
@@ -12054,7 +12067,7 @@
                     });
                 }
                 if (!this.dungeon)
-                    return 0;
+                    return { endEnemyHp: 0, healing: 0 };
                 const enemy = this.dungeon.getActiveEnemy();
                 let currentHp = enemy.currentHp;
                 const maxHp = enemy.getHp();
@@ -12103,7 +12116,7 @@
                     pings = [...pings, specialPing];
                 }
                 this.team.teamPane.updateDamage(this.team.action, pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
-                return currentHp;
+                return { endEnemyHp: currentHp, healing };
             }
             getElement() {
                 return this.display.getElement();
