@@ -748,19 +748,25 @@ const directedBindAll: EnemySkillEffect = {
 };
 
 // 55
-const healPlayer: EnemySkillEffect = {
-  textify: ({ skillArgs }) => {
-    const [min, max] = skillArgs;
-    return `Heal player for ${range(min, max, '', '')}% HP`;
+const healPlayerIfHpBelow: EnemySkillEffect = {
+  textify: ({ skillArgs }, { atk }) => {
+    const [percentHeal, hpThreshold] = skillArgs;
+    return `Heal player for ${percentHeal}% HP if player HP <=${hpThreshold}%, else attack for 100% (${addCommas(atk)})`;
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team }) => {
-    const [min, max] = skillArgs;
-    const percent = Math.floor(Math.random() * (max - min)) + min;
-    const maxHp = team.getHp();
-    const toHp = (maxHp * percent / 100 + team.state.currentHp);
-    team.state.currentHp = toHp < maxHp ? toHp : maxHp;
+  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+    const [percentHeal, hpThreshold] = skillArgs;
+    if (percentHeal != hpThreshold) {
+      console.warn('Unprecedented circumstance, percentHeal and hpThreshold have never been different')
+      console.warn(percentHeal, hpThreshold);
+    }
+    if (team.getHpPercent() <= hpThreshold) {
+      const healing = team.getHp() * percentHeal / 100;
+      team.heal(healing);
+    } else {
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer)
+    }
   },
   goto: () => TERMINATE,
 };
@@ -1300,10 +1306,21 @@ const lockSkyfall: EnemySkillEffect = {
 
 // 97
 const randomStickyBlind: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Randomly sticky blind ${range(skillArgs[1], skillArgs[2], ' orb', ' orbs')} for ${skillArgs[0]} turns.`,
+  textify: ({ skillArgs, aiArgs }, { atk }) => {
+    let text = `Randomly sticky blind ${range(skillArgs[1], skillArgs[2], ' orb', ' orbs')} for ${skillArgs[0]} turns.`;
+    if (aiArgs[4]) {
+      text = text.replace('.', ` and attack for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})`);
+    }
+    return text;
+  },
   condition: () => true,
   aiEffect: () => { },
-  effect: () => { }, // Implement later?!
+  // Implement later?!
+  effect: ({ aiArgs }, { team, enemy, comboContainer }) => {
+    if (aiArgs[4]) {
+      team.damage(Math.ceil(enemy.getAtk() * aiArgs[4] / 100), enemy.getAttribute(), comboContainer);
+    }
+  },
   goto: () => TERMINATE,
 };
 
@@ -1318,19 +1335,41 @@ const patternStickyBlind: EnemySkillEffect = {
 
 // 99
 const tapeColumns: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Tape columns ${idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns`,
+  textify: ({ skillArgs, aiArgs }, { atk }) => {
+    let text = `Tape columns ${idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns.`;
+    if (aiArgs[4]) {
+      text = text.replace('.', ` and attack for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})`);
+    }
+    return text;
+  },
   condition: () => true,
   aiEffect: () => { },
-  effect: () => { }, // Implement later?!
+  // Implement later?!
+  effect: ({ aiArgs }, { team, enemy, comboContainer }) => {
+    if (aiArgs[4]) {
+      team.damage(Math.ceil(enemy.getAtk() * aiArgs[4] / 100), enemy.getAttribute(), comboContainer);
+    }
+  },
   goto: () => TERMINATE,
 };
 
 // 100
 const tapeRows: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Tape rows ${idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns`,
+  textify: ({ skillArgs, aiArgs }, { atk }) => {
+    let text = `Tape rows ${idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns.`;
+    if (aiArgs[4]) {
+      text = text.replace('.', ` and attack for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})`);
+    }
+    return text;
+  },
   condition: () => true,
   aiEffect: () => { },
-  effect: () => { }, // Implement later?!
+  // Implement later?!
+  effect: ({ aiArgs }, { team, enemy, comboContainer }) => {
+    if (aiArgs[4]) {
+      team.damage(Math.ceil(enemy.getAtk() * aiArgs[4] / 100), enemy.getAttribute(), comboContainer);
+    }
+  },
   goto: () => TERMINATE,
 };
 
@@ -1363,10 +1402,20 @@ const patternBombSpawn: EnemySkillEffect = {
 
 // 104
 const cloudRandom: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Randomly Cloud ${skillArgs[1]}x${skillArgs[2]} Rectangle for ${skillArgs[0]} turns.`,
+  textify: ({ skillArgs, aiArgs }, { atk }) => {
+    let text = `Randomly Cloud ${skillArgs[1]}x${skillArgs[2]} Rectangle for ${skillArgs[0]} turns.`;
+    if (aiArgs[4]) {
+      text = text.replace('.', ` and attack for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))}).`);
+    }
+    return text;
+  },
   condition: () => true,
   aiEffect: () => { },
-  effect: () => { },
+  effect: ({ aiArgs }, { team, enemy, comboContainer }) => {
+    if (aiArgs[4]) {
+      team.damage(Math.ceil(enemy.getAtk() * aiArgs[4] / 100), enemy.getAttribute(), comboContainer);
+    }
+  },
   goto: () => TERMINATE,
 };
 
@@ -1683,7 +1732,7 @@ const ENEMY_SKILL_GENERATORS: Record<number, EnemySkillEffect> = {
   52: resurrect,
   53: attributeAbsorb,
   54: directedBindAll,
-  55: healPlayer,
+  55: healPlayerIfHpBelow,
   56: singleOrbToPoison,
   57: multiOrbToPoison,
   // 58: unused
