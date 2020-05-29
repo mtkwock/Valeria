@@ -30,6 +30,18 @@ const LOADING_TEXTS = [
   'Extending Time to Move',
   'Translating JP to NA',
   'Screw the Rules, I have Stones',
+  'Suffocating in Cuddliness',
+  'Talking to Itself',
+  'Making an Album',
+  'Calling Chaotically',
+  'Calming Zuoh',
+  'Ignoring Ilm',
+  'Placating the Plushie',
+  'Meow',
+  'Romia x Ilmina',
+  'Validating the Values',
+  'Instructing the Slopes',
+  'Playing Principal',
 ];
 
 function compress(s: string): string {
