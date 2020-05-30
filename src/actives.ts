@@ -11,7 +11,7 @@ interface DamageContext {
   source: MonsterInstance;
   enemy: EnemyInstance;
   awakeningsActive: boolean;
-  isMultiplayer: boolean;
+  playerMode: number;
   team: MonsterInstance[];
   currentHp: number;
   maxHp: number;
@@ -21,7 +21,7 @@ interface EnemyEffectContext {
   source: MonsterInstance;
   enemy: EnemyInstance;
   awakeningsActive: boolean;
-  isMultiplayer: boolean;
+  playerMode: number;
 }
 
 interface TeamEffectContext {
@@ -40,10 +40,10 @@ interface MonsterActive {
 
 // 0
 const scalingAttackToAllEnemies: MonsterActive = {
-  damage: ([attr, atk100], { source, awakeningsActive, isMultiplayer }) => {
+  damage: ([attr, atk100], { source, awakeningsActive, playerMode }) => {
     const ping = new DamagePing(source, attr);
     ping.isActive = true;
-    ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
+    ping.damage = source.getAtk(playerMode, awakeningsActive);
     ping.multiply(atk100 / 100, Round.UP);
     return [ping];
   },
@@ -61,11 +61,11 @@ const flatAttackToAllEnemies: MonsterActive = {
 
 // 2
 const scalingAttackRandomToSingleEnemy: MonsterActive = {
-  damage: ([atk100base, atk100max], { source, awakeningsActive, isMultiplayer }) => {
+  damage: ([atk100base, atk100max], { source, awakeningsActive, playerMode }) => {
     atk100max = atk100max || atk100base;
     const ping = new DamagePing(source, source.getAttribute());
     ping.isActive = true;
-    ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
+    ping.damage = source.getAtk(playerMode, awakeningsActive);
     const multiplier100 = atk100base + Math.floor(Math.random() * (atk100max - atk100base));
     ping.multiply(multiplier100 / 100, Round.UP);
     if (atk100base != atk100max) {
@@ -85,12 +85,12 @@ const shield: MonsterActive = {
 
 // 4
 const poison: MonsterActive = {
-  enemyEffect: ([poisonMultiplier100], { source, enemy, awakeningsActive, isMultiplayer }) => {
+  enemyEffect: ([poisonMultiplier100], { source, enemy, awakeningsActive, playerMode }) => {
     if (enemy.statusShield) {
       enemy.poison = 0;
       return;
     }
-    enemy.poison = Math.ceil(source.getAtk(isMultiplayer, awakeningsActive) * poisonMultiplier100 / 100);
+    enemy.poison = Math.ceil(source.getAtk(playerMode, awakeningsActive) * poisonMultiplier100 / 100);
   },
 };
 
@@ -150,7 +150,7 @@ const orbChangeDouble: MonsterActive = {
 }
 
 function simulateDamage(ping: DamagePing, ctx: TeamEffectContext): number {
-  return ctx.enemy.calcDamage(ping, [ping], ctx.comboContainer, ctx.team.isMultiplayer(), {
+  return ctx.enemy.calcDamage(ping, [ping], ctx.comboContainer, ctx.team.playerMode, {
     attributeAbsorb: ctx.team.state.voidAttributeAbsorb,
     damageAbsorb: ctx.team.state.voidDamageAbsorb,
     damageVoid: ctx.team.state.voidDamageVoid,
@@ -171,7 +171,7 @@ const scalingAttackAndHeal: MonsterActive = {
       source: ctx.source,
       enemy: ctx.enemy,
       awakeningsActive: ctx.team.state.awakenings,
-      isMultiplayer: ctx.team.isMultiplayer(),
+      playerMode: ctx.team.playerMode,
       team: ctx.team.getActiveTeam(),
       currentHp: ctx.team.state.currentHp,
       maxHp: ctx.team.getHp(),
@@ -337,10 +337,10 @@ const leadSwap: MonsterActive = {
 
 // 110
 const grudgeStrike: MonsterActive = {
-  damage: ([_, attr, baseMult, maxMult, scaling], { source, isMultiplayer, awakeningsActive, currentHp, maxHp }) => {
+  damage: ([_, attr, baseMult, maxMult, scaling], { source, playerMode, awakeningsActive, currentHp, maxHp }) => {
     const ping = new DamagePing(source, attr);
     ping.isActive = true;
-    ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
+    ping.damage = source.getAtk(playerMode, awakeningsActive);
     const multiplierScale = (maxMult - baseMult) * ((1 - (currentHp - 1) / maxHp) ** (scaling / 100));
     ping.multiply(baseMult + multiplierScale, Round.NEAREST);
     return [ping];
@@ -365,7 +365,7 @@ const elementalScalingAttackAndHeal: MonsterActive = {
       source: ctx.source,
       enemy: ctx.enemy,
       awakeningsActive: ctx.team.state.awakenings,
-      isMultiplayer: ctx.team.isMultiplayer(),
+      playerMode: ctx.team.playerMode,
       team: ctx.team.getActiveTeam(),
       currentHp: ctx.team.state.currentHp,
       maxHp: ctx.team.getHp(),
@@ -416,7 +416,7 @@ const catchAllCleric: MonsterActive = {
       healing += flatHeal;
     }
     if (rcv100) {
-      healing += Math.ceil(source.getRcv(team.isMultiplayer(), team.state.awakenings));
+      healing += Math.ceil(source.getRcv(team.playerMode, team.state.awakenings));
     }
     if (percentHeal) {
       healing += Math.ceil(team.getHp() * percentHeal / 100);
@@ -458,11 +458,11 @@ const selfAttributeChange: MonsterActive = {
 
 // 144
 const scalingAttackFromTeam: MonsterActive = {
-  damage: ([attrBits, atk100, _, attr], { source, isMultiplayer, awakeningsActive, team }) => {
+  damage: ([attrBits, atk100, _, attr], { source, playerMode, awakeningsActive, team }) => {
     const ping = new DamagePing(source, attr);
     const attrs = new Set(idxsFromBits(attrBits));
     for (const m of team) {
-      const atk = m.getAtk(isMultiplayer, awakeningsActive);
+      const atk = m.getAtk(playerMode, awakeningsActive);
       if (attrs.has(m.getAttribute())) {
         ping.add(atk);
       }

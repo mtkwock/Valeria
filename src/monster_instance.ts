@@ -1,4 +1,4 @@
-import { Attribute, Awakening, Latent, LatentSuper, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
+import { Attribute, Awakening, Latent, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
 import { Card, CardAssets, floof } from './ilmina_stripped';
 import { create, MonsterIcon, MonsterInherit, MonsterLatent, ClassNames, OnMonsterUpdate } from './templates';
 import { fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch } from './fuzzy_search';
@@ -64,6 +64,11 @@ const LatentToPdchu = new Map<Latent, string>([
   [Latent.ATTACKER, 'aak'],
   [Latent.PHYSICAL, 'phk'],
   [Latent.HEALER, 'hek'],
+  [Latent.RESIST_DAMAGE_VOID, 'rdv'],
+  [Latent.RESIST_ATTRIBUTE_ABSORB, 'raa'],
+  [Latent.RESIST_JAMMER_SKYFALL, 'rjs'],
+  [Latent.RESIST_POISON_SKYFALL, 'rps'],
+  [Latent.RESIST_LEADER_SWAP, 'rls'],
 ]);
 
 const PdchuToLatent = new Map<string, Latent>();
@@ -241,14 +246,14 @@ class MonsterInstance {
     return this.id;
   }
 
-  getRenderData(isMultiplayer: boolean, showSwap = false): MonsterIconRenderData {
+  getRenderData(playerMode: number, showSwap = false): MonsterIconRenderData {
     const plusses = this.hpPlus + this.atkPlus + this.rcvPlus
     return {
       plusses,
       // A monster must be above level 99, max plussed, and in solo play for
       // SAs to be active.  This will change later when 3P allows SB.
       unavailableReason: [
-        isMultiplayer ? 'Multiplayer' : '',
+        playerMode == 2 ? '2P' : '',
         plusses != 297 ? 'Unplussed' : '',
         this.level < 100 ? 'Not Limit Broken' : '',
       ].filter(Boolean).join(', '),
@@ -266,9 +271,9 @@ class MonsterInstance {
     };
   }
 
-  update(isMultiplayer: boolean = false, data: MonsterIconRenderData | undefined = undefined): void {
+  update(playerMode: number = 1, data: MonsterIconRenderData | undefined = undefined): void {
     if (!data) {
-      data = this.getRenderData(isMultiplayer);
+      data = this.getRenderData(playerMode);
     }
     this.icon.update({
       id: data.id,
@@ -565,12 +570,12 @@ class MonsterInstance {
     }
   }
 
-  isSuperAwakeningActive(isMultiplayer: boolean): boolean {
-    return (!isMultiplayer && this.level > 99 && this.hpPlus == 99
+  isSuperAwakeningActive(playerMode: number): boolean {
+    return (playerMode != 2 && this.level > 99 && this.hpPlus == 99
       && this.atkPlus == 99 && this.hpPlus == 99);
   }
 
-  getAwakenings(isMultiplayer: boolean, filterSet: Set<Awakening>): Awakening[] {
+  getAwakenings(playerMode: number, filterSet: Set<Awakening>): Awakening[] {
     let filterFn = (_awakening: Awakening) => true;
     if (filterSet) {
       filterFn = (awakening: Awakening) => filterSet.has(awakening);
@@ -581,7 +586,7 @@ class MonsterInstance {
     if (this.transformedTo > 0) {
       awakenings = [...c.awakenings];
     }
-    if (this.isSuperAwakeningActive(isMultiplayer) && this.superAwakeningIdx > -1) {
+    if (this.isSuperAwakeningActive(playerMode) && this.superAwakeningIdx > -1) {
       awakenings.push(c.superAwakenings[this.superAwakeningIdx]);
     }
     const inherit = this.getInheritCard();
@@ -593,8 +598,8 @@ class MonsterInstance {
     return awakenings.filter(filterFn);
   }
 
-  countAwakening(awakening: Awakening, isMultiplayer: boolean = false): number {
-    return this.getAwakenings(isMultiplayer, new Set([awakening])).length;
+  countAwakening(awakening: Awakening, playerMode: number = 1): number {
+    return this.getAwakenings(playerMode, new Set([awakening])).length;
   }
 
   getLatents(filterSet: Set<Latent> | null = null): Latent[] {
@@ -617,10 +622,15 @@ class MonsterInstance {
     }
     const maxSlots = c.inheritanceType & 32 ? 8 : 6;
     let totalSlots = 0;
-    for (const l of this.latents) {
-      totalSlots += LatentSuper.has(l) ? 2 : 1;
+    for (const l of this.latents.concat(latent)) {
+      if (l < 11) {
+        totalSlots += 1;
+      } else if (l < 33) {
+        totalSlots += 2;
+      } else {
+        totalSlots += 6;
+      }
     }
-    totalSlots += LatentSuper.has(latent) ? 2 : 1;
     if (totalSlots > maxSlots) return;
     if (latent >= 16 && latent <= 23 && !c.latentKillers.some((killer) => killer == (latent - 11))) {
       return;
@@ -658,7 +668,7 @@ class MonsterInstance {
     this.rcvPlus = validatePlus(v);
   }
 
-  getHp(isMultiplayer: boolean = true, awakeningsActive: boolean = true): number {
+  getHp(playerMode: number = 1, awakeningsActive: boolean = true): number {
     if (this.id == -1) {
       return 0;
     }
@@ -671,7 +681,7 @@ class MonsterInstance {
       }
       hp *= latentMultiplier;
       let awakeningAdder = 0;
-      for (const awakening of this.getAwakenings(isMultiplayer, new Set([Awakening.HP, Awakening.HP_MINUS]))) {
+      for (const awakening of this.getAwakenings(playerMode, new Set([Awakening.HP, Awakening.HP_MINUS]))) {
         awakeningAdder += AWAKENING_BONUS.get(awakening) || 0;
       }
       hp += awakeningAdder;
@@ -687,15 +697,15 @@ class MonsterInstance {
       hp += Math.round(inheritBonus * 0.1);
     }
 
-    if (isMultiplayer) {
-      const multiboostMultiplier = 1.5 ** this.countAwakening(Awakening.MULTIBOOST, isMultiplayer);
+    if (playerMode) {
+      const multiboostMultiplier = 1.5 ** this.countAwakening(Awakening.MULTIBOOST, playerMode);
       hp *= multiboostMultiplier;
     }
 
     return Math.max(Math.round(hp), 1);
   }
 
-  getAtk(isMultiplayer: boolean = true, awakeningsActive: boolean = true): number {
+  getAtk(playerMode: number = 1, awakeningsActive: boolean = true): number {
     if (this.id == -1) {
       return 0;
     }
@@ -708,7 +718,7 @@ class MonsterInstance {
       }
       atk *= latentMultiplier;
       let awakeningAdder = 0;
-      for (const awakening of this.getAwakenings(isMultiplayer, new Set([Awakening.ATK, Awakening.ATK_MINUS]))) {
+      for (const awakening of this.getAwakenings(playerMode, new Set([Awakening.ATK, Awakening.ATK_MINUS]))) {
         awakeningAdder += AWAKENING_BONUS.get(awakening) || 0;
       }
       atk += awakeningAdder;
@@ -724,15 +734,15 @@ class MonsterInstance {
       atk += Math.round(inheritBonus * 0.05);
     }
 
-    if (isMultiplayer && awakeningsActive) {
-      const multiboostMultiplier = 1.5 ** this.countAwakening(Awakening.MULTIBOOST, isMultiplayer);
+    if (playerMode > 1 && awakeningsActive) {
+      const multiboostMultiplier = 1.5 ** this.countAwakening(Awakening.MULTIBOOST, playerMode);
       atk *= multiboostMultiplier;
     }
 
     return Math.max(Math.round(atk), 1);
   }
 
-  getRcv(isMultiplayer: boolean = true, awakeningsActive: boolean = true): number {
+  getRcv(playerMode: number = 1, awakeningsActive: boolean = true): number {
     const c = this.getCard();
     let rcv = this.calcScaleStat(c.maxRcv, c.minRcv, c.rcvGrowth);
     if (awakeningsActive) {
@@ -743,7 +753,7 @@ class MonsterInstance {
       rcv *= latentMultiplier;
       const rcvSet = new Set([Awakening.RCV, Awakening.RCV_MINUS]);
       let total = 0;
-      for (const awakening of this.getAwakenings(isMultiplayer, rcvSet)) {
+      for (const awakening of this.getAwakenings(playerMode, rcvSet)) {
         total += AWAKENING_BONUS.get(awakening) || 0;
       }
       rcv += total;
@@ -759,8 +769,8 @@ class MonsterInstance {
       rcv += Math.round(inheritBonus * 0.15);
     }
 
-    if (isMultiplayer && awakeningsActive) {
-      const multiboostMultiplier = 1.5 ** this.countAwakening(Awakening.MULTIBOOST, isMultiplayer);
+    if (playerMode && awakeningsActive) {
+      const multiboostMultiplier = 1.5 ** this.countAwakening(Awakening.MULTIBOOST, playerMode);
       rcv *= multiboostMultiplier;
     }
 

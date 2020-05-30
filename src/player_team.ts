@@ -571,7 +571,7 @@ class Team {
       }
     }
     if (!includeLeaderSkill) {
-      return monsters.map((monster) => monster.getHp(this.isMultiplayer(), this.state.awakenings));
+      return monsters.map((monster) => monster.getHp(this.playerMode, this.state.awakenings));
     }
     const hps = [];
     const teamHpAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(Awakening.TEAM_HP), 0) * 0.05) : 0);
@@ -581,7 +581,7 @@ class Team {
         continue;
       }
       const hpMult = partialLead(monster) * partialHelper(monster);
-      const hpBase = monster.getHp(this.isMultiplayer(), this.state.awakenings);
+      const hpBase = monster.getHp(this.playerMode, this.state.awakenings);
       hps.push(Math.round(hpBase * hpMult * teamHpAwakeningsMult));
     }
     return hps;
@@ -599,7 +599,7 @@ class Team {
     const rcvs = [];
     const monsters = this.getActiveTeam();
     if (!includeLeaderSkill) {
-      return monsters.map((monster) => monster.getRcv(this.isMultiplayer(), this.state.awakenings));
+      return monsters.map((monster) => monster.getRcv(this.playerMode, this.state.awakenings));
     }
     const partialLead = (monster: MonsterInstance): number => {
       return leaders.rcv(monsters[0].getCard().leaderSkillId, {
@@ -622,7 +622,7 @@ class Team {
         continue;
       }
       const rcvMult = partialLead(monster) * partialHelper(monster);
-      const rcvBase = monster.getRcv(this.isMultiplayer(), this.state.awakenings);
+      const rcvBase = monster.getRcv(this.playerMode, this.state.awakenings);
       rcvs.push(Math.round(rcvBase * rcvMult * teamRcvAwakeningsMult));
     }
     return rcvs;
@@ -696,7 +696,7 @@ class Team {
 
   getDamageCombos(comboContainer: ComboContainer): { pings: DamagePing[]; healing: number; trueBonusAttack: number } {
     comboContainer.bonusCombosLeader = 0;
-    const mp = this.isMultiplayer();
+    const pm = this.playerMode;
     const awoke = this.state.awakenings;
     const percentHp = this.getHpPercent();
     const monsters = this.getActiveTeam();
@@ -708,7 +708,7 @@ class Team {
       percentHp,
       comboContainer,
       skillUsed: this.state.skillUsed,
-      isMultiplayer: mp,
+      isMultiplayer: this.isMultiplayer(),
       healing,
     });
 
@@ -784,7 +784,7 @@ class Team {
           if (!ping || ping.attribute != attr) {
             continue;
           }
-          let curAtk = ping.source.getAtk(mp, awoke);
+          let curAtk = ping.source.getAtk(pm, awoke);
           curAtk = Round.UP(curAtk * baseMultiplier);
           if (ping.isSub) {
             const divisor = ping.attribute == ping.source.getAttribute() ? 10 : 3;
@@ -794,11 +794,11 @@ class Team {
           let multiplier = 1;
           if (awoke) {
             if (combo.count == 4) {
-              multiplier *= (1.5 ** ping.source.countAwakening(Awakening.TPA, mp));
+              multiplier *= (1.5 ** ping.source.countAwakening(Awakening.TPA, pm));
             } else if (combo.shape == Shape.L) {
-              multiplier *= (1.5 ** ping.source.countAwakening(Awakening.L_UNLOCK, mp));
+              multiplier *= (1.5 ** ping.source.countAwakening(Awakening.L_UNLOCK, pm));
             } else if (combo.shape == Shape.BOX) {
-              multiplier *= (2.5 ** ping.source.countAwakening(Awakening.VDP, mp));
+              multiplier *= (2.5 ** ping.source.countAwakening(Awakening.VDP, pm));
               ping.ignoreVoid = true;
             }
           }
@@ -832,7 +832,7 @@ class Team {
     const partialRcv = (id: number, monster: MonsterInstance) => leaders.rcv(id, {
       monster,
       team: monsters,
-      isMultiplayer: mp,
+      isMultiplayer: this.isMultiplayer(),
     });
 
     for (const combo of comboContainer.combos['h']) {
@@ -856,9 +856,9 @@ class Team {
       }
 
       for (const monster of monsters) {
-        let rcv = monster.getRcv(mp, awoke);
+        let rcv = monster.getRcv(pm, awoke);
         if (awoke && combo.count == 4) {
-          rcv *= (1.5 ** monster.countAwakening(Awakening.OE_HEART, mp));
+          rcv *= (1.5 ** monster.countAwakening(Awakening.OE_HEART, pm));
         }
         const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
         healing += Round.UP(rcv * multiplier * rcvMult);
@@ -892,9 +892,9 @@ class Team {
           continue;
         }
         const apply = (awakening: Awakening, multiplier: number) => {
-          const count = ping.source.countAwakening(awakening, mp);
+          const count = ping.source.countAwakening(awakening, pm);
           if (count) {
-            ping.multiply(multiplier ** ping.source.countAwakening(awakening, mp), Round.NEAREST);
+            ping.multiply(multiplier ** ping.source.countAwakening(awakening, pm), Round.NEAREST);
           }
         }
         if (comboCount >= 7) {
@@ -971,8 +971,8 @@ class Team {
         // We should only show the lead swap icon on the lead who is now the sub.
         const showSwap = Boolean(displayIndex != actualIndex && monsterIdx && monsterIdx < 5);
         this.monsters[displayIndex].update(
-          this.isMultiplayer(),
-          this.monsters[actualIndex].getRenderData(this.isMultiplayer(), showSwap),
+          this.playerMode,
+          this.monsters[actualIndex].getRenderData(this.playerMode, showSwap),
         );
       }
     }
@@ -1003,7 +1003,7 @@ class Team {
     }
 
     return monsters.reduce(
-      (total, monster) => total + monster.countAwakening(awakening, this.isMultiplayer()),
+      (total, monster) => total + monster.countAwakening(awakening, this.playerMode),
       0);
   }
 
@@ -1148,7 +1148,7 @@ class Team {
       }
     }
 
-    const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.isMultiplayer(), this.state.awakenings));
+    const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.playerMode, this.state.awakenings));
 
     const counts: Map<Awakening, number> = new Map();
 

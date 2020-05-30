@@ -139,7 +139,7 @@ class Valeria {
         source,
         enemy,
         awakeningsActive: this.team.state.awakenings,
-        isMultiplayer: this.team.isMultiplayer(),
+        playerMode: this.team.playerMode,
       });
 
       boardEffect(activeId, this.comboContainer);
@@ -301,7 +301,7 @@ class Valeria {
         team,
         enemy: this.dungeon.getActiveEnemy(),
         awakeningsActive: this.team.state.awakenings,
-        isMultiplayer: this.team.isMultiplayer(),
+        playerMode: this.team.playerMode,
         currentHp: this.team.state.currentHp,
         maxHp: this.team.getHp(),
       });
@@ -318,7 +318,7 @@ class Valeria {
     }
     for (const ping of pings) {
       let oldHp = currentHp;
-      ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.isMultiplayer(), {
+      ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.playerMode, {
         attributeAbsorb: this.team.state.voidAttributeAbsorb,
         damageVoid: this.team.state.voidDamageVoid,
         damageAbsorb: this.team.state.voidDamageAbsorb,
@@ -338,7 +338,7 @@ class Valeria {
     const specialPing = new DamagePing(this.team.getActiveTeam()[0], Attribute.FIXED, false);
     specialPing.damage = trueBonusAttack;
     specialPing.isActive = true;
-    specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.isMultiplayer(), {
+    specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.playerMode, {
       attributeAbsorb: this.team.state.voidAttributeAbsorb,
       damageVoid: this.team.state.voidDamageVoid,
       damageAbsorb: this.team.state.voidDamageAbsorb,

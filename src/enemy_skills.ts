@@ -1,8 +1,9 @@
 import { floof } from './ilmina_stripped';
 import { EnemyInstance } from './enemy_instance';
-import { idxsFromBits, AttributeToName, TypeToName, addCommas } from './common';
+import { idxsFromBits, AttributeToName, TypeToName, addCommas, Latent } from './common';
 import { Team } from './player_team';
 import { ComboContainer } from './combo_container';
+import { debug } from './debugger';
 
 interface SkillContext {
   ai: number;
@@ -968,13 +969,18 @@ const leadSwap: EnemySkillEffect = {
   aiEffect: () => { },
   effect: (_, { team, enemy, comboContainer }) => {
     // Cannot swap an already swapped team.
-    const subs = team.getActiveTeam().slice(1, 5).filter(m => m.getId() > 0).length;
-    if (team.state.leadSwaps[team.activeTeamIdx] || !subs) {
+    const subs = team.getActiveTeam().slice(1, 5).map((m, i) => m.getId() > 0 ? i : 0).filter(Boolean);
+    if (team.state.leadSwaps[team.activeTeamIdx] || !subs.length) {
       team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
       return;
     }
+    if (team.getActiveTeam()[0].latents.some((l) => l == Latent.RESIST_LEADER_SWAP)) {
+      debug.print('Leader Swap Resisted')
+      return;
+    }
+    let idx = subs[Math.floor(Math.random() * subs.length)];
     team.updateState({
-      leadSwap: 1 + Math.floor(Math.random() * subs),
+      leadSwap: idx,
     });
   },
   goto: () => TERMINATE,

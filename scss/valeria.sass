@@ -17,25 +17,28 @@ $attribute-border-height: $base-attribute-border-height * $team-scale
 $attribute-border-height-px: $attribute-border-height * 1px
 
 $latent-scale: 0.43 * $team-scale
-$base-awakening-image-width: 400
-$base-awakening-image-height: 580
+$base-awakening-image-width: 480
+$base-awakening-image-height: 612
 $awakening-image-width: $base-awakening-image-width * $latent-scale
 $awakening-image-width-px: $awakening-image-width * 1px
 $awakening-image-height: $base-awakening-image-height * $latent-scale
 $awakening-image-height-px: $awakening-image-height * 1px
 
-$base-awakening-size: 36
-$base-latent-super-size: 78
+$base-awakening-size: 32
+$base-latent-super-size: 76
+$base-latent-hyper-size: 76 * 3
 $awakening-size: $base-awakening-size * $latent-scale
 $latent-super-size: $base-latent-super-size * $latent-scale
+$latent-hyper-size: $base-latent-hyper-size * $latent-scale
 
 $awakening-editor-scale: 0.7
 $awakening-editor-size: $base-awakening-size * $awakening-editor-scale
 $awakening-editor-image-width: $base-awakening-image-width * $awakening-editor-scale * 1px
 $awakening-editor-image-height: $base-awakening-image-height * $awakening-editor-scale * 1px
 $latent-super-editor-size: $base-latent-super-size * $awakening-editor-scale
+$latent-hyper-editor-size: $base-latent-hyper-size * $awakening-editor-scale
 
-$awakening-url: url(https://s3.amazonaws.com/ilmina/custom/eggs.png)
+$awakening-url: url(../assets/eggs.png)
 
 $base-font-size: 12
 $icon-font-size: $base-font-size * $team-scale
@@ -191,7 +194,7 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   font-size: $icon-font-size
 
 .valeria-monster-latents
-  height: $awakening-size
+  height: $awakening-size * 2
   width: $icon-size
   overflow: hidden
 
@@ -206,6 +209,14 @@ table.valeria-monster-icon-info > tr:nth-child(3)
 .valeria-monster-latent-super
   height: $awakening-size
   width: $latent-super-size
+  display: inline-block
+  background-image: $awakening-url
+  background-size: $awakening-image-width-px $awakening-image-height-px
+  background-repeat: no-repeat
+
+.valeria-monster-latent-hyper
+  height: $awakening-size
+  width: $latent-hyper-size
   display: inline-block
   background-image: $awakening-url
   background-size: $awakening-image-width-px $awakening-image-height-px
@@ -440,6 +451,7 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   font-size: small
 
 .valeria-monster-awakening
+  margin: 1px
   display: inline-block
   width: $awakening-editor-size
   height: $awakening-editor-size
@@ -448,9 +460,10 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   background-repeat: no-repeat
   cursor: pointer
   // Defaults to question mark.
-  background-position: 0px -324 * $awakening-editor-scale * 1px
+  background-position: -2 * $awakening-editor-scale * 1px -360 * $awakening-editor-scale * 1px
 
 .valeria-monster-awakening-super
+  margin: 1px
   display: inline-block
   width: $latent-super-editor-size
   height: $awakening-editor-size
@@ -459,7 +472,19 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   background-repeat: no-repeat
   cursor: pointer
   // Defaults to question mark.
-  background-position: 0px -324 * $awakening-editor-scale * 1px
+  background-position: -2 * $awakening-editor-scale * 1px -360 * $awakening-editor-scale * 1px
+
+.valeria-monster-awakening-hyper
+  margin: 1px
+  display: inline-block
+  width: $latent-hyper-editor-size
+  height: $awakening-editor-size
+  background-size: $awakening-editor-image-width $awakening-editor-image-height
+  background-image: $awakening-url
+  background-repeat: no-repeat
+  cursor: pointer
+  // Defaults to question mark.
+  background-position: -2 * $awakening-editor-scale * 1px -360 * $awakening-editor-scale * 1px
 
 .valeria-change-area
   position: relative

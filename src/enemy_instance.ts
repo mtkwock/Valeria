@@ -1,4 +1,4 @@
-import { Attribute, MonsterType, DEFAULT_CARD, idxsFromBits, Rational, TypeToKiller, TypeToLatentKiller, INT_CAP, Awakening } from './common';
+import { Attribute, MonsterType, DEFAULT_CARD, idxsFromBits, Rational, Latent, TypeToKiller, TypeToLatentKiller, INT_CAP, Awakening } from './common';
 import { floof, Card, EnemySkill } from './ilmina_stripped';
 import { DamagePing } from './damage_ping';
 import { ComboContainer } from './combo_container';
@@ -216,7 +216,7 @@ class EnemyInstance {
     ping: DamagePing,
     pings: DamagePing[],
     comboContainer: ComboContainer,
-    isMultiplayer: boolean,
+    playerMode: number,
     voids: { attributeAbsorb: boolean; damageAbsorb: boolean; damageVoid: boolean }): number {
 
     let currentDamage = ping.damage;
@@ -237,7 +237,7 @@ class EnemyInstance {
       let killerCount = 0;
       let latentCount = 0;
       for (const type of types) {
-        killerCount += ping.source.countAwakening(TypeToKiller[type], isMultiplayer);
+        killerCount += ping.source.countAwakening(TypeToKiller[type], playerMode);
         latentCount += ping.source.latents.filter((latent) => latent == TypeToLatentKiller[type]).length;
       }
       currentDamage *= (3 ** killerCount);
@@ -259,7 +259,7 @@ class EnemyInstance {
 
       // Handle Defense
       if (!ping.source.countAwakening(Awakening.GUARD_BREAK) ||
-        new Set(pings.filter((p) => p.damage).map((p) => p.attribute)).size < 5) {
+        new Set(pings.filter((p) => p.damage && p.attribute >= 0 && p.attribute <= 4).map((p) => p.attribute)).size < 5) {
         currentDamage -= this.getDef();
         currentDamage = Math.max(currentDamage, 1);
       }
@@ -273,12 +273,18 @@ class EnemyInstance {
 
     // Handle void
     if (this.damageVoid && currentDamage >= this.damageVoid &&
-      !ping.ignoreVoid && !voids.damageVoid) {
+      !ping.ignoreVoid && !voids.damageVoid &&
+      !(ping.source.latents.some((l) => l == Latent.RESIST_DAMAGE_VOID)
+        && new Set(pings.filter((p) => p.damage).map((p) => p.attribute)).size == 5
+        && comboContainer.combos['h'].length)) {
       currentDamage = 0;
     }
 
     // Handle Absorbs
-    if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb) {
+    if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb &&
+      !(ping.source.latents.some((l) => l == Latent.RESIST_ATTRIBUTE_ABSORB)
+        && new Set(pings.filter((p) => p.damage && p.attribute >= 0 && p.attribute <= 4).map(p => p.attribute)).size == 5
+        && comboContainer.combos['h'].length)) {
       currentDamage *= -1;
     } else if (this.damageAbsorb && currentDamage >= this.damageAbsorb && !voids.damageAbsorb) {
       currentDamage *= -1;

@@ -95,10 +95,10 @@ class CardAssets {
     return ret;
   }
   static getTypeImageData(cardType: number): GraphicDescription {
-    const row = 7 + Math.floor(cardType / 11);
-    const column = cardType % 11;
-    const url = CardAssets.baseUrl + "custom/eggs.png";
-    const ret = new GraphicDescription(url, 0, 0, 36, 36, 400, 580);
+    const row = 7 + Math.floor(cardType / 13);
+    const column = cardType % 13;
+    const url = 'assets/eggs.png'; // CardAssets.baseUrl + "custom/eggs.png";
+    const ret = new GraphicDescription(url, 0, 0, 36, 36, 480, 612);
     ret.offsetY += row * 36;
     ret.offsetX += column * 36;
     return ret;

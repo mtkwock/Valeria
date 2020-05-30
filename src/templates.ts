@@ -53,6 +53,7 @@ enum ClassNames {
   MONSTER_LATENTS = 'valeria-monster-latents',
   MONSTER_LATENT = 'valeria-monster-latent',
   MONSTER_LATENT_SUPER = 'valeria-monster-latent-super',
+  MONSTER_LATENT_HYPER = 'valeria-monster-latent-hyper',
 
   COMBO_EDITOR = 'valeria-combo-editor',
   COMBO_COMMAND = 'valeria-combo-command',
@@ -105,6 +106,7 @@ enum ClassNames {
   PLUS_EDITOR = 'valeria-plus-editor',
   AWAKENING = 'valeria-monster-awakening',
   AWAKENING_SUPER = 'valeria-monster-awakening-super',
+  AWAKENING_HYPER = 'valeria-monster-awakening-hyper',
   CHANGE_AREA = 'valeria-change-area',
   SWAP_ICON = 'valeria-swap-icon',
   TRANSFORM_ICON = 'valeria-transform-icon',
@@ -159,7 +161,7 @@ function superHide(el: HTMLElement): void {
 }
 
 function getAwakeningOffsets(awakeningNumber: number): number[] {
-  const result = [0, -324];
+  const result = [-2, -360];
   if (awakeningNumber < 0 || awakeningNumber > 81) {
     console.warn('Invalid awakening, returning unknown.');
     return result;
@@ -650,7 +652,7 @@ class MonsterLatent {
   latentEls: HTMLElement[] = [];
 
   constructor() {
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const latentEl = create('a', ClassNames.MONSTER_LATENT);
       this.latentEls.push(latentEl);
       this.el.appendChild(latentEl);
@@ -663,25 +665,21 @@ class MonsterLatent {
 
   update(latents: Latent[]): void {
     const scale = TEAM_SCALING * 0.43;
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       if (i >= latents.length) {
         hide(this.latentEls[i]);
         continue;
       }
       show(this.latentEls[i]);
-      let offsetX: number;
-      let offsetY: number;
       if (latents[i] < 11) {
-        offsetX = (latents[i] * 36) * scale;
-        offsetY = 36 * scale;
         this.latentEls[i].className = ClassNames.MONSTER_LATENT;
-      } else {
-        const idx = latents[i] - 11;
-        offsetX = ((idx % 5) * 80 + 2) * scale;
-        offsetY = (Math.floor(idx / 5) + 2) * 36 * scale;
+      } else if (latents[i] < 33) {
         this.latentEls[i].className = ClassNames.MONSTER_LATENT_SUPER;
+      } else {
+        this.latentEls[i].className = ClassNames.MONSTER_LATENT_HYPER;
       }
-      this.latentEls[i].style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
+      const { x, y } = getLatentPosition(latents[i]);
+      this.latentEls[i].style.backgroundPosition = `-${x * scale}px -${y * scale}px`;
     }
   }
 }
@@ -1464,13 +1462,36 @@ class AwakeningEditor {
   }
 }
 
+function getLatentPosition(latent: number): { x: number; y: number } {
+  if (latent < 11) {
+    return {
+      x: 36 * latent + 2,
+      y: 36,
+    };
+  } else if (latent < 33) {
+    const x = latent % 6;
+    const y = Math.floor(latent / 6)
+    return {
+      x: (80 * x + 2),
+      y: (36 * y + 2),
+    };
+  } else {
+    const x = latent % 2;
+    const y = Math.floor(latent / 2) - 11;
+    return {
+      x: (238 * x + 2),
+      y: (36 * y + 2),
+    }
+  }
+}
+
 class LatentEditor {
   private el: HTMLDivElement = create('div') as HTMLDivElement;
   latentRemovers: HTMLAnchorElement[] = [];
   latentSelectors: HTMLAnchorElement[] = [];
   onUpdate: OnMonsterUpdate;
   currentLatents: Latent[] = [];
-  static PER_ROW = 11;
+  static PER_ROW = 13;
 
   constructor(onUpdate: OnMonsterUpdate) {
     this.onUpdate = onUpdate;
@@ -1491,25 +1512,27 @@ class LatentEditor {
 
     const selectorArea = create('div');
     let currentWidth = 0;
-    let j = 1;
-    let x = 0;
-    for (let i = 0; i < 33; i++) {
-      const isSuper = i >= LatentEditor.PER_ROW;
-      currentWidth += isSuper ? 2 : 1;
-      x++;
+    for (let i = 0; i < 38; i++) {
+      let className, addedWidth;
+      if (i < 11) {
+        addedWidth = 1;
+        className = ClassNames.AWAKENING;
+      } else if (i < 33) {
+        addedWidth = 2;
+        className = ClassNames.AWAKENING_SUPER;
+      } else {
+        addedWidth = 6;
+        className = ClassNames.AWAKENING_HYPER;
+      }
+      currentWidth += addedWidth;
       if (currentWidth > LatentEditor.PER_ROW) {
         selectorArea.appendChild(create('br'));
-        currentWidth = isSuper ? 2 : 1;
-        x = 0;
-        j++;
+        currentWidth = addedWidth;
       }
-      const cls = isSuper ? ClassNames.AWAKENING_SUPER : ClassNames.AWAKENING;
-      const selector = create('a', cls) as HTMLAnchorElement;
-      const offsetX = (j > 1 ? (80 * x + 2) : 36 * x - 36) * AwakeningEditor.SCALE;
-      selector.style.backgroundPosition = `-${offsetX}px -${36 * j * AwakeningEditor.SCALE}px`;
-      selector.onclick = () => {
-        this.onUpdate({ addLatent: i });
-      };
+      const { x, y } = getLatentPosition(i);
+      const selector = create('a', className) as HTMLAnchorElement;
+      selector.style.backgroundPosition = `-${x * AwakeningEditor.SCALE}px -${y * AwakeningEditor.SCALE}px`;
+      selector.onclick = () => this.onUpdate({ addLatent: i });
       this.latentSelectors.push(selector);
       selectorArea.appendChild(selector);
     }
@@ -1535,27 +1558,38 @@ class LatentEditor {
         continue;
       } else if (i >= activeLatents.length) {
         remover.style.display = '';
-        remover.style.backgroundPosition = '0px 0px';
+        remover.style.backgroundPosition = `${-2 * AwakeningEditor.SCALE}px ${-2 * AwakeningEditor.SCALE}px`;
         remover.className = ClassNames.AWAKENING;
         totalLatents++;
         continue;
       }
       remover.style.display = ''
       const latent = activeLatents[i];
-      const isSuper = latent >= 11;
-      totalLatents += isSuper ? 2 : 1;
-      let offsetWidth, offsetHeight;
-      const x = isSuper ? (latent - 11) % 5 : latent;
-      const y = isSuper ? Math.floor((latent - 11) / 5 + 2) : 1;
-      if (isSuper) {
-        offsetWidth = x * -80 - 2;
-        offsetHeight = -36 * y;
+      let className;
+      if (latent < 11) {
+        className = ClassNames.AWAKENING;
+        totalLatents += 1;
+      } else if (latent < 33) {
+        className = ClassNames.AWAKENING_SUPER;
+        totalLatents += 2;
       } else {
-        offsetWidth = x * -36;
-        offsetHeight = -36;
+        className = ClassNames.AWAKENING_HYPER;
+        totalLatents += 6;
       }
-      remover.className = isSuper ? ClassNames.AWAKENING_SUPER : ClassNames.AWAKENING;
-      remover.style.backgroundPosition = `${offsetWidth * AwakeningEditor.SCALE}px ${offsetHeight * AwakeningEditor.SCALE}px`;
+      // const isSuper = latent >= 11;
+      // let offsetWidth, offsetHeight;
+      // const x = isSuper ? (latent - 11) % 5 : latent;
+      // const y = isSuper ? Math.floor((latent - 11) / 5 + 2) : 1;
+      // if (isSuper) {
+      //   offsetWidth = x * -80 - 2;
+      //   offsetHeight = -36 * y;
+      // } else {
+      //   offsetWidth = x * -36;
+      //   offsetHeight = -36;
+      // }
+      const { x, y } = getLatentPosition(latent);
+      remover.className = className;
+      remover.style.backgroundPosition = `-${x * AwakeningEditor.SCALE}px -${y * AwakeningEditor.SCALE}px`;
     }
 
     // Enable/Disable Generic Killers. (Evo, Awakening, Enhance, Redeemable.)
@@ -1910,6 +1944,8 @@ class TeamPane {
   private leadSwapInput = create('select') as HTMLSelectElement;
   private voidEls: LayeredAsset[] = [];
 
+  // All elements to set regarding monster burst.
+  // Note that the UI only supports 2 awakenings, types, and attributes.
   private burstMultiplierInput = create('input') as HTMLInputElement;
   private burstAwakeningScaleInput = create('input') as HTMLInputElement;
   private burstAwakeningSelect1 = create('select') as HTMLSelectElement;
@@ -1919,6 +1955,7 @@ class TeamPane {
   private burstAttrSelect1 = create('select') as HTMLSelectElement;
   private burstAttrSelect2 = create('select') as HTMLSelectElement;
 
+  // All elements to set regarding damage.
   private pingCells: HTMLTableCellElement[] = [];
   private bonusPing = create('td') as HTMLTableCellElement;
   private pingTotal = create('td') as HTMLTableCellElement;
@@ -2697,8 +2734,10 @@ class MonsterTypeEl {
   }
 
   private getTypeOffsets(): { offsetX: number; offsetY: number } {
-    const { offsetX, offsetY } = CardAssets.getTypeImageData(Number(this.type));
-    return { offsetX: offsetX * this.scale, offsetY: offsetY * this.scale };
+    return {
+      offsetX: this.scale * ((this.type % 13) * 36 + 2),
+      offsetY: this.scale * (36 * Math.floor(this.type / 13) + 288),
+    };
   }
 
   setType(type: MonsterType): void {
@@ -2713,7 +2752,7 @@ class MonsterTypeEl {
 
   setScale(scale: number): void {
     this.scale = scale;
-    this.element.style.backgroundSize = `${400 * scale}px ${580 * scale}px`;
+    this.element.style.backgroundSize = `${480 * scale}px ${612 * scale}px`;
     this.element.style.width = `${scale * 36}px`;
     this.element.style.height = `${scale * 36}px`;
     this.setType(this.type);
