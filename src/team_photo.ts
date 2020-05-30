@@ -124,7 +124,8 @@ class InheritRow implements RowDraw {
   draw(ctx: CanvasRenderingContext2D, drawnOffsetY: number, images: Record<string, HTMLImageElement>): void {
     const width = ctx.canvas.width;
     const inheritLength = width / 12;
-    for (let i = 0, inherit; inherit = this.inherits[i]; i++) {
+    for (let i = 0; i < this.inherits.length; i++) {
+      const inherit = this.inherits[i];
       if (inherit.id <= 0) {
         continue;
       }
@@ -194,7 +195,8 @@ class MonsterRow implements RowDraw {
   draw(ctx: CanvasRenderingContext2D, drawnOffsetY: number, images: Record<string, HTMLImageElement>): void {
     const width = ctx.canvas.width;
     const length = width / 6;
-    for (let i = 0, monster; monster = this.monsters[i]; i++) {
+    for (let i = 0; i < this.monsters.length; i++) {
+      const monster = this.monsters[i];
       if (monster.id <= 0) {
         continue;
       }
@@ -315,8 +317,8 @@ class LatentRow implements RowDraw {
     const height = ctx.canvas.width / 48;
     const maxWidth = ctx.canvas.width / 6;
 
-    for (let i = 0, monsterLatents; monsterLatents = this.latents[i]; i++) {
-      monsterLatents = monsterLatents.sort((a, b) => b - a);
+    for (let i = 0; i < this.latents.length; i++) {
+      const monsterLatents = this.latents[i].sort((a, b) => b - a);
       let localOffsetX = 0;
       let localOffsetY = 0;
       for (const latent of monsterLatents) {
