@@ -2454,6 +2454,7 @@
             result[1] -= Math.floor(awakeningNumber / 11) * 36;
             return result;
         }
+        exports.getAwakeningOffsets = getAwakeningOffsets;
         function updateAwakening(el, awakening, scale, unavailableReason = '') {
             const [x, y] = getAwakeningOffsets(awakening);
             el.style.backgroundPosition = `${x * scale}px ${y * scale}px`;
@@ -3593,6 +3594,7 @@
                 };
             }
         }
+        exports.getLatentPosition = getLatentPosition;
         class LatentEditor {
             constructor(onUpdate) {
                 this.el = create('div');
@@ -9398,7 +9400,7 @@
         Object.defineProperty(exports, "__esModule", { value: true });
         var Bits;
         (function (Bits) {
-            Bits[Bits["PLAYDER_MODE"] = 2] = "PLAYDER_MODE";
+            Bits[Bits["PLAYER_MODE"] = 2] = "PLAYER_MODE";
             Bits[Bits["ID"] = 14] = "ID";
             Bits[Bits["LEVEL"] = 7] = "LEVEL";
             Bits[Bits["LATENT_COUNT"] = 4] = "LATENT_COUNT";
@@ -9463,7 +9465,7 @@
         function ValeriaEncode(team) {
             const encoding = new Encoding();
             const playerMode = team.playerMode;
-            encoding.queueBits(playerMode, Bits.PLAYDER_MODE);
+            encoding.queueBits(playerMode, Bits.PLAYER_MODE);
             const monstersPerTeam = playerMode == 2 ? 5 : 6;
             for (let i = 0; i < playerMode; i++) {
                 for (let j = 0; j < monstersPerTeam; j++) {
@@ -11810,9 +11812,296 @@
         }
         exports.DungeonInstance = DungeonInstance;
     });
-    define("team_photo", ["require", "exports", "ilmina_stripped"], function (require, exports, ilmina_stripped_10) {
+    define("team_photo", ["require", "exports", "ilmina_stripped", "templates"], function (require, exports, ilmina_stripped_10, templates_6) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
+        function drawMonster(ctx, id, sideLength, offsetX, offsetY, images) {
+            if (id <= 0) {
+                return;
+            }
+            const d = ilmina_stripped_10.CardAssets.getIconImageData(ilmina_stripped_10.floof.model.cards[id]);
+            const a = ilmina_stripped_10.CardUiAssets.getIconFrame(ilmina_stripped_10.floof.model.cards[id].attribute, false, ilmina_stripped_10.floof.model);
+            ctx.drawImage(images[d.url], d.offsetX, // x coordinate to being clipping.
+            d.offsetY, // y coordinate to begin clipping.
+            d.width, // width of the clipped image.
+            d.height, // Height of the clipped image
+            offsetX, // X Coordinate on canvas.
+            offsetY, // y coordinate on canvas.
+            sideLength, // width of the drawn image.
+            sideLength);
+            if (a) {
+                ctx.drawImage(images[a.url], a.offsetX, a.offsetY, a.width, a.height, offsetX, offsetY, sideLength, sideLength);
+            }
+            if (ilmina_stripped_10.floof.model.cards[id].subattribute >= 0) {
+                const s = ilmina_stripped_10.CardUiAssets.getIconFrame(ilmina_stripped_10.floof.model.cards[id].subattribute, true, ilmina_stripped_10.floof.model);
+                if (s) {
+                    ctx.drawImage(images[s.url], s.offsetX, s.offsetY, s.width, s.height, offsetX, offsetY, sideLength, sideLength);
+                }
+            }
+        }
+        function drawAwakening(ctx, awakening, sideLength, offsetX, offsetY, image) {
+            const [x, y] = templates_6.getAwakeningOffsets(awakening);
+            ctx.drawImage(image, -1 * x, -1 * y, 32, 32, offsetX, offsetY, sideLength, sideLength);
+        }
+        class InheritRow {
+            constructor(inherits) {
+                this.inherits = inherits;
+            }
+            getHeightOverWidth() {
+                if (this.inherits.some(({ id }) => id > 0)) {
+                    return 1 / 12;
+                }
+                return 0;
+            }
+            draw(ctx, drawnOffsetY, images) {
+                const width = ctx.canvas.width;
+                const inheritLength = width / 12;
+                for (let i = 0; i < this.inherits.length; i++) {
+                    const inherit = this.inherits[i];
+                    if (inherit.id <= 0) {
+                        continue;
+                    }
+                    const drawnOffsetX = i * 2 * inheritLength;
+                    drawMonster(ctx, inherit.id, inheritLength, drawnOffsetX, drawnOffsetY, images); // TODO: Draw the text for ID, Levels, and Plusses.
+                    ctx.textAlign = 'left';
+                    const xStats = drawnOffsetX + inheritLength + width * 0.005;
+                    ctx.font = `${width * 0.017}px Arial`;
+                    borderedText(ctx, `${inherit.id}`, xStats, drawnOffsetY + inheritLength * 0.25, 3, 'black', 'white');
+                    borderedText(ctx, `Lv${inherit.lv}`, xStats, drawnOffsetY + inheritLength * 0.583, 3, 'black', 'white');
+                    borderedText(ctx, `+${inherit.plussed ? 297 : 0}`, xStats, drawnOffsetY + inheritLength * 0.916, 3, 'black', 'white');
+                }
+            }
+            imagesToLoad() {
+                const monsterUrls = this.getIds()
+                    .filter((id) => id > 0)
+                    .map((id) => ilmina_stripped_10.CardAssets.getIconImageData(ilmina_stripped_10.floof.model.cards[id]).url);
+                const attributeBorder = ilmina_stripped_10.CardUiAssets.getIconFrame(0, false, ilmina_stripped_10.floof.model);
+                if (attributeBorder) {
+                    return monsterUrls.concat(attributeBorder.url);
+                }
+                return monsterUrls;
+            }
+            getIds() {
+                return this.inherits.map((inherit) => inherit.id);
+            }
+        }
+        function borderedText(ctx, text, x, y, borderThickness = 2, borderColor = 'black', color = 'yellow') {
+            ctx.fillStyle = borderColor;
+            ctx.fillText(text, x, y + borderThickness);
+            ctx.fillText(text, x, y - borderThickness);
+            ctx.fillText(text, x + borderThickness, y);
+            ctx.fillText(text, x - borderThickness, y);
+            ctx.fillStyle = color;
+            ctx.fillText(text, x, y);
+        }
+        class MonsterRow {
+            constructor(monsters) {
+                this.monsters = monsters;
+            }
+            getHeightOverWidth() {
+                if (this.monsters.some(({ id }) => id > 0)) {
+                    return 1 / 6;
+                }
+                return 0;
+            }
+            draw(ctx, drawnOffsetY, images) {
+                const width = ctx.canvas.width;
+                const length = width / 6;
+                for (let i = 0; i < this.monsters.length; i++) {
+                    const monster = this.monsters[i];
+                    if (monster.id <= 0) {
+                        continue;
+                    }
+                    const drawnOffsetX = i * length;
+                    drawMonster(ctx, monster.id, length, drawnOffsetX, drawnOffsetY, images);
+                    if (monster.plusses) {
+                        ctx.textAlign = 'left';
+                        const x = drawnOffsetX + width * 0.0075;
+                        const y = drawnOffsetY + width * 0.04;
+                        ctx.font = `${width * 0.033333}px Arial`;
+                        borderedText(ctx, `+${monster.plusses} `, x, y);
+                        ctx.fillStyle = 'black';
+                    }
+                    if (monster.awakenings) {
+                        if (monster.awakenings >= ilmina_stripped_10.floof.model.cards[monster.id].awakenings.length) {
+                            ctx.drawImage(images[MonsterRow.MAX_AWOKEN_URL], 0, 0, 55, 55, drawnOffsetX + 0.7 * length, drawnOffsetY + width * .0125, length * 0.23, length * 0.23);
+                        }
+                        else {
+                            ctx.textAlign = 'right';
+                            const x = drawnOffsetX + length - width * 0.0125;
+                            const y = drawnOffsetY + width * 0.04;
+                            ctx.font = `${width * 0.033333}px Arial`;
+                            borderedText(ctx, `(${monster.awakenings})`, x, y);
+                        }
+                    }
+                    if (monster.superAwakeningIdx >= 0) {
+                        const sa = ilmina_stripped_10.floof.model.cards[monster.id].superAwakenings[monster.superAwakeningIdx];
+                        if (sa != undefined) {
+                            const xSa = drawnOffsetX + length * 0.7;
+                            const ySa = drawnOffsetY + length * 0.375;
+                            drawAwakening(ctx, sa, length * 0.25, xSa, ySa, images[MonsterRow.AWAKENING_URL]);
+                        }
+                    }
+                    ctx.textAlign = 'left';
+                    const xLevel = drawnOffsetX + width * 0.0125;
+                    const yLevel = drawnOffsetY + length * 0.92;
+                    ctx.font = `${width * 0.022}px Arial`;
+                    borderedText(ctx, `Lv${monster.lv}`, xLevel, yLevel, 2, 'black', 'white');
+                    ctx.textAlign = 'right';
+                    const xId = drawnOffsetX + length - width * 0.0125;
+                    borderedText(ctx, `${monster.id}`, xId, yLevel, 2, 'black', 'white');
+                }
+            }
+            imagesToLoad() {
+                const monsterUrls = this.getIds()
+                    .filter((id) => id > 0)
+                    .map((id) => ilmina_stripped_10.CardAssets.getIconImageData(ilmina_stripped_10.floof.model.cards[id]).url)
+                    .concat(MonsterRow.MAX_AWOKEN_URL, MonsterRow.AWAKENING_URL);
+                const attributeBorder = ilmina_stripped_10.CardUiAssets.getIconFrame(0, false, ilmina_stripped_10.floof.model);
+                if (attributeBorder) {
+                    return monsterUrls.concat(attributeBorder.url);
+                }
+                return monsterUrls;
+            }
+            getIds() {
+                return this.monsters.map((monster) => monster.id);
+            }
+        }
+        MonsterRow.MAX_AWOKEN_URL = 'assets/max_awoken.png';
+        MonsterRow.AWAKENING_URL = 'assets/eggs.png';
+        class LatentRow {
+            constructor(latents) {
+                this.mostSlotsUsed = 0;
+                this.latents = latents;
+                for (const monsterLatents of latents) {
+                    const slotsUsed = monsterLatents.reduce((total, l) => {
+                        if (l < 11) {
+                            return total + 1;
+                        }
+                        if (l < 33) {
+                            return total + 2;
+                        }
+                        return total + 6;
+                    }, 0);
+                    this.mostSlotsUsed = Math.max(this.mostSlotsUsed, slotsUsed);
+                }
+            }
+            getHeightOverWidth() {
+                if (this.mostSlotsUsed == 0) {
+                    return 0;
+                }
+                if (this.mostSlotsUsed <= 6) {
+                    return 1 / 48;
+                }
+                // 7-8 Latents requires 2 rows.
+                return 1 / 24;
+            }
+            imagesToLoad() {
+                return [LatentRow.LATENT_URL];
+            }
+            draw(ctx, drawnOffsetY, images) {
+                const superSize = ctx.canvas.width / 18;
+                const hyperSize = 3 * superSize;
+                const normalSize = superSize * LatentRow.LATENT_WIDTH / LatentRow.LATENT_WIDTH_SUPER;
+                const height = ctx.canvas.width / 48;
+                const maxWidth = ctx.canvas.width / 6;
+                for (let i = 0; i < this.latents.length; i++) {
+                    const monsterLatents = this.latents[i].sort((a, b) => b - a);
+                    let localOffsetX = 0;
+                    let localOffsetY = 0;
+                    for (const latent of monsterLatents) {
+                        let width = hyperSize;
+                        let imageWidth = LatentRow.LATENT_WIDTH_HYPER;
+                        if (latent < 11) {
+                            width = normalSize;
+                            imageWidth = LatentRow.LATENT_WIDTH;
+                        }
+                        else if (latent < 33) {
+                            width = superSize;
+                            imageWidth = LatentRow.LATENT_WIDTH_SUPER;
+                        }
+                        if (localOffsetX + width > maxWidth) {
+                            localOffsetX = 0;
+                            localOffsetY = height;
+                        }
+                        const { x, y } = templates_6.getLatentPosition(latent);
+                        ctx.drawImage(images[LatentRow.LATENT_URL], x, y, imageWidth, 32, localOffsetX + i * ctx.canvas.width / 6, localOffsetY + drawnOffsetY, width, height);
+                        localOffsetX += width;
+                    }
+                }
+            }
+        }
+        LatentRow.LATENT_WIDTH = 32;
+        LatentRow.LATENT_WIDTH_SUPER = 78;
+        LatentRow.LATENT_WIDTH_HYPER = 78 * 3;
+        LatentRow.LATENT_URL = 'assets/eggs.png';
+        class FancyPhoto {
+            constructor(canvas, opts = {}) {
+                this.urlsToPromises = {};
+                this.loadedImages = {};
+                this.rowDraws = [];
+                this.canvas = canvas;
+                this.canvas.width = 1024;
+                this.ctx = canvas.getContext('2d');
+                this.opts = opts;
+            }
+            setOptions(opts) {
+                this.opts = opts;
+            }
+            loadTeam(team) {
+                this.rowDraws.length = 0;
+                for (let i = 0; i < team.playerMode; i++) {
+                    const currentTeam = team.getTeamAt(i);
+                    const inherits = currentTeam.map((m) => ({
+                        id: m.inheritId,
+                        plussed: m.inheritPlussed,
+                        lv: m.inheritLevel,
+                    }));
+                    this.rowDraws.push(new InheritRow(inherits));
+                    const monsters = currentTeam.map((m) => ({
+                        id: m.getId(!this.opts.useTransform),
+                        plusses: m.hpPlus + m.atkPlus + m.rcvPlus,
+                        awakenings: m.awakenings,
+                        lv: m.level,
+                        superAwakeningIdx: m.superAwakeningIdx,
+                    }));
+                    this.rowDraws.push(new MonsterRow(monsters));
+                    this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
+                }
+            }
+            redraw(idx = 0) {
+                const heightOverWidth = this.rowDraws.reduce((total, rowDraw) => total + rowDraw.getHeightOverWidth(), 0);
+                this.canvas.height = this.canvas.width * heightOverWidth;
+                let aggregateOffset = 0;
+                for (let i = 0; i < idx; i++) {
+                    aggregateOffset += this.rowDraws[i].getHeightOverWidth() * this.canvas.width;
+                }
+                this.ctx.clearRect(0, aggregateOffset, this.canvas.width, this.canvas.height - aggregateOffset);
+                for (const rowDraw of this.rowDraws.slice(idx)) {
+                    const imageUrls = rowDraw.imagesToLoad();
+                    for (const imageUrl of imageUrls) {
+                        if (!this.urlsToPromises[imageUrl]) {
+                            const image = document.createElement('img');
+                            image.src = imageUrl;
+                            image.style.display = 'none';
+                            document.body.appendChild(image);
+                            this.urlsToPromises[imageUrl] = new Promise((resolve) => {
+                                image.onload = () => {
+                                    this.loadedImages[imageUrl] = image;
+                                    resolve();
+                                };
+                            });
+                        }
+                    }
+                    const currentOffset = aggregateOffset;
+                    Promise.all(imageUrls.map((url) => this.urlsToPromises[url])).then(() => {
+                        rowDraw.draw(this.ctx, currentOffset, this.loadedImages);
+                    });
+                    aggregateOffset += rowDraw.getHeightOverWidth() * this.canvas.width;
+                }
+            }
+        }
+        exports.FancyPhoto = FancyPhoto;
         /*
         [Title]
         
@@ -11938,12 +12227,12 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_4, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_4, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
             constructor() {
-                this.display = new templates_6.ValeriaDisplay();
+                this.display = new templates_7.ValeriaDisplay();
                 this.comboContainer = new combo_container_1.ComboContainer();
                 this.teamPhotoCanvas = document.createElement('canvas');
                 this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
@@ -11951,7 +12240,7 @@
                     this.team.action = -1;
                     this.updateDamage();
                 });
-                this.monsterEditor = new templates_6.MonsterEditor((ctx) => {
+                this.monsterEditor = new templates_7.MonsterEditor((ctx) => {
                     if (ctx.playerMode) {
                         this.team.setPlayerMode(ctx.playerMode);
                         this.team.update();
@@ -12002,7 +12291,7 @@
                 };
                 this.monsterEditor.pdchu.exportButton.onclick = () => {
                     this.monsterEditor.pdchu.io.value = this.team.toPdchu();
-                    const els = document.getElementsByClassName(templates_6.ClassNames.PDCHU_IO);
+                    const els = document.getElementsByClassName(templates_7.ClassNames.PDCHU_IO);
                     if (els.length) {
                         const el = els[0];
                         el.focus();
@@ -12012,7 +12301,7 @@
                 this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
                     const searchlessUrl = location.href.replace(location.search, '');
                     this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${custom_base64_1.ValeriaEncode(this.team)}&dungeon=${this.dungeon.id}`;
-                    const els = document.getElementsByClassName(templates_6.ClassNames.PDCHU_IO);
+                    const els = document.getElementsByClassName(templates_7.ClassNames.PDCHU_IO);
                     if (els.length) {
                         const el = els[0];
                         el.focus();
@@ -12126,24 +12415,27 @@
                 };
                 this.teamPhotoCanvas.style.width = '100%';
                 this.teamPhoto = new team_photo_1.TeamPhoto(this.teamPhotoCanvas);
+                this.fancyPhoto = new team_photo_1.FancyPhoto(this.teamPhotoCanvas, { drawInheritSubattributes: true });
             }
             drawTeam() {
-                for (let i = 0; i < this.team.playerMode; i++) {
-                    const team = this.team.getTeamAt(i);
-                    for (let j = 0; j < 6; j++) {
-                        this.teamPhoto.drawMonster({
-                            id: team[j].id,
-                            teamIdx: i,
-                            positionIdx: j,
-                        });
-                        this.teamPhoto.drawMonster({
-                            id: team[j].inheritId,
-                            teamIdx: i,
-                            positionIdx: j,
-                            isInherit: true,
-                        });
-                    }
-                }
+                this.fancyPhoto.loadTeam(this.team);
+                this.fancyPhoto.redraw();
+                // for (let i = 0; i < this.team.playerMode; i++) {
+                //   const team = this.team.getTeamAt(i);
+                //   for (let j = 0; j < 6; j++) {
+                //     this.teamPhoto.drawMonster({
+                //       id: team[j].id,
+                //       teamIdx: i,
+                //       positionIdx: j,
+                //     });
+                //     this.teamPhoto.drawMonster({
+                //       id: team[j].inheritId,
+                //       teamIdx: i,
+                //       positionIdx: j,
+                //       isInherit: true,
+                //     });
+                //   }
+                // }
             }
             usePreempt() {
                 const attributes = new Set();
