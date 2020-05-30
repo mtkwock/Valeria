@@ -28,7 +28,7 @@
  */
 
 enum Bits {
-  PLAYDER_MODE = 2, // Must hold up to 3.
+  PLAYER_MODE = 2, // Must hold up to 3.
   ID = 14, // Can contain up to id ~16.2k.
   LEVEL = 7, // Must contain up to 110.
   LATENT_COUNT = 4, // Must be able to hit 8.
@@ -107,7 +107,7 @@ class Encoding {
 function ValeriaEncode(team: Team): string {
   const encoding = new Encoding();
   const playerMode = team.playerMode;
-  encoding.queueBits(playerMode, Bits.PLAYDER_MODE);
+  encoding.queueBits(playerMode, Bits.PLAYER_MODE);
   const monstersPerTeam = playerMode == 2 ? 5 : 6;
   for (let i = 0; i < playerMode; i++) {
     for (let j = 0; j < monstersPerTeam; j++) {

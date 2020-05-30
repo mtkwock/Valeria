@@ -15,7 +15,7 @@ import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
 import { textifyEnemySkills, textifyEnemySkill, effect as enemyEffect, toSkillContext } from './enemy_skills';
 import { getUrlParameter } from './url_handler';
 import { damage as activeDamage, teamEffect, enemyEffect as activeEnemyEffect, boardEffect } from './actives';
-import { TeamPhoto } from './team_photo';
+import { TeamPhoto, FancyPhoto } from './team_photo';
 
 class Valeria {
   display: ValeriaDisplay = new ValeriaDisplay();
@@ -25,6 +25,7 @@ class Valeria {
   dungeon: DungeonInstance;
   teamPhotoCanvas = document.createElement('canvas') as HTMLCanvasElement;
   teamPhoto: TeamPhoto;
+  fancyPhoto: FancyPhoto;
 
   constructor() {
     this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
@@ -224,25 +225,29 @@ class Valeria {
     }
     this.teamPhotoCanvas.style.width = '100%';
     this.teamPhoto = new TeamPhoto(this.teamPhotoCanvas);
+
+    this.fancyPhoto = new FancyPhoto(this.teamPhotoCanvas, { drawInheritSubattributes: true });
   }
 
   drawTeam(): void {
-    for (let i = 0; i < this.team.playerMode; i++) {
-      const team = this.team.getTeamAt(i);
-      for (let j = 0; j < 6; j++) {
-        this.teamPhoto.drawMonster({
-          id: team[j].id,
-          teamIdx: i,
-          positionIdx: j,
-        });
-        this.teamPhoto.drawMonster({
-          id: team[j].inheritId,
-          teamIdx: i,
-          positionIdx: j,
-          isInherit: true,
-        });
-      }
-    }
+    this.fancyPhoto.loadTeam(this.team);
+    this.fancyPhoto.redraw();
+    // for (let i = 0; i < this.team.playerMode; i++) {
+    //   const team = this.team.getTeamAt(i);
+    //   for (let j = 0; j < 6; j++) {
+    //     this.teamPhoto.drawMonster({
+    //       id: team[j].id,
+    //       teamIdx: i,
+    //       positionIdx: j,
+    //     });
+    //     this.teamPhoto.drawMonster({
+    //       id: team[j].inheritId,
+    //       teamIdx: i,
+    //       positionIdx: j,
+    //       isInherit: true,
+    //     });
+    //   }
+    // }
   }
 
   usePreempt() {

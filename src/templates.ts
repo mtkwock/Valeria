@@ -3521,4 +3521,6 @@ export {
   MonsterUpdate, OnMonsterUpdate,
   LayeredAsset, AssetEnum,
   EnemySkillArea,
+  getLatentPosition,
+  getAwakeningOffsets,
 }
