@@ -93,10 +93,10 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 
 .valeria-monster-icon-sa {
   display: inline-block;
-  width: 18;
-  height: 18;
-  background-size: 200px 290px;
-  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  width: 16;
+  height: 16;
+  background-size: 240px 306px;
+  background-image: url(../assets/eggs.png);
   background-repeat: no-repeat;
   position: relative;
   float: right;
@@ -107,8 +107,8 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
   background-repeat: no-repeat;
   width: 36px;
   height: 36px;
-  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
-  background-size: 400 580;
+  background-image: url(../assets/eggs.png);
+  background-size: 480 612;
 }
 
 .valeria-monster-icon-level {
@@ -171,26 +171,35 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 }
 
 .valeria-monster-latents {
-  height: 9.288;
+  height: 16.512;
   width: 61.2;
   overflow: hidden;
 }
 
 .valeria-monster-latent {
-  height: 9.288;
-  width: 9.288;
+  height: 8.256;
+  width: 8.256;
   display: inline-block;
-  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
-  background-size: 103.2px 149.64px;
+  background-image: url(../assets/eggs.png);
+  background-size: 123.84px 157.896px;
   background-repeat: no-repeat;
 }
 
 .valeria-monster-latent-super {
-  height: 9.288;
-  width: 20.124;
+  height: 8.256;
+  width: 19.608;
   display: inline-block;
-  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
-  background-size: 103.2px 149.64px;
+  background-image: url(../assets/eggs.png);
+  background-size: 123.84px 157.896px;
+  background-repeat: no-repeat;
+}
+
+.valeria-monster-latent-hyper {
+  height: 8.256;
+  width: 58.824;
+  display: inline-block;
+  background-image: url(../assets/eggs.png);
+  background-size: 123.84px 157.896px;
   background-repeat: no-repeat;
 }
 
@@ -476,25 +485,39 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 }
 
 .valeria-monster-awakening {
+  margin: 1px;
   display: inline-block;
-  width: 25.2;
-  height: 25.2;
-  background-size: 280px 406px;
-  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  width: 22.4;
+  height: 22.4;
+  background-size: 336px 428.4px;
+  background-image: url(../assets/eggs.png);
   background-repeat: no-repeat;
   cursor: pointer;
-  background-position: 0px -226.8px;
+  background-position: -1.4px -252px;
 }
 
 .valeria-monster-awakening-super {
+  margin: 1px;
   display: inline-block;
-  width: 54.6;
-  height: 25.2;
-  background-size: 280px 406px;
-  background-image: url(https://s3.amazonaws.com/ilmina/custom/eggs.png);
+  width: 53.2;
+  height: 22.4;
+  background-size: 336px 428.4px;
+  background-image: url(../assets/eggs.png);
   background-repeat: no-repeat;
   cursor: pointer;
-  background-position: 0px -226.8px;
+  background-position: -1.4px -252px;
+}
+
+.valeria-monster-awakening-hyper {
+  margin: 1px;
+  display: inline-block;
+  width: 159.6;
+  height: 22.4;
+  background-size: 336px 428.4px;
+  background-image: url(../assets/eggs.png);
+  background-repeat: no-repeat;
+  cursor: pointer;
+  background-position: -1.4px -252px;
 }
 
 .valeria-change-area {

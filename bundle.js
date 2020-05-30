@@ -133,10 +133,10 @@
                 return ret;
             }
             static getTypeImageData(cardType) {
-                const row = 7 + Math.floor(cardType / 11);
-                const column = cardType % 11;
-                const url = CardAssets.baseUrl + "custom/eggs.png";
-                const ret = new GraphicDescription(url, 0, 0, 36, 36, 400, 580);
+                const row = 7 + Math.floor(cardType / 13);
+                const column = cardType % 13;
+                const url = 'assets/eggs.png'; // CardAssets.baseUrl + "custom/eggs.png";
+                const ret = new GraphicDescription(url, 0, 0, 36, 36, 480, 612);
                 ret.offsetY += row * 36;
                 ret.offsetX += column * 36;
                 return ret;
@@ -1596,6 +1596,11 @@
             Latent[Latent["RESIST_WOOD_PLUS"] = 30] = "RESIST_WOOD_PLUS";
             Latent[Latent["RESIST_LIGHT_PLUS"] = 31] = "RESIST_LIGHT_PLUS";
             Latent[Latent["RESIST_DARK_PLUS"] = 32] = "RESIST_DARK_PLUS";
+            Latent[Latent["RESIST_ATTRIBUTE_ABSORB"] = 33] = "RESIST_ATTRIBUTE_ABSORB";
+            Latent[Latent["RESIST_DAMAGE_VOID"] = 34] = "RESIST_DAMAGE_VOID";
+            Latent[Latent["RESIST_POISON_SKYFALL"] = 35] = "RESIST_POISON_SKYFALL";
+            Latent[Latent["RESIST_JAMMER_SKYFALL"] = 36] = "RESIST_JAMMER_SKYFALL";
+            Latent[Latent["RESIST_LEADER_SWAP"] = 37] = "RESIST_LEADER_SWAP";
         })(Latent || (Latent = {}));
         exports.Latent = Latent;
         var Awakening;
@@ -2350,6 +2355,7 @@
             ClassNames["MONSTER_LATENTS"] = "valeria-monster-latents";
             ClassNames["MONSTER_LATENT"] = "valeria-monster-latent";
             ClassNames["MONSTER_LATENT_SUPER"] = "valeria-monster-latent-super";
+            ClassNames["MONSTER_LATENT_HYPER"] = "valeria-monster-latent-hyper";
             ClassNames["COMBO_EDITOR"] = "valeria-combo-editor";
             ClassNames["COMBO_COMMAND"] = "valeria-combo-command";
             ClassNames["COMBO_TABLE"] = "valeria-combo-table";
@@ -2393,6 +2399,7 @@
             ClassNames["PLUS_EDITOR"] = "valeria-plus-editor";
             ClassNames["AWAKENING"] = "valeria-monster-awakening";
             ClassNames["AWAKENING_SUPER"] = "valeria-monster-awakening-super";
+            ClassNames["AWAKENING_HYPER"] = "valeria-monster-awakening-hyper";
             ClassNames["CHANGE_AREA"] = "valeria-change-area";
             ClassNames["SWAP_ICON"] = "valeria-swap-icon";
             ClassNames["TRANSFORM_ICON"] = "valeria-transform-icon";
@@ -2438,7 +2445,7 @@
             hide(el);
         }
         function getAwakeningOffsets(awakeningNumber) {
-            const result = [0, -324];
+            const result = [-2, -360];
             if (awakeningNumber < 0 || awakeningNumber > 81) {
                 console.warn('Invalid awakening, returning unknown.');
                 return result;
@@ -2870,7 +2877,7 @@
             constructor() {
                 this.el = create('div', ClassNames.MONSTER_LATENTS);
                 this.latentEls = [];
-                for (let i = 0; i < 6; i++) {
+                for (let i = 0; i < 8; i++) {
                     const latentEl = create('a', ClassNames.MONSTER_LATENT);
                     this.latentEls.push(latentEl);
                     this.el.appendChild(latentEl);
@@ -2881,26 +2888,23 @@
             }
             update(latents) {
                 const scale = TEAM_SCALING * 0.43;
-                for (let i = 0; i < 6; i++) {
+                for (let i = 0; i < 8; i++) {
                     if (i >= latents.length) {
                         hide(this.latentEls[i]);
                         continue;
                     }
                     show(this.latentEls[i]);
-                    let offsetX;
-                    let offsetY;
                     if (latents[i] < 11) {
-                        offsetX = (latents[i] * 36) * scale;
-                        offsetY = 36 * scale;
                         this.latentEls[i].className = ClassNames.MONSTER_LATENT;
                     }
-                    else {
-                        const idx = latents[i] - 11;
-                        offsetX = ((idx % 5) * 80 + 2) * scale;
-                        offsetY = (Math.floor(idx / 5) + 2) * 36 * scale;
+                    else if (latents[i] < 33) {
                         this.latentEls[i].className = ClassNames.MONSTER_LATENT_SUPER;
                     }
-                    this.latentEls[i].style.backgroundPosition = `-${offsetX}px -${offsetY}px`;
+                    else {
+                        this.latentEls[i].className = ClassNames.MONSTER_LATENT_HYPER;
+                    }
+                    const { x, y } = getLatentPosition(latents[i]);
+                    this.latentEls[i].style.backgroundPosition = `-${x * scale}px -${y * scale}px`;
                 }
             }
         }
@@ -3565,6 +3569,30 @@
         }
         AwakeningEditor.MAX_AWAKENINGS = 10;
         AwakeningEditor.SCALE = 0.7;
+        function getLatentPosition(latent) {
+            if (latent < 11) {
+                return {
+                    x: 36 * latent + 2,
+                    y: 36,
+                };
+            }
+            else if (latent < 33) {
+                const x = latent % 6;
+                const y = Math.floor(latent / 6);
+                return {
+                    x: (80 * x + 2),
+                    y: (36 * y + 2),
+                };
+            }
+            else {
+                const x = latent % 2;
+                const y = Math.floor(latent / 2) - 11;
+                return {
+                    x: (238 * x + 2),
+                    y: (36 * y + 2),
+                };
+            }
+        }
         class LatentEditor {
             constructor(onUpdate) {
                 this.el = create('div');
@@ -3587,25 +3615,29 @@
                 this.el.appendChild(removerArea);
                 const selectorArea = create('div');
                 let currentWidth = 0;
-                let j = 1;
-                let x = 0;
-                for (let i = 0; i < 33; i++) {
-                    const isSuper = i >= LatentEditor.PER_ROW;
-                    currentWidth += isSuper ? 2 : 1;
-                    x++;
+                for (let i = 0; i < 38; i++) {
+                    let className, addedWidth;
+                    if (i < 11) {
+                        addedWidth = 1;
+                        className = ClassNames.AWAKENING;
+                    }
+                    else if (i < 33) {
+                        addedWidth = 2;
+                        className = ClassNames.AWAKENING_SUPER;
+                    }
+                    else {
+                        addedWidth = 6;
+                        className = ClassNames.AWAKENING_HYPER;
+                    }
+                    currentWidth += addedWidth;
                     if (currentWidth > LatentEditor.PER_ROW) {
                         selectorArea.appendChild(create('br'));
-                        currentWidth = isSuper ? 2 : 1;
-                        x = 0;
-                        j++;
+                        currentWidth = addedWidth;
                     }
-                    const cls = isSuper ? ClassNames.AWAKENING_SUPER : ClassNames.AWAKENING;
-                    const selector = create('a', cls);
-                    const offsetX = (j > 1 ? (80 * x + 2) : 36 * x - 36) * AwakeningEditor.SCALE;
-                    selector.style.backgroundPosition = `-${offsetX}px -${36 * j * AwakeningEditor.SCALE}px`;
-                    selector.onclick = () => {
-                        this.onUpdate({ addLatent: i });
-                    };
+                    const { x, y } = getLatentPosition(i);
+                    const selector = create('a', className);
+                    selector.style.backgroundPosition = `-${x * AwakeningEditor.SCALE}px -${y * AwakeningEditor.SCALE}px`;
+                    selector.onclick = () => this.onUpdate({ addLatent: i });
                     this.latentSelectors.push(selector);
                     selectorArea.appendChild(selector);
                 }
@@ -3629,28 +3661,40 @@
                     }
                     else if (i >= activeLatents.length) {
                         remover.style.display = '';
-                        remover.style.backgroundPosition = '0px 0px';
+                        remover.style.backgroundPosition = `${-2 * AwakeningEditor.SCALE}px ${-2 * AwakeningEditor.SCALE}px`;
                         remover.className = ClassNames.AWAKENING;
                         totalLatents++;
                         continue;
                     }
                     remover.style.display = '';
                     const latent = activeLatents[i];
-                    const isSuper = latent >= 11;
-                    totalLatents += isSuper ? 2 : 1;
-                    let offsetWidth, offsetHeight;
-                    const x = isSuper ? (latent - 11) % 5 : latent;
-                    const y = isSuper ? Math.floor((latent - 11) / 5 + 2) : 1;
-                    if (isSuper) {
-                        offsetWidth = x * -80 - 2;
-                        offsetHeight = -36 * y;
+                    let className;
+                    if (latent < 11) {
+                        className = ClassNames.AWAKENING;
+                        totalLatents += 1;
+                    }
+                    else if (latent < 33) {
+                        className = ClassNames.AWAKENING_SUPER;
+                        totalLatents += 2;
                     }
                     else {
-                        offsetWidth = x * -36;
-                        offsetHeight = -36;
+                        className = ClassNames.AWAKENING_HYPER;
+                        totalLatents += 6;
                     }
-                    remover.className = isSuper ? ClassNames.AWAKENING_SUPER : ClassNames.AWAKENING;
-                    remover.style.backgroundPosition = `${offsetWidth * AwakeningEditor.SCALE}px ${offsetHeight * AwakeningEditor.SCALE}px`;
+                    // const isSuper = latent >= 11;
+                    // let offsetWidth, offsetHeight;
+                    // const x = isSuper ? (latent - 11) % 5 : latent;
+                    // const y = isSuper ? Math.floor((latent - 11) / 5 + 2) : 1;
+                    // if (isSuper) {
+                    //   offsetWidth = x * -80 - 2;
+                    //   offsetHeight = -36 * y;
+                    // } else {
+                    //   offsetWidth = x * -36;
+                    //   offsetHeight = -36;
+                    // }
+                    const { x, y } = getLatentPosition(latent);
+                    remover.className = className;
+                    remover.style.backgroundPosition = `-${x * AwakeningEditor.SCALE}px -${y * AwakeningEditor.SCALE}px`;
                 }
                 // Enable/Disable Generic Killers. (Evo, Awakening, Enhance, Redeemable.)
                 for (let i = 12; i < 16; i++) {
@@ -3661,7 +3705,7 @@
                 }
             }
         }
-        LatentEditor.PER_ROW = 11;
+        LatentEditor.PER_ROW = 13;
         class MonsterEditor {
             constructor(onUpdate) {
                 this.el = create('div', ClassNames.MONSTER_EDITOR);
@@ -3902,6 +3946,8 @@
                 this.applyActionButton = create('button');
                 this.leadSwapInput = create('select');
                 this.voidEls = [];
+                // All elements to set regarding monster burst.
+                // Note that the UI only supports 2 awakenings, types, and attributes.
                 this.burstMultiplierInput = create('input');
                 this.burstAwakeningScaleInput = create('input');
                 this.burstAwakeningSelect1 = create('select');
@@ -3910,6 +3956,7 @@
                 this.burstTypeSelect2 = create('select');
                 this.burstAttrSelect1 = create('select');
                 this.burstAttrSelect2 = create('select');
+                // All elements to set regarding damage.
                 this.pingCells = [];
                 this.bonusPing = create('td');
                 this.pingTotal = create('td');
@@ -4548,8 +4595,10 @@
                 this.setScale(scale);
             }
             getTypeOffsets() {
-                const { offsetX, offsetY } = ilmina_stripped_3.CardAssets.getTypeImageData(Number(this.type));
-                return { offsetX: offsetX * this.scale, offsetY: offsetY * this.scale };
+                return {
+                    offsetX: this.scale * ((this.type % 13) * 36 + 2),
+                    offsetY: this.scale * (36 * Math.floor(this.type / 13) + 288),
+                };
             }
             setType(type) {
                 this.type = type;
@@ -4561,7 +4610,7 @@
             }
             setScale(scale) {
                 this.scale = scale;
-                this.element.style.backgroundSize = `${400 * scale}px ${580 * scale}px`;
+                this.element.style.backgroundSize = `${480 * scale}px ${612 * scale}px`;
                 this.element.style.width = `${scale * 36}px`;
                 this.element.style.height = `${scale * 36}px`;
                 this.setType(this.type);
@@ -5230,6 +5279,11 @@
             [common_3.Latent.ATTACKER, 'aak'],
             [common_3.Latent.PHYSICAL, 'phk'],
             [common_3.Latent.HEALER, 'hek'],
+            [common_3.Latent.RESIST_DAMAGE_VOID, 'rdv'],
+            [common_3.Latent.RESIST_ATTRIBUTE_ABSORB, 'raa'],
+            [common_3.Latent.RESIST_JAMMER_SKYFALL, 'rjs'],
+            [common_3.Latent.RESIST_POISON_SKYFALL, 'rps'],
+            [common_3.Latent.RESIST_LEADER_SWAP, 'rls'],
         ]);
         exports.LatentToPdchu = LatentToPdchu;
         const PdchuToLatent = new Map();
@@ -5358,14 +5412,14 @@
                 }
                 return this.id;
             }
-            getRenderData(isMultiplayer, showSwap = false) {
+            getRenderData(playerMode, showSwap = false) {
                 const plusses = this.hpPlus + this.atkPlus + this.rcvPlus;
                 return {
                     plusses,
                     // A monster must be above level 99, max plussed, and in solo play for
                     // SAs to be active.  This will change later when 3P allows SB.
                     unavailableReason: [
-                        isMultiplayer ? 'Multiplayer' : '',
+                        playerMode == 2 ? '2P' : '',
                         plusses != 297 ? 'Unplussed' : '',
                         this.level < 100 ? 'Not Limit Broken' : '',
                     ].filter(Boolean).join(', '),
@@ -5382,9 +5436,9 @@
                     activeTransform: this.transformedTo > 0,
                 };
             }
-            update(isMultiplayer = false, data = undefined) {
+            update(playerMode = 1, data = undefined) {
                 if (!data) {
-                    data = this.getRenderData(isMultiplayer);
+                    data = this.getRenderData(playerMode);
                 }
                 this.icon.update({
                     id: data.id,
@@ -5665,11 +5719,11 @@
                     this.inheritId = -1;
                 }
             }
-            isSuperAwakeningActive(isMultiplayer) {
-                return (!isMultiplayer && this.level > 99 && this.hpPlus == 99
+            isSuperAwakeningActive(playerMode) {
+                return (playerMode != 2 && this.level > 99 && this.hpPlus == 99
                     && this.atkPlus == 99 && this.hpPlus == 99);
             }
-            getAwakenings(isMultiplayer, filterSet) {
+            getAwakenings(playerMode, filterSet) {
                 let filterFn = (_awakening) => true;
                 if (filterSet) {
                     filterFn = (awakening) => filterSet.has(awakening);
@@ -5680,7 +5734,7 @@
                 if (this.transformedTo > 0) {
                     awakenings = [...c.awakenings];
                 }
-                if (this.isSuperAwakeningActive(isMultiplayer) && this.superAwakeningIdx > -1) {
+                if (this.isSuperAwakeningActive(playerMode) && this.superAwakeningIdx > -1) {
                     awakenings.push(c.superAwakenings[this.superAwakeningIdx]);
                 }
                 const inherit = this.getInheritCard();
@@ -5691,8 +5745,8 @@
                 }
                 return awakenings.filter(filterFn);
             }
-            countAwakening(awakening, isMultiplayer = false) {
-                return this.getAwakenings(isMultiplayer, new Set([awakening])).length;
+            countAwakening(awakening, playerMode = 1) {
+                return this.getAwakenings(playerMode, new Set([awakening])).length;
             }
             getLatents(filterSet = null) {
                 let filterFn = (_latent) => true;
@@ -5712,10 +5766,17 @@
                 }
                 const maxSlots = c.inheritanceType & 32 ? 8 : 6;
                 let totalSlots = 0;
-                for (const l of this.latents) {
-                    totalSlots += common_3.LatentSuper.has(l) ? 2 : 1;
+                for (const l of this.latents.concat(latent)) {
+                    if (l < 11) {
+                        totalSlots += 1;
+                    }
+                    else if (l < 33) {
+                        totalSlots += 2;
+                    }
+                    else {
+                        totalSlots += 6;
+                    }
                 }
-                totalSlots += common_3.LatentSuper.has(latent) ? 2 : 1;
                 if (totalSlots > maxSlots)
                     return;
                 if (latent >= 16 && latent <= 23 && !c.latentKillers.some((killer) => killer == (latent - 11))) {
@@ -5751,7 +5812,7 @@
             setRcvPlus(v) {
                 this.rcvPlus = validatePlus(v);
             }
-            getHp(isMultiplayer = true, awakeningsActive = true) {
+            getHp(playerMode = 1, awakeningsActive = true) {
                 if (this.id == -1) {
                     return 0;
                 }
@@ -5764,7 +5825,7 @@
                     }
                     hp *= latentMultiplier;
                     let awakeningAdder = 0;
-                    for (const awakening of this.getAwakenings(isMultiplayer, new Set([common_3.Awakening.HP, common_3.Awakening.HP_MINUS]))) {
+                    for (const awakening of this.getAwakenings(playerMode, new Set([common_3.Awakening.HP, common_3.Awakening.HP_MINUS]))) {
                         awakeningAdder += AWAKENING_BONUS.get(awakening) || 0;
                     }
                     hp += awakeningAdder;
@@ -5776,13 +5837,13 @@
                     const inheritBonus = calcScaleStat(inherit, inherit.maxHp, inherit.minHp, this.inheritLevel, inherit.hpGrowth) + (this.inheritPlussed ? 990 : 0);
                     hp += Math.round(inheritBonus * 0.1);
                 }
-                if (isMultiplayer) {
-                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, isMultiplayer);
+                if (playerMode) {
+                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, playerMode);
                     hp *= multiboostMultiplier;
                 }
                 return Math.max(Math.round(hp), 1);
             }
-            getAtk(isMultiplayer = true, awakeningsActive = true) {
+            getAtk(playerMode = 1, awakeningsActive = true) {
                 if (this.id == -1) {
                     return 0;
                 }
@@ -5795,7 +5856,7 @@
                     }
                     atk *= latentMultiplier;
                     let awakeningAdder = 0;
-                    for (const awakening of this.getAwakenings(isMultiplayer, new Set([common_3.Awakening.ATK, common_3.Awakening.ATK_MINUS]))) {
+                    for (const awakening of this.getAwakenings(playerMode, new Set([common_3.Awakening.ATK, common_3.Awakening.ATK_MINUS]))) {
                         awakeningAdder += AWAKENING_BONUS.get(awakening) || 0;
                     }
                     atk += awakeningAdder;
@@ -5807,13 +5868,13 @@
                     const inheritBonus = calcScaleStat(inherit, inherit.maxAtk, inherit.minAtk, this.inheritLevel, inherit.atkGrowth) + (this.inheritPlussed ? 495 : 0);
                     atk += Math.round(inheritBonus * 0.05);
                 }
-                if (isMultiplayer && awakeningsActive) {
-                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, isMultiplayer);
+                if (playerMode > 1 && awakeningsActive) {
+                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, playerMode);
                     atk *= multiboostMultiplier;
                 }
                 return Math.max(Math.round(atk), 1);
             }
-            getRcv(isMultiplayer = true, awakeningsActive = true) {
+            getRcv(playerMode = 1, awakeningsActive = true) {
                 const c = this.getCard();
                 let rcv = this.calcScaleStat(c.maxRcv, c.minRcv, c.rcvGrowth);
                 if (awakeningsActive) {
@@ -5824,7 +5885,7 @@
                     rcv *= latentMultiplier;
                     const rcvSet = new Set([common_3.Awakening.RCV, common_3.Awakening.RCV_MINUS]);
                     let total = 0;
-                    for (const awakening of this.getAwakenings(isMultiplayer, rcvSet)) {
+                    for (const awakening of this.getAwakenings(playerMode, rcvSet)) {
                         total += AWAKENING_BONUS.get(awakening) || 0;
                     }
                     rcv += total;
@@ -5836,8 +5897,8 @@
                     const inheritBonus = calcScaleStat(inherit, inherit.maxRcv, inherit.minRcv, this.inheritLevel, inherit.rcvGrowth) + (this.inheritPlussed ? 297 : 0);
                     rcv += Math.round(inheritBonus * 0.15);
                 }
-                if (isMultiplayer && awakeningsActive) {
-                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, isMultiplayer);
+                if (playerMode && awakeningsActive) {
+                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, playerMode);
                     rcv *= multiboostMultiplier;
                 }
                 return Math.round(rcv);
@@ -7828,7 +7889,7 @@
                     }
                 }
                 if (!includeLeaderSkill) {
-                    return monsters.map((monster) => monster.getHp(this.isMultiplayer(), this.state.awakenings));
+                    return monsters.map((monster) => monster.getHp(this.playerMode, this.state.awakenings));
                 }
                 const hps = [];
                 const teamHpAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_HP), 0) * 0.05) : 0);
@@ -7838,7 +7899,7 @@
                         continue;
                     }
                     const hpMult = partialLead(monster) * partialHelper(monster);
-                    const hpBase = monster.getHp(this.isMultiplayer(), this.state.awakenings);
+                    const hpBase = monster.getHp(this.playerMode, this.state.awakenings);
                     hps.push(Math.round(hpBase * hpMult * teamHpAwakeningsMult));
                 }
                 return hps;
@@ -7854,7 +7915,7 @@
                 const rcvs = [];
                 const monsters = this.getActiveTeam();
                 if (!includeLeaderSkill) {
-                    return monsters.map((monster) => monster.getRcv(this.isMultiplayer(), this.state.awakenings));
+                    return monsters.map((monster) => monster.getRcv(this.playerMode, this.state.awakenings));
                 }
                 const partialLead = (monster) => {
                     return leaders.rcv(monsters[0].getCard().leaderSkillId, {
@@ -7877,7 +7938,7 @@
                         continue;
                     }
                     const rcvMult = partialLead(monster) * partialHelper(monster);
-                    const rcvBase = monster.getRcv(this.isMultiplayer(), this.state.awakenings);
+                    const rcvBase = monster.getRcv(this.playerMode, this.state.awakenings);
                     rcvs.push(Math.round(rcvBase * rcvMult * teamRcvAwakeningsMult));
                 }
                 return rcvs;
@@ -7942,7 +8003,7 @@
             }
             getDamageCombos(comboContainer) {
                 comboContainer.bonusCombosLeader = 0;
-                const mp = this.isMultiplayer();
+                const pm = this.playerMode;
                 const awoke = this.state.awakenings;
                 const percentHp = this.getHpPercent();
                 const monsters = this.getActiveTeam();
@@ -7954,7 +8015,7 @@
                     percentHp,
                     comboContainer,
                     skillUsed: this.state.skillUsed,
-                    isMultiplayer: mp,
+                    isMultiplayer: this.isMultiplayer(),
                     healing,
                 });
                 const enhancedCounts = {
@@ -8024,7 +8085,7 @@
                             if (!ping || ping.attribute != attr) {
                                 continue;
                             }
-                            let curAtk = ping.source.getAtk(mp, awoke);
+                            let curAtk = ping.source.getAtk(pm, awoke);
                             curAtk = common_7.Round.UP(curAtk * baseMultiplier);
                             if (ping.isSub) {
                                 const divisor = ping.attribute == ping.source.getAttribute() ? 10 : 3;
@@ -8033,13 +8094,13 @@
                             let multiplier = 1;
                             if (awoke) {
                                 if (combo.count == 4) {
-                                    multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.TPA, mp));
+                                    multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.TPA, pm));
                                 }
                                 else if (combo.shape == common_7.Shape.L) {
-                                    multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.L_UNLOCK, mp));
+                                    multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.L_UNLOCK, pm));
                                 }
                                 else if (combo.shape == common_7.Shape.BOX) {
-                                    multiplier *= (2.5 ** ping.source.countAwakening(common_7.Awakening.VDP, mp));
+                                    multiplier *= (2.5 ** ping.source.countAwakening(common_7.Awakening.VDP, pm));
                                     ping.ignoreVoid = true;
                                 }
                             }
@@ -8069,7 +8130,7 @@
                 const partialRcv = (id, monster) => leaders.rcv(id, {
                     monster,
                     team: monsters,
-                    isMultiplayer: mp,
+                    isMultiplayer: this.isMultiplayer(),
                 });
                 for (const combo of comboContainer.combos['h']) {
                     let multiplier = (combo.count + 1) * 0.25;
@@ -8090,9 +8151,9 @@
                         multiplier *= (1 + 0.1 * teamRcvAwakenings);
                     }
                     for (const monster of monsters) {
-                        let rcv = monster.getRcv(mp, awoke);
+                        let rcv = monster.getRcv(pm, awoke);
                         if (awoke && combo.count == 4) {
-                            rcv *= (1.5 ** monster.countAwakening(common_7.Awakening.OE_HEART, mp));
+                            rcv *= (1.5 ** monster.countAwakening(common_7.Awakening.OE_HEART, pm));
                         }
                         const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
                         healing += common_7.Round.UP(rcv * multiplier * rcvMult);
@@ -8121,9 +8182,9 @@
                             continue;
                         }
                         const apply = (awakening, multiplier) => {
-                            const count = ping.source.countAwakening(awakening, mp);
+                            const count = ping.source.countAwakening(awakening, pm);
                             if (count) {
-                                ping.multiply(multiplier ** ping.source.countAwakening(awakening, mp), common_7.Round.NEAREST);
+                                ping.multiply(multiplier ** ping.source.countAwakening(awakening, pm), common_7.Round.NEAREST);
                             }
                         };
                         if (comboCount >= 7) {
@@ -8192,7 +8253,7 @@
                         const actualIndex = this.getMonsterIdx(teamIdx, monsterIdx);
                         // We should only show the lead swap icon on the lead who is now the sub.
                         const showSwap = Boolean(displayIndex != actualIndex && monsterIdx && monsterIdx < 5);
-                        this.monsters[displayIndex].update(this.isMultiplayer(), this.monsters[actualIndex].getRenderData(this.isMultiplayer(), showSwap));
+                        this.monsters[displayIndex].update(this.playerMode, this.monsters[actualIndex].getRenderData(this.playerMode, showSwap));
                     }
                 }
                 this.teamPane.updateStats(this.getStats());
@@ -8219,7 +8280,7 @@
                         monsters.push(p2Monsters[i]);
                     }
                 }
-                return monsters.reduce((total, monster) => total + monster.countAwakening(awakening, this.isMultiplayer()), 0);
+                return monsters.reduce((total, monster) => total + monster.countAwakening(awakening, this.playerMode), 0);
             }
             countLatent(latent) {
                 if (!this.state.awakenings) {
@@ -8352,7 +8413,7 @@
                         cds.push('');
                     }
                 }
-                const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.isMultiplayer(), this.state.awakenings));
+                const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.playerMode, this.state.awakenings));
                 const counts = new Map();
                 // General
                 counts.set(common_7.Awakening.SKILL_BOOST, this.countAwakening(common_7.Awakening.SKILL_BOOST) +
@@ -8576,7 +8637,7 @@
                 }
                 return this.currentAttribute;
             }
-            calcDamage(ping, pings, comboContainer, isMultiplayer, voids) {
+            calcDamage(ping, pings, comboContainer, playerMode, voids) {
                 let currentDamage = ping.damage;
                 if (!currentDamage || this.invincible) {
                     return 0;
@@ -8594,7 +8655,7 @@
                     let killerCount = 0;
                     let latentCount = 0;
                     for (const type of types) {
-                        killerCount += ping.source.countAwakening(common_8.TypeToKiller[type], isMultiplayer);
+                        killerCount += ping.source.countAwakening(common_8.TypeToKiller[type], playerMode);
                         latentCount += ping.source.latents.filter((latent) => latent == common_8.TypeToLatentKiller[type]).length;
                     }
                     currentDamage *= (3 ** killerCount);
@@ -8614,7 +8675,7 @@
                     currentDamage = Math.ceil(currentDamage);
                     // Handle Defense
                     if (!ping.source.countAwakening(common_8.Awakening.GUARD_BREAK) ||
-                        new Set(pings.filter((p) => p.damage).map((p) => p.attribute)).size < 5) {
+                        new Set(pings.filter((p) => p.damage && p.attribute >= 0 && p.attribute <= 4).map((p) => p.attribute)).size < 5) {
                         currentDamage -= this.getDef();
                         currentDamage = Math.max(currentDamage, 1);
                     }
@@ -8626,11 +8687,17 @@
                 }
                 // Handle void
                 if (this.damageVoid && currentDamage >= this.damageVoid &&
-                    !ping.ignoreVoid && !voids.damageVoid) {
+                    !ping.ignoreVoid && !voids.damageVoid &&
+                    !(ping.source.latents.some((l) => l == common_8.Latent.RESIST_DAMAGE_VOID)
+                        && new Set(pings.filter((p) => p.damage).map((p) => p.attribute)).size == 5
+                        && comboContainer.combos['h'].length)) {
                     currentDamage = 0;
                 }
                 // Handle Absorbs
-                if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb) {
+                if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb &&
+                    !(ping.source.latents.some((l) => l == common_8.Latent.RESIST_ATTRIBUTE_ABSORB)
+                        && new Set(pings.filter((p) => p.damage && p.attribute >= 0 && p.attribute <= 4).map(p => p.attribute)).size == 5
+                        && comboContainer.combos['h'].length)) {
                     currentDamage *= -1;
                 }
                 else if (this.damageAbsorb && currentDamage >= this.damageAbsorb && !voids.damageAbsorb) {
@@ -8708,10 +8775,10 @@
         Object.defineProperty(exports, "__esModule", { value: true });
         // 0
         const scalingAttackToAllEnemies = {
-            damage: ([attr, atk100], { source, awakeningsActive, isMultiplayer }) => {
+            damage: ([attr, atk100], { source, awakeningsActive, playerMode }) => {
                 const ping = new damage_ping_2.DamagePing(source, attr);
                 ping.isActive = true;
-                ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
+                ping.damage = source.getAtk(playerMode, awakeningsActive);
                 ping.multiply(atk100 / 100, common_9.Round.UP);
                 return [ping];
             },
@@ -8727,11 +8794,11 @@
         };
         // 2
         const scalingAttackRandomToSingleEnemy = {
-            damage: ([atk100base, atk100max], { source, awakeningsActive, isMultiplayer }) => {
+            damage: ([atk100base, atk100max], { source, awakeningsActive, playerMode }) => {
                 atk100max = atk100max || atk100base;
                 const ping = new damage_ping_2.DamagePing(source, source.getAttribute());
                 ping.isActive = true;
-                ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
+                ping.damage = source.getAtk(playerMode, awakeningsActive);
                 const multiplier100 = atk100base + Math.floor(Math.random() * (atk100max - atk100base));
                 ping.multiply(multiplier100 / 100, common_9.Round.UP);
                 if (atk100base != atk100max) {
@@ -8749,12 +8816,12 @@
         };
         // 4
         const poison = {
-            enemyEffect: ([poisonMultiplier100], { source, enemy, awakeningsActive, isMultiplayer }) => {
+            enemyEffect: ([poisonMultiplier100], { source, enemy, awakeningsActive, playerMode }) => {
                 if (enemy.statusShield) {
                     enemy.poison = 0;
                     return;
                 }
-                enemy.poison = Math.ceil(source.getAtk(isMultiplayer, awakeningsActive) * poisonMultiplier100 / 100);
+                enemy.poison = Math.ceil(source.getAtk(playerMode, awakeningsActive) * poisonMultiplier100 / 100);
             },
         };
         // 5
@@ -8801,7 +8868,7 @@
         // 20
         const orbChangeDouble = {};
         function simulateDamage(ping, ctx) {
-            return ctx.enemy.calcDamage(ping, [ping], ctx.comboContainer, ctx.team.isMultiplayer(), {
+            return ctx.enemy.calcDamage(ping, [ping], ctx.comboContainer, ctx.team.playerMode, {
                 attributeAbsorb: ctx.team.state.voidAttributeAbsorb,
                 damageAbsorb: ctx.team.state.voidDamageAbsorb,
                 damageVoid: ctx.team.state.voidDamageVoid,
@@ -8821,7 +8888,7 @@
                     source: ctx.source,
                     enemy: ctx.enemy,
                     awakeningsActive: ctx.team.state.awakenings,
-                    isMultiplayer: ctx.team.isMultiplayer(),
+                    playerMode: ctx.team.playerMode,
                     team: ctx.team.getActiveTeam(),
                     currentHp: ctx.team.state.currentHp,
                     maxHp: ctx.team.getHp(),
@@ -8966,10 +9033,10 @@
         };
         // 110
         const grudgeStrike = {
-            damage: ([_, attr, baseMult, maxMult, scaling], { source, isMultiplayer, awakeningsActive, currentHp, maxHp }) => {
+            damage: ([_, attr, baseMult, maxMult, scaling], { source, playerMode, awakeningsActive, currentHp, maxHp }) => {
                 const ping = new damage_ping_2.DamagePing(source, attr);
                 ping.isActive = true;
-                ping.damage = source.getAtk(isMultiplayer, awakeningsActive);
+                ping.damage = source.getAtk(playerMode, awakeningsActive);
                 const multiplierScale = (maxMult - baseMult) * ((1 - (currentHp - 1) / maxHp) ** (scaling / 100));
                 ping.multiply(baseMult + multiplierScale, common_9.Round.NEAREST);
                 return [ping];
@@ -8993,7 +9060,7 @@
                     source: ctx.source,
                     enemy: ctx.enemy,
                     awakeningsActive: ctx.team.state.awakenings,
-                    isMultiplayer: ctx.team.isMultiplayer(),
+                    playerMode: ctx.team.playerMode,
                     team: ctx.team.getActiveTeam(),
                     currentHp: ctx.team.state.currentHp,
                     maxHp: ctx.team.getHp(),
@@ -9041,7 +9108,7 @@
                     healing += flatHeal;
                 }
                 if (rcv100) {
-                    healing += Math.ceil(source.getRcv(team.isMultiplayer(), team.state.awakenings));
+                    healing += Math.ceil(source.getRcv(team.playerMode, team.state.awakenings));
                 }
                 if (percentHeal) {
                     healing += Math.ceil(team.getHp() * percentHeal / 100);
@@ -9079,11 +9146,11 @@
         };
         // 144
         const scalingAttackFromTeam = {
-            damage: ([attrBits, atk100, _, attr], { source, isMultiplayer, awakeningsActive, team }) => {
+            damage: ([attrBits, atk100, _, attr], { source, playerMode, awakeningsActive, team }) => {
                 const ping = new damage_ping_2.DamagePing(source, attr);
                 const attrs = new Set(common_9.idxsFromBits(attrBits));
                 for (const m of team) {
-                    const atk = m.getAtk(isMultiplayer, awakeningsActive);
+                    const atk = m.getAtk(playerMode, awakeningsActive);
                     if (attrs.has(m.getAttribute())) {
                         ping.add(atk);
                     }
@@ -9481,7 +9548,7 @@
         }
         exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
     });
-    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common"], function (require, exports, ilmina_stripped_9, common_10) {
+    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common", "debugger"], function (require, exports, ilmina_stripped_9, common_10, debugger_3) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         var SkillType;
@@ -10333,13 +10400,18 @@
             aiEffect: () => { },
             effect: (_, { team, enemy, comboContainer }) => {
                 // Cannot swap an already swapped team.
-                const subs = team.getActiveTeam().slice(1, 5).filter(m => m.getId() > 0).length;
-                if (team.state.leadSwaps[team.activeTeamIdx] || !subs) {
+                const subs = team.getActiveTeam().slice(1, 5).map((m, i) => m.getId() > 0 ? i : 0).filter(Boolean);
+                if (team.state.leadSwaps[team.activeTeamIdx] || !subs.length) {
                     team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                     return;
                 }
+                if (team.getActiveTeam()[0].latents.some((l) => l == common_10.Latent.RESIST_LEADER_SWAP)) {
+                    debugger_3.debug.print('Leader Swap Resisted');
+                    return;
+                }
+                let idx = subs[Math.floor(Math.random() * subs.length)];
                 team.updateState({
-                    leadSwap: 1 + Math.floor(Math.random() * subs),
+                    leadSwap: idx,
                 });
             },
             goto: () => TERMINATE,
@@ -11866,7 +11938,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_3, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_6, debugger_4, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
@@ -11979,7 +12051,7 @@
                         source,
                         enemy,
                         awakeningsActive: this.team.state.awakenings,
-                        isMultiplayer: this.team.isMultiplayer(),
+                        playerMode: this.team.playerMode,
                     });
                     actives_1.boardEffect(activeId, this.comboContainer);
                     this.comboContainer.update();
@@ -12002,7 +12074,7 @@
                     this.dungeon.loadDungeon(Number(dungeonId));
                 }
                 this.display.panes[2].appendChild(this.dungeon.getPane());
-                debugger_3.debug.addButton('Print Skills', () => {
+                debugger_4.debug.addButton('Print Skills', () => {
                     const enemy = this.dungeon.getActiveEnemy();
                     const id = enemy.id;
                     const skillTexts = enemy_skills_2.textifyEnemySkills({
@@ -12010,10 +12082,10 @@
                         atk: enemy.getAtk(),
                     });
                     for (let i = 0; i < skillTexts.length; i++) {
-                        debugger_3.debug.print(`${i + 1}: ${skillTexts[i]} `);
+                        debugger_4.debug.print(`${i + 1}: ${skillTexts[i]} `);
                     }
                 });
-                debugger_3.debug.addButton('Simulate Next Skill', () => {
+                debugger_4.debug.addButton('Simulate Next Skill', () => {
                     const attributes = new Set();
                     const types = new Set();
                     for (const m of this.team.getActiveTeam()) {
@@ -12029,15 +12101,15 @@
                 });
                 this.dungeon.onEnemySkill = (idx, otherIdxs) => {
                     if (idx < 0) {
-                        debugger_3.debug.print('No skill to use');
+                        debugger_4.debug.print('No skill to use');
                         return;
                     }
                     const enemy = this.dungeon.getActiveEnemy();
                     if (otherIdxs.length) {
-                        debugger_3.debug.print(`  * Not using potential skills: ${otherIdxs}`);
+                        debugger_4.debug.print(`  * Not using potential skills: ${otherIdxs}`);
                     }
-                    debugger_3.debug.print('** Using the following skill **');
-                    debugger_3.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
+                    debugger_4.debug.print('** Using the following skill **');
+                    debugger_4.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
                     const skillCtx = enemy_skills_2.toSkillContext(enemy.id, idx);
                     enemy_skills_2.effect(skillCtx, { enemy, team: this.team, comboContainer: this.comboContainer });
                     enemy.charges -= ilmina_stripped_11.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
@@ -12124,7 +12196,7 @@
                         team,
                         enemy: this.dungeon.getActiveEnemy(),
                         awakeningsActive: this.team.state.awakenings,
-                        isMultiplayer: this.team.isMultiplayer(),
+                        playerMode: this.team.playerMode,
                         currentHp: this.team.state.currentHp,
                         maxHp: this.team.getHp(),
                     });
@@ -12141,7 +12213,7 @@
                 }
                 for (const ping of pings) {
                     let oldHp = currentHp;
-                    ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.isMultiplayer(), {
+                    ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.playerMode, {
                         attributeAbsorb: this.team.state.voidAttributeAbsorb,
                         damageVoid: this.team.state.voidDamageVoid,
                         damageAbsorb: this.team.state.voidDamageAbsorb,
@@ -12158,7 +12230,7 @@
                 const specialPing = new damage_ping_3.DamagePing(this.team.getActiveTeam()[0], common_12.Attribute.FIXED, false);
                 specialPing.damage = trueBonusAttack;
                 specialPing.isActive = true;
-                specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.isMultiplayer(), {
+                specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.playerMode, {
                     attributeAbsorb: this.team.state.voidAttributeAbsorb,
                     damageVoid: this.team.state.voidDamageVoid,
                     damageAbsorb: this.team.state.voidDamageAbsorb,
@@ -12204,7 +12276,7 @@
             };
             // document.body.appendChild(valeria.teamPhotoCanvas);
             if (localStorage.debug) {
-                document.body.appendChild(debugger_3.debug.getElement());
+                document.body.appendChild(debugger_4.debug.getElement());
             }
             window.valeria = valeria;
             const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`);
