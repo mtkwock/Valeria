@@ -1,6 +1,6 @@
 Extension Written by Scarlet#1115 on Discord.
 
-**Please do not redistribute yet... This is stil in Beta.**
+**Please do not redistribute yet... This is still in Beta.**
 
 ### Building from source
 1. Make sure you have npm installed
@@ -119,8 +119,8 @@ Follow up with attributes to delete.
 |Input|Output|
 |-----|---|
 |`Dr`| Delete the last Red combo |
-|`Dab`| Delete All Light and Dark combos. |
-|`Dald`|Make a TPA of each heal and light with 1 enhanced orb.|
+|`Dab`| Delete All Blue combos. |
+|`Dald`| Delete All Light and Dark combos.|
 |`Du0`| Delete the first Uncolored Combo. (Invalid if Indexed 1) |
 |`Dj1`|Delete the second Jammer combo. (First if Indexed 1)|
 |`Dg-2`| Delete the 2nd from last Green combo.|
