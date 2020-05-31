@@ -15,7 +15,7 @@ import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
 import { textifyEnemySkills, textifyEnemySkill, effect as enemyEffect, toSkillContext } from './enemy_skills';
 import { getUrlParameter } from './url_handler';
 import { damage as activeDamage, teamEffect, enemyEffect as activeEnemyEffect, boardEffect } from './actives';
-import { TeamPhoto, FancyPhoto } from './team_photo';
+import { FancyPhoto } from './team_photo';
 
 class Valeria {
   display: ValeriaDisplay = new ValeriaDisplay();
@@ -23,8 +23,6 @@ class Valeria {
   monsterEditor: MonsterEditor;
   team: Team;
   dungeon: DungeonInstance;
-  teamPhotoCanvas = document.createElement('canvas') as HTMLCanvasElement;
-  teamPhoto: TeamPhoto;
   fancyPhoto: FancyPhoto;
 
   constructor() {
@@ -223,31 +221,13 @@ class Valeria {
     this.dungeon.onEnemyUpdate = () => {
       this.updateDamage();
     }
-    this.teamPhotoCanvas.style.width = '100%';
-    this.teamPhoto = new TeamPhoto(this.teamPhotoCanvas);
 
-    this.fancyPhoto = new FancyPhoto(this.teamPhotoCanvas, { drawInheritSubattributes: true });
+    this.fancyPhoto = new FancyPhoto();
   }
 
   drawTeam(): void {
     this.fancyPhoto.loadTeam(this.team);
     this.fancyPhoto.redraw();
-    // for (let i = 0; i < this.team.playerMode; i++) {
-    //   const team = this.team.getTeamAt(i);
-    //   for (let j = 0; j < 6; j++) {
-    //     this.teamPhoto.drawMonster({
-    //       id: team[j].id,
-    //       teamIdx: i,
-    //       positionIdx: j,
-    //     });
-    //     this.teamPhoto.drawMonster({
-    //       id: team[j].inheritId,
-    //       teamIdx: i,
-    //       positionIdx: j,
-    //       isInherit: true,
-    //     });
-    //   }
-    // }
   }
 
   usePreempt() {
@@ -400,10 +380,10 @@ async function init(): Promise<void> {
   }
   document.body.appendChild(valeria.getElement());
   document.body.appendChild(valeria.dungeon.skillArea.getElement());
-  valeria.team.teamPane.metaTabs.getTab('Photo (Experimental)').appendChild(valeria.teamPhotoCanvas);
-  const photoTabLabel = valeria.team.teamPane.metaTabs.getTabLabel('Photo (Experimental)');
+  valeria.team.teamPane.metaTabs.getTab('Photo').appendChild(valeria.fancyPhoto.getElement());
+  const photoTabLabel = valeria.team.teamPane.metaTabs.getTabLabel('Photo');
   photoTabLabel.onclick = (): void => {
-    valeria.team.teamPane.metaTabs.setActiveTab('Photo (Experimental)');
+    valeria.team.teamPane.metaTabs.setActiveTab('Photo');
     valeria.drawTeam();
   }
   // document.body.appendChild(valeria.teamPhotoCanvas);

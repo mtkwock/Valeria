@@ -1466,7 +1466,7 @@ function getLatentPosition(latent: number): { x: number; y: number } {
   if (latent < 11) {
     return {
       x: 36 * latent + 2,
-      y: 36,
+      y: 38,
     };
   } else if (latent < 33) {
     const x = latent % 6;
@@ -1931,7 +1931,7 @@ class TeamPane {
   private totalTimeValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   battleEl: HTMLDivElement = create('div') as HTMLDivElement;
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
-  metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load', 'Photo (Experimental)']);
+  metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load', 'Photo']);
   private detailTabs: TabbedComponent = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
   private onTeamUpdate: (ctx: TeamUpdate) => void;
   private hpBar: HpBar;
@@ -3471,6 +3471,88 @@ class DungeonPane {
   }
 }
 
+interface FancyPhotoOptions {
+  drawTitle?: boolean;
+  useTransform?: boolean;
+  useLeadswap?: boolean;
+  awakenings?: number[];
+  showTeamStats?: boolean;
+  showDescription?: boolean;
+}
+
+class PhotoArea {
+  private element = create('div');
+  private canvas: HTMLCanvasElement = create('canvas') as HTMLCanvasElement;
+  private options: FancyPhotoOptions;
+  private awakeningAnchors: HTMLAnchorElement[] = [];
+  private onUpdate: () => void;
+
+  constructor(opts: FancyPhotoOptions, onUpdate: () => void) {
+    this.options = opts;
+    this.canvas.style.width = '100%';
+    this.onUpdate = onUpdate;
+    this.setupTitleToggle();
+    this.setupAwakeningToggles();
+    this.element.appendChild(this.canvas);
+  }
+
+  private setupTitleToggle(): void {
+    const titleDiv = create('div');
+    const titleToggle = create('input') as HTMLInputElement;
+    titleToggle.type = 'checkbox';
+    titleToggle.checked = this.options.drawTitle || false;
+    titleToggle.onchange = () => {
+      this.options.drawTitle = titleToggle.checked;
+      this.onUpdate();
+    }
+    titleDiv.appendChild(titleToggle);
+    titleDiv.appendChild(document.createTextNode('Display Title'));
+    this.element.appendChild(titleDiv);
+  }
+
+  private setupAwakeningToggles(): void {
+    const awakeningDiv = create('div');
+    for (let i = 0; i < AwakeningToName.length; i++) {
+      // const awakening = AwakeningToName[i];
+      const awakeningAnchor = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
+      const [x, y] = getAwakeningOffsets(i);
+      awakeningAnchor.style.backgroundPositionX = `${x * AwakeningEditor.SCALE}px`;
+      awakeningAnchor.style.backgroundPositionY = `${y * AwakeningEditor.SCALE}px`;
+
+      if (!this.options.awakenings || !this.options.awakenings.includes(i)) {
+        awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
+      }
+
+      awakeningAnchor.onclick = () => {
+        if (awakeningAnchor.classList.contains(ClassNames.HALF_OPACITY)) {
+          awakeningAnchor.classList.remove(ClassNames.HALF_OPACITY);
+        } else {
+          awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
+        }
+        this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
+        this.onUpdate();
+      }
+      this.awakeningAnchors.push(awakeningAnchor);
+      if (i > 0) {
+        awakeningDiv.appendChild(awakeningAnchor);
+      }
+    }
+    this.element.appendChild(awakeningDiv);
+  }
+
+  getElement(): HTMLElement {
+    return this.element;
+  }
+
+  getCanvas(): HTMLCanvasElement {
+    return this.canvas;
+  }
+
+  getOptions(): FancyPhotoOptions {
+    return this.options;
+  }
+}
+
 class ValeriaDisplay {
   element_: HTMLElement;
   panes: HTMLTableCellElement[];
@@ -3523,4 +3605,5 @@ export {
   EnemySkillArea,
   getLatentPosition,
   getAwakeningOffsets,
+  PhotoArea, FancyPhotoOptions
 }

@@ -1,7 +1,7 @@
-import { Latent } from './common';
+import { Latent, AwakeningToPlus } from './common';
 import { Card, CardUiAssets, CardAssets, floof } from './ilmina_stripped';
 import { Team } from './player_team';
-import { getLatentPosition, getAwakeningOffsets } from './templates';
+import { getLatentPosition, getAwakeningOffsets, FancyPhotoOptions, PhotoArea } from './templates';
 
 interface MonsterRowData {
   id: number;
@@ -37,6 +37,41 @@ interface inheritToDraw {
   id: number;
   plussed: boolean;
   lv: number;
+}
+
+function borderedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, borderThickness = 2, borderColor = 'black', color = 'yellow') {
+  ctx.fillStyle = borderColor;
+  ctx.fillText(text, x, y + borderThickness);
+  ctx.fillText(text, x, y - borderThickness);
+  ctx.fillText(text, x + borderThickness, y);
+  ctx.fillText(text, x - borderThickness, y);
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+}
+
+class TitleRow implements RowDraw {
+  private readonly title: string;
+
+  constructor(title: string) {
+    this.title = title.trim();
+  }
+
+  getHeightOverWidth(): number {
+    return this.title ? 0.07 : 0;
+  }
+
+  imagesToLoad(): string[] {
+    return [];
+  }
+
+  draw(ctx: CanvasRenderingContext2D, drawnOffsetY: number): void {
+    if (!this.title) {
+      return;
+    }
+    ctx.textAlign = 'left';
+    ctx.font = `${ctx.canvas.width * 0.05}px Arial`;
+    borderedText(ctx, this.title, ctx.canvas.width / 80, drawnOffsetY + ctx.canvas.width * 0.05, 2, 'black', 'white');
+  }
 }
 
 function drawMonster(ctx: CanvasRenderingContext2D, id: number, sideLength: number, offsetX: number, offsetY: number, images: Record<string, HTMLImageElement>) {
@@ -91,8 +126,12 @@ function drawMonster(ctx: CanvasRenderingContext2D, id: number, sideLength: numb
   }
 }
 
-function drawAwakening(ctx: CanvasRenderingContext2D, awakening: number, sideLength: number, offsetX: number, offsetY: number, image: HTMLImageElement) {
+function drawAwakening(ctx: CanvasRenderingContext2D, awakening: number, sideLength: number, offsetX: number, offsetY: number, image: HTMLImageElement, opacity = 1.0) {
   const [x, y] = getAwakeningOffsets(awakening);
+  if (opacity != 1.0) {
+    ctx.save();
+    ctx.globalAlpha = opacity;
+  }
 
   ctx.drawImage(
     image,
@@ -105,6 +144,9 @@ function drawAwakening(ctx: CanvasRenderingContext2D, awakening: number, sideLen
     sideLength,
     sideLength,
   );
+  if (opacity! + 1.0) {
+    ctx.restore();
+  }
 }
 
 class InheritRow implements RowDraw {
@@ -164,16 +206,6 @@ interface monsterToDraw {
   awakenings: number;
   superAwakeningIdx: number;
   lv: number;
-}
-
-function borderedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, borderThickness = 2, borderColor = 'black', color = 'yellow') {
-  ctx.fillStyle = borderColor;
-  ctx.fillText(text, x, y + borderThickness);
-  ctx.fillText(text, x, y - borderThickness);
-  ctx.fillText(text, x + borderThickness, y);
-  ctx.fillText(text, x - borderThickness, y);
-  ctx.fillStyle = color;
-  ctx.fillText(text, x, y);
 }
 
 class MonsterRow implements RowDraw {
@@ -356,13 +388,40 @@ class LatentRow implements RowDraw {
   }
 }
 
-interface FancyPhotoOptions {
-  drawInheritSubattributes?: boolean;
-  useTransform?: boolean;
-  useLeadswap?: boolean;
-  showAwakenings?: number[];
-  showTeamStats?: boolean;
-  showDescription?: boolean;
+class AggregateAwakeningRow implements RowDraw {
+  private readonly totals: Record<number, number>
+  static readonly PER_ROW = 9;
+
+  constructor(totals: Record<number, number>) {
+    this.totals = totals;
+  }
+
+  getHeightOverWidth(): number {
+    return Math.ceil(Object.keys(this.totals).length / AggregateAwakeningRow.PER_ROW) / 20 + 1 / 20;
+  }
+
+  imagesToLoad(): string[] {
+    return [MonsterRow.AWAKENING_URL];
+  }
+
+  draw(ctx: CanvasRenderingContext2D, drawnOffsetY: number, images: Record<string, HTMLImageElement>): void {
+    let verticalOffset = drawnOffsetY + ctx.canvas.width * 1 / 40;
+    const sideLength = ctx.canvas.width / 6 * 0.25;
+    let xOffset = ctx.canvas.width * 0.05;
+    const im = images[MonsterRow.AWAKENING_URL];
+    const maxOffset = ctx.canvas.width * 0.9;
+    for (const awakening of Object.keys(this.totals)) {
+      drawAwakening(ctx, Number(awakening), sideLength, xOffset, verticalOffset, im, this.totals[Number(awakening)] ? 1.0 : 0.5);
+      ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
+      ctx.textAlign = 'left';
+      borderedText(ctx, `x${this.totals[Number(awakening)]}`, xOffset + sideLength, verticalOffset + sideLength, 2, 'black', 'white');
+      xOffset += ctx.canvas.width / (AggregateAwakeningRow.PER_ROW + 1);
+      if (xOffset > maxOffset) {
+        xOffset = 0.05 * ctx.canvas.width;
+        verticalOffset += ctx.canvas.width / 20;
+      }
+    }
+  }
 }
 
 class FancyPhoto {
@@ -371,24 +430,48 @@ class FancyPhoto {
   private urlsToPromises: Record<string, Promise<void>> = {};
   private loadedImages: Record<string, HTMLImageElement> = {};
   private rowDraws: RowDraw[] = [];
-  private opts: FancyPhotoOptions;
+  private opts: FancyPhotoOptions = {
+    drawTitle: true,
+    useTransform: false,
+    useLeadswap: false,
+    awakenings: [],
+  };
+  private photoArea: PhotoArea;
+  private lastTeam?: Team;
 
-  constructor(canvas: HTMLCanvasElement, opts: FancyPhotoOptions = {}) {
-    this.canvas = canvas;
+  constructor() {
+    this.photoArea = new PhotoArea(this.opts, () => {
+      this.reloadTeam();
+      this.redraw();
+    });
+    this.canvas = this.photoArea.getCanvas();
     this.canvas.width = 1024;
-    this.ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
+  }
 
-    this.opts = opts;
+  getElement(): HTMLElement {
+    return this.photoArea.getElement();
   }
 
   setOptions(opts: FancyPhotoOptions) {
     this.opts = opts;
   }
 
+  reloadTeam(): void {
+    if (this.lastTeam) {
+      this.loadTeam(this.lastTeam);
+    }
+  }
+
   loadTeam(team: Team): void {
+    this.lastTeam = team;
     this.rowDraws.length = 0;
+    if (this.opts.drawTitle) {
+      this.rowDraws.push(new TitleRow(team.teamName));
+    }
 
     for (let i = 0; i < team.playerMode; i++) {
+      team.activeTeamIdx = i;
       const currentTeam = team.getTeamAt(i);
       const inherits: inheritToDraw[] = currentTeam.map((m) => ({
         id: m.inheritId,
@@ -407,6 +490,17 @@ class FancyPhoto {
 
       this.rowDraws.push(new MonsterRow(monsters));
       this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
+      if (this.opts.awakenings != undefined && this.opts.awakenings.length) {
+        const awakeningTotals: Record<number, number> = {};
+        for (const awakening of this.opts.awakenings) {
+          awakeningTotals[awakening] = team.countAwakening(awakening);
+          const plusInfo = AwakeningToPlus.get(awakening);
+          if (plusInfo) {
+            awakeningTotals[awakening] += team.countAwakening(plusInfo.awakening) * plusInfo.multiplier;
+          }
+        }
+        this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
+      }
     }
   }
 
