@@ -483,7 +483,7 @@ class FancyPhoto {
       const monsters: monsterToDraw[] = currentTeam.map((m) => ({
         id: m.getId(!this.opts.useTransform),
         plusses: m.hpPlus + m.atkPlus + m.rcvPlus,
-        awakenings: m.awakenings,
+        awakenings: this.opts.useTransform && m.transformedTo > 0 ? 9 : m.awakenings,
         lv: m.level,
         superAwakeningIdx: m.superAwakeningIdx,
       }));
@@ -492,10 +492,10 @@ class FancyPhoto {
       this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
       if (this.opts.awakenings.length) {
         const awakeningTotals = this.opts.awakenings.map((awakening) => {
-          let total = team.countAwakening(awakening);
+          let total = team.countAwakening(awakening, !this.opts.useTransform);
           const plusInfo = AwakeningToPlus.get(awakening);
           if (plusInfo) {
-            total += team.countAwakening(plusInfo.awakening) * plusInfo.multiplier;
+            total += team.countAwakening(plusInfo.awakening, !this.opts.useTransform) * plusInfo.multiplier;
           }
           return { awakening, total };
         });

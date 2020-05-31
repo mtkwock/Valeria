@@ -3492,6 +3492,7 @@ class PhotoArea {
     this.canvas.style.width = '100%';
     this.onUpdate = onUpdate;
     this.setupTitleToggle();
+    this.setupTransformToggle();
     this.setupAwakeningToggles();
     this.element.appendChild(this.canvas);
   }
@@ -3508,6 +3509,20 @@ class PhotoArea {
     titleDiv.appendChild(titleToggle);
     titleDiv.appendChild(document.createTextNode('Display Title'));
     this.element.appendChild(titleDiv);
+  }
+
+  private setupTransformToggle(): void {
+    const transformDiv = create('div');
+    const transformToggle = create('input') as HTMLInputElement;
+    transformToggle.type = 'checkbox';
+    transformToggle.checked = this.options.useTransform || false;
+    transformToggle.onchange = () => {
+      this.options.useTransform = transformToggle.checked;
+      this.onUpdate();
+    }
+    transformDiv.appendChild(transformToggle);
+    transformDiv.appendChild(document.createTextNode('Display Transformed'));
+    this.element.appendChild(transformDiv);
   }
 
   private setupAwakeningToggles(): void {

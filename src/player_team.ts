@@ -990,7 +990,7 @@ class Team {
     this.updateCb(this.activeMonster);
   }
 
-  countAwakening(awakening: Awakening): number {
+  countAwakening(awakening: Awakening, ignoreTransform = false): number {
     if (!this.state.awakenings) {
       return 0;
     }
@@ -1003,7 +1003,7 @@ class Team {
     }
 
     return monsters.reduce(
-      (total, monster) => total + monster.countAwakening(awakening, this.playerMode),
+      (total, monster) => total + monster.countAwakening(awakening, this.playerMode, ignoreTransform),
       0);
   }
 

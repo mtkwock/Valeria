@@ -575,12 +575,12 @@ class MonsterInstance {
       && this.atkPlus == 99 && this.hpPlus == 99);
   }
 
-  getAwakenings(playerMode: number, filterSet: Set<Awakening>): Awakening[] {
+  getAwakenings(playerMode: number, filterSet: Set<Awakening>, ignoreTransform = false): Awakening[] {
     let filterFn = (_awakening: Awakening) => true;
     if (filterSet) {
       filterFn = (awakening: Awakening) => filterSet.has(awakening);
     }
-    const c = this.getCard();
+    const c = this.getCard(ignoreTransform);
     let awakenings: Awakening[] = c.awakenings.slice(0, this.awakenings);
     // A transformed monster is always fully awoken.
     if (this.transformedTo > 0) {
@@ -598,8 +598,8 @@ class MonsterInstance {
     return awakenings.filter(filterFn);
   }
 
-  countAwakening(awakening: Awakening, playerMode: number = 1): number {
-    return this.getAwakenings(playerMode, new Set([awakening])).length;
+  countAwakening(awakening: Awakening, playerMode: number = 1, ignoreTransform = false): number {
+    return this.getAwakenings(playerMode, new Set([awakening]), ignoreTransform).length;
   }
 
   getLatents(filterSet: Set<Latent> | null = null): Latent[] {
