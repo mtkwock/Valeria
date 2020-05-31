@@ -1967,6 +1967,7 @@
             'aa2': 2660002,
             'aa3': 2660003,
             'aa4': 2660004,
+            'beleth': 3437003,
         };
         exports.DUNGEON_ALIASES = DUNGEON_ALIASES;
     });
