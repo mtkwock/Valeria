@@ -5219,6 +5219,7 @@
                 this.canvas.style.width = '100%';
                 this.onUpdate = onUpdate;
                 this.setupTitleToggle();
+                this.setupTransformToggle();
                 this.setupAwakeningToggles();
                 this.element.appendChild(this.canvas);
             }
@@ -5234,6 +5235,19 @@
                 titleDiv.appendChild(titleToggle);
                 titleDiv.appendChild(document.createTextNode('Display Title'));
                 this.element.appendChild(titleDiv);
+            }
+            setupTransformToggle() {
+                const transformDiv = create('div');
+                const transformToggle = create('input');
+                transformToggle.type = 'checkbox';
+                transformToggle.checked = this.options.useTransform || false;
+                transformToggle.onchange = () => {
+                    this.options.useTransform = transformToggle.checked;
+                    this.onUpdate();
+                };
+                transformDiv.appendChild(transformToggle);
+                transformDiv.appendChild(document.createTextNode('Display Transformed'));
+                this.element.appendChild(transformDiv);
             }
             setupAwakeningToggles() {
                 const awakeningDiv = create('div');
@@ -5802,12 +5816,12 @@
                 return (playerMode != 2 && this.level > 99 && this.hpPlus == 99
                     && this.atkPlus == 99 && this.hpPlus == 99);
             }
-            getAwakenings(playerMode, filterSet) {
+            getAwakenings(playerMode, filterSet, ignoreTransform = false) {
                 let filterFn = (_awakening) => true;
                 if (filterSet) {
                     filterFn = (awakening) => filterSet.has(awakening);
                 }
-                const c = this.getCard();
+                const c = this.getCard(ignoreTransform);
                 let awakenings = c.awakenings.slice(0, this.awakenings);
                 // A transformed monster is always fully awoken.
                 if (this.transformedTo > 0) {
@@ -5824,8 +5838,8 @@
                 }
                 return awakenings.filter(filterFn);
             }
-            countAwakening(awakening, playerMode = 1) {
-                return this.getAwakenings(playerMode, new Set([awakening])).length;
+            countAwakening(awakening, playerMode = 1, ignoreTransform = false) {
+                return this.getAwakenings(playerMode, new Set([awakening]), ignoreTransform).length;
             }
             getLatents(filterSet = null) {
                 let filterFn = (_latent) => true;
@@ -8348,7 +8362,7 @@
                 });
                 this.updateCb(this.activeMonster);
             }
-            countAwakening(awakening) {
+            countAwakening(awakening, ignoreTransform = false) {
                 if (!this.state.awakenings) {
                     return 0;
                 }
@@ -8359,7 +8373,7 @@
                         monsters.push(p2Monsters[i]);
                     }
                 }
-                return monsters.reduce((total, monster) => total + monster.countAwakening(awakening, this.playerMode), 0);
+                return monsters.reduce((total, monster) => total + monster.countAwakening(awakening, this.playerMode, ignoreTransform), 0);
             }
             countLatent(latent) {
                 if (!this.state.awakenings) {
@@ -12216,7 +12230,7 @@
                     const monsters = currentTeam.map((m) => ({
                         id: m.getId(!this.opts.useTransform),
                         plusses: m.hpPlus + m.atkPlus + m.rcvPlus,
-                        awakenings: m.awakenings,
+                        awakenings: this.opts.useTransform && m.transformedTo > 0 ? 9 : m.awakenings,
                         lv: m.level,
                         superAwakeningIdx: m.superAwakeningIdx,
                     }));
@@ -12224,10 +12238,10 @@
                     this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
                     if (this.opts.awakenings.length) {
                         const awakeningTotals = this.opts.awakenings.map((awakening) => {
-                            let total = team.countAwakening(awakening);
+                            let total = team.countAwakening(awakening, !this.opts.useTransform);
                             const plusInfo = common_12.AwakeningToPlus.get(awakening);
                             if (plusInfo) {
-                                total += team.countAwakening(plusInfo.awakening) * plusInfo.multiplier;
+                                total += team.countAwakening(plusInfo.awakening, !this.opts.useTransform) * plusInfo.multiplier;
                             }
                             return { awakening, total };
                         });
