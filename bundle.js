@@ -5248,12 +5248,14 @@
                     }
                     awakeningAnchor.onclick = () => {
                         if (awakeningAnchor.classList.contains(ClassNames.HALF_OPACITY)) {
+                            this.options.awakenings.push(i);
                             awakeningAnchor.classList.remove(ClassNames.HALF_OPACITY);
                         }
                         else {
+                            this.options.awakenings.splice(this.options.awakenings.indexOf(i), 1);
                             awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
                         }
-                        this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
+                        // this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
                         this.onUpdate();
                     };
                     this.awakeningAnchors.push(awakeningAnchor);
@@ -12152,11 +12154,11 @@
                 let xOffset = ctx.canvas.width * 0.05;
                 const im = images[MonsterRow.AWAKENING_URL];
                 const maxOffset = ctx.canvas.width * 0.9;
-                for (const awakening of Object.keys(this.totals)) {
-                    drawAwakening(ctx, Number(awakening), sideLength, xOffset, verticalOffset, im, this.totals[Number(awakening)] ? 1.0 : 0.5);
+                for (const { awakening, total } of this.totals) {
+                    drawAwakening(ctx, awakening, sideLength, xOffset, verticalOffset, im, total ? 1.0 : 0.5);
                     ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
                     ctx.textAlign = 'left';
-                    borderedText(ctx, `x${this.totals[Number(awakening)]}`, xOffset + sideLength, verticalOffset + sideLength, 2, 'black', 'white');
+                    borderedText(ctx, `x${total}`, xOffset + sideLength, verticalOffset + sideLength, 2, 'black', 'white');
                     xOffset += ctx.canvas.width / (AggregateAwakeningRow.PER_ROW + 1);
                     if (xOffset > maxOffset) {
                         xOffset = 0.05 * ctx.canvas.width;
@@ -12220,15 +12222,15 @@
                     }));
                     this.rowDraws.push(new MonsterRow(monsters));
                     this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
-                    if (this.opts.awakenings != undefined && this.opts.awakenings.length) {
-                        const awakeningTotals = {};
-                        for (const awakening of this.opts.awakenings) {
-                            awakeningTotals[awakening] = team.countAwakening(awakening);
+                    if (this.opts.awakenings.length) {
+                        const awakeningTotals = this.opts.awakenings.map((awakening) => {
+                            let total = team.countAwakening(awakening);
                             const plusInfo = common_12.AwakeningToPlus.get(awakening);
                             if (plusInfo) {
-                                awakeningTotals[awakening] += team.countAwakening(plusInfo.awakening) * plusInfo.multiplier;
+                                total += team.countAwakening(plusInfo.awakening) * plusInfo.multiplier;
                             }
-                        }
+                            return { awakening, total };
+                        });
                         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
                     }
                 }
