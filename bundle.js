@@ -1679,6 +1679,16 @@
             Awakening[Awakening["POISON_BOOST"] = 72] = "POISON_BOOST";
         })(Awakening || (Awakening = {}));
         exports.Awakening = Awakening;
+        const AwakeningToPlus = new Map([
+            [Awakening.SKILL_BOOST, { awakening: Awakening.SKILL_BOOST_PLUS, multiplier: 2 }],
+            [Awakening.TIME, { awakening: Awakening.TIME_PLUS, multiplier: 2 }],
+            [Awakening.RESIST_BIND, { awakening: Awakening.RESIST_BIND_PLUS, multiplier: 2 }],
+            [Awakening.RESIST_POISON, { awakening: Awakening.RESIST_POISON_PLUS, multiplier: 2 }],
+            [Awakening.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER_PLUS, multiplier: 2 }],
+            [Awakening.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER_PLUS, multiplier: 2 }],
+            [Awakening.RESIST_BLIND, { awakening: Awakening.RESIST_BLIND_PLUS, multiplier: 2 }],
+        ]);
+        exports.AwakeningToPlus = AwakeningToPlus;
         const TypeToKiller = {
             0: Awakening.EVO,
             1: Awakening.BALANCED,
@@ -3575,7 +3585,7 @@
             if (latent < 11) {
                 return {
                     x: 36 * latent + 2,
-                    y: 36,
+                    y: 38,
                 };
             }
             else if (latent < 33) {
@@ -3940,7 +3950,7 @@
                 this.totalTimeValue = create('span', ClassNames.STAT_TOTAL_VALUE);
                 this.battleEl = create('div');
                 this.aggregatedAwakeningCounts = new Map();
-                this.metaTabs = new TabbedComponent(['Team', 'Save/Load', 'Photo (Experimental)']);
+                this.metaTabs = new TabbedComponent(['Team', 'Save/Load', 'Photo']);
                 this.detailTabs = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
                 this.fixedHpEl = new LayeredAsset([], () => { });
                 this.fixedHpInput = create('input');
@@ -5200,6 +5210,70 @@
             }
         }
         exports.DungeonPane = DungeonPane;
+        class PhotoArea {
+            constructor(opts, onUpdate) {
+                this.element = create('div');
+                this.canvas = create('canvas');
+                this.awakeningAnchors = [];
+                this.options = opts;
+                this.canvas.style.width = '100%';
+                this.onUpdate = onUpdate;
+                this.setupTitleToggle();
+                this.setupAwakeningToggles();
+                this.element.appendChild(this.canvas);
+            }
+            setupTitleToggle() {
+                const titleDiv = create('div');
+                const titleToggle = create('input');
+                titleToggle.type = 'checkbox';
+                titleToggle.checked = this.options.drawTitle || false;
+                titleToggle.onchange = () => {
+                    this.options.drawTitle = titleToggle.checked;
+                    this.onUpdate();
+                };
+                titleDiv.appendChild(titleToggle);
+                titleDiv.appendChild(document.createTextNode('Display Title'));
+                this.element.appendChild(titleDiv);
+            }
+            setupAwakeningToggles() {
+                const awakeningDiv = create('div');
+                for (let i = 0; i < common_2.AwakeningToName.length; i++) {
+                    // const awakening = AwakeningToName[i];
+                    const awakeningAnchor = create('a', ClassNames.AWAKENING);
+                    const [x, y] = getAwakeningOffsets(i);
+                    awakeningAnchor.style.backgroundPositionX = `${x * AwakeningEditor.SCALE}px`;
+                    awakeningAnchor.style.backgroundPositionY = `${y * AwakeningEditor.SCALE}px`;
+                    if (!this.options.awakenings || !this.options.awakenings.includes(i)) {
+                        awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
+                    }
+                    awakeningAnchor.onclick = () => {
+                        if (awakeningAnchor.classList.contains(ClassNames.HALF_OPACITY)) {
+                            awakeningAnchor.classList.remove(ClassNames.HALF_OPACITY);
+                        }
+                        else {
+                            awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
+                        }
+                        this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
+                        this.onUpdate();
+                    };
+                    this.awakeningAnchors.push(awakeningAnchor);
+                    if (i > 0) {
+                        awakeningDiv.appendChild(awakeningAnchor);
+                    }
+                }
+                this.element.appendChild(awakeningDiv);
+            }
+            getElement() {
+                return this.element;
+            }
+            getCanvas() {
+                return this.canvas;
+            }
+            getOptions() {
+                return this.options;
+            }
+        }
+        exports.PhotoArea = PhotoArea;
         class ValeriaDisplay {
             constructor() {
                 this.element_ = create('div', ClassNames.VALERIA);
@@ -11813,9 +11887,37 @@
         }
         exports.DungeonInstance = DungeonInstance;
     });
-    define("team_photo", ["require", "exports", "ilmina_stripped", "templates"], function (require, exports, ilmina_stripped_10, templates_6) {
+    define("team_photo", ["require", "exports", "common", "ilmina_stripped", "templates"], function (require, exports, common_12, ilmina_stripped_10, templates_6) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
+        function borderedText(ctx, text, x, y, borderThickness = 2, borderColor = 'black', color = 'yellow') {
+            ctx.fillStyle = borderColor;
+            ctx.fillText(text, x, y + borderThickness);
+            ctx.fillText(text, x, y - borderThickness);
+            ctx.fillText(text, x + borderThickness, y);
+            ctx.fillText(text, x - borderThickness, y);
+            ctx.fillStyle = color;
+            ctx.fillText(text, x, y);
+        }
+        class TitleRow {
+            constructor(title) {
+                this.title = title.trim();
+            }
+            getHeightOverWidth() {
+                return this.title ? 0.07 : 0;
+            }
+            imagesToLoad() {
+                return [];
+            }
+            draw(ctx, drawnOffsetY) {
+                if (!this.title) {
+                    return;
+                }
+                ctx.textAlign = 'left';
+                ctx.font = `${ctx.canvas.width * 0.05}px Arial`;
+                borderedText(ctx, this.title, ctx.canvas.width / 80, drawnOffsetY + ctx.canvas.width * 0.05, 2, 'black', 'white');
+            }
+        }
         function drawMonster(ctx, id, sideLength, offsetX, offsetY, images) {
             if (id <= 0) {
                 return;
@@ -11840,9 +11942,16 @@
                 }
             }
         }
-        function drawAwakening(ctx, awakening, sideLength, offsetX, offsetY, image) {
+        function drawAwakening(ctx, awakening, sideLength, offsetX, offsetY, image, opacity = 1.0) {
             const [x, y] = templates_6.getAwakeningOffsets(awakening);
+            if (opacity != 1.0) {
+                ctx.save();
+                ctx.globalAlpha = opacity;
+            }
             ctx.drawImage(image, -1 * x, -1 * y, 32, 32, offsetX, offsetY, sideLength, sideLength);
+            if (opacity + 1.0) {
+                ctx.restore();
+            }
         }
         class InheritRow {
             constructor(inherits) {
@@ -11885,15 +11994,6 @@
             getIds() {
                 return this.inherits.map((inherit) => inherit.id);
             }
-        }
-        function borderedText(ctx, text, x, y, borderThickness = 2, borderColor = 'black', color = 'yellow') {
-            ctx.fillStyle = borderColor;
-            ctx.fillText(text, x, y + borderThickness);
-            ctx.fillText(text, x, y - borderThickness);
-            ctx.fillText(text, x + borderThickness, y);
-            ctx.fillText(text, x - borderThickness, y);
-            ctx.fillStyle = color;
-            ctx.fillText(text, x, y);
         }
         class MonsterRow {
             constructor(monsters) {
@@ -12036,22 +12136,74 @@
         LatentRow.LATENT_WIDTH_SUPER = 78;
         LatentRow.LATENT_WIDTH_HYPER = 78 * 3;
         LatentRow.LATENT_URL = 'assets/eggs.png';
+        class AggregateAwakeningRow {
+            constructor(totals) {
+                this.totals = totals;
+            }
+            getHeightOverWidth() {
+                return Math.ceil(Object.keys(this.totals).length / AggregateAwakeningRow.PER_ROW) / 20 + 1 / 20;
+            }
+            imagesToLoad() {
+                return [MonsterRow.AWAKENING_URL];
+            }
+            draw(ctx, drawnOffsetY, images) {
+                let verticalOffset = drawnOffsetY + ctx.canvas.width * 1 / 40;
+                const sideLength = ctx.canvas.width / 6 * 0.25;
+                let xOffset = ctx.canvas.width * 0.05;
+                const im = images[MonsterRow.AWAKENING_URL];
+                const maxOffset = ctx.canvas.width * 0.9;
+                for (const awakening of Object.keys(this.totals)) {
+                    drawAwakening(ctx, Number(awakening), sideLength, xOffset, verticalOffset, im, this.totals[Number(awakening)] ? 1.0 : 0.5);
+                    ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
+                    ctx.textAlign = 'left';
+                    borderedText(ctx, `x${this.totals[Number(awakening)]}`, xOffset + sideLength, verticalOffset + sideLength, 2, 'black', 'white');
+                    xOffset += ctx.canvas.width / (AggregateAwakeningRow.PER_ROW + 1);
+                    if (xOffset > maxOffset) {
+                        xOffset = 0.05 * ctx.canvas.width;
+                        verticalOffset += ctx.canvas.width / 20;
+                    }
+                }
+            }
+        }
+        AggregateAwakeningRow.PER_ROW = 9;
         class FancyPhoto {
-            constructor(canvas, opts = {}) {
+            constructor() {
                 this.urlsToPromises = {};
                 this.loadedImages = {};
                 this.rowDraws = [];
-                this.canvas = canvas;
+                this.opts = {
+                    drawTitle: true,
+                    useTransform: false,
+                    useLeadswap: false,
+                    awakenings: [],
+                };
+                this.photoArea = new templates_6.PhotoArea(this.opts, () => {
+                    this.reloadTeam();
+                    this.redraw();
+                });
+                this.canvas = this.photoArea.getCanvas();
                 this.canvas.width = 1024;
-                this.ctx = canvas.getContext('2d');
-                this.opts = opts;
+                this.ctx = this.canvas.getContext('2d');
+            }
+            getElement() {
+                return this.photoArea.getElement();
             }
             setOptions(opts) {
                 this.opts = opts;
             }
+            reloadTeam() {
+                if (this.lastTeam) {
+                    this.loadTeam(this.lastTeam);
+                }
+            }
             loadTeam(team) {
+                this.lastTeam = team;
                 this.rowDraws.length = 0;
+                if (this.opts.drawTitle) {
+                    this.rowDraws.push(new TitleRow(team.teamName));
+                }
                 for (let i = 0; i < team.playerMode; i++) {
+                    team.activeTeamIdx = i;
                     const currentTeam = team.getTeamAt(i);
                     const inherits = currentTeam.map((m) => ({
                         id: m.inheritId,
@@ -12068,6 +12220,17 @@
                     }));
                     this.rowDraws.push(new MonsterRow(monsters));
                     this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
+                    if (this.opts.awakenings != undefined && this.opts.awakenings.length) {
+                        const awakeningTotals = {};
+                        for (const awakening of this.opts.awakenings) {
+                            awakeningTotals[awakening] = team.countAwakening(awakening);
+                            const plusInfo = common_12.AwakeningToPlus.get(awakening);
+                            if (plusInfo) {
+                                awakeningTotals[awakening] += team.countAwakening(plusInfo.awakening) * plusInfo.multiplier;
+                            }
+                        }
+                        this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
+                    }
                 }
             }
             redraw(idx = 0) {
@@ -12228,14 +12391,13 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_4, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_13, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_4, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Valeria {
             constructor() {
                 this.display = new templates_7.ValeriaDisplay();
                 this.comboContainer = new combo_container_1.ComboContainer();
-                this.teamPhotoCanvas = document.createElement('canvas');
                 this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
                 this.comboContainer.onUpdate.push(() => {
                     this.team.action = -1;
@@ -12414,29 +12576,11 @@
                 this.dungeon.onEnemyUpdate = () => {
                     this.updateDamage();
                 };
-                this.teamPhotoCanvas.style.width = '100%';
-                this.teamPhoto = new team_photo_1.TeamPhoto(this.teamPhotoCanvas);
-                this.fancyPhoto = new team_photo_1.FancyPhoto(this.teamPhotoCanvas, { drawInheritSubattributes: true });
+                this.fancyPhoto = new team_photo_1.FancyPhoto();
             }
             drawTeam() {
                 this.fancyPhoto.loadTeam(this.team);
                 this.fancyPhoto.redraw();
-                // for (let i = 0; i < this.team.playerMode; i++) {
-                //   const team = this.team.getTeamAt(i);
-                //   for (let j = 0; j < 6; j++) {
-                //     this.teamPhoto.drawMonster({
-                //       id: team[j].id,
-                //       teamIdx: i,
-                //       positionIdx: j,
-                //     });
-                //     this.teamPhoto.drawMonster({
-                //       id: team[j].inheritId,
-                //       teamIdx: i,
-                //       positionIdx: j,
-                //       isInherit: true,
-                //     });
-                //   }
-                // }
             }
             usePreempt() {
                 const attributes = new Set();
@@ -12520,7 +12664,7 @@
                     }
                     ping.actualDamage = oldHp - currentHp;
                 }
-                const specialPing = new damage_ping_3.DamagePing(this.team.getActiveTeam()[0], common_12.Attribute.FIXED, false);
+                const specialPing = new damage_ping_3.DamagePing(this.team.getActiveTeam()[0], common_13.Attribute.FIXED, false);
                 specialPing.damage = trueBonusAttack;
                 specialPing.isActive = true;
                 specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.playerMode, {
@@ -12543,7 +12687,7 @@
                 if (specialPing.actualDamage) {
                     pings = [...pings, specialPing];
                 }
-                this.team.teamPane.updateDamage(this.team.action, pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
+                this.team.teamPane.updateDamage(this.team.action, pings.map((ping) => ({ attribute: ping ? ping.attribute : common_13.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_13.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_13.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
                 return { endEnemyHp: currentHp, healing };
             }
             getElement() {
@@ -12551,7 +12695,7 @@
             }
         }
         async function init() {
-            await common_12.waitFor(() => ilmina_stripped_11.floof.ready);
+            await common_13.waitFor(() => ilmina_stripped_11.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
@@ -12561,10 +12705,10 @@
             }
             document.body.appendChild(valeria.getElement());
             document.body.appendChild(valeria.dungeon.skillArea.getElement());
-            valeria.team.teamPane.metaTabs.getTab('Photo (Experimental)').appendChild(valeria.teamPhotoCanvas);
-            const photoTabLabel = valeria.team.teamPane.metaTabs.getTabLabel('Photo (Experimental)');
+            valeria.team.teamPane.metaTabs.getTab('Photo').appendChild(valeria.fancyPhoto.getElement());
+            const photoTabLabel = valeria.team.teamPane.metaTabs.getTabLabel('Photo');
             photoTabLabel.onclick = () => {
-                valeria.team.teamPane.metaTabs.setActiveTab('Photo (Experimental)');
+                valeria.team.teamPane.metaTabs.setActiveTab('Photo');
                 valeria.drawTeam();
             };
             // document.body.appendChild(valeria.teamPhotoCanvas);
