@@ -3475,7 +3475,7 @@ interface FancyPhotoOptions {
   drawTitle?: boolean;
   useTransform?: boolean;
   useLeadswap?: boolean;
-  awakenings?: number[];
+  awakenings: number[];
   showTeamStats?: boolean;
   showDescription?: boolean;
 }
@@ -3525,11 +3525,13 @@ class PhotoArea {
 
       awakeningAnchor.onclick = () => {
         if (awakeningAnchor.classList.contains(ClassNames.HALF_OPACITY)) {
+          this.options.awakenings.push(i);
           awakeningAnchor.classList.remove(ClassNames.HALF_OPACITY);
         } else {
+          this.options.awakenings.splice(this.options.awakenings.indexOf(i), 1);
           awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
         }
-        this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
+        // this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
         this.onUpdate();
       }
       this.awakeningAnchors.push(awakeningAnchor);

@@ -389,10 +389,10 @@ class LatentRow implements RowDraw {
 }
 
 class AggregateAwakeningRow implements RowDraw {
-  private readonly totals: Record<number, number>
+  private readonly totals: { awakening: number; total: number }[];
   static readonly PER_ROW = 9;
 
-  constructor(totals: Record<number, number>) {
+  constructor(totals: { awakening: number; total: number }[]) {
     this.totals = totals;
   }
 
@@ -410,11 +410,11 @@ class AggregateAwakeningRow implements RowDraw {
     let xOffset = ctx.canvas.width * 0.05;
     const im = images[MonsterRow.AWAKENING_URL];
     const maxOffset = ctx.canvas.width * 0.9;
-    for (const awakening of Object.keys(this.totals)) {
-      drawAwakening(ctx, Number(awakening), sideLength, xOffset, verticalOffset, im, this.totals[Number(awakening)] ? 1.0 : 0.5);
+    for (const { awakening, total } of this.totals) {
+      drawAwakening(ctx, awakening, sideLength, xOffset, verticalOffset, im, total ? 1.0 : 0.5);
       ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
       ctx.textAlign = 'left';
-      borderedText(ctx, `x${this.totals[Number(awakening)]}`, xOffset + sideLength, verticalOffset + sideLength, 2, 'black', 'white');
+      borderedText(ctx, `x${total}`, xOffset + sideLength, verticalOffset + sideLength, 2, 'black', 'white');
       xOffset += ctx.canvas.width / (AggregateAwakeningRow.PER_ROW + 1);
       if (xOffset > maxOffset) {
         xOffset = 0.05 * ctx.canvas.width;
@@ -490,15 +490,15 @@ class FancyPhoto {
 
       this.rowDraws.push(new MonsterRow(monsters));
       this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
-      if (this.opts.awakenings != undefined && this.opts.awakenings.length) {
-        const awakeningTotals: Record<number, number> = {};
-        for (const awakening of this.opts.awakenings) {
-          awakeningTotals[awakening] = team.countAwakening(awakening);
+      if (this.opts.awakenings.length) {
+        const awakeningTotals = this.opts.awakenings.map((awakening) => {
+          let total = team.countAwakening(awakening);
           const plusInfo = AwakeningToPlus.get(awakening);
           if (plusInfo) {
-            awakeningTotals[awakening] += team.countAwakening(plusInfo.awakening) * plusInfo.multiplier;
+            total += team.countAwakening(plusInfo.awakening) * plusInfo.multiplier;
           }
-        }
+          return { awakening, total };
+        });
         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
       }
     }
