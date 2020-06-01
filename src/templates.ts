@@ -3491,38 +3491,26 @@ class PhotoArea {
     this.options = opts;
     this.canvas.style.width = '100%';
     this.onUpdate = onUpdate;
-    this.setupTitleToggle();
-    this.setupTransformToggle();
+    this.createToggle('Display Title', (checked) => this.options.drawTitle = checked, this.options.drawTitle || false);
+    this.createToggle('Display Transformed', (checked) => this.options.useTransform = checked, this.options.useTransform || false);
+    this.createToggle('Display Description', (checked) => this.options.showDescription = checked, this.options.showDescription || false);
+
     this.setupAwakeningToggles();
     this.element.appendChild(this.canvas);
   }
 
-  private setupTitleToggle(): void {
-    const titleDiv = create('div');
-    const titleToggle = create('input') as HTMLInputElement;
-    titleToggle.type = 'checkbox';
-    titleToggle.checked = this.options.drawTitle || false;
-    titleToggle.onchange = () => {
-      this.options.drawTitle = titleToggle.checked;
+  private createToggle(label: string, onChange: (checked: boolean) => void, initialCheck: boolean) {
+    const div = create('div');
+    const toggle = create('input') as HTMLInputElement;
+    toggle.type = 'checkbox';
+    toggle.checked = initialCheck;
+    toggle.onchange = () => {
+      onChange(toggle.checked);
       this.onUpdate();
     }
-    titleDiv.appendChild(titleToggle);
-    titleDiv.appendChild(document.createTextNode('Display Title'));
-    this.element.appendChild(titleDiv);
-  }
-
-  private setupTransformToggle(): void {
-    const transformDiv = create('div');
-    const transformToggle = create('input') as HTMLInputElement;
-    transformToggle.type = 'checkbox';
-    transformToggle.checked = this.options.useTransform || false;
-    transformToggle.onchange = () => {
-      this.options.useTransform = transformToggle.checked;
-      this.onUpdate();
-    }
-    transformDiv.appendChild(transformToggle);
-    transformDiv.appendChild(document.createTextNode('Display Transformed'));
-    this.element.appendChild(transformDiv);
+    div.appendChild(toggle);
+    div.appendChild(document.createTextNode(label));
+    this.element.appendChild(div);
   }
 
   private setupAwakeningToggles(): void {

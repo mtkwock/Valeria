@@ -424,6 +424,74 @@ class AggregateAwakeningRow implements RowDraw {
   }
 }
 
+class TextRow implements RowDraw {
+  private readonly text: string;
+  private readonly fontSizeFrac: number;
+  private readonly margin: number
+
+  constructor(text: string, fontSizeFrac = 1 / 30, margin = 1 / 40) {
+    this.text = text;
+    this.fontSizeFrac = fontSizeFrac;
+    this.margin = margin;
+  }
+
+  imagesToLoad(): string[] {
+    return [];
+  }
+
+  private getFont(width: number): string {
+    return `${width * this.fontSizeFrac}px Arial`;
+  }
+
+  private parapperTheWrapper(ctx: CanvasRenderingContext2D): string {
+    ctx.font = this.getFont(ctx.canvas.width);
+    const maxWidth = ctx.canvas.width * (1 - 2 * this.margin);
+    const words = this.text.split(' ');
+    let line = '';
+    let currentLine = '';
+    for (let i = 0; i < words.length; i++) {
+      currentLine += words[i] + ' ';
+      const width = ctx.measureText(currentLine).width;
+      if (width > maxWidth) {
+        line += '\n' + words[i] + ' ';
+        currentLine = words[i] + ' ';
+      } else {
+        line += words[i] + ' ';
+      }
+    }
+    return line;
+  }
+
+  getHeightOverWidth(): number {
+    const testCanvas = document.createElement('canvas') as HTMLCanvasElement;
+    testCanvas.width = 1000;
+    const ctx = testCanvas.getContext('2d');
+    if (!ctx) {
+      return 0;
+    }
+    ctx.font = this.getFont(testCanvas.width);
+
+    const wrappedText = this.parapperTheWrapper(ctx);
+    return this.fontSizeFrac * wrappedText.split('\n').length;
+  }
+
+  draw(ctx: CanvasRenderingContext2D, drawnOffsetY: number): void {
+    ctx.font = this.getFont(ctx.canvas.width);
+    for (const line of this.parapperTheWrapper(ctx).split('\n')) {
+      drawnOffsetY += this.fontSizeFrac * ctx.canvas.width;
+      borderedText(
+        ctx,
+        line,
+        ctx.canvas.width * this.margin,
+        drawnOffsetY,
+        2,
+        'black',
+        'white',
+      );
+    }
+  }
+}
+
 class FancyPhoto {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
@@ -435,6 +503,7 @@ class FancyPhoto {
     useTransform: false,
     useLeadswap: false,
     awakenings: [],
+    showDescription: true,
   };
   private photoArea: PhotoArea;
   private lastTeam?: Team;
@@ -500,6 +569,12 @@ class FancyPhoto {
           return { awakening, total };
         });
         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
+      }
+    }
+
+    if (this.opts.showDescription) {
+      for (const line of team.description.split('\n')) {
+        this.rowDraws.push(new TextRow(line));
       }
     }
   }
