@@ -1893,6 +1893,9 @@ interface TeamBattle {
     attrRestrictions: Attribute[];
     typeRestrictions: MonsterType[];
   };
+  timeBuff: number,
+  timeIsMult: boolean,
+  rcvBuff: number,
 }
 
 interface TeamUpdate {
@@ -1905,6 +1908,10 @@ interface TeamUpdate {
   fixedHp?: number;
   action?: number;
   leadSwap?: number;
+
+  timeBuff?: number,
+  timeIsMult?: boolean,
+  rcvBuff?: number,
 
   voidDamageAbsorb?: boolean;
   voidAttributeAbsorb?: boolean;
@@ -1948,7 +1955,6 @@ class TeamPane {
   public applyActionButton: HTMLButtonElement = create('button') as HTMLButtonElement;
 
   private leadSwapInput = create('select') as HTMLSelectElement;
-  private voidEls: LayeredAsset[] = [];
 
   // All elements to set regarding monster burst.
   // Note that the UI only supports 2 awakenings, types, and attributes.
@@ -1960,6 +1966,11 @@ class TeamPane {
   private burstTypeSelect2 = create('select') as HTMLSelectElement;
   private burstAttrSelect1 = create('select') as HTMLSelectElement;
   private burstAttrSelect2 = create('select') as HTMLSelectElement;
+
+  private rcvMultInput = create('input') as HTMLInputElement;
+  private timeBuffInput = create('input') as HTMLInputElement;
+  private timeBuffIsMultCb = create('input') as HTMLInputElement;
+  private voidEls: LayeredAsset[] = [];
 
   // All elements to set regarding damage.
   private pingCells: HTMLTableCellElement[] = [];
@@ -2172,7 +2183,6 @@ class TeamPane {
     // HP Element
     const hpEl = this.hpBar.getElement();
     hpEl.appendChild(this.hpDamage);
-    this.battleEl.appendChild(hpEl);
 
     this.fixedHpEl = new LayeredAsset([AssetEnum.FIXED_HP], () => {
       this.fixedHpInput.value = '0';
@@ -2181,9 +2191,6 @@ class TeamPane {
     this.fixedHpInput.onchange = () => {
       this.onTeamUpdate({ fixedHp: removeCommas(this.fixedHpInput.value) });
     }
-    this.battleEl.appendChild(this.fixedHpEl.getElement());
-    this.battleEl.appendChild(this.fixedHpInput);
-    this.battleEl.appendChild(create('br'));
 
     // Choose combos or active.
     // const actionSelect = create('select') as HTMLSelectElement;
@@ -2202,9 +2209,7 @@ class TeamPane {
       this.actionSelect.appendChild(activeOption);
       this.actionOptions.push(activeOption);
     }
-    this.battleEl.appendChild(this.actionSelect);
     this.applyActionButton.innerText = 'Use';
-    this.battleEl.appendChild(this.applyActionButton);
 
     const leadSwapArea = create('div');
 
@@ -2233,7 +2238,6 @@ class TeamPane {
 
     leadSwapArea.appendChild(leadSwapLabel);
     leadSwapArea.appendChild(this.leadSwapInput);
-    this.battleEl.appendChild(leadSwapArea);
 
     /**
     Burst [  ]  +[  ]x per    [Awakening1]
@@ -2354,7 +2358,28 @@ class TeamPane {
     burstTable.appendChild(multiplierRow);
     burstTable.appendChild(restrictionRow);
 
-    this.battleEl.appendChild(burstTable);
+    const rcvTimeArea = create('div');
+    const timeBuffLabel = create('span');
+    timeBuffLabel.innerText = 'Time Buff: ';
+    rcvTimeArea.appendChild(timeBuffLabel);
+    this.timeBuffInput.type = 'number';
+    this.timeBuffInput.onchange = () => {
+      this.onTeamUpdate({ timeBuff: parseInt(this.timeBuffInput.value) });
+    };
+    rcvTimeArea.appendChild(this.timeBuffInput);
+    this.timeBuffIsMultCb.type = 'checkbox';
+    this.timeBuffIsMultCb.onchange = () => this.onTeamUpdate({ timeIsMult: this.timeBuffIsMultCb.checked });
+    rcvTimeArea.appendChild(this.timeBuffIsMultCb);
+    const timeIsMultLabel = create('span');
+    timeIsMultLabel.innerText = 'Multiply';
+    rcvTimeArea.appendChild(timeIsMultLabel);
+    rcvTimeArea.appendChild(create('br'));
+    const rcvMultLabel = create('span');
+    rcvMultLabel.innerText = 'RCV Mult: ';
+    rcvTimeArea.appendChild(rcvMultLabel);
+    this.rcvMultInput.type = 'number';
+    this.rcvMultInput.onchange = () => this.onTeamUpdate({ rcvBuff: Number(this.rcvMultInput.value) });
+    rcvTimeArea.appendChild(this.rcvMultInput);
 
     // Player State including
     // * Void Attr, Void
@@ -2418,7 +2443,6 @@ class TeamPane {
     toggleArea.appendChild(voidDamageVoid.getElement());
     toggleArea.appendChild(voidAwakenings.getElement());
 
-    this.battleEl.appendChild(toggleArea);
 
     const damageTable = create('table', ClassNames.DAMAGE_TABLE) as HTMLTableElement;
     const rawDamageTable = create('table', ClassNames.DAMAGE_TABLE) as HTMLTableElement;
@@ -2507,6 +2531,17 @@ class TeamPane {
     actualDamageTable.appendChild(actualSubRow);
     actualDamageTable.appendChild(actualBonusRow);
 
+    this.battleEl.appendChild(hpEl);
+    this.battleEl.appendChild(this.fixedHpEl.getElement());
+    this.battleEl.appendChild(this.fixedHpInput);
+    this.battleEl.appendChild(create('br'));
+    this.battleEl.appendChild(this.actionSelect);
+    this.battleEl.appendChild(this.applyActionButton);
+    this.battleEl.appendChild(leadSwapArea);
+    this.battleEl.appendChild(burstTable);
+    this.battleEl.appendChild(rcvTimeArea);
+    this.battleEl.appendChild(toggleArea);
+
     this.battleEl.appendChild(create('hr'));
     this.battleEl.appendChild(document.createTextNode('Base Damage'));
     this.battleEl.appendChild(damageTable);
@@ -2578,6 +2613,10 @@ class TeamPane {
       }
     }
     this.leadSwapInput.value = `${teamBattle.leadSwap}`;
+
+    this.timeBuffInput.value = String(teamBattle.timeBuff);
+    this.timeBuffIsMultCb.checked = teamBattle.timeIsMult;
+    this.rcvMultInput.value = String(teamBattle.rcvBuff);
 
     this.burstMultiplierInput.value = String(teamBattle.burst.multiplier).substring(0, 4);
     this.burstAwakeningScaleInput.value = String(teamBattle.burst.awakeningScale);

@@ -262,6 +262,16 @@ class Team {
         if (ctx.voidAwakenings != undefined) {
           this.state.awakenings = !ctx.voidAwakenings;
         }
+        if (ctx.timeBuff != undefined) {
+          this.state.timeBonus = ctx.timeBuff;
+        }
+        if (ctx.timeIsMult != undefined) {
+          this.state.timeIsMult = ctx.timeIsMult;
+        }
+        if (ctx.rcvBuff != undefined) {
+          this.state.rcvMult = ctx.rcvBuff;
+        }
+
         if (ctx.burst != undefined) {
           this.state.burst = ctx.burst;
         }
@@ -986,6 +996,9 @@ class Team {
       fixedHp: this.state.fixedHp,
       ids: ns.concat(...this.getActiveTeam().map((m) => [m.getId(), m.inheritId])),
       burst: this.state.burst,
+      timeBuff: this.state.timeBonus,
+      timeIsMult: this.state.timeIsMult,
+      rcvBuff: this.state.rcvMult,
     });
     this.updateCb(this.activeMonster);
   }

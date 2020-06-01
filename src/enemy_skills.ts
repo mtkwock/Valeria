@@ -1439,7 +1439,7 @@ const rcv: EnemySkillEffect = {
       team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
       return;
     }
-    team.state.rcvMult = skillArgs[1] / 100;
+    team.state.rcvMult = (skillArgs[1] || 0) / 100;
   },
   goto: () => TERMINATE,
 };
