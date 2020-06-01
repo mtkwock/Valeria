@@ -492,6 +492,26 @@ class TextRow implements RowDraw {
   }
 }
 
+class PaddingRow implements RowDraw {
+  private readonly frac: number;
+
+  constructor(frac: number) {
+    this.frac = frac;
+  }
+
+  imagesToLoad(): string[] {
+    return [];
+  }
+
+  getHeightOverWidth(): number {
+    return this.frac;
+  }
+
+  draw(): void {
+    return;
+  }
+}
+
 class FancyPhoto {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
@@ -576,6 +596,7 @@ class FancyPhoto {
       for (const line of team.description.split('\n')) {
         this.rowDraws.push(new TextRow(line));
       }
+      this.rowDraws.push(new PaddingRow(1 / 40));
     }
   }
 
