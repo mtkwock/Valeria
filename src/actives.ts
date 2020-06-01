@@ -494,16 +494,13 @@ const effectFromAwakeningCount: MonsterActive = {
   teamEffect: ([_, awakening1, awakening2, awakening3, effect, mult100], { team }) => {
     const awakenings = [awakening1, awakening2, awakening3].filter(Boolean);
 
-    if (!team.state.awakenings) {
-      return;
-    }
-
     const count = awakenings.map((a) => team.countAwakening(a)).reduce((t, a) => t + a, 0);
 
     if (effect == 1) {
       const healing = Math.ceil(mult100 * count);
       team.heal(healing);
     } else if (effect == 2) {
+      mult100 -= 100;
       team.state.burst = {
         awakenings: awakenings,
         awakeningScale: mult100 / 100,
