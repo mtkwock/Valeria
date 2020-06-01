@@ -5218,36 +5218,24 @@
                 this.options = opts;
                 this.canvas.style.width = '100%';
                 this.onUpdate = onUpdate;
-                this.setupTitleToggle();
-                this.setupTransformToggle();
+                this.createToggle('Display Title', (checked) => this.options.drawTitle = checked, this.options.drawTitle || false);
+                this.createToggle('Display Transformed', (checked) => this.options.useTransform = checked, this.options.useTransform || false);
+                this.createToggle('Display Description', (checked) => this.options.showDescription = checked, this.options.showDescription || false);
                 this.setupAwakeningToggles();
                 this.element.appendChild(this.canvas);
             }
-            setupTitleToggle() {
-                const titleDiv = create('div');
-                const titleToggle = create('input');
-                titleToggle.type = 'checkbox';
-                titleToggle.checked = this.options.drawTitle || false;
-                titleToggle.onchange = () => {
-                    this.options.drawTitle = titleToggle.checked;
+            createToggle(label, onChange, initialCheck) {
+                const div = create('div');
+                const toggle = create('input');
+                toggle.type = 'checkbox';
+                toggle.checked = initialCheck;
+                toggle.onchange = () => {
+                    onChange(toggle.checked);
                     this.onUpdate();
                 };
-                titleDiv.appendChild(titleToggle);
-                titleDiv.appendChild(document.createTextNode('Display Title'));
-                this.element.appendChild(titleDiv);
-            }
-            setupTransformToggle() {
-                const transformDiv = create('div');
-                const transformToggle = create('input');
-                transformToggle.type = 'checkbox';
-                transformToggle.checked = this.options.useTransform || false;
-                transformToggle.onchange = () => {
-                    this.options.useTransform = transformToggle.checked;
-                    this.onUpdate();
-                };
-                transformDiv.appendChild(transformToggle);
-                transformDiv.appendChild(document.createTextNode('Display Transformed'));
-                this.element.appendChild(transformDiv);
+                div.appendChild(toggle);
+                div.appendChild(document.createTextNode(label));
+                this.element.appendChild(div);
             }
             setupAwakeningToggles() {
                 const awakeningDiv = create('div');
@@ -12182,6 +12170,56 @@
             }
         }
         AggregateAwakeningRow.PER_ROW = 9;
+        class TextRow {
+            constructor(text, fontSizeFrac = 1 / 30, margin = 1 / 40) {
+                this.text = text;
+                this.fontSizeFrac = fontSizeFrac;
+                this.margin = margin;
+            }
+            imagesToLoad() {
+                return [];
+            }
+            getFont(width) {
+                return `${width * this.fontSizeFrac}px Arial`;
+            }
+            parapperTheWrapper(ctx) {
+                ctx.font = this.getFont(ctx.canvas.width);
+                const maxWidth = ctx.canvas.width * (1 - 2 * this.margin);
+                const words = this.text.split(' ');
+                let line = '';
+                let currentLine = '';
+                for (let i = 0; i < words.length; i++) {
+                    currentLine += words[i] + ' ';
+                    const width = ctx.measureText(currentLine).width;
+                    if (width > maxWidth) {
+                        line += '\n' + words[i] + ' ';
+                        currentLine = words[i] + ' ';
+                    }
+                    else {
+                        line += words[i] + ' ';
+                    }
+                }
+                return line;
+            }
+            getHeightOverWidth() {
+                const testCanvas = document.createElement('canvas');
+                testCanvas.width = 1000;
+                const ctx = testCanvas.getContext('2d');
+                if (!ctx) {
+                    return 0;
+                }
+                ctx.font = this.getFont(testCanvas.width);
+                const wrappedText = this.parapperTheWrapper(ctx);
+                return this.fontSizeFrac * wrappedText.split('\n').length;
+            }
+            draw(ctx, drawnOffsetY) {
+                ctx.font = this.getFont(ctx.canvas.width);
+                for (const line of this.parapperTheWrapper(ctx).split('\n')) {
+                    drawnOffsetY += this.fontSizeFrac * ctx.canvas.width;
+                    borderedText(ctx, line, ctx.canvas.width * this.margin, drawnOffsetY, 2, 'black', 'white');
+                }
+            }
+        }
         class FancyPhoto {
             constructor() {
                 this.urlsToPromises = {};
@@ -12192,6 +12230,7 @@
                     useTransform: false,
                     useLeadswap: false,
                     awakenings: [],
+                    showDescription: true,
                 };
                 this.photoArea = new templates_6.PhotoArea(this.opts, () => {
                     this.reloadTeam();
@@ -12246,6 +12285,11 @@
                             return { awakening, total };
                         });
                         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
+                    }
+                }
+                if (this.opts.showDescription) {
+                    for (const line of team.description.split('\n')) {
+                        this.rowDraws.push(new TextRow(line));
                     }
                 }
             }
