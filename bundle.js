@@ -4012,7 +4012,7 @@
                     teamTab.appendChild(this.teamDivs[i]);
                 }
                 const descriptionTab = this.detailTabs.getTab('Description');
-                this.descriptionEl.placeholder = 'Team Description';
+                this.descriptionEl.placeholder = 'Team Description (This can displayed in Photo and saved)';
                 this.descriptionEl.spellcheck = false;
                 this.descriptionEl.onchange = () => {
                     this.onTeamUpdate({
@@ -4726,6 +4726,7 @@
                 this.damageVoidInput = create('input');
                 this.damageShieldInput = create('input');
                 this.attributeAbsorbs = [];
+                this.currentAttributeSelect = create('select');
                 this.onUpdate = onUpdate;
                 this.dungeonSelector = new GenericSelector(dungeonNames, (id) => {
                     this.onUpdate({ loadDungeon: id });
@@ -4945,6 +4946,29 @@
                 this.comboAbsorbInput.value = '0';
                 this.damageVoidInput.value = '0';
                 this.damageAbsorbInput.value = '0';
+                const attributeArea = create('span');
+                const attributeLabel = create('span');
+                attributeLabel.innerText = 'Attribute: ';
+                for (const i of [-1, -2, 0, 1, 2, 3, 4]) {
+                    const option = create('option');
+                    option.value = String(i);
+                    if (i == -1) {
+                        option.innerText = 'Main';
+                    }
+                    else if (i == -2) {
+                        option.innerText = 'Sub';
+                    }
+                    else {
+                        option.innerText = common_2.AttributeToName.get(i);
+                    }
+                    this.currentAttributeSelect.appendChild(option);
+                }
+                this.currentAttributeSelect.onchange = () => {
+                    const attr = parseInt(this.currentAttributeSelect.value);
+                    this.onUpdate({ attribute: attr });
+                };
+                attributeArea.appendChild(attributeLabel);
+                attributeArea.appendChild(this.currentAttributeSelect);
                 const comboAbsorbArea = create('span');
                 const comboAbsorbLabel = new LayeredAsset([AssetEnum.COMBO_ABSORB, AssetEnum.NUMBER_0], () => this.onUpdate({ comboAbsorb: 0 }), true, 0.7);
                 comboAbsorbArea.appendChild(comboAbsorbLabel.getElement());
@@ -4981,6 +5005,8 @@
                 }
                 statusArea.appendChild(this.statusShield.getElement());
                 statusArea.appendChild(this.invincible.getElement());
+                statusArea.appendChild(attributeArea);
+                statusArea.appendChild(create('br'));
                 statusArea.appendChild(comboAbsorbArea);
                 statusArea.appendChild(damageShieldArea);
                 statusArea.appendChild(damageAbsorbArea);
@@ -5179,6 +5205,7 @@
                 }
                 this.statusShield.setActive(s.statusShield);
                 this.invincible.setActive(s.invincible);
+                this.currentAttributeSelect.value = String(s.attribute);
                 this.damageVoidInput.value = common_2.addCommas(s.damageVoid);
                 this.damageAbsorbInput.value = common_2.addCommas(s.damageAbsorb);
                 this.comboAbsorbInput.value = `${s.comboAbsorb}`;
@@ -5653,15 +5680,15 @@
             }
             fromPdchu(str) {
                 let s = str.trim().toLowerCase();
-                let assistPlussed = false;
-                let assistLevel = 1;
+                let assistPlussed = true;
+                let assistLevel = 110;
                 let latents = [];
                 let hpPlus = 99;
                 let atkPlus = 99;
                 let rcvPlus = 99;
                 let awakeningLevel = 9;
                 let superAwakeningIdx = -1;
-                let level = 99;
+                let level = 110;
                 const MONSTER_NAME_REGEX = /^\s*(("[^"]+")|[^([|]*)/;
                 const ASSIST_REGEX = /\(\s*("[^"]*")?[^)]+\)/;
                 const ASSIST_NAME_REGEX = /^\s*("[^"]+"|[^|]+)/;
@@ -11757,6 +11784,9 @@
                     if (ctx.invincible != undefined) {
                         enemy.invincible = ctx.invincible;
                     }
+                    if (ctx.attribute != undefined) {
+                        enemy.currentAttribute = ctx.attribute;
+                    }
                     if (ctx.comboAbsorb != undefined) {
                         enemy.comboAbsorb = ctx.comboAbsorb;
                     }
@@ -11821,6 +11851,7 @@
                     attrResists: enemy.getAttrResists(),
                     statusShield: enemy.statusShield,
                     comboAbsorb: enemy.comboAbsorb,
+                    attribute: enemy.currentAttribute,
                     damageAbsorb: enemy.damageAbsorb,
                     damageVoid: enemy.damageVoid,
                     invincible: enemy.invincible,
