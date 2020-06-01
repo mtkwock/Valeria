@@ -5301,31 +5301,59 @@
             }
             setupAwakeningToggles() {
                 const awakeningDiv = create('div');
-                for (let i = 0; i < common_2.AwakeningToName.length; i++) {
-                    // const awakening = AwakeningToName[i];
-                    const awakeningAnchor = create('a', ClassNames.AWAKENING);
-                    const [x, y] = getAwakeningOffsets(i);
-                    awakeningAnchor.style.backgroundPositionX = `${x * AwakeningEditor.SCALE}px`;
-                    awakeningAnchor.style.backgroundPositionY = `${y * AwakeningEditor.SCALE}px`;
-                    if (!this.options.awakenings || !this.options.awakenings.includes(i)) {
-                        awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
-                    }
-                    awakeningAnchor.onclick = () => {
-                        if (awakeningAnchor.classList.contains(ClassNames.HALF_OPACITY)) {
-                            this.options.awakenings.push(i);
-                            awakeningAnchor.classList.remove(ClassNames.HALF_OPACITY);
-                        }
-                        else {
-                            this.options.awakenings.splice(this.options.awakenings.indexOf(i), 1);
+                const awakeningRows = [
+                    [
+                        common_2.Awakening.SKILL_BOOST, common_2.Awakening.SBR, common_2.Awakening.TIME, common_2.Awakening.GUARD_BREAK, common_2.Awakening.SOLOBOOST, common_2.Awakening.OE_HEART,
+                        common_2.Awakening.OE_FIRE, common_2.Awakening.OE_WATER, common_2.Awakening.OE_WOOD, common_2.Awakening.OE_LIGHT, common_2.Awakening.OE_DARK,
+                    ],
+                    [
+                        common_2.Awakening.RESIST_BLIND, common_2.Awakening.RESIST_JAMMER, common_2.Awakening.RESIST_POISON, common_2.Awakening.BONUS_ATTACK, common_2.Awakening.BONUS_ATTACK_SUPER, common_2.Awakening.RECOVER_BIND,
+                        common_2.Awakening.ROW_FIRE, common_2.Awakening.ROW_WATER, common_2.Awakening.ROW_WOOD, common_2.Awakening.ROW_LIGHT, common_2.Awakening.ROW_DARK,
+                    ],
+                    [
+                        common_2.Awakening.RESIST_CLOUD, common_2.Awakening.RESIST_TAPE, common_2.Awakening.AUTOHEAL, common_2.Awakening.L_UNLOCK, common_2.Awakening.L_GUARD, common_2.Awakening.COMBO_ORB,
+                        common_2.Awakening.RESIST_FIRE, common_2.Awakening.RESIST_WATER, common_2.Awakening.RESIST_WOOD, common_2.Awakening.RESIST_LIGHT, common_2.Awakening.RESIST_DARK,
+                    ],
+                    [
+                        common_2.Awakening.DRAGON, common_2.Awakening.GOD, common_2.Awakening.DEVIL, common_2.Awakening.MACHINE, common_2.Awakening.VDP, common_2.Awakening.COMBO_7,
+                        common_2.Awakening.COMBO_10, common_2.Awakening.SKILL_CHARGE, common_2.Awakening.MULTIBOOST, common_2.Awakening.HP, common_2.Awakening.HP_MINUS,
+                    ],
+                    [
+                        common_2.Awakening.BALANCED, common_2.Awakening.ATTACKER, common_2.Awakening.PHYSICAL, common_2.Awakening.HEALER, common_2.Awakening.TPA, common_2.Awakening.HP_GREATER,
+                        common_2.Awakening.HP_LESSER, common_2.Awakening.RESIST_BIND, common_2.Awakening.TEAM_HP, common_2.Awakening.ATK, common_2.Awakening.ATK_MINUS,
+                    ],
+                    [
+                        common_2.Awakening.EVO, common_2.Awakening.AWOKEN, common_2.Awakening.ENHANCED, common_2.Awakening.REDEEMABLE, common_2.Awakening.JAMMER_BOOST, common_2.Awakening.POISON_BOOST,
+                        common_2.Awakening.AWOKEN_ASSIST, common_2.Awakening.VOICE, common_2.Awakening.TEAM_RCV, common_2.Awakening.RCV, common_2.Awakening.RCV_MINUS,
+                    ],
+                ];
+                for (const awakeningRow of awakeningRows) {
+                    for (const awakening of awakeningRow) {
+                        const awakeningAnchor = create('a', ClassNames.AWAKENING);
+                        const [x, y] = getAwakeningOffsets(awakening);
+                        awakeningAnchor.style.backgroundPositionX = `${x * AwakeningEditor.SCALE}px`;
+                        awakeningAnchor.style.backgroundPositionY = `${y * AwakeningEditor.SCALE}px`;
+                        if (!this.options.awakenings || !this.options.awakenings.includes(awakening)) {
                             awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
                         }
-                        // this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
-                        this.onUpdate();
-                    };
-                    this.awakeningAnchors.push(awakeningAnchor);
-                    if (i > 0) {
-                        awakeningDiv.appendChild(awakeningAnchor);
+                        awakeningAnchor.onclick = () => {
+                            if (awakeningAnchor.classList.contains(ClassNames.HALF_OPACITY)) {
+                                this.options.awakenings.push(awakening);
+                                awakeningAnchor.classList.remove(ClassNames.HALF_OPACITY);
+                            }
+                            else {
+                                this.options.awakenings.splice(this.options.awakenings.indexOf(awakening), 1);
+                                awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
+                            }
+                            // this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
+                            this.onUpdate();
+                        };
+                        this.awakeningAnchors.push(awakeningAnchor);
+                        if (awakening > 0) {
+                            awakeningDiv.appendChild(awakeningAnchor);
+                        }
                     }
+                    awakeningDiv.appendChild(create('br'));
                 }
                 this.element.appendChild(awakeningDiv);
             }
@@ -11970,13 +11998,14 @@
     define("team_photo", ["require", "exports", "common", "ilmina_stripped", "templates"], function (require, exports, common_12, ilmina_stripped_10, templates_6) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        function borderedText(ctx, text, x, y, borderThickness = 2, borderColor = 'black', color = 'yellow') {
-            ctx.fillStyle = borderColor;
-            ctx.fillText(text, x, y + borderThickness);
-            ctx.fillText(text, x, y - borderThickness);
-            ctx.fillText(text, x + borderThickness, y);
-            ctx.fillText(text, x - borderThickness, y);
+        function borderedText(ctx, text, x, y, borderThickness = -1, borderColor = 'black', color = 'yellow') {
+            if (borderThickness < 0) {
+                borderThickness = ctx.canvas.width / 200;
+            }
             ctx.fillStyle = color;
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = borderThickness;
+            ctx.strokeText(text, x, y);
             ctx.fillText(text, x, y);
         }
         class TitleRow {
@@ -11995,7 +12024,7 @@
                 }
                 ctx.textAlign = 'left';
                 ctx.font = `${ctx.canvas.width * 0.05}px Arial`;
-                borderedText(ctx, this.title, ctx.canvas.width / 80, drawnOffsetY + ctx.canvas.width * 0.05, 2, 'black', 'white');
+                borderedText(ctx, this.title, ctx.canvas.width / 80, drawnOffsetY + ctx.canvas.width * 0.05, -1, 'black', 'white');
             }
         }
         function drawMonster(ctx, id, sideLength, offsetX, offsetY, images) {
@@ -12056,9 +12085,9 @@
                     ctx.textAlign = 'left';
                     const xStats = drawnOffsetX + inheritLength + width * 0.005;
                     ctx.font = `${width * 0.017}px Arial`;
-                    borderedText(ctx, `${inherit.id}`, xStats, drawnOffsetY + inheritLength * 0.25, 3, 'black', 'white');
-                    borderedText(ctx, `Lv${inherit.lv}`, xStats, drawnOffsetY + inheritLength * 0.583, 3, 'black', 'white');
-                    borderedText(ctx, `+${inherit.plussed ? 297 : 0}`, xStats, drawnOffsetY + inheritLength * 0.916, 3, 'black', 'white');
+                    borderedText(ctx, `${inherit.id}`, xStats, drawnOffsetY + inheritLength * 0.25, -1, 'black', 'white');
+                    borderedText(ctx, `Lv${inherit.lv}`, xStats, drawnOffsetY + inheritLength * 0.583, -1, 'black', 'white');
+                    borderedText(ctx, `+${inherit.plussed ? 297 : 0}`, xStats, drawnOffsetY + inheritLength * 0.916, -1, 'black', 'white');
                 }
             }
             imagesToLoad() {
@@ -12127,10 +12156,10 @@
                     const xLevel = drawnOffsetX + width * 0.0125;
                     const yLevel = drawnOffsetY + length * 0.92;
                     ctx.font = `${width * 0.022}px Arial`;
-                    borderedText(ctx, `Lv${monster.lv}`, xLevel, yLevel, 2, 'black', 'white');
+                    borderedText(ctx, `Lv${monster.lv}`, xLevel, yLevel, -1, 'black', 'white');
                     ctx.textAlign = 'right';
                     const xId = drawnOffsetX + length - width * 0.0125;
-                    borderedText(ctx, `${monster.id}`, xId, yLevel, 2, 'black', 'white');
+                    borderedText(ctx, `${monster.id}`, xId, yLevel, -1, 'black', 'white');
                 }
             }
             imagesToLoad() {
@@ -12236,7 +12265,7 @@
                     drawAwakening(ctx, awakening, sideLength, xOffset, verticalOffset, im, total ? 1.0 : 0.5);
                     ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
                     ctx.textAlign = 'left';
-                    borderedText(ctx, `x${total}`, xOffset + sideLength, verticalOffset + sideLength, 2, 'black', 'white');
+                    borderedText(ctx, `x${total}`, xOffset + sideLength, verticalOffset + sideLength, -1, 'black', 'white');
                     xOffset += ctx.canvas.width / (AggregateAwakeningRow.PER_ROW + 1);
                     if (xOffset > maxOffset) {
                         xOffset = 0.05 * ctx.canvas.width;
@@ -12292,7 +12321,7 @@
                 ctx.font = this.getFont(ctx.canvas.width);
                 for (const line of this.parapperTheWrapper(ctx).split('\n')) {
                     drawnOffsetY += this.fontSizeFrac * ctx.canvas.width;
-                    borderedText(ctx, line, ctx.canvas.width * this.margin, drawnOffsetY, 2, 'black', 'white');
+                    borderedText(ctx, line, ctx.canvas.width * this.margin, drawnOffsetY, -1, 'black', 'white');
                 }
             }
         }
