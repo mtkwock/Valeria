@@ -3588,32 +3588,60 @@ class PhotoArea {
 
   private setupAwakeningToggles(): void {
     const awakeningDiv = create('div');
-    for (let i = 0; i < AwakeningToName.length; i++) {
-      // const awakening = AwakeningToName[i];
-      const awakeningAnchor = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
-      const [x, y] = getAwakeningOffsets(i);
-      awakeningAnchor.style.backgroundPositionX = `${x * AwakeningEditor.SCALE}px`;
-      awakeningAnchor.style.backgroundPositionY = `${y * AwakeningEditor.SCALE}px`;
+    const awakeningRows: Awakening[][] = [
+      [
+        Awakening.SKILL_BOOST, Awakening.SBR, Awakening.TIME, Awakening.GUARD_BREAK, Awakening.SOLOBOOST, Awakening.OE_HEART,
+        Awakening.OE_FIRE, Awakening.OE_WATER, Awakening.OE_WOOD, Awakening.OE_LIGHT, Awakening.OE_DARK,
+      ],
+      [
+        Awakening.RESIST_BLIND, Awakening.RESIST_JAMMER, Awakening.RESIST_POISON, Awakening.BONUS_ATTACK, Awakening.BONUS_ATTACK_SUPER, Awakening.RECOVER_BIND,
+        Awakening.ROW_FIRE, Awakening.ROW_WATER, Awakening.ROW_WOOD, Awakening.ROW_LIGHT, Awakening.ROW_DARK,
+      ],
+      [
+        Awakening.RESIST_CLOUD, Awakening.RESIST_TAPE, Awakening.AUTOHEAL, Awakening.L_UNLOCK, Awakening.L_GUARD, Awakening.COMBO_ORB,
+        Awakening.RESIST_FIRE, Awakening.RESIST_WATER, Awakening.RESIST_WOOD, Awakening.RESIST_LIGHT, Awakening.RESIST_DARK,
+      ],
+      [
+        Awakening.DRAGON, Awakening.GOD, Awakening.DEVIL, Awakening.MACHINE, Awakening.VDP, Awakening.COMBO_7,
+        Awakening.COMBO_10, Awakening.SKILL_CHARGE, Awakening.MULTIBOOST, Awakening.HP, Awakening.HP_MINUS,
+      ],
+      [
+        Awakening.BALANCED, Awakening.ATTACKER, Awakening.PHYSICAL, Awakening.HEALER, Awakening.TPA, Awakening.HP_GREATER,
+        Awakening.HP_LESSER, Awakening.RESIST_BIND, Awakening.TEAM_HP, Awakening.ATK, Awakening.ATK_MINUS,
+      ],
+      [
+        Awakening.EVO, Awakening.AWOKEN, Awakening.ENHANCED, Awakening.REDEEMABLE, Awakening.JAMMER_BOOST, Awakening.POISON_BOOST,
+        Awakening.AWOKEN_ASSIST, Awakening.VOICE, Awakening.TEAM_RCV, Awakening.RCV, Awakening.RCV_MINUS,
+      ],
+    ];
+    for (const awakeningRow of awakeningRows) {
+      for (const awakening of awakeningRow) {
+        const awakeningAnchor = create('a', ClassNames.AWAKENING) as HTMLAnchorElement;
+        const [x, y] = getAwakeningOffsets(awakening);
+        awakeningAnchor.style.backgroundPositionX = `${x * AwakeningEditor.SCALE}px`;
+        awakeningAnchor.style.backgroundPositionY = `${y * AwakeningEditor.SCALE}px`;
 
-      if (!this.options.awakenings || !this.options.awakenings.includes(i)) {
-        awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
-      }
-
-      awakeningAnchor.onclick = () => {
-        if (awakeningAnchor.classList.contains(ClassNames.HALF_OPACITY)) {
-          this.options.awakenings.push(i);
-          awakeningAnchor.classList.remove(ClassNames.HALF_OPACITY);
-        } else {
-          this.options.awakenings.splice(this.options.awakenings.indexOf(i), 1);
+        if (!this.options.awakenings || !this.options.awakenings.includes(awakening)) {
           awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
         }
-        // this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
-        this.onUpdate();
+
+        awakeningAnchor.onclick = () => {
+          if (awakeningAnchor.classList.contains(ClassNames.HALF_OPACITY)) {
+            this.options.awakenings.push(awakening);
+            awakeningAnchor.classList.remove(ClassNames.HALF_OPACITY);
+          } else {
+            this.options.awakenings.splice(this.options.awakenings.indexOf(awakening), 1);
+            awakeningAnchor.classList.add(ClassNames.HALF_OPACITY);
+          }
+          // this.options.awakenings = this.awakeningAnchors.map((a, idx) => ({ a, idx })).filter(({ a }) => !a.classList.contains(ClassNames.HALF_OPACITY)).map(({ idx }) => idx);
+          this.onUpdate();
+        }
+        this.awakeningAnchors.push(awakeningAnchor);
+        if (awakening > 0) {
+          awakeningDiv.appendChild(awakeningAnchor);
+        }
       }
-      this.awakeningAnchors.push(awakeningAnchor);
-      if (i > 0) {
-        awakeningDiv.appendChild(awakeningAnchor);
-      }
+      awakeningDiv.appendChild(create('br'));
     }
     this.element.appendChild(awakeningDiv);
   }

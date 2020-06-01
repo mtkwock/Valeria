@@ -39,13 +39,14 @@ interface inheritToDraw {
   lv: number;
 }
 
-function borderedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, borderThickness = 2, borderColor = 'black', color = 'yellow') {
-  ctx.fillStyle = borderColor;
-  ctx.fillText(text, x, y + borderThickness);
-  ctx.fillText(text, x, y - borderThickness);
-  ctx.fillText(text, x + borderThickness, y);
-  ctx.fillText(text, x - borderThickness, y);
+function borderedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, borderThickness = -1, borderColor = 'black', color = 'yellow') {
+  if (borderThickness < 0) {
+    borderThickness = ctx.canvas.width / 200;
+  }
   ctx.fillStyle = color;
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = borderThickness;
+  ctx.strokeText(text, x, y);
   ctx.fillText(text, x, y);
 }
 
@@ -70,7 +71,7 @@ class TitleRow implements RowDraw {
     }
     ctx.textAlign = 'left';
     ctx.font = `${ctx.canvas.width * 0.05}px Arial`;
-    borderedText(ctx, this.title, ctx.canvas.width / 80, drawnOffsetY + ctx.canvas.width * 0.05, 2, 'black', 'white');
+    borderedText(ctx, this.title, ctx.canvas.width / 80, drawnOffsetY + ctx.canvas.width * 0.05, -1, 'black', 'white');
   }
 }
 
@@ -177,9 +178,9 @@ class InheritRow implements RowDraw {
       const xStats = drawnOffsetX + inheritLength + width * 0.005;
 
       ctx.font = `${width * 0.017}px Arial`;
-      borderedText(ctx, `${inherit.id}`, xStats, drawnOffsetY + inheritLength * 0.25, 3, 'black', 'white');
-      borderedText(ctx, `Lv${inherit.lv}`, xStats, drawnOffsetY + inheritLength * 0.583, 3, 'black', 'white');
-      borderedText(ctx, `+${inherit.plussed ? 297 : 0}`, xStats, drawnOffsetY + inheritLength * 0.916, 3, 'black', 'white');
+      borderedText(ctx, `${inherit.id}`, xStats, drawnOffsetY + inheritLength * 0.25, -1, 'black', 'white');
+      borderedText(ctx, `Lv${inherit.lv}`, xStats, drawnOffsetY + inheritLength * 0.583, -1, 'black', 'white');
+      borderedText(ctx, `+${inherit.plussed ? 297 : 0}`, xStats, drawnOffsetY + inheritLength * 0.916, -1, 'black', 'white');
 
     }
   }
@@ -278,11 +279,11 @@ class MonsterRow implements RowDraw {
       const xLevel = drawnOffsetX + width * 0.0125;
       const yLevel = drawnOffsetY + length * 0.92;
       ctx.font = `${width * 0.022}px Arial`;
-      borderedText(ctx, `Lv${monster.lv}`, xLevel, yLevel, 2, 'black', 'white');
+      borderedText(ctx, `Lv${monster.lv}`, xLevel, yLevel, -1, 'black', 'white');
 
       ctx.textAlign = 'right';
       const xId = drawnOffsetX + length - width * 0.0125;
-      borderedText(ctx, `${monster.id}`, xId, yLevel, 2, 'black', 'white');
+      borderedText(ctx, `${monster.id}`, xId, yLevel, -1, 'black', 'white');
     }
   }
 
@@ -414,7 +415,7 @@ class AggregateAwakeningRow implements RowDraw {
       drawAwakening(ctx, awakening, sideLength, xOffset, verticalOffset, im, total ? 1.0 : 0.5);
       ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
       ctx.textAlign = 'left';
-      borderedText(ctx, `x${total}`, xOffset + sideLength, verticalOffset + sideLength, 2, 'black', 'white');
+      borderedText(ctx, `x${total}`, xOffset + sideLength, verticalOffset + sideLength, -1, 'black', 'white');
       xOffset += ctx.canvas.width / (AggregateAwakeningRow.PER_ROW + 1);
       if (xOffset > maxOffset) {
         xOffset = 0.05 * ctx.canvas.width;
@@ -484,7 +485,7 @@ class TextRow implements RowDraw {
         line,
         ctx.canvas.width * this.margin,
         drawnOffsetY,
-        2,
+        -1,
         'black',
         'white',
       );
