@@ -3405,7 +3405,6 @@
                     this.atkEl.value = '99';
                     this.rcvEl.value = '99';
                 };
-                this.el.appendChild(maxPlusButton);
                 const minPlusButton = create('button');
                 // minPlusButton.id = 'idc-0-plus-monster';
                 minPlusButton.type = 'button';
@@ -3420,30 +3419,37 @@
                     this.atkEl.value = '0';
                     this.rcvEl.value = '0';
                 };
-                this.el.appendChild(minPlusButton);
-                this.el.appendChild(create('br'));
                 this.hpEl.type = 'number';
                 this.hpEl.onchange = () => {
                     this.onUpdate({ hpPlus: Number(this.hpEl.value) });
                 };
-                this.el.appendChild(document.createTextNode('HP+ '));
-                this.el.appendChild(this.hpEl);
                 this.atkEl.type = 'number';
                 this.atkEl.onchange = () => {
                     this.onUpdate({ atkPlus: Number(this.atkEl.value) });
                 };
-                this.el.appendChild(document.createTextNode('ATK+ '));
-                this.el.appendChild(this.atkEl);
                 this.rcvEl.type = 'number';
                 this.rcvEl.onchange = () => {
                     this.onUpdate({ rcvPlus: Number(this.rcvEl.value) });
                 };
-                this.el.appendChild(document.createTextNode('RCV+ '));
-                this.el.appendChild(this.rcvEl);
                 this.inheritEl.type = 'checkbox';
                 this.inheritEl.onclick = () => {
                     this.onUpdate({ inheritPlussed: this.inheritEl.checked });
                 };
+                const inheritLabel = create('span');
+                inheritLabel.innerText = 'Inherit Plussed';
+                inheritLabel.onclick = () => this.inheritEl.click();
+                this.el.appendChild(document.createTextNode('HP+ '));
+                this.el.appendChild(this.hpEl);
+                this.el.appendChild(document.createTextNode('ATK+ '));
+                this.el.appendChild(this.atkEl);
+                this.el.appendChild(document.createTextNode('RCV+ '));
+                this.el.appendChild(this.rcvEl);
+                this.el.appendChild(this.inheritEl);
+                this.el.appendChild(inheritLabel);
+                this.el.appendChild(create('br'));
+                this.el.appendChild(document.createTextNode('Quick Plus: '));
+                this.el.appendChild(maxPlusButton);
+                this.el.appendChild(minPlusButton);
             }
             update(hpPlus, atkPlus, rcvPlus, inheritPlussed) {
                 this.hpEl.value = String(hpPlus);
@@ -12220,6 +12226,20 @@
                 }
             }
         }
+        class PaddingRow {
+            constructor(frac) {
+                this.frac = frac;
+            }
+            imagesToLoad() {
+                return [];
+            }
+            getHeightOverWidth() {
+                return this.frac;
+            }
+            draw() {
+                return;
+            }
+        }
         class FancyPhoto {
             constructor() {
                 this.urlsToPromises = {};
@@ -12291,6 +12311,7 @@
                     for (const line of team.description.split('\n')) {
                         this.rowDraws.push(new TextRow(line));
                     }
+                    this.rowDraws.push(new PaddingRow(1 / 40));
                 }
             }
             redraw(idx = 0) {
