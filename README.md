@@ -47,11 +47,25 @@ If you click the `Description` tab underneath your team, you can edit a descript
 
 By clicking `Save Team Screenshot`, you download a screenshot a part of the screen which shows your team and either `Stats` or `Description` depending on what you have selected.
 
-### Dungeon Editing
+### Dungeon Selection and Usage
 
-**TODO**
+#### Finding a Dungeon.
+
+Use the Dungeon Search bar to determine which dungeon is available.  Note that these dungeons are sourced from DadGuide's data and may not always be present or named matching that of NA's.  There are a number of aliases that exist.  See src/fuzzy_search_aliases.ts for existing aliases. If there are aliases that are useful, please add them in a PR or ping Scarlet.
+
+#### Using a Monster
+
+The monsters in a dungeon should be generated automatically with all of their stats and abilities. When selecting a monster, they will automatically apply a preemptive (If there are multiple possible preemptives, a random will be selected.).  Note that monsters are not aware of any player debuffs that other monsters activated (e.g. Time Debuff) and will not act according to the board (They will always assume that the orb that they change exists).
+
+Below the main area, you can see all of the monster's skills parsed along with estimates of damage.  Clicking on a skill will attempt to use the skill on your team, applying hits and debuffs to your team, and buffing/healing itself.
+
+In the monster state editing section, you can change a number of the monster's statuses (status shield, invincibility, combo absorb, damage shield, damage absorb, damage void, and attribute absorbs), as well as see (and edit) the opponent's current state.  Soon, there will be a way to simulate an opponent's next move based on the current game state.
 
 ### Damage Calculation
+
+In the middle pane, select the Battle tab.  This tab allows you to control your team's states, such as HP, buffs/debuffs, and see your available actives.  Note, to change teams, select any monster on that team row and it'll automatically update the information.  In the action dropdown, you can choose to determine combo damage with "Apply Combos" or check active damage by selecting on of your team's actives.  Clicking a monster will select its active, then its inherit, then back to combos.  Clicking "Use" will apply the action (Damage and healing for Combos, damage and buffs/debuffs for actives) on the team and the enemy.  Note that not every skill is fully supported.
+
+For the damage calculations, there are three tables.  The first table is the damage before it hits any opponent. This is the damage you'll see on your monsters before they actually hit anything.  The second is the amount that occurs when your opponent is actually hit.  This will be the number you see pop up on the opponents. The last table is the effective damage. This is how much your opponent actually takes due to the fact that your opponent cannot go below 0 HP and cannot go above max. This is important because it allows you to check if the opponent will actually die, or if an absorbed color will save them.
 
 **TODO**
 
@@ -72,7 +86,7 @@ By clicking `Save Team Screenshot`, you download a screenshot a part of the scre
   * Must be at least one from "rgbldhpmjou", doing multiple will cause multiple of these to occur. e.g. 4rr will make 2x 4-matches of Red.
     * fire **R**ed
     * water **B**lue
-    * wood **G**reen 
+    * wood **G**reen
     * **L**ight
     * **D**ark
     * **H**eart
@@ -80,9 +94,9 @@ By clicking `Save Team Screenshot`, you download a screenshot a part of the scre
     * **M**ortal poison
     * **J**ammer
     * b**O**mb
-    * **U**ncolored
+    * **U**ncolored / **U**nknown
   * Add Enhance
-    * e#      - This will cause # orbs to be enhanced.
+    * #      - This will cause # orbs to be enhanced.
 
 #### Examples:
 
@@ -90,11 +104,11 @@ By clicking `Save Team Screenshot`, you download a screenshot a part of the scre
 |-----|---|
 |`r`| Make a 3-match of reds. |
 |`rrrr`| Make 4x 3-match of reds. |
-|`4hle1`|Make a TPA of each heal and light with 1 enhanced orb.|
+|`4hl1`|Make a TPA of each heal and light. The light combo has 1 enhanced orb.|
 |`Rd`| Make a Row of 6 (on 6x5) dark orbs. |
 |`R9rb`|Make a Row with 9 orbs of each red and blue.|
 |`Bhg ggh`|Make a Box of hearts and greens, then two green 3-matches and one heart 3-match.|
-|`Che1`|Make a Column of hearts with 1 enhanced orb.|
+|`Ch2`|Make a Column of hearts with 2 enhanced orbs.|
 |`R30d`|Make a Roard with 30 darks.|
 
 
@@ -103,7 +117,7 @@ Start with:
 
  * `DA`  - Delete ALL combos of the given attribute(s).
  * `Da`  - Same as above.
- * `D`   - Delete combos of a given attribute and a give position.
+ * `D`   - Delete combos of a given attribute and a give position. If alone, this will delete all combos.
 
 Follow up with attributes to delete.
 
@@ -126,4 +140,3 @@ Follow up with attributes to delete.
 |`Dg-2`| Delete the 2nd from last Green combo.|
 |`Drb2`| Delete, from reds and blues, the 3rd combo.|
 |`Drr`| Delete the last TWO Red combos.|
-

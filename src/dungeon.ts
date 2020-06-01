@@ -345,6 +345,10 @@ class DungeonInstance {
         enemy.invincible = ctx.invincible;
       }
 
+      if (ctx.attribute != undefined) {
+        enemy.currentAttribute = ctx.attribute;
+      }
+
       if (ctx.comboAbsorb != undefined) {
         enemy.comboAbsorb = ctx.comboAbsorb;
       }
@@ -424,6 +428,7 @@ class DungeonInstance {
 
       statusShield: enemy.statusShield,
       comboAbsorb: enemy.comboAbsorb,
+      attribute: enemy.currentAttribute,
       damageAbsorb: enemy.damageAbsorb,
       damageVoid: enemy.damageVoid,
       invincible: enemy.invincible,

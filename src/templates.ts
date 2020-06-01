@@ -2008,7 +2008,7 @@ class TeamPane {
     }
 
     const descriptionTab = this.detailTabs.getTab('Description');
-    this.descriptionEl.placeholder = 'Team Description';
+    this.descriptionEl.placeholder = 'Team Description (This can displayed in Photo and saved)';
     this.descriptionEl.spellcheck = false;
     this.descriptionEl.onchange = () => {
       this.onTeamUpdate({
@@ -2681,6 +2681,7 @@ interface DungeonUpdate {
 
   statusShield?: boolean;
   invincible?: boolean;
+  attribute?: Attribute;
   attributeAbsorbs?: Attribute[];
   damageVoid?: number;
   damageAbsorb?: number;
@@ -2794,6 +2795,7 @@ interface EnemyStatsUpdate {
 
   statusShield: boolean;
   invincible: boolean;
+  attribute: Attribute;
   comboAbsorb: number;
   damageAbsorb: number;
   damageVoid: number;
@@ -2917,6 +2919,7 @@ class DungeonEditor {
   damageVoidInput = create('input') as HTMLInputElement;
   damageShieldInput = create('input') as HTMLInputElement;
   attributeAbsorbs: LayeredAsset[] = [];
+  currentAttributeSelect = create('select') as HTMLSelectElement;
 
   constructor(dungeonNames: { s: string; value: number }[], onUpdate: OnDungeonUpdate) {
     this.onUpdate = onUpdate;
@@ -3180,6 +3183,28 @@ class DungeonEditor {
     this.damageVoidInput.value = '0';
     this.damageAbsorbInput.value = '0';
 
+    const attributeArea = create('span');
+    const attributeLabel = create('span');
+    attributeLabel.innerText = 'Attribute: ';
+    for (const i of [-1, -2, 0, 1, 2, 3, 4]) {
+      const option = create('option') as HTMLOptionElement;
+      option.value = String(i);
+      if (i == -1) {
+        option.innerText = 'Main';
+      } else if (i == -2) {
+        option.innerText = 'Sub';
+      } else {
+        option.innerText = AttributeToName.get(i) as string;
+      }
+      this.currentAttributeSelect.appendChild(option);
+    }
+    this.currentAttributeSelect.onchange = () => {
+      const attr = parseInt(this.currentAttributeSelect.value);
+      this.onUpdate({ attribute: attr });
+    };
+    attributeArea.appendChild(attributeLabel);
+    attributeArea.appendChild(this.currentAttributeSelect);
+
     const comboAbsorbArea = create('span');
     const comboAbsorbLabel = new LayeredAsset([AssetEnum.COMBO_ABSORB, AssetEnum.NUMBER_0], () => this.onUpdate({ comboAbsorb: 0 }), true, 0.7);
     comboAbsorbArea.appendChild(comboAbsorbLabel.getElement());
@@ -3221,6 +3246,8 @@ class DungeonEditor {
 
     statusArea.appendChild(this.statusShield.getElement());
     statusArea.appendChild(this.invincible.getElement());
+    statusArea.appendChild(attributeArea);
+    statusArea.appendChild(create('br'));
     statusArea.appendChild(comboAbsorbArea);
     statusArea.appendChild(damageShieldArea);
     statusArea.appendChild(damageAbsorbArea);
@@ -3428,6 +3455,7 @@ class DungeonEditor {
 
     this.statusShield.setActive(s.statusShield);
     this.invincible.setActive(s.invincible);
+    this.currentAttributeSelect.value = String(s.attribute);
     this.damageVoidInput.value = addCommas(s.damageVoid);
     this.damageAbsorbInput.value = addCommas(s.damageAbsorb);
     this.comboAbsorbInput.value = `${s.comboAbsorb}`;

@@ -409,15 +409,15 @@ class MonsterInstance {
 
   fromPdchu(str: string): void {
     let s = str.trim().toLowerCase();
-    let assistPlussed = false;
-    let assistLevel = 1;
+    let assistPlussed = true;
+    let assistLevel = 110;
     let latents = [];
     let hpPlus = 99;
     let atkPlus = 99;
     let rcvPlus = 99;
     let awakeningLevel = 9;
     let superAwakeningIdx = -1;
-    let level = 99;
+    let level = 110;
 
     const MONSTER_NAME_REGEX = /^\s*(("[^"]+")|[^([|]*)/;
     const ASSIST_REGEX = /\(\s*("[^"]*")?[^)]+\)/;
