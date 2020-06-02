@@ -67,7 +67,118 @@ In the middle pane, select the Battle tab.  This tab allows you to control your 
 
 For the damage calculations, there are three tables.  The first table is the damage before it hits any opponent. This is the damage you'll see on your monsters before they actually hit anything.  The second is the amount that occurs when your opponent is actually hit.  This will be the number you see pop up on the opponents. The last table is the effective damage. This is how much your opponent actually takes due to the fact that your opponent cannot go below 0 HP and cannot go above max. This is important because it allows you to check if the opponent will actually die, or if an absorbed color will save them.
 
-**TODO**
+### Team Conformance Tests
+
+If you're constantly changing your team or sharing it with others, you'll often want to check that the team has certain requirements, such as "Team has enough SB for all monsters to be up on turn 1" or "Team has full Blind Resist and Full SBR".  For this, Valeria supports a basic conformance test language which is run every time your team is updated (or every time you update the textarea containing it).  These tests are also saved with your team.
+
+#### Examples
+
+```
+# Lines beginning with "#" are ignored, as are empty lines.
+
+# Each line runs a different test.
+# Ensure P1's lead and helper are up on turn 1.
+{P1.LEADER.CD} <= {P1.SB}
+{P1.HELPER.CD} <= {P1.SB}
+# This can also be written as
+{P1.LEADER.CD} <= {P1.SB} and {P1.HELPER.CD} <= {P1.SB}
+
+# Ensure that P1 has all hazard resists:
+{P1.SBR} >= 5
+{P1.RESIST_BLIND} >= 5
+{P1.RESIST_POISON} >= 5
+{P1.RESIST_JAMMER} >= 5
+{P1.RESIST_CLOUD} > 0
+{P1.RESIST_TAPE} > 0
+{P1.GUARD_BREAK} > 0
+
+# Ensure that P2 has FUA or SFUA
+{P2.FUA} + {P2.SFUA} > 0
+# Alternatively
+{P2.FUA} > 0 or {P2.SFUA} > 0
+
+# Ensure that P1's 1st sub has enough attack to button a monster with 2m HP and 10k def with 300x nuke.
+{P1.SUB_1.ATK} * 300 * 2 >= 2000000 + 10000
+
+# Ensure that the 2nd sub's inherit is not up after the third turn.
+{P1.SUB_2.INHERIT_CD} > {P1.SB} + 3
+
+# Ensure that the team can tank a 180k preemptive with a 75% shield
+{P1.HP} >= 180000 * (1 - 0.75)
+
+# Check that your sub-hp team has 0 recovery
+{P1.RCV} <= 0
+
+# Ensure your cheese team has 100% fire resist
+{P1.RESIST_FIRE} >= 100
+```
+
+Below is a (possibly-out-of-date) list of values that you can access.  When accessing, the final value must be either a number or a CompareBoolean (Which is just another number).
+
+```
+MODE: number;
+P1: {
+    HP: number;
+    RCV: number;
+    TIME: number;
+
+    LEADER: {
+        ID: number;
+        HP: number;
+        ATTRIBUTE: number;
+        SUBATTRIBUTE: number;
+        ATK: number;
+        RCV: number;
+        CD: number;
+        CD_MAX: number;
+        INHERIT_CD: number;
+        INHERIT_CD_MAX: number;
+    }
+    HELPER: See LEADER
+    SUB_1: See LEADER
+    SUB_2: See LEADER
+    SUB_3: See LEADER
+    SUB_4: See LEADER
+
+    // TODO: Team specific Awakenings
+    SB: number
+    SBR: number
+    FUA: number
+    SFUA: number
+    RESIST_BLIND: number
+    RESIST_POISON: number
+    RESIST_JAMMER: number
+    RESIST_CLOUD: number
+    RESIST_TAPE: number
+    GUARD_BREAK: number
+
+    // These resists are sums of this team's awakenings and latents.
+    RESIST_FIRE: number;
+    RESIST_WATER: number;
+    RESIST_WOOD: number;
+    RESIST_LIGHT: number;
+    RESIST_DARK: number;
+
+    // Leader Skill capabilities.
+    // Not supported yet
+    AUTOFUA: CompareBoolean;
+}
+P2 (May not exist): See P1;
+P3 (May not exist): See P1;
+
+FIRE: 1;
+WATER: 2;
+WOOD: 4;
+LIGHT: 8;
+DARK: 16;
+
+ALL_ATTRIBUTES: 31;
+TRUE: CompareBoolean.TRUE,
+FALSE: CompareBoolean.FALSE,
+```
+
+You can see what values are allowed by looking at the first 100 lines of [team_test.ts](https://github.com/mtkwock/Valeria/blob/master/src/team_test.ts).
+
 
 ### View Monster Stats
 

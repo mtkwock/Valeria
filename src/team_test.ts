@@ -69,25 +69,6 @@ interface TestContext {
   // TODO: Currently Selected team awakenings.
 }
 
-// enum Comparator {
-//   GT = '>',
-//   GTE = '>=',
-//   E = '=',
-//   EE = '==',
-//   LTE = '<=',
-//   LT = '<',
-// }
-//
-// const COMPARATORS = [
-//   Comparator.GTE,
-//   Comparator.EE,
-//   Comparator.LTE,
-//
-//   Comparator.GT,
-//   Comparator.E,
-//   Comparator.LT,
-// ];
-
 function replacify(text: string, ctx: TestContext): { text: string; error: string } {
   const replacementFinder = /{[^}]*}/g;
   const matches = text.match(replacementFinder);
@@ -147,8 +128,8 @@ enum Operator {
   CMP_E = '=',
   CMP_LT = '<',
 
-  AND = '&&',
-  OR = '||',
+  AND = 'and',
+  OR = 'or',
 }
 
 const operators = [
@@ -290,8 +271,8 @@ const OperatorPrecendence: Record<Operator, number> = {
   '=': 1,
   '<': 1,
 
-  '&&': 0,
-  '||': 0,
+  'and': 0,
+  'or': 0,
 };
 
 enum CompareBoolean {
@@ -315,10 +296,14 @@ const Operate: Record<Operator, (left: number, right: number) => number> = {
   '>': (left, right) => left > right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
   '=': (left, right) => left == right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
   '<': (left, right) => left < right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
-  '&&': (left, right) => (left == CompareBoolean.TRUE) && (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
-  '||': (left, right) => (left == CompareBoolean.TRUE) || (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+  'and': (left, right) => (left == CompareBoolean.TRUE) && (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+  'or': (left, right) => (left == CompareBoolean.TRUE) || (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
 }
 
+/**
+ * Implementation of the Shunting-Yard algorithm for queueing operations.
+ * See https://en.wikipedia.org/wiki/Shunting-yard_algorithm
+ */
 function shuntingYard(text: string): number | string {
   const tokens = tokenize(text);
   if (!tokens.length || tokens[tokens.length - 1].type == TokenType.UNKNOWN) {
