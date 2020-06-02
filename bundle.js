@@ -4161,6 +4161,11 @@
                 }
                 this.statsEl.appendChild(awakeningTable);
                 const testArea = create('div');
+                const docEl = create('a');
+                docEl.href = 'https://github.com/mtkwock/Valeria#team-conformance-tests';
+                docEl.target = '_blank';
+                docEl.innerText = 'Team Testing Guide';
+                testArea.appendChild(docEl);
                 testArea.appendChild(this.testResultDiv);
                 this.testTextarea.onchange = () => {
                     this.onTeamUpdate({
