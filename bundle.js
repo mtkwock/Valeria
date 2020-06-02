@@ -5454,24 +5454,6 @@
     define("team_test", ["require", "exports", "debugger"], function (require, exports, debugger_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        // enum Comparator {
-        //   GT = '>',
-        //   GTE = '>=',
-        //   E = '=',
-        //   EE = '==',
-        //   LTE = '<=',
-        //   LT = '<',
-        // }
-        //
-        // const COMPARATORS = [
-        //   Comparator.GTE,
-        //   Comparator.EE,
-        //   Comparator.LTE,
-        //
-        //   Comparator.GT,
-        //   Comparator.E,
-        //   Comparator.LT,
-        // ];
         function replacify(text, ctx) {
             const replacementFinder = /{[^}]*}/g;
             const matches = text.match(replacementFinder);
@@ -5524,8 +5506,8 @@
             Operator["CMP_GT"] = ">";
             Operator["CMP_E"] = "=";
             Operator["CMP_LT"] = "<";
-            Operator["AND"] = "&&";
-            Operator["OR"] = "||";
+            Operator["AND"] = "and";
+            Operator["OR"] = "or";
         })(Operator || (Operator = {}));
         const operators = [
             // Must be checked first due to having multiple characters.
@@ -5657,8 +5639,8 @@
             '>': 1,
             '=': 1,
             '<': 1,
-            '&&': 0,
-            '||': 0,
+            'and': 0,
+            'or': 0,
         };
         var CompareBoolean;
         (function (CompareBoolean) {
@@ -5682,9 +5664,13 @@
             '>': (left, right) => left > right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
             '=': (left, right) => left == right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
             '<': (left, right) => left < right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
-            '&&': (left, right) => (left == CompareBoolean.TRUE) && (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
-            '||': (left, right) => (left == CompareBoolean.TRUE) || (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            'and': (left, right) => (left == CompareBoolean.TRUE) && (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            'or': (left, right) => (left == CompareBoolean.TRUE) || (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
         };
+        /**
+         * Implementation of the Shunting-Yard algorithm for queueing operations.
+         * See https://en.wikipedia.org/wiki/Shunting-yard_algorithm
+         */
         function shuntingYard(text) {
             const tokens = tokenize(text);
             if (!tokens.length || tokens[tokens.length - 1].type == TokenType.UNKNOWN) {
