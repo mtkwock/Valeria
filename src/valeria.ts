@@ -16,6 +16,7 @@ import { textifyEnemySkills, textifyEnemySkill, effect as enemyEffect, toSkillCo
 import { getUrlParameter } from './url_handler';
 import { damage as activeDamage, teamEffect, enemyEffect as activeEnemyEffect, boardEffect } from './actives';
 import { FancyPhoto } from './team_photo';
+// import { testTestTestTest } from './team_test';
 
 class Valeria {
   display: ValeriaDisplay = new ValeriaDisplay();

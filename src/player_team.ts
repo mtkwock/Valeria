@@ -1,7 +1,7 @@
 import {
   Attribute, AttributeToName, COLORS,
   MonsterType,
-  Awakening, AwakeningToPlusAwakening, PlusAwakeningMultiplier,
+  Awakening,
   Latent,
   Round, Shape,
 } from './common';
@@ -12,6 +12,7 @@ import { ComboContainer } from './combo_container';
 import { floof, compress, decompress } from './ilmina_stripped';
 import * as leaders from './leaders';
 import { debug } from './debugger';
+import { runTests, TestContext, CompareBoolean, PlayerTeamContext } from './team_test';
 
 interface Burst {
   attrRestrictions: Attribute[];
@@ -98,6 +99,7 @@ interface TeamJson {
   description: string;
   playerMode: number;
   monsters: MonsterJson[];
+  tests: string;
 }
 
 class StoredTeams {
@@ -178,6 +180,7 @@ const SHARED_AWAKENINGS = new Set([
 class Team {
   teamName = '';
   description = '';
+  tests = '';
   monsters: MonsterInstance[] = [];
   playerMode = 1;
   activeTeamIdx = 0;
@@ -227,8 +230,11 @@ class Team {
         if (ctx.monsterIdx != undefined) {
           this.setActiveMonsterIdx(ctx.monsterIdx);
         }
-        if (ctx.description) {
+        if (ctx.description != undefined) {
           this.description = ctx.description;
+        }
+        if (ctx.tests != undefined) {
+          this.tests = ctx.tests;
         }
 
         if (ctx.currentHp != undefined) {
@@ -460,6 +466,7 @@ class Team {
       title: this.teamName,
       description: this.description,
       monsters: this.monsters.map((monster) => monster.toJson()),
+      tests: this.tests,
     };
   }
 
@@ -473,6 +480,11 @@ class Team {
       } else {
         this.monsters[i].setId(-1);
       }
+    }
+    if (json.tests) {
+      this.tests = json.tests;
+    } else {
+      this.tests = '';
     }
     this.update();
   }
@@ -661,7 +673,7 @@ class Team {
 
     for (const monster of monsters) {
       time += monster.countAwakening(Awakening.TIME) * 0.5;
-      time += monster.countAwakening(Awakening.TIME_PLUS);
+      // time += monster.countAwakening(Awakening.TIME_PLUS);
       time += monster.latents.filter((l) => l == Latent.TIME).length * 0.05;
       time += monster.latents.filter((l) => l == Latent.TIME_PLUS).length * 0.12;
     }
@@ -820,11 +832,11 @@ class Team {
               let burstMultiplier = burst.multiplier;
               for (const awakening of burst.awakenings) {
                 burstMultiplier += this.countAwakening(awakening) * burst.awakeningScale;
-                if (AwakeningToPlusAwakening.has(awakening)) {
-                  const plusAwakening = AwakeningToPlusAwakening.get(awakening) as Awakening;
-                  const perAwakening = Number(PlusAwakeningMultiplier.get(plusAwakening));
-                  burstMultiplier += perAwakening * this.countAwakening(plusAwakening) * burst.awakeningScale;
-                }
+                // if (AwakeningToPlusAwakening.has(awakening)) {
+                //   const plusAwakening = AwakeningToPlusAwakening.get(awakening) as Awakening;
+                //   const perAwakening = Number(PlusAwakeningMultiplier.get(plusAwakening));
+                //   burstMultiplier += perAwakening * this.countAwakening(plusAwakening) * burst.awakeningScale;
+                // }
               }
               multiplier *= burstMultiplier;
             }
@@ -1003,6 +1015,65 @@ class Team {
     this.updateCb(this.activeMonster);
   }
 
+  private makeTeamContext(idx: number): PlayerTeamContext {
+    const monsters = this.getTeamAt(idx);
+    const result: PlayerTeamContext = {
+      HP: this.getHp(),
+      RCV: this.getRcv(),
+      TIME: this.getTime(),
+      LEADER: monsters[0].makeTestContext(this.playerMode),
+      HELPER: monsters[5].makeTestContext(this.playerMode),
+      SUB_1: monsters[1].makeTestContext(this.playerMode),
+      SUB_2: monsters[2].makeTestContext(this.playerMode),
+      SUB_3: monsters[3].makeTestContext(this.playerMode),
+      SUB_4: monsters[4].makeTestContext(this.playerMode),
+      SB: this.countAwakening(Awakening.SKILL_BOOST),
+      SBR: this.countAwakening(Awakening.SBR),
+      FUA: this.countAwakening(Awakening.BONUS_ATTACK),
+      SFUA: this.countAwakening(Awakening.BONUS_ATTACK_SUPER),
+      RESIST_BLIND: this.countAwakening(Awakening.RESIST_BLIND),
+      RESIST_POISON: this.countAwakening(Awakening.RESIST_POISON),
+      RESIST_JAMMER: this.countAwakening(Awakening.RESIST_JAMMER),
+      RESIST_CLOUD: this.countAwakening(Awakening.RESIST_CLOUD),
+      RESIST_TAPE: this.countAwakening(Awakening.RESIST_TAPE),
+      GUARD_BREAK: this.countAwakening(Awakening.GUARD_BREAK),
+
+      RESIST_FIRE: this.countAwakening(Awakening.RESIST_FIRE) * 7 + this.countLatent(Latent.RESIST_FIRE) + this.countLatent(Latent.RESIST_FIRE_PLUS) * 2.5,
+      RESIST_WATER: this.countAwakening(Awakening.RESIST_WATER) * 7 + this.countLatent(Latent.RESIST_WATER) + this.countLatent(Latent.RESIST_WATER_PLUS) * 2.5,
+      RESIST_WOOD: this.countAwakening(Awakening.RESIST_WOOD) * 7 + this.countLatent(Latent.RESIST_WOOD) + this.countLatent(Latent.RESIST_WOOD_PLUS) * 2.5,
+      RESIST_LIGHT: this.countAwakening(Awakening.RESIST_LIGHT) * 7 + this.countLatent(Latent.RESIST_LIGHT) + this.countLatent(Latent.RESIST_LIGHT_PLUS) * 2.5,
+      RESIST_DARK: this.countAwakening(Awakening.RESIST_DARK) * 7 + this.countLatent(Latent.RESIST_DARK) + this.countLatent(Latent.RESIST_DARK_PLUS) * 2.5,
+
+      // Leader Skill capabilities.
+      AUTOFUA: CompareBoolean.FALSE,
+    }
+    return result;
+  }
+
+  private makeTestContext(): TestContext {
+    const ctx: TestContext = {
+      MODE: this.playerMode,
+      P1: this.makeTeamContext(0),
+
+      // Constants.
+      FIRE: 1 << 0,
+      WATER: 1 << 1,
+      WOOD: 1 << 2,
+      LIGHT: 1 << 3,
+      DARK: 1 << 4,
+      ALL_ATTRIBUTES: 31,
+      TRUE: CompareBoolean.TRUE,
+      FALSE: CompareBoolean.FALSE,
+    };
+    if (this.playerMode > 1) {
+      ctx.P2 = this.makeTeamContext(1);
+    }
+    if (this.playerMode > 2) {
+      ctx.P3 = this.makeTeamContext(2);
+    }
+    return ctx;
+  }
+
   countAwakening(awakening: Awakening, ignoreTransform = false): number {
     if (!this.state.awakenings) {
       return 0;
@@ -1166,11 +1237,8 @@ class Team {
     const counts: Map<Awakening, number> = new Map();
 
     // General
-    counts.set(Awakening.SKILL_BOOST,
-      this.countAwakening(Awakening.SKILL_BOOST) +
-      2 * this.countAwakening(Awakening.SKILL_BOOST_PLUS));
-    counts.set(Awakening.TIME, this.countAwakening(Awakening.TIME) +
-      2 * this.countAwakening(Awakening.TIME_PLUS));
+    counts.set(Awakening.SKILL_BOOST, this.countAwakening(Awakening.SKILL_BOOST));
+    counts.set(Awakening.TIME, this.countAwakening(Awakening.TIME));
     counts.set(Awakening.SOLOBOOST, this.countAwakening(Awakening.SOLOBOOST));
     counts.set(Awakening.BONUS_ATTACK, this.countAwakening(Awakening.BONUS_ATTACK));
     counts.set(Awakening.BONUS_ATTACK_SUPER, this.countAwakening(Awakening.BONUS_ATTACK_SUPER));
@@ -1178,15 +1246,9 @@ class Team {
 
     // Resists
     counts.set(Awakening.SBR, this.countAwakening(Awakening.SBR));
-    counts.set(Awakening.RESIST_POISON,
-      this.countAwakening(Awakening.RESIST_POISON) +
-      5 * this.countAwakening(Awakening.RESIST_POISON_PLUS));
-    counts.set(Awakening.RESIST_BLIND,
-      this.countAwakening(Awakening.RESIST_BLIND) +
-      5 * this.countAwakening(Awakening.RESIST_BLIND_PLUS));
-    counts.set(Awakening.RESIST_JAMMER,
-      this.countAwakening(Awakening.RESIST_JAMMER) +
-      5 * this.countAwakening(Awakening.RESIST_JAMMER_PLUS));
+    counts.set(Awakening.RESIST_POISON, this.countAwakening(Awakening.RESIST_POISON));
+    counts.set(Awakening.RESIST_BLIND, this.countAwakening(Awakening.RESIST_BLIND));
+    counts.set(Awakening.RESIST_JAMMER, this.countAwakening(Awakening.RESIST_JAMMER));
     counts.set(Awakening.RESIST_CLOUD, this.countAwakening(Awakening.RESIST_CLOUD));
     counts.set(Awakening.RESIST_TAPE, this.countAwakening(Awakening.RESIST_TAPE));
 
@@ -1214,16 +1276,20 @@ class Team {
     counts.set(Awakening.RESIST_DARK, this.countAwakening(Awakening.RESIST_DARK));
     counts.set(Awakening.AUTOHEAL, this.countAwakening(Awakening.AUTOHEAL));
 
+    const testResult = runTests(this.tests, this.makeTestContext());
+
     return {
       hps: this.getIndividualHp(),
-      atks: atks,
+      atks,
       rcvs: this.getIndividualRcv(),
-      cds: cds,
+      cds,
       totalHp: this.getHp(),
       totalRcv: this.getRcv(),
       totalTime: this.getTime(),
-      counts: counts,
-    }
+      counts,
+      tests: this.tests,
+      testResult,
+    };
   }
 }
 

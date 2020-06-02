@@ -1,7 +1,8 @@
-import { Attribute, Awakening, Latent, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
+import { Attribute, Awakening, AwakeningToPlus, Latent, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
 import { Card, CardAssets, floof } from './ilmina_stripped';
 import { create, MonsterIcon, MonsterInherit, MonsterLatent, ClassNames, OnMonsterUpdate } from './templates';
 import { fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch } from './fuzzy_search';
+import { PlayerMonsterContext } from './team_test';
 
 const AWAKENING_BONUS = new Map<Awakening, number>([
   [Awakening.HP, 500],
@@ -599,7 +600,12 @@ class MonsterInstance {
   }
 
   countAwakening(awakening: Awakening, playerMode: number = 1, ignoreTransform = false): number {
-    return this.getAwakenings(playerMode, new Set([awakening]), ignoreTransform).length;
+    let count = this.getAwakenings(playerMode, new Set([awakening]), ignoreTransform).length;
+    let plusInfo = AwakeningToPlus.get(awakening);
+    if (plusInfo) {
+      count += plusInfo.multiplier * this.getAwakenings(playerMode, new Set([plusInfo.awakening]), ignoreTransform).length;
+    }
+    return count;
   }
 
   getLatents(filterSet: Set<Latent> | null = null): Latent[] {
@@ -856,6 +862,26 @@ class MonsterInstance {
     temp.copyFrom(instanceA);
     instanceA.copyFrom(instanceB);
     instanceB.copyFrom(temp);
+  }
+
+  makeTestContext(playerMode: number): PlayerMonsterContext {
+    const skillId = this.getCard().activeSkillId;
+    const CD = skillId ? floof.model.playerSkills[skillId].maxCooldown : 0;
+    const CD_MAX = skillId ? floof.model.playerSkills[skillId].initialCooldown : 0;
+    const inherit = this.getInheritCard();
+    const inheritSkillId = inherit ? inherit.activeSkillId : 0;
+    return {
+      ID: this.getId(),
+      ATTRIBUTE: (this.getAttribute() >= 0) ? 1 << this.getAttribute() : 0,
+      SUBATTRIBUTE: (this.getSubattribute() >= 0) ? 1 << this.getSubattribute() : 0,
+      HP: this.getHp(playerMode),
+      ATK: this.getAtk(playerMode),
+      RCV: this.getRcv(playerMode),
+      CD,
+      CD_MAX,
+      INHERIT_CD: CD + (inheritSkillId ? floof.model.playerSkills[inheritSkillId].maxCooldown : 0),
+      INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? floof.model.playerSkills[inheritSkillId].initialCooldown : 0),
+    };
   }
 }
 

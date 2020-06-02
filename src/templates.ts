@@ -1875,6 +1875,8 @@ interface Stats {
   totalRcv: number;
   totalTime: number;
   counts: Map<Awakening, number>;
+  tests: string;
+  testResult: string[],
 }
 
 interface TeamBattle {
@@ -1903,6 +1905,7 @@ interface TeamUpdate {
   monsterIdx?: number;
   title?: string;
   description?: string;
+  tests?: string;
 
   currentHp?: number;
   fixedHp?: number;
@@ -1944,6 +1947,9 @@ class TeamPane {
   private totalTimeValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   battleEl: HTMLDivElement = create('div') as HTMLDivElement;
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
+  private testResultDiv = create('div');
+  private testTextarea = create('textarea', ClassNames.TEAM_DESCRIPTION) as HTMLTextAreaElement;
+
   metaTabs: TabbedComponent = new TabbedComponent(['Team', 'Save/Load', 'Photo']);
   private detailTabs: TabbedComponent = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
   private onTeamUpdate: (ctx: TeamUpdate) => void;
@@ -2177,6 +2183,18 @@ class TeamPane {
       awakeningTable.appendChild(awakeningRow);
     }
     this.statsEl.appendChild(awakeningTable);
+
+    const testArea = create('div') as HTMLDivElement;
+    testArea.appendChild(this.testResultDiv);
+    this.testTextarea.onchange = () => {
+      this.onTeamUpdate({
+        tests: this.testTextarea.value,
+      });
+    };
+    this.testTextarea.placeholder = 'Write tests here such as "{P1.SB} >= 10"';
+    this.testTextarea.spellcheck = false;
+    testArea.appendChild(this.testTextarea);
+    this.statsEl.appendChild(testArea);
   }
 
   private populateBattle(): void {
@@ -2593,6 +2611,14 @@ class TeamPane {
           awakeningCell.classList.remove(ClassNames.HALF_OPACITY);
         }
       }
+    }
+    this.testTextarea.value = stats.tests;
+    if (stats.testResult.length) {
+      this.testResultDiv.innerText = 'Tests Failing:\n' + stats.testResult.join('\n');
+      this.testResultDiv.style.backgroundColor = 'red';
+    } else {
+      this.testResultDiv.innerText = 'All tests passed.';
+      this.testResultDiv.style.backgroundColor = 'green';
     }
   }
 
