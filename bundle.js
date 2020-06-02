@@ -3956,6 +3956,8 @@
                 this.totalTimeValue = create('span', ClassNames.STAT_TOTAL_VALUE);
                 this.battleEl = create('div');
                 this.aggregatedAwakeningCounts = new Map();
+                this.testResultDiv = create('div');
+                this.testTextarea = create('textarea', ClassNames.TEAM_DESCRIPTION);
                 this.metaTabs = new TabbedComponent(['Team', 'Save/Load', 'Photo']);
                 this.detailTabs = new TabbedComponent(['Stats', 'Description', 'Battle'], 'Stats');
                 this.fixedHpEl = new LayeredAsset([], () => { });
@@ -4158,6 +4160,17 @@
                     awakeningTable.appendChild(awakeningRow);
                 }
                 this.statsEl.appendChild(awakeningTable);
+                const testArea = create('div');
+                testArea.appendChild(this.testResultDiv);
+                this.testTextarea.onchange = () => {
+                    this.onTeamUpdate({
+                        tests: this.testTextarea.value,
+                    });
+                };
+                this.testTextarea.placeholder = 'Write tests here such as "{P1.SB} >= 10"';
+                this.testTextarea.spellcheck = false;
+                testArea.appendChild(this.testTextarea);
+                this.statsEl.appendChild(testArea);
             }
             populateBattle() {
                 // HP Element
@@ -4522,6 +4535,15 @@
                             awakeningCell.classList.remove(ClassNames.HALF_OPACITY);
                         }
                     }
+                }
+                this.testTextarea.value = stats.tests;
+                if (stats.testResult.length) {
+                    this.testResultDiv.innerText = 'Tests Failing:\n' + stats.testResult.join('\n');
+                    this.testResultDiv.style.backgroundColor = 'red';
+                }
+                else {
+                    this.testResultDiv.innerText = 'All tests passed.';
+                    this.testResultDiv.style.backgroundColor = 'green';
                 }
             }
             updateBattle(teamBattle) {
@@ -5390,7 +5412,395 @@
         }
         exports.ValeriaDisplay = ValeriaDisplay;
     });
-    define("monster_instance", ["require", "exports", "common", "ilmina_stripped", "templates", "fuzzy_search"], function (require, exports, common_3, ilmina_stripped_4, templates_1, fuzzy_search_2) {
+    define("debugger", ["require", "exports", "templates"], function (require, exports, templates_1) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        class DebuggerEl {
+            constructor() {
+                this.el = templates_1.create('div');
+                this.inputEl = templates_1.create('input');
+                this.buttons = [];
+                this.textarea = templates_1.create('textarea');
+                this.text = '';
+                this.el.appendChild(this.inputEl);
+                this.el.appendChild(this.textarea);
+                this.addButton('Clear', () => {
+                    this.text = '';
+                    this.textarea.value = '';
+                });
+                this.textarea.style.width = `100%`;
+                this.textarea.style.fontSize = 'small';
+                this.textarea.style.height = '250px';
+                this.textarea.style.fontFamily = 'monospace';
+            }
+            addButton(text, onclick) {
+                const button = templates_1.create('button');
+                button.innerText = text;
+                button.onclick = onclick;
+                this.el.insertBefore(button, this.textarea);
+                this.buttons.push(button);
+            }
+            getElement() {
+                return this.el;
+            }
+            print(text) {
+                this.text += `\n${text}`;
+                this.textarea.value = this.text;
+            }
+        }
+        const debug = new DebuggerEl();
+        exports.debug = debug;
+    });
+    define("team_test", ["require", "exports", "debugger"], function (require, exports, debugger_1) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        // enum Comparator {
+        //   GT = '>',
+        //   GTE = '>=',
+        //   E = '=',
+        //   EE = '==',
+        //   LTE = '<=',
+        //   LT = '<',
+        // }
+        //
+        // const COMPARATORS = [
+        //   Comparator.GTE,
+        //   Comparator.EE,
+        //   Comparator.LTE,
+        //
+        //   Comparator.GT,
+        //   Comparator.E,
+        //   Comparator.LT,
+        // ];
+        function replacify(text, ctx) {
+            const replacementFinder = /{[^}]*}/g;
+            const matches = text.match(replacementFinder);
+            if (matches) {
+                for (let match of matches) {
+                    const pieces = match.replace(/[\s{}]/g, '').split('.');
+                    let currentVal = ctx;
+                    for (const piece of pieces) {
+                        try {
+                            currentVal = currentVal[piece];
+                            if (currentVal == undefined) {
+                                return { text, error: `Inaccessible value ${piece} in ${match}` };
+                            }
+                        }
+                        catch (e) {
+                            return { text, error: `Inaccessible value ${piece} in ${match}` };
+                        }
+                    }
+                    if (currentVal.constructor != Number) {
+                        return { text, error: `Final type of ${match} is not a number` };
+                    }
+                    text = text.replace(match, `${currentVal}`);
+                }
+            }
+            return { text, error: '' };
+        }
+        var TokenType;
+        (function (TokenType) {
+            TokenType[TokenType["UNKNOWN"] = 0] = "UNKNOWN";
+            TokenType[TokenType["NUMBER"] = 1] = "NUMBER";
+            TokenType[TokenType["OPERATOR"] = 2] = "OPERATOR";
+            TokenType[TokenType["FUNCTION"] = 3] = "FUNCTION";
+            TokenType[TokenType["LEFT_PAREN"] = 4] = "LEFT_PAREN";
+            TokenType[TokenType["RIGHT_PAREN"] = 5] = "RIGHT_PAREN";
+        })(TokenType || (TokenType = {}));
+        var Operator;
+        (function (Operator) {
+            Operator["POWER"] = "**";
+            Operator["MULTIPLY"] = "*";
+            Operator["DIVIDE"] = "/";
+            Operator["ADD"] = "+";
+            Operator["SUBTRACT"] = "-";
+            Operator["BIT_AND"] = "&";
+            Operator["BIT_OR"] = "|";
+            Operator["BIT_XOR"] = "^";
+            Operator["CMP_GTE"] = ">=";
+            Operator["CMP_EE"] = "==";
+            Operator["CMP_LTE"] = "<=";
+            Operator["CMP_NE"] = "!=";
+            Operator["CMP_GT"] = ">";
+            Operator["CMP_E"] = "=";
+            Operator["CMP_LT"] = "<";
+            Operator["AND"] = "&&";
+            Operator["OR"] = "||";
+        })(Operator || (Operator = {}));
+        const operators = [
+            // Must be checked first due to having multiple characters.
+            Operator.POWER,
+            Operator.AND,
+            Operator.OR,
+            Operator.CMP_GTE,
+            Operator.CMP_EE,
+            Operator.CMP_LTE,
+            Operator.CMP_NE,
+            Operator.MULTIPLY,
+            Operator.DIVIDE,
+            Operator.ADD,
+            Operator.SUBTRACT,
+            Operator.BIT_AND,
+            Operator.BIT_OR,
+            Operator.BIT_XOR,
+            Operator.CMP_GT,
+            Operator.CMP_E,
+            Operator.CMP_LT,
+        ];
+        const tokenFunctions = {
+            min: (args) => Math.min(...args),
+            max: (args) => Math.max(...args),
+        };
+        function tokenize(text) {
+            const tokens = [];
+            text = text.replace(/\s/g, '');
+            const numberRe = /^-?\d+(\.\d+)?/;
+            while (text) {
+                const numberMatch = text.match(numberRe);
+                if (numberMatch) {
+                    if (tokens.length && tokens[tokens.length - 1].type == TokenType.NUMBER && numberMatch[0][0] == '-') {
+                        tokens.push({
+                            s: '-',
+                            v: 0,
+                            type: TokenType.OPERATOR,
+                        });
+                        tokens.push({
+                            s: '',
+                            v: Number(numberMatch[0].substring(1)),
+                            type: TokenType.NUMBER,
+                        });
+                    }
+                    else {
+                        tokens.push({
+                            s: '',
+                            v: Number(numberMatch[0]),
+                            type: TokenType.NUMBER,
+                        });
+                    }
+                    text = text.replace(numberRe, '');
+                    continue;
+                }
+                let isOperator = false;
+                for (const operator of operators) {
+                    if (text.startsWith(operator)) {
+                        tokens.push({
+                            s: operator,
+                            v: 0,
+                            type: TokenType.OPERATOR,
+                        });
+                        text = text.replace(operator, '');
+                        isOperator = true;
+                        break;
+                    }
+                }
+                if (isOperator) {
+                    continue;
+                }
+                if (text.startsWith('(')) {
+                    tokens.push({
+                        s: '(',
+                        v: 0,
+                        type: TokenType.LEFT_PAREN,
+                    });
+                    text = text.substring(1);
+                    continue;
+                }
+                if (text.startsWith(')')) {
+                    tokens.push({
+                        s: ')',
+                        v: 0,
+                        type: TokenType.RIGHT_PAREN,
+                    });
+                    text = text.substring(1);
+                    continue;
+                }
+                // Ignore commas.
+                if (text.startsWith(',')) {
+                    text = text.substring(1);
+                    continue;
+                }
+                for (const fnName in tokenFunctions) {
+                    if (text.startsWith(fnName)) {
+                        tokens.push({
+                            s: 'fnName',
+                            v: 0,
+                            type: TokenType.FUNCTION,
+                        });
+                        text.replace(fnName, '');
+                        continue;
+                    }
+                }
+                // UNHANLDED ERROR
+                tokens.push({
+                    s: text,
+                    v: 0,
+                    type: TokenType.UNKNOWN,
+                });
+                text = '';
+                debugger_1.debug.print(`Unhandled Token processing: ${text}`);
+            }
+            return tokens;
+        }
+        const OperatorPrecendence = {
+            '**': 5,
+            '*': 4,
+            '/': 4,
+            '+': 3,
+            '-': 3,
+            '&': 2,
+            '|': 2,
+            '^': 2,
+            '>=': 1,
+            '==': 1,
+            '<=': 1,
+            '!=': 1,
+            '>': 1,
+            '=': 1,
+            '<': 1,
+            '&&': 0,
+            '||': 0,
+        };
+        var CompareBoolean;
+        (function (CompareBoolean) {
+            CompareBoolean[CompareBoolean["TRUE"] = 696969] = "TRUE";
+            CompareBoolean[CompareBoolean["FALSE"] = 420420] = "FALSE";
+        })(CompareBoolean || (CompareBoolean = {}));
+        exports.CompareBoolean = CompareBoolean;
+        const Operate = {
+            '**': (left, right) => left ** right,
+            '*': (left, right) => left * right,
+            '/': (left, right) => left / right,
+            '+': (left, right) => left + right,
+            '-': (left, right) => left - right,
+            '&': (left, right) => left & right,
+            '|': (left, right) => left | right,
+            '^': (left, right) => left ^ right,
+            '>=': (left, right) => left >= right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            '==': (left, right) => left == right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            '<=': (left, right) => left <= right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            '!=': (left, right) => left != right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            '>': (left, right) => left > right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            '=': (left, right) => left == right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            '<': (left, right) => left < right ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            '&&': (left, right) => (left == CompareBoolean.TRUE) && (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+            '||': (left, right) => (left == CompareBoolean.TRUE) || (right == CompareBoolean.TRUE) ? CompareBoolean.TRUE : CompareBoolean.FALSE,
+        };
+        function shuntingYard(text) {
+            const tokens = tokenize(text);
+            if (!tokens.length || tokens[tokens.length - 1].type == TokenType.UNKNOWN) {
+                return 'Unhandled tokens at the end';
+            }
+            const outputQueue = [];
+            const operatorStack = [];
+            const top = () => {
+                return operatorStack[operatorStack.length - 1];
+            };
+            for (const token of tokens) {
+                if (token.type == TokenType.NUMBER) {
+                    outputQueue.push(token);
+                }
+                else if (token.type == TokenType.FUNCTION) {
+                    operatorStack.push(token);
+                }
+                else if (token.type == TokenType.OPERATOR) {
+                    while (operatorStack.length && top().type == TokenType.OPERATOR
+                        // Assume all operators are left-associative.
+                        && (OperatorPrecendence[top().s] >= OperatorPrecendence[token.s])
+                        && top().type != TokenType.LEFT_PAREN) {
+                        outputQueue.push(operatorStack.pop());
+                    }
+                    operatorStack.push(token);
+                }
+                else if (token.type == TokenType.LEFT_PAREN) {
+                    operatorStack.push(token);
+                }
+                else if (token.type == TokenType.RIGHT_PAREN) {
+                    while (operatorStack.length && top().type != TokenType.LEFT_PAREN) {
+                        outputQueue.push(operatorStack.pop());
+                    }
+                    if (operatorStack.length && top().type == TokenType.LEFT_PAREN) {
+                        operatorStack.pop();
+                    }
+                }
+                else {
+                    debugger_1.debug.print(`Unhandled token: value: ${token.v} string: ${token.s} type: ${token.type}`);
+                }
+            }
+            while (operatorStack.length) {
+                if (top().type == TokenType.LEFT_PAREN) {
+                    debugger_1.debug.print('Mismatched Parentheses');
+                }
+                outputQueue.push(operatorStack.pop());
+            }
+            let numberStack = [];
+            for (const output of outputQueue) {
+                if (output.type == TokenType.NUMBER) {
+                    numberStack.push(output.v);
+                }
+                else if (output.type == TokenType.OPERATOR) {
+                    const right = numberStack.pop();
+                    const left = numberStack.pop();
+                    if (right == undefined || left == undefined) {
+                        debugger_1.debug.print('Insufficient numbers in to operate on.');
+                        continue;
+                    }
+                    let pushVal = Operate[output.s](left, right);
+                    numberStack.push(pushVal);
+                }
+                else if (output.type == TokenType.FUNCTION) {
+                    const right = numberStack.pop();
+                    const left = numberStack.pop();
+                    if (right == undefined || left == undefined) {
+                        debugger_1.debug.print('Insufficient numbers in to function on.');
+                        continue;
+                    }
+                    let pushVal = tokenFunctions[output.s]([left, right]);
+                    numberStack.push(pushVal);
+                }
+            }
+            if (numberStack.length == 1) {
+                return numberStack[0];
+            }
+            if (numberStack.length > 1) {
+                debugger_1.debug.print('Multiple numbers found, returning first');
+                return numberStack[0];
+            }
+            debugger_1.debug.print('No values found?!');
+            return 'No values found at the end.';
+        }
+        function runTest(statement, ctx) {
+            const replaced = replacify(statement, ctx);
+            if (replaced.error) {
+                return replaced.error;
+            }
+            const value = shuntingYard(replaced.text);
+            if (value == CompareBoolean.TRUE) {
+                return '';
+            }
+            if (value == CompareBoolean.FALSE) {
+                return `FAILED: ${statement}`;
+            }
+            return `FAILED: Test result is neither {TRUE} nor {FALSE}: ${statement} resulted in ${value}`;
+        }
+        exports.runTest = runTest;
+        function runTests(testString, ctx) {
+            const lines = testString
+                .split('\n') // One test per line.
+                .map((l) => l.trim()) // Remove whitespace at ends.
+                .filter((l) => !l.startsWith('#')) // Allow commented tests.
+                .filter(Boolean); // Remove empty lines.
+            const result = [];
+            for (const line of lines) {
+                const err = runTest(line, ctx);
+                if (err) {
+                    result.push(err);
+                }
+            }
+            return result;
+        }
+        exports.runTests = runTests;
+    });
+    define("monster_instance", ["require", "exports", "common", "ilmina_stripped", "templates", "fuzzy_search"], function (require, exports, common_3, ilmina_stripped_4, templates_2, fuzzy_search_2) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const AWAKENING_BONUS = new Map([
@@ -5496,14 +5906,14 @@
                 this.attribute = common_3.Attribute.NONE; // Attribute override.
                 this.transformedTo = -1; // Monster transformation.
                 this.id = id;
-                this.el = templates_1.create('div');
-                this.inheritIcon = new templates_1.MonsterInherit();
-                this.icon = new templates_1.MonsterIcon();
+                this.el = templates_2.create('div');
+                this.inheritIcon = new templates_2.MonsterInherit();
+                this.icon = new templates_2.MonsterIcon();
                 this.icon.setOnUpdate(onUpdate);
-                this.latentIcon = new templates_1.MonsterLatent();
+                this.latentIcon = new templates_2.MonsterLatent();
                 const inheritIconEl = this.inheritIcon.getElement();
                 inheritIconEl.onclick = () => {
-                    const els = document.getElementsByClassName(templates_1.ClassNames.MONSTER_SELECTOR);
+                    const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
                     if (els.length > 1) {
                         const el = els[1];
                         el.focus();
@@ -5512,7 +5922,7 @@
                 this.el.appendChild(inheritIconEl);
                 this.el.appendChild(this.icon.getElement());
                 this.el.onclick = () => {
-                    const els = document.getElementsByClassName(templates_1.ClassNames.MONSTER_SELECTOR);
+                    const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
                     if (els.length) {
                         const el = els[0];
                         el.focus();
@@ -5917,7 +6327,12 @@
                 return awakenings.filter(filterFn);
             }
             countAwakening(awakening, playerMode = 1, ignoreTransform = false) {
-                return this.getAwakenings(playerMode, new Set([awakening]), ignoreTransform).length;
+                let count = this.getAwakenings(playerMode, new Set([awakening]), ignoreTransform).length;
+                let plusInfo = common_3.AwakeningToPlus.get(awakening);
+                if (plusInfo) {
+                    count += plusInfo.multiplier * this.getAwakenings(playerMode, new Set([plusInfo.awakening]), ignoreTransform).length;
+                }
+                return count;
             }
             getLatents(filterSet = null) {
                 let filterFn = (_latent) => true;
@@ -6145,6 +6560,25 @@
                 instanceA.copyFrom(instanceB);
                 instanceB.copyFrom(temp);
             }
+            makeTestContext(playerMode) {
+                const skillId = this.getCard().activeSkillId;
+                const CD = skillId ? ilmina_stripped_4.floof.model.playerSkills[skillId].maxCooldown : 0;
+                const CD_MAX = skillId ? ilmina_stripped_4.floof.model.playerSkills[skillId].initialCooldown : 0;
+                const inherit = this.getInheritCard();
+                const inheritSkillId = inherit ? inherit.activeSkillId : 0;
+                return {
+                    ID: this.getId(),
+                    ATTRIBUTE: (this.getAttribute() >= 0) ? 1 << this.getAttribute() : 0,
+                    SUBATTRIBUTE: (this.getSubattribute() >= 0) ? 1 << this.getSubattribute() : 0,
+                    HP: this.getHp(playerMode),
+                    ATK: this.getAtk(playerMode),
+                    RCV: this.getRcv(playerMode),
+                    CD,
+                    CD_MAX,
+                    INHERIT_CD: CD + (inheritSkillId ? ilmina_stripped_4.floof.model.playerSkills[inheritSkillId].maxCooldown : 0),
+                    INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? ilmina_stripped_4.floof.model.playerSkills[inheritSkillId].initialCooldown : 0),
+                };
+            }
         }
         exports.MonsterInstance = MonsterInstance;
     });
@@ -6173,7 +6607,7 @@
         }
         exports.DamagePing = DamagePing;
     });
-    define("combo_container", ["require", "exports", "common", "templates"], function (require, exports, common_5, templates_2) {
+    define("combo_container", ["require", "exports", "common", "templates"], function (require, exports, common_5, templates_3) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Combo {
@@ -6221,7 +6655,7 @@
                 this.bonusCombosLeader = 0;
                 this.bonusCombosActive = 0;
                 this.onUpdate = [];
-                this.comboEditor = new templates_2.ComboEditor();
+                this.comboEditor = new templates_3.ComboEditor();
                 this.comboEditor.commandInput.onkeyup = (e) => {
                     if (e.keyCode == 13) {
                         const remainingCommands = this.doCommands(this.comboEditor.commandInput.value);
@@ -7561,46 +7995,7 @@
         }
         exports.awokenBindClear = awokenBindClear;
     });
-    define("debugger", ["require", "exports", "templates"], function (require, exports, templates_3) {
-        "use strict";
-        Object.defineProperty(exports, "__esModule", { value: true });
-        class DebuggerEl {
-            constructor() {
-                this.el = templates_3.create('div');
-                this.inputEl = templates_3.create('input');
-                this.buttons = [];
-                this.textarea = templates_3.create('textarea');
-                this.text = '';
-                this.el.appendChild(this.inputEl);
-                this.el.appendChild(this.textarea);
-                this.addButton('Clear', () => {
-                    this.text = '';
-                    this.textarea.value = '';
-                });
-                this.textarea.style.width = `100%`;
-                this.textarea.style.fontSize = 'small';
-                this.textarea.style.height = '250px';
-                this.textarea.style.fontFamily = 'monospace';
-            }
-            addButton(text, onclick) {
-                const button = templates_3.create('button');
-                button.innerText = text;
-                button.onclick = onclick;
-                this.el.insertBefore(button, this.textarea);
-                this.buttons.push(button);
-            }
-            getElement() {
-                return this.el;
-            }
-            print(text) {
-                this.text += `\n${text}`;
-                this.textarea.value = this.text;
-            }
-        }
-        const debug = new DebuggerEl();
-        exports.debug = debug;
-    });
-    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_6, leaders, debugger_1) {
+    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_test"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_6, leaders, debugger_2, team_test_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const DEFAULT_STATE = {
@@ -7697,6 +8092,7 @@
             constructor() {
                 this.teamName = '';
                 this.description = '';
+                this.tests = '';
                 this.monsters = [];
                 this.playerMode = 1;
                 this.activeTeamIdx = 0;
@@ -7735,8 +8131,11 @@
                     if (ctx.monsterIdx != undefined) {
                         this.setActiveMonsterIdx(ctx.monsterIdx);
                     }
-                    if (ctx.description) {
+                    if (ctx.description != undefined) {
                         this.description = ctx.description;
+                    }
+                    if (ctx.tests != undefined) {
+                        this.tests = ctx.tests;
                     }
                     if (ctx.currentHp != undefined) {
                         if (ctx.currentHp < 0) {
@@ -7952,6 +8351,7 @@
                     title: this.teamName,
                     description: this.description,
                     monsters: this.monsters.map((monster) => monster.toJson()),
+                    tests: this.tests,
                 };
             }
             fromJson(json) {
@@ -7965,6 +8365,12 @@
                     else {
                         this.monsters[i].setId(-1);
                     }
+                }
+                if (json.tests) {
+                    this.tests = json.tests;
+                }
+                else {
+                    this.tests = '';
                 }
                 this.update();
             }
@@ -8142,7 +8548,7 @@
                 time += leaders.timeExtend(leadId) + leaders.timeExtend(helperId);
                 for (const monster of monsters) {
                     time += monster.countAwakening(common_7.Awakening.TIME) * 0.5;
-                    time += monster.countAwakening(common_7.Awakening.TIME_PLUS);
+                    // time += monster.countAwakening(Awakening.TIME_PLUS);
                     time += monster.latents.filter((l) => l == common_7.Latent.TIME).length * 0.05;
                     time += monster.latents.filter((l) => l == common_7.Latent.TIME_PLUS).length * 0.12;
                 }
@@ -8291,11 +8697,11 @@
                                     let burstMultiplier = burst.multiplier;
                                     for (const awakening of burst.awakenings) {
                                         burstMultiplier += this.countAwakening(awakening) * burst.awakeningScale;
-                                        if (common_7.AwakeningToPlusAwakening.has(awakening)) {
-                                            const plusAwakening = common_7.AwakeningToPlusAwakening.get(awakening);
-                                            const perAwakening = Number(common_7.PlusAwakeningMultiplier.get(plusAwakening));
-                                            burstMultiplier += perAwakening * this.countAwakening(plusAwakening) * burst.awakeningScale;
-                                        }
+                                        // if (AwakeningToPlusAwakening.has(awakening)) {
+                                        //   const plusAwakening = AwakeningToPlusAwakening.get(awakening) as Awakening;
+                                        //   const perAwakening = Number(PlusAwakeningMultiplier.get(plusAwakening));
+                                        //   burstMultiplier += perAwakening * this.countAwakening(plusAwakening) * burst.awakeningScale;
+                                        // }
                                     }
                                     multiplier *= burstMultiplier;
                                 }
@@ -8452,6 +8858,60 @@
                 });
                 this.updateCb(this.activeMonster);
             }
+            makeTeamContext(idx) {
+                const monsters = this.getTeamAt(idx);
+                const result = {
+                    HP: this.getHp(),
+                    RCV: this.getRcv(),
+                    TIME: this.getTime(),
+                    LEADER: monsters[0].makeTestContext(this.playerMode),
+                    HELPER: monsters[5].makeTestContext(this.playerMode),
+                    SUB_1: monsters[1].makeTestContext(this.playerMode),
+                    SUB_2: monsters[2].makeTestContext(this.playerMode),
+                    SUB_3: monsters[3].makeTestContext(this.playerMode),
+                    SUB_4: monsters[4].makeTestContext(this.playerMode),
+                    SB: this.countAwakening(common_7.Awakening.SKILL_BOOST),
+                    SBR: this.countAwakening(common_7.Awakening.SBR),
+                    FUA: this.countAwakening(common_7.Awakening.BONUS_ATTACK),
+                    SFUA: this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER),
+                    RESIST_BLIND: this.countAwakening(common_7.Awakening.RESIST_BLIND),
+                    RESIST_POISON: this.countAwakening(common_7.Awakening.RESIST_POISON),
+                    RESIST_JAMMER: this.countAwakening(common_7.Awakening.RESIST_JAMMER),
+                    RESIST_CLOUD: this.countAwakening(common_7.Awakening.RESIST_CLOUD),
+                    RESIST_TAPE: this.countAwakening(common_7.Awakening.RESIST_TAPE),
+                    GUARD_BREAK: this.countAwakening(common_7.Awakening.GUARD_BREAK),
+                    RESIST_FIRE: this.countAwakening(common_7.Awakening.RESIST_FIRE) * 7 + this.countLatent(common_7.Latent.RESIST_FIRE) + this.countLatent(common_7.Latent.RESIST_FIRE_PLUS) * 2.5,
+                    RESIST_WATER: this.countAwakening(common_7.Awakening.RESIST_WATER) * 7 + this.countLatent(common_7.Latent.RESIST_WATER) + this.countLatent(common_7.Latent.RESIST_WATER_PLUS) * 2.5,
+                    RESIST_WOOD: this.countAwakening(common_7.Awakening.RESIST_WOOD) * 7 + this.countLatent(common_7.Latent.RESIST_WOOD) + this.countLatent(common_7.Latent.RESIST_WOOD_PLUS) * 2.5,
+                    RESIST_LIGHT: this.countAwakening(common_7.Awakening.RESIST_LIGHT) * 7 + this.countLatent(common_7.Latent.RESIST_LIGHT) + this.countLatent(common_7.Latent.RESIST_LIGHT_PLUS) * 2.5,
+                    RESIST_DARK: this.countAwakening(common_7.Awakening.RESIST_DARK) * 7 + this.countLatent(common_7.Latent.RESIST_DARK) + this.countLatent(common_7.Latent.RESIST_DARK_PLUS) * 2.5,
+                    // Leader Skill capabilities.
+                    AUTOFUA: team_test_1.CompareBoolean.FALSE,
+                };
+                return result;
+            }
+            makeTestContext() {
+                const ctx = {
+                    MODE: this.playerMode,
+                    P1: this.makeTeamContext(0),
+                    // Constants.
+                    FIRE: 1 << 0,
+                    WATER: 1 << 1,
+                    WOOD: 1 << 2,
+                    LIGHT: 1 << 3,
+                    DARK: 1 << 4,
+                    ALL_ATTRIBUTES: 31,
+                    TRUE: team_test_1.CompareBoolean.TRUE,
+                    FALSE: team_test_1.CompareBoolean.FALSE,
+                };
+                if (this.playerMode > 1) {
+                    ctx.P2 = this.makeTeamContext(1);
+                }
+                if (this.playerMode > 2) {
+                    ctx.P3 = this.makeTeamContext(2);
+                }
+                return ctx;
+            }
             countAwakening(awakening, ignoreTransform = false) {
                 if (!this.state.awakenings) {
                     return 0;
@@ -8473,11 +8933,11 @@
                 return monsters.reduce((total, monster) => total + monster.latents.filter((l) => l == latent).length, 0);
             }
             damage(amount, attribute, comboContainer) {
-                debugger_1.debug.print(`Team being hit for ${amount} of ${common_7.AttributeToName.get(attribute)}`);
+                debugger_2.debug.print(`Team being hit for ${amount} of ${common_7.AttributeToName.get(attribute)}`);
                 let multiplier = 1;
                 if (this.state.attributesShielded.includes(attribute)) {
                     multiplier = 0;
-                    debugger_1.debug.print('Team is avoiding all damage from ' + common_7.AttributeToName.get(attribute));
+                    debugger_2.debug.print('Team is avoiding all damage from ' + common_7.AttributeToName.get(attribute));
                 }
                 const team = this.getActiveTeam();
                 const leader = team[0].getCard().leaderSkillId;
@@ -8492,13 +8952,13 @@
                 };
                 const leaderMultiplier = leaders.damageMult(leader, ctx) * leaders.damageMult(helper, ctx);
                 if (leaderMultiplier != 1) {
-                    debugger_1.debug.print(`Damage reduced to ${(leaderMultiplier * 100).toFixed(2)}% from leader skills.`);
+                    debugger_2.debug.print(`Damage reduced to ${(leaderMultiplier * 100).toFixed(2)}% from leader skills.`);
                     multiplier *= leaderMultiplier;
                 }
                 if (this.state.shieldPercent) {
                     const shieldMultiplier = (100 - this.state.shieldPercent) / 100;
                     multiplier *= shieldMultiplier;
-                    debugger_1.debug.print(`Damage reduced to ${shieldMultiplier.toFixed(2)}x due to shields.`);
+                    debugger_2.debug.print(`Damage reduced to ${shieldMultiplier.toFixed(2)}x due to shields.`);
                 }
                 // Assuming stacking L-Guards.
                 if (comboContainer.combos['h'].some((c) => c.shape == common_7.Shape.L)) {
@@ -8508,7 +8968,7 @@
                     }
                     if (lGuardMultiplier != 1) {
                         multiplier *= lGuardMultiplier;
-                        debugger_1.debug.print(`Damage reduced to ${lGuardMultiplier.toFixed(2)}x due to L-Guard`);
+                        debugger_2.debug.print(`Damage reduced to ${lGuardMultiplier.toFixed(2)}x due to L-Guard`);
                     }
                 }
                 let attrMultiplier = 1;
@@ -8544,13 +9004,13 @@
                 attrMultiplier = Math.max(0, attrMultiplier);
                 if (attrMultiplier != 1) {
                     multiplier *= (attrMultiplier);
-                    debugger_1.debug.print(`Damage reduced to ${(100 * attrMultiplier).toFixed(1)}% due to Attribute Resist Awakenings and Latents`);
+                    debugger_2.debug.print(`Damage reduced to ${(100 * attrMultiplier).toFixed(1)}% due to Attribute Resist Awakenings and Latents`);
                 }
                 amount = Math.ceil(amount * multiplier);
-                debugger_1.debug.print(`Team hit for ${amount}, which is ${(multiplier * 100).toFixed(2)}% of the original damage`);
+                debugger_2.debug.print(`Team hit for ${amount}, which is ${(multiplier * 100).toFixed(2)}% of the original damage`);
                 this.state.currentHp -= amount;
                 if (this.state.currentHp < 0) {
-                    debugger_1.debug.print(`Team was overkilled by ${-1 * this.state.currentHp}`);
+                    debugger_2.debug.print(`Team was overkilled by ${-1 * this.state.currentHp}`);
                 }
                 this.state.currentHp = Math.max(0, this.state.currentHp) || 0;
                 // Resolve
@@ -8558,7 +9018,7 @@
                 if (this.state.currentHp == 0) {
                     if (percentHp >= Math.min(leaders.resolve(leader), leaders.resolve(helper))) {
                         this.state.currentHp = 1;
-                        debugger_1.debug.print('RESOLVE TRIGGERED, team maintains 1 HP');
+                        debugger_2.debug.print('RESOLVE TRIGGERED, team maintains 1 HP');
                     }
                 }
             }
@@ -8599,22 +9059,17 @@
                 const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.playerMode, this.state.awakenings));
                 const counts = new Map();
                 // General
-                counts.set(common_7.Awakening.SKILL_BOOST, this.countAwakening(common_7.Awakening.SKILL_BOOST) +
-                    2 * this.countAwakening(common_7.Awakening.SKILL_BOOST_PLUS));
-                counts.set(common_7.Awakening.TIME, this.countAwakening(common_7.Awakening.TIME) +
-                    2 * this.countAwakening(common_7.Awakening.TIME_PLUS));
+                counts.set(common_7.Awakening.SKILL_BOOST, this.countAwakening(common_7.Awakening.SKILL_BOOST));
+                counts.set(common_7.Awakening.TIME, this.countAwakening(common_7.Awakening.TIME));
                 counts.set(common_7.Awakening.SOLOBOOST, this.countAwakening(common_7.Awakening.SOLOBOOST));
                 counts.set(common_7.Awakening.BONUS_ATTACK, this.countAwakening(common_7.Awakening.BONUS_ATTACK));
                 counts.set(common_7.Awakening.BONUS_ATTACK_SUPER, this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER));
                 counts.set(common_7.Awakening.L_GUARD, this.countAwakening(common_7.Awakening.L_GUARD));
                 // Resists
                 counts.set(common_7.Awakening.SBR, this.countAwakening(common_7.Awakening.SBR));
-                counts.set(common_7.Awakening.RESIST_POISON, this.countAwakening(common_7.Awakening.RESIST_POISON) +
-                    5 * this.countAwakening(common_7.Awakening.RESIST_POISON_PLUS));
-                counts.set(common_7.Awakening.RESIST_BLIND, this.countAwakening(common_7.Awakening.RESIST_BLIND) +
-                    5 * this.countAwakening(common_7.Awakening.RESIST_BLIND_PLUS));
-                counts.set(common_7.Awakening.RESIST_JAMMER, this.countAwakening(common_7.Awakening.RESIST_JAMMER) +
-                    5 * this.countAwakening(common_7.Awakening.RESIST_JAMMER_PLUS));
+                counts.set(common_7.Awakening.RESIST_POISON, this.countAwakening(common_7.Awakening.RESIST_POISON));
+                counts.set(common_7.Awakening.RESIST_BLIND, this.countAwakening(common_7.Awakening.RESIST_BLIND));
+                counts.set(common_7.Awakening.RESIST_JAMMER, this.countAwakening(common_7.Awakening.RESIST_JAMMER));
                 counts.set(common_7.Awakening.RESIST_CLOUD, this.countAwakening(common_7.Awakening.RESIST_CLOUD));
                 counts.set(common_7.Awakening.RESIST_TAPE, this.countAwakening(common_7.Awakening.RESIST_TAPE));
                 // OE
@@ -8638,15 +9093,18 @@
                 counts.set(common_7.Awakening.RESIST_LIGHT, this.countAwakening(common_7.Awakening.RESIST_LIGHT));
                 counts.set(common_7.Awakening.RESIST_DARK, this.countAwakening(common_7.Awakening.RESIST_DARK));
                 counts.set(common_7.Awakening.AUTOHEAL, this.countAwakening(common_7.Awakening.AUTOHEAL));
+                const testResult = team_test_1.runTests(this.tests, this.makeTestContext());
                 return {
                     hps: this.getIndividualHp(),
-                    atks: atks,
+                    atks,
                     rcvs: this.getIndividualRcv(),
-                    cds: cds,
+                    cds,
                     totalHp: this.getHp(),
                     totalRcv: this.getRcv(),
                     totalTime: this.getTime(),
-                    counts: counts,
+                    counts,
+                    tests: this.tests,
+                    testResult,
                 };
             }
         }
@@ -8953,7 +9411,7 @@
         }
         exports.EnemyInstance = EnemyInstance;
     });
-    define("actives", ["require", "exports", "common", "damage_ping", "ilmina_stripped", "debugger"], function (require, exports, common_9, damage_ping_2, ilmina_stripped_8, debugger_2) {
+    define("actives", ["require", "exports", "common", "damage_ping", "ilmina_stripped", "debugger"], function (require, exports, common_9, damage_ping_2, ilmina_stripped_8, debugger_3) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // 0
@@ -8985,7 +9443,7 @@
                 const multiplier100 = atk100base + Math.floor(Math.random() * (atk100max - atk100base));
                 ping.multiply(multiplier100 / 100, common_9.Round.UP);
                 if (atk100base != atk100max) {
-                    debugger_2.debug.print('Random scaling active used. Damage is inconsistent');
+                    debugger_3.debug.print('Random scaling active used. Damage is inconsistent');
                 }
                 return [ping];
             },
@@ -9502,13 +9960,13 @@
         };
         function getGeneratorIfExists(activeId) {
             if (!ilmina_stripped_8.floof.model.playerSkills[activeId]) {
-                debugger_2.debug.print(`Active ID not found: ${activeId}`);
+                debugger_3.debug.print(`Active ID not found: ${activeId}`);
                 return;
             }
             const active = ilmina_stripped_8.floof.model.playerSkills[activeId];
             const generator = ACTIVE_GENERATORS[active.internalEffectId];
             if (!generator) {
-                debugger_2.debug.print(`Active Internal Effect ${active.internalEffectId} not implemented`);
+                debugger_3.debug.print(`Active Internal Effect ${active.internalEffectId} not implemented`);
                 return;
             }
             return generator;
@@ -9729,7 +10187,7 @@
         }
         exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
     });
-    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common", "debugger"], function (require, exports, ilmina_stripped_9, common_10, debugger_3) {
+    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common", "debugger"], function (require, exports, ilmina_stripped_9, common_10, debugger_4) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         var SkillType;
@@ -10587,7 +11045,7 @@
                     return;
                 }
                 if (team.getActiveTeam()[0].latents.some((l) => l == common_10.Latent.RESIST_LEADER_SWAP)) {
-                    debugger_3.debug.print('Leader Swap Resisted');
+                    debugger_4.debug.print('Leader Swap Resisted');
                     return;
                 }
                 let idx = subs[Math.floor(Math.random() * subs.length)];
@@ -12571,9 +13029,10 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_13, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_4, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_13, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
+        // import { testTestTestTest } from './team_test';
         class Valeria {
             constructor() {
                 this.display = new templates_7.ValeriaDisplay();
@@ -12706,7 +13165,7 @@
                     this.dungeon.loadDungeon(Number(dungeonId));
                 }
                 this.display.panes[2].appendChild(this.dungeon.getPane());
-                debugger_4.debug.addButton('Print Skills', () => {
+                debugger_5.debug.addButton('Print Skills', () => {
                     const enemy = this.dungeon.getActiveEnemy();
                     const id = enemy.id;
                     const skillTexts = enemy_skills_2.textifyEnemySkills({
@@ -12714,10 +13173,10 @@
                         atk: enemy.getAtk(),
                     });
                     for (let i = 0; i < skillTexts.length; i++) {
-                        debugger_4.debug.print(`${i + 1}: ${skillTexts[i]} `);
+                        debugger_5.debug.print(`${i + 1}: ${skillTexts[i]} `);
                     }
                 });
-                debugger_4.debug.addButton('Simulate Next Skill', () => {
+                debugger_5.debug.addButton('Simulate Next Skill', () => {
                     const attributes = new Set();
                     const types = new Set();
                     for (const m of this.team.getActiveTeam()) {
@@ -12733,15 +13192,15 @@
                 });
                 this.dungeon.onEnemySkill = (idx, otherIdxs) => {
                     if (idx < 0) {
-                        debugger_4.debug.print('No skill to use');
+                        debugger_5.debug.print('No skill to use');
                         return;
                     }
                     const enemy = this.dungeon.getActiveEnemy();
                     if (otherIdxs.length) {
-                        debugger_4.debug.print(`  * Not using potential skills: ${otherIdxs}`);
+                        debugger_5.debug.print(`  * Not using potential skills: ${otherIdxs}`);
                     }
-                    debugger_4.debug.print('** Using the following skill **');
-                    debugger_4.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
+                    debugger_5.debug.print('** Using the following skill **');
+                    debugger_5.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
                     const skillCtx = enemy_skills_2.toSkillContext(enemy.id, idx);
                     enemy_skills_2.effect(skillCtx, { enemy, team: this.team, comboContainer: this.comboContainer });
                     enemy.charges -= ilmina_stripped_11.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
@@ -12893,7 +13352,7 @@
             };
             // document.body.appendChild(valeria.teamPhotoCanvas);
             if (localStorage.debug) {
-                document.body.appendChild(debugger_4.debug.getElement());
+                document.body.appendChild(debugger_5.debug.getElement());
             }
             window.valeria = valeria;
             const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`);
