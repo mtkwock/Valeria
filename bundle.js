@@ -12444,7 +12444,7 @@
         }
         exports.DungeonInstance = DungeonInstance;
     });
-    define("team_photo", ["require", "exports", "common", "ilmina_stripped", "templates"], function (require, exports, common_12, ilmina_stripped_10, templates_6) {
+    define("team_photo", ["require", "exports", "ilmina_stripped", "templates"], function (require, exports, ilmina_stripped_10, templates_6) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function borderedText(ctx, text, x, y, borderThickness = -1, borderColor = 'black', color = 'yellow') {
@@ -12846,10 +12846,6 @@
                     if (this.opts.awakenings.length) {
                         const awakeningTotals = this.opts.awakenings.map((awakening) => {
                             let total = team.countAwakening(awakening, !this.opts.useTransform);
-                            const plusInfo = common_12.AwakeningToPlus.get(awakening);
-                            if (plusInfo) {
-                                total += team.countAwakening(plusInfo.awakening, !this.opts.useTransform) * plusInfo.multiplier;
-                            }
                             return { awakening, total };
                         });
                         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
@@ -13020,7 +13016,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_13, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // import { testTestTestTest } from './team_test';
@@ -13294,7 +13290,7 @@
                     }
                     ping.actualDamage = oldHp - currentHp;
                 }
-                const specialPing = new damage_ping_3.DamagePing(this.team.getActiveTeam()[0], common_13.Attribute.FIXED, false);
+                const specialPing = new damage_ping_3.DamagePing(this.team.getActiveTeam()[0], common_12.Attribute.FIXED, false);
                 specialPing.damage = trueBonusAttack;
                 specialPing.isActive = true;
                 specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.playerMode, {
@@ -13317,7 +13313,7 @@
                 if (specialPing.actualDamage) {
                     pings = [...pings, specialPing];
                 }
-                this.team.teamPane.updateDamage(this.team.action, pings.map((ping) => ({ attribute: ping ? ping.attribute : common_13.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_13.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_13.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
+                this.team.teamPane.updateDamage(this.team.action, pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
                 return { endEnemyHp: currentHp, healing };
             }
             getElement() {
@@ -13325,7 +13321,7 @@
             }
         }
         async function init() {
-            await common_13.waitFor(() => ilmina_stripped_11.floof.ready);
+            await common_12.waitFor(() => ilmina_stripped_11.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
