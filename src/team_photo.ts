@@ -583,10 +583,6 @@ class FancyPhoto {
       if (this.opts.awakenings.length) {
         const awakeningTotals = this.opts.awakenings.map((awakening) => {
           let total = team.countAwakening(awakening, !this.opts.useTransform);
-          const plusInfo = AwakeningToPlus.get(awakening);
-          if (plusInfo) {
-            total += team.countAwakening(plusInfo.awakening, !this.opts.useTransform) * plusInfo.multiplier;
-          }
           return { awakening, total };
         });
         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
