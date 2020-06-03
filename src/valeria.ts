@@ -40,6 +40,11 @@ class Valeria {
         this.team.update();
         return;
       }
+      if (ctx.badge != undefined) {
+        this.team.badges[this.team.activeTeamIdx] = ctx.badge;
+        this.team.update();
+        return;
+      }
       const monster = this.team.monsters[this.team.activeMonster];
 
       if (ctx.level) {
@@ -254,6 +259,8 @@ class Valeria {
   updateMonsterEditor(): void {
     const monster = this.team.monsters[this.team.activeMonster];
     this.monsterEditor.update({
+      mode: this.team.playerMode,
+      badge: this.team.getBadge(),
       id: monster.getId(),
       inheritId: monster.inheritId,
       level: monster.level,
@@ -290,6 +297,7 @@ class Valeria {
         playerMode: this.team.playerMode,
         currentHp: this.team.state.currentHp,
         maxHp: this.team.getHp(),
+        badge: this.team.badges[this.team.activeTeamIdx],
       });
     }
 

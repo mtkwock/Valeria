@@ -4,6 +4,7 @@ import {
   Awakening,
   Latent,
   Round, Shape,
+  TeamBadge, TeamBadgeToAwakening,
 } from './common';
 import { MonsterInstance, MonsterJson } from './monster_instance';
 import { DamagePing } from './damage_ping';
@@ -96,6 +97,7 @@ const DEFAULT_STATE: TeamState = {
 
 interface TeamJson {
   title: string;
+  badges: TeamBadge[];
   description: string;
   playerMode: number;
   monsters: MonsterJson[];
@@ -192,6 +194,7 @@ class Team {
   storage: StoredTeams;
   state: TeamState = Object.assign({}, DEFAULT_STATE);
   teamPane: TeamPane;
+  badges: TeamBadge[] = [TeamBadge.NONE, TeamBadge.NONE, TeamBadge.NONE];
   // On change monster selection.
   updateCb: (idx: number) => void;
 
@@ -464,6 +467,7 @@ class Team {
     return {
       playerMode: this.playerMode,
       title: this.teamName,
+      badges: this.badges.slice(),
       description: this.description,
       monsters: this.monsters.map((monster) => monster.toJson()),
       tests: this.tests,
@@ -474,6 +478,11 @@ class Team {
     this.setPlayerMode(json.playerMode || 1);
     this.teamName = json.title || 'UNTITLED';
     this.description = json.description || '';
+    if (json.badges) {
+      this.badges = json.badges;
+    } else {
+      this.badges = [TeamBadge.NONE, TeamBadge.NONE, TeamBadge.NONE];
+    }
     for (let i = 0; i < this.monsters.length; i++) {
       if (i < json.monsters.length) {
         this.monsters[i].fromJson(json.monsters[i]);
@@ -614,7 +623,14 @@ class Team {
       return this.state.fixedHp;
     }
     const individualHps = this.getIndividualHp(true, this.playerMode == 2);
-    return individualHps.reduce((total, next) => total + next, 0);
+    let total = individualHps.reduce((total, next) => total + next, 0);
+    if (this.badges[this.activeTeamIdx] == TeamBadge.HP) {
+      total = Math.ceil(total * 1.05);
+    } else if (this.badges[this.activeTeamIdx] == TeamBadge.HP_PLUS) {
+      total = Math.ceil(total * 1.15);
+    }
+
+    return total;
   }
 
   getIndividualRcv(includeLeaderSkill: boolean = false): number[] {
@@ -654,7 +670,13 @@ class Team {
   getRcv(): number {
     const rcvs = this.getIndividualRcv(true);
     const totalRcv = rcvs.reduce((total, next) => total + next, 0);
-    return totalRcv > 0 ? totalRcv : 0;
+    let total = totalRcv > 0 ? totalRcv : 0;
+    if (this.badges[this.activeTeamIdx] == TeamBadge.RCV) {
+      total = Math.ceil(total * 1.25);
+    } else if (this.badges[this.activeTeamIdx] == TeamBadge.RCV_PLUS) {
+      total = Math.ceil(total * 1.35);
+    }
+    return total;
   }
 
   getTime(): number {
@@ -671,9 +693,8 @@ class Team {
 
     time += leaders.timeExtend(leadId) + leaders.timeExtend(helperId);
 
+    time += this.countAwakening(Awakening.TIME, { includeTeamBadge: true }) * 0.5;
     for (const monster of monsters) {
-      time += monster.countAwakening(Awakening.TIME) * 0.5;
-      // time += monster.countAwakening(Awakening.TIME_PLUS);
       time += monster.latents.filter((l) => l == Latent.TIME).length * 0.05;
       time += monster.latents.filter((l) => l == Latent.TIME_PLUS).length * 0.12;
     }
@@ -716,6 +737,16 @@ class Team {
     return 7;
   }
 
+  getBadge(idx: number = -1): TeamBadge {
+    if (this.playerMode == 2) {
+      return TeamBadge.NONE;
+    }
+    if (idx < 0) {
+      idx = this.activeTeamIdx;
+    }
+    return this.badges[this.activeTeamIdx];
+  }
+
   getDamageCombos(comboContainer: ComboContainer): { pings: DamagePing[]; healing: number; trueBonusAttack: number } {
     comboContainer.bonusCombosLeader = 0;
     const pm = this.playerMode;
@@ -724,6 +755,7 @@ class Team {
     const monsters = this.getActiveTeam();
     const leadId = monsters[0].bound ? -1 : monsters[0].getCard().leaderSkillId;
     const helpId = monsters[5].bound ? -1 : monsters[5].getCard().leaderSkillId;
+    const badge = this.getBadge();
     const partialAtk = (id: number, ping: DamagePing, healing: number) => leaders.atk(id, {
       ping,
       team: monsters,
@@ -857,6 +889,13 @@ class Team {
       isMultiplayer: this.isMultiplayer(),
     });
 
+    let rcvBadgeMult = 1;
+    if (badge == TeamBadge.RCV) {
+      rcvBadgeMult = 1.25;
+    } else if (badge == TeamBadge.RCV_PLUS) {
+      rcvBadgeMult = 1.35;
+    }
+
     for (const combo of comboContainer.combos['h']) {
       let multiplier = (combo.count + 1) * 0.25;
       if (combo.enhanced) {
@@ -883,7 +922,7 @@ class Team {
           rcv *= (1.5 ** monster.countAwakening(Awakening.OE_HEART, pm));
         }
         const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
-        healing += Round.UP(rcv * multiplier * rcvMult);
+        healing += Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
       }
     }
 
@@ -950,17 +989,22 @@ class Team {
       }
     }
 
+    let atkBadgeMult = 1;
+    if (badge == TeamBadge.ATK) {
+      atkBadgeMult = 1.05;
+    } else if (badge == TeamBadge.ATK_PLUS) {
+      rcvBadgeMult = 1.15;
+    }
+
     for (const ping of pings) {
       if (!ping || !ping.damage) {
         continue;
       }
 
       let val = ping.damage;
-      // val = val * partialAtk(leadId, ping, healing);
-      // val = val * partialAtk(helpId, ping, healing);
       val = Math.fround(val) * Math.fround(partialAtk(leadId, ping, healing) * 100) / Math.fround(100);
       val = Math.fround(val) * Math.fround(partialAtk(helpId, ping, healing) * 100) / Math.fround(100);
-      ping.damage = Math.round(val);
+      ping.damage = Math.round(val * atkBadgeMult);
     }
 
     healing += this.countAwakening(Awakening.AUTOHEAL) * 1000;
@@ -985,7 +1029,7 @@ class Team {
   }
 
   update(): void {
-    this.teamPane.update(this.playerMode, this.teamName, this.description);
+    this.teamPane.update(this.playerMode, this.teamName, this.description, this.badges);
     for (let teamIdx = 0; teamIdx < 3; teamIdx++) {
       for (let monsterIdx = 0; monsterIdx < 6; monsterIdx++) {
         const displayIndex = 6 * teamIdx + monsterIdx;
@@ -1017,6 +1061,9 @@ class Team {
 
   private makeTeamContext(idx: number): PlayerTeamContext {
     const monsters = this.getTeamAt(idx);
+    const opts = {
+      includeTeamBadge: true,
+    };
     const result: PlayerTeamContext = {
       HP: this.getHp(),
       RCV: this.getRcv(),
@@ -1027,13 +1074,13 @@ class Team {
       SUB_2: monsters[2].makeTestContext(this.playerMode),
       SUB_3: monsters[3].makeTestContext(this.playerMode),
       SUB_4: monsters[4].makeTestContext(this.playerMode),
-      SB: this.countAwakening(Awakening.SKILL_BOOST),
-      SBR: this.countAwakening(Awakening.SBR),
+      SB: this.countAwakening(Awakening.SKILL_BOOST, opts),
+      SBR: this.countAwakening(Awakening.SBR, opts),
       FUA: this.countAwakening(Awakening.BONUS_ATTACK),
       SFUA: this.countAwakening(Awakening.BONUS_ATTACK_SUPER),
-      RESIST_BLIND: this.countAwakening(Awakening.RESIST_BLIND),
-      RESIST_POISON: this.countAwakening(Awakening.RESIST_POISON),
-      RESIST_JAMMER: this.countAwakening(Awakening.RESIST_JAMMER),
+      RESIST_BLIND: this.countAwakening(Awakening.RESIST_BLIND, opts),
+      RESIST_POISON: this.countAwakening(Awakening.RESIST_POISON, opts),
+      RESIST_JAMMER: this.countAwakening(Awakening.RESIST_JAMMER, opts),
       RESIST_CLOUD: this.countAwakening(Awakening.RESIST_CLOUD),
       RESIST_TAPE: this.countAwakening(Awakening.RESIST_TAPE),
       GUARD_BREAK: this.countAwakening(Awakening.GUARD_BREAK),
@@ -1074,7 +1121,7 @@ class Team {
     return ctx;
   }
 
-  countAwakening(awakening: Awakening, ignoreTransform = false): number {
+  countAwakening(awakening: Awakening, opts: { ignoreTransform?: boolean, includeTeamBadge?: boolean } = {}): number {
     if (!this.state.awakenings) {
       return 0;
     }
@@ -1086,9 +1133,16 @@ class Team {
       }
     }
 
-    return monsters.reduce(
-      (total, monster) => total + monster.countAwakening(awakening, this.playerMode, ignoreTransform),
+    let initialCount = monsters.reduce(
+      (total, monster) => total + monster.countAwakening(awakening, this.playerMode, opts.ignoreTransform || false),
       0);
+    if (this.playerMode != 2 && opts.includeTeamBadge) {
+      const maybeAwakeningCount = TeamBadgeToAwakening.get(this.badges[this.activeTeamIdx]);
+      if (maybeAwakeningCount && maybeAwakeningCount.awakening == awakening) {
+        initialCount += maybeAwakeningCount.count;
+      }
+    }
+    return initialCount;
   }
 
   countLatent(latent: Latent): number {
@@ -1235,20 +1289,23 @@ class Team {
     const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.playerMode, this.state.awakenings));
 
     const counts: Map<Awakening, number> = new Map();
+    const opts = {
+      includeTeamBadge: true,
+    };
 
     // General
-    counts.set(Awakening.SKILL_BOOST, this.countAwakening(Awakening.SKILL_BOOST));
-    counts.set(Awakening.TIME, this.countAwakening(Awakening.TIME));
+    counts.set(Awakening.SKILL_BOOST, this.countAwakening(Awakening.SKILL_BOOST, opts));
+    counts.set(Awakening.TIME, this.countAwakening(Awakening.TIME, opts));
     counts.set(Awakening.SOLOBOOST, this.countAwakening(Awakening.SOLOBOOST));
     counts.set(Awakening.BONUS_ATTACK, this.countAwakening(Awakening.BONUS_ATTACK));
     counts.set(Awakening.BONUS_ATTACK_SUPER, this.countAwakening(Awakening.BONUS_ATTACK_SUPER));
     counts.set(Awakening.L_GUARD, this.countAwakening(Awakening.L_GUARD));
 
     // Resists
-    counts.set(Awakening.SBR, this.countAwakening(Awakening.SBR));
-    counts.set(Awakening.RESIST_POISON, this.countAwakening(Awakening.RESIST_POISON));
-    counts.set(Awakening.RESIST_BLIND, this.countAwakening(Awakening.RESIST_BLIND));
-    counts.set(Awakening.RESIST_JAMMER, this.countAwakening(Awakening.RESIST_JAMMER));
+    counts.set(Awakening.SBR, this.countAwakening(Awakening.SBR, opts));
+    counts.set(Awakening.RESIST_POISON, this.countAwakening(Awakening.RESIST_POISON, opts));
+    counts.set(Awakening.RESIST_BLIND, this.countAwakening(Awakening.RESIST_BLIND, opts));
+    counts.set(Awakening.RESIST_JAMMER, this.countAwakening(Awakening.RESIST_JAMMER, opts));
     counts.set(Awakening.RESIST_CLOUD, this.countAwakening(Awakening.RESIST_CLOUD));
     counts.set(Awakening.RESIST_TAPE, this.countAwakening(Awakening.RESIST_TAPE));
 

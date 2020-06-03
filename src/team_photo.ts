@@ -1,4 +1,4 @@
-import { Latent } from './common';
+import { Latent, TeamBadge } from './common';
 import { Card, CardUiAssets, CardAssets, floof } from './ilmina_stripped';
 import { Team } from './player_team';
 import { getLatentPosition, getAwakeningOffsets, FancyPhotoOptions, PhotoArea } from './templates';
@@ -72,6 +72,46 @@ class TitleRow implements RowDraw {
     ctx.textAlign = 'left';
     ctx.font = `${ctx.canvas.width * 0.05}px Arial`;
     borderedText(ctx, this.title, ctx.canvas.width / 80, drawnOffsetY + ctx.canvas.width * 0.05, -1, 'black', 'white');
+  }
+}
+
+class TeamBadgeRow implements RowDraw {
+  private readonly badge: TeamBadge;
+  constructor(badge: TeamBadge) {
+    this.badge = badge;
+  }
+
+  getHeightOverWidth(): number {
+    return 0.06;
+  }
+
+  private getAssetName(): string {
+    return `assets/badge/${this.badge}.png`;
+  }
+
+  imagesToLoad(): string[] {
+    return [this.getAssetName()];
+  }
+
+  draw(ctx: CanvasRenderingContext2D, drawnOffsetY: number, images: Record<string, HTMLImageElement>) {
+    const width = ctx.canvas.width;
+    const badgeWidth = width * 0.06;
+    const badgeHeight = badgeWidth * 41 / 53;
+    ctx.drawImage(
+      images[this.getAssetName()],
+      width / 40,
+      drawnOffsetY + width * 0.004,
+      badgeWidth,
+      badgeHeight,
+      // -1 * x,
+      // -1 * y,
+      // 32,
+      // 32,
+      // offsetX,
+      // offsetY,
+      // sideLength,
+      // sideLength,
+    );
   }
 }
 
@@ -413,9 +453,14 @@ class AggregateAwakeningRow implements RowDraw {
     const maxOffset = ctx.canvas.width * 0.9;
     for (const { awakening, total } of this.totals) {
       drawAwakening(ctx, awakening, sideLength, xOffset, verticalOffset, im, total ? 1.0 : 0.5);
-      ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
+      const text = `x${total}`;
+      if (text.length < 4) {
+        ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
+      } else {
+        ctx.font = `${ctx.canvas.width * 0.025}px Arial`;
+      }
       ctx.textAlign = 'left';
-      borderedText(ctx, `x${total}`, xOffset + sideLength, verticalOffset + sideLength, -1, 'black', 'white');
+      borderedText(ctx, text, xOffset + sideLength, verticalOffset + sideLength, -1, 'black', 'white');
       xOffset += ctx.canvas.width / (AggregateAwakeningRow.PER_ROW + 1);
       if (xOffset > maxOffset) {
         xOffset = 0.05 * ctx.canvas.width;
@@ -521,6 +566,7 @@ class FancyPhoto {
   private rowDraws: RowDraw[] = [];
   private opts: FancyPhotoOptions = {
     drawTitle: true,
+    drawBadge: true,
     useTransform: false,
     useLeadswap: false,
     awakenings: [],
@@ -561,6 +607,9 @@ class FancyPhoto {
     }
 
     for (let i = 0; i < team.playerMode; i++) {
+      if (this.opts.drawBadge && team.playerMode != 2) {
+        this.rowDraws.push(new TeamBadgeRow(team.badges[i]));
+      }
       team.activeTeamIdx = i;
       const currentTeam = team.getTeamAt(i);
       const inherits: inheritToDraw[] = currentTeam.map((m) => ({
@@ -582,7 +631,7 @@ class FancyPhoto {
       this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
       if (this.opts.awakenings.length) {
         const awakeningTotals = this.opts.awakenings.map((awakening) => {
-          let total = team.countAwakening(awakening, !this.opts.useTransform);
+          let total = team.countAwakening(awakening, { ignoreTransform: !this.opts.useTransform, includeTeamBadge: true });
           return { awakening, total };
         });
         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));

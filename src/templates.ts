@@ -13,7 +13,8 @@ import {
   Awakening, AwakeningToName, Latent,
   MonsterType, TypeToName,
   addCommas, removeCommas,
-  Shape, LetterToShape
+  Shape, LetterToShape,
+  TeamBadge, TEAM_BADGE_ORDER, TeamBadgeToName,
 } from './common';
 import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
 import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
@@ -86,6 +87,7 @@ enum ClassNames {
   HP_PERCENT = 'valeria-hp-percent',
 
   TEAM_CONTAINER = 'valeria-team-container',
+  BADGE = 'valeria-team-badge',
   MONSTER_CONTAINER = 'valeria-monster-container',
   MONSTER_CONTAINER_SELECTED = 'valeria-monster-container-selected',
   TEAM_TITLE = 'valeria-team-title',
@@ -895,6 +897,7 @@ class TabbedComponent {
 // Partial update values.
 interface MonsterUpdate {
   playerMode?: number,
+  badge?: TeamBadge,
 
   id?: number,
   level?: number,
@@ -915,18 +918,20 @@ interface MonsterUpdate {
 
 // Partial update values.
 interface MonsterUpdateAll {
-  id: number,
-  level: number,
-  hpPlus: number,
-  atkPlus: number,
-  rcvPlus: number,
-  awakeningLevel: number,
-  superAwakeningIdx: number,
+  mode: number;
+  badge: TeamBadge;
+  id: number;
+  level: number;
+  hpPlus: number;
+  atkPlus: number;
+  rcvPlus: number;
+  awakeningLevel: number;
+  superAwakeningIdx: number;
 
-  inheritId: number,
-  inheritLevel: number,
-  inheritPlussed: boolean,
-  latents: Latent[],
+  inheritId: number;
+  inheritLevel: number;
+  inheritPlussed: boolean;
+  latents: Latent[];
 }
 
 type OnMonsterUpdate = (ctx: MonsterUpdate) => void;
@@ -1618,6 +1623,7 @@ class MonsterEditor {
     exportUrlButton: HTMLElement;
   }
   playerModeSelectors: HTMLInputElement[] = [];
+  badgeSelector: HTMLSelectElement;
   monsterSelector: MonsterSelector;
   inheritSelector: MonsterSelector;
   types: MonsterTypeEl[] = [];
@@ -1666,6 +1672,18 @@ class MonsterEditor {
       playerModeArea.appendChild(playerModeSelector);
       playerModeArea.appendChild(playerModeLabel);
     }
+    this.badgeSelector = create('select') as HTMLSelectElement;
+    for (const badge of TEAM_BADGE_ORDER) {
+      const badgeOption = create('option') as HTMLOptionElement;
+      badgeOption.value = `${badge}`;
+      badgeOption.innerText = TeamBadgeToName[badge];
+      this.badgeSelector.appendChild(badgeOption);
+    }
+    this.badgeSelector.onchange = () => {
+      onUpdate({ badge: Number(this.badgeSelector.value) });
+    };
+    playerModeArea.appendChild(document.createTextNode('Team Badge: '));
+    playerModeArea.appendChild(this.badgeSelector);
     this.el.appendChild(playerModeArea);
 
     this.monsterSelector = new MonsterSelector(prioritizedMonsterSearch, onUpdate);
@@ -1698,6 +1716,8 @@ class MonsterEditor {
   }
 
   update(ctx: MonsterUpdateAll) {
+    this.playerModeSelectors[ctx.mode - 1].checked = true;
+    this.badgeSelector.value = `${ctx.badge}`;
     this.monsterSelector.setId(ctx.id);
     this.inheritSelector.setId(ctx.inheritId);
     const c = floof.model.cards[ctx.id];
@@ -1937,6 +1957,7 @@ enum ActionOptions {
 class TeamPane {
   element_: HTMLElement = create('div');
   teamDivs: HTMLDivElement[] = [];
+  badges: HTMLImageElement[] = [];
   monsterDivs: HTMLElement[] = [];
   titleEl: HTMLInputElement = create('input', ClassNames.TEAM_TITLE) as HTMLInputElement;
   descriptionEl: HTMLTextAreaElement = create('textarea', ClassNames.TEAM_DESCRIPTION) as HTMLTextAreaElement;
@@ -2008,6 +2029,11 @@ class TeamPane {
 
     for (let i = 0; i < 3; i++) {
       this.teamDivs.push(create('div', ClassNames.TEAM_CONTAINER) as HTMLDivElement);
+      const badge = create('img', ClassNames.BADGE) as HTMLImageElement;
+      badge.src = 'assets/badge/0.png';
+      this.badges.push(badge);
+      this.teamDivs[i].appendChild(badge);
+
       for (let j = 0; j < 6; j++) {
         const d = create('div', ClassNames.MONSTER_CONTAINER);
         d.appendChild(monsterDivs[i * 6 + j]);
@@ -2577,7 +2603,7 @@ class TeamPane {
   }
 
   // TODO
-  update(playerMode: number, title: string, description: string): void {
+  update(playerMode: number, title: string, description: string, badges: TeamBadge[]): void {
     for (let i = 1; i < this.teamDivs.length; i++) {
       if (i < playerMode) {
         this.teamDivs[i].style.display = '';
@@ -2587,6 +2613,15 @@ class TeamPane {
     }
     this.titleEl.value = title;
     this.descriptionEl.value = description;
+
+    for (let i = 0; i < 3; i++) {
+      this.badges[i].src = `assets/badge/${badges[i]}.png`;
+      if (playerMode != 2) {
+        superShow(this.badges[i]);
+      } else {
+        superHide(this.badges[i]);
+      }
+    }
   }
 
   getElement(): HTMLElement {
@@ -3577,6 +3612,7 @@ class DungeonPane {
 
 interface FancyPhotoOptions {
   drawTitle?: boolean;
+  drawBadge?: boolean;
   useTransform?: boolean;
   useLeadswap?: boolean;
   awakenings: number[];
@@ -3596,6 +3632,7 @@ class PhotoArea {
     this.canvas.style.width = '100%';
     this.onUpdate = onUpdate;
     this.createToggle('Display Title', (checked) => this.options.drawTitle = checked, this.options.drawTitle || false);
+    this.createToggle('Display Badges (1P and 3P)', (checked) => this.options.drawBadge = checked, this.options.drawBadge || false);
     this.createToggle('Display Transformed', (checked) => this.options.useTransform = checked, this.options.useTransform || false);
     this.createToggle('Display Description', (checked) => this.options.showDescription = checked, this.options.showDescription || false);
 

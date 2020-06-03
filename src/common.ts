@@ -448,6 +448,82 @@ class Rational {
 
 const INT_CAP = 2 ** 31 - 1;
 
+enum TeamBadge {
+  NONE = 0,
+  COST = 1,
+  TIME = 2,
+  MASS_ATTACK = 3,
+  RCV = 4,
+  HP = 5,
+  ATK = 6,
+  SKILL_BOOST = 7,
+  RESIST_BIND = 8,
+  SBR = 9,
+  EXP = 10,
+  NO_SKYFALL = 11,
+  RESIST_BLIND = 12,
+  RESIST_JAMMER = 13,
+  RESIST_POISON = 14,
+  RCV_PLUS = 17,
+  HP_PLUS = 18,
+  ATK_PLUS = 19,
+  TIME_PLUS = 21,
+}
+
+const TeamBadgeToName: Record<TeamBadge, string> = {
+  0: 'None',
+  1: 'Cost',
+  2: 'Time Extend',
+  3: 'Mass Attack',
+  4: 'RCV',
+  5: "HP",
+  6: 'ATK',
+  7: 'Skill Boost',
+  8: 'Bind Immune',
+  9: 'Skill-Bind Resist',
+  11: 'No-Skyfall',
+  17: 'RCV+',
+  18: 'HP+',
+  19: 'ATK+',
+  21: 'Time Extend+',
+  12: 'Blind Resist',
+  13: 'Jammer Resist',
+  14: 'Poison Resist',
+  10: 'Rank Exp',
+};
+
+const TEAM_BADGE_ORDER: TeamBadge[] = [
+  TeamBadge.NONE,
+  TeamBadge.COST,
+  TeamBadge.MASS_ATTACK,
+  TeamBadge.RCV,
+  TeamBadge.HP,
+  TeamBadge.ATK,
+  TeamBadge.SKILL_BOOST,
+  TeamBadge.RESIST_BIND,
+  TeamBadge.SBR,
+  TeamBadge.NO_SKYFALL,
+  TeamBadge.RCV_PLUS,
+  TeamBadge.HP_PLUS,
+  TeamBadge.ATK_PLUS,
+  TeamBadge.TIME_PLUS,
+  TeamBadge.RESIST_BLIND,
+  TeamBadge.RESIST_JAMMER,
+  TeamBadge.RESIST_POISON,
+  TeamBadge.EXP,
+];
+
+const TeamBadgeToAwakening: Map<TeamBadge, { awakening: Awakening, count: number }> = new Map([
+  [TeamBadge.TIME, { awakening: Awakening.TIME, count: 2 }],
+  [TeamBadge.SKILL_BOOST, { awakening: Awakening.SKILL_BOOST, count: 1 }],
+  [TeamBadge.RESIST_BIND, { awakening: Awakening.RESIST_BIND, count: 2 }],
+  [TeamBadge.SBR, { awakening: Awakening.SBR, count: 2.5 }],
+  [TeamBadge.TIME_PLUS, { awakening: Awakening.TIME, count: 4 }],
+  [TeamBadge.RESIST_BLIND, { awakening: Awakening.RESIST_BLIND, count: 2.5 }],
+  [TeamBadge.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER, count: 2.5 }],
+  [TeamBadge.RESIST_POISON, { awakening: Awakening.RESIST_POISON, count: 2.5 }],
+]);
+
 export {
   Attribute,
   AttributeToName,
@@ -475,4 +551,5 @@ export {
   FontColor, AttributeToFontColor,
   addCommas, removeCommas,
   Rational,
+  TeamBadge, TeamBadgeToName, TEAM_BADGE_ORDER, TeamBadgeToAwakening,
 };

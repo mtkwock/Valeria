@@ -1,4 +1,4 @@
-import { Round, Attribute, idxsFromBits } from './common';
+import { Round, Attribute, idxsFromBits, TeamBadge } from './common';
 import { MonsterInstance } from './monster_instance'
 import { DamagePing } from './damage_ping';
 import { Team } from './player_team';
@@ -15,6 +15,7 @@ interface DamageContext {
   team: MonsterInstance[];
   currentHp: number;
   maxHp: number;
+  badge: TeamBadge;
 }
 
 interface EnemyEffectContext {
@@ -175,6 +176,7 @@ const scalingAttackAndHeal: MonsterActive = {
       team: ctx.team.getActiveTeam(),
       currentHp: ctx.team.state.currentHp,
       maxHp: ctx.team.getHp(),
+      badge: ctx.team.badges[ctx.team.activeTeamIdx],
     })[0];
 
     const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
@@ -369,6 +371,7 @@ const elementalScalingAttackAndHeal: MonsterActive = {
       team: ctx.team.getActiveTeam(),
       currentHp: ctx.team.state.currentHp,
       maxHp: ctx.team.getHp(),
+      badge: ctx.team.badges[ctx.team.activeTeamIdx],
     })[0];
 
     const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
@@ -458,7 +461,7 @@ const selfAttributeChange: MonsterActive = {
 
 // 144
 const scalingAttackFromTeam: MonsterActive = {
-  damage: ([attrBits, atk100, _, attr], { source, playerMode, awakeningsActive, team }) => {
+  damage: ([attrBits, atk100, _, attr], { source, playerMode, awakeningsActive, team, badge }) => {
     const ping = new DamagePing(source, attr);
     const attrs = new Set(idxsFromBits(attrBits));
     for (const m of team) {
@@ -475,6 +478,11 @@ const scalingAttackFromTeam: MonsterActive = {
       }
     }
     ping.multiply(atk100 / 100, Round.UP);
+    if (badge == TeamBadge.ATK) {
+      ping.multiply(1.05, Round.UP);
+    } else if (badge == TeamBadge.ATK_PLUS) {
+      ping.multiply(1.15, Round.UP);
+    }
     return [ping];
   },
 };
