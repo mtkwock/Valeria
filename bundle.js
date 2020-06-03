@@ -8945,7 +8945,7 @@
                     atkBadgeMult = 1.05;
                 }
                 else if (badge == common_7.TeamBadge.ATK_PLUS) {
-                    rcvBadgeMult = 1.15;
+                    atkBadgeMult = 1.15;
                 }
                 for (const ping of pings) {
                     if (!ping || !ping.damage) {
