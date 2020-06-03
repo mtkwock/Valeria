@@ -993,7 +993,7 @@ class Team {
     if (badge == TeamBadge.ATK) {
       atkBadgeMult = 1.05;
     } else if (badge == TeamBadge.ATK_PLUS) {
-      rcvBadgeMult = 1.15;
+      atkBadgeMult = 1.15;
     }
 
     for (const ping of pings) {
