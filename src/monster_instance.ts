@@ -881,6 +881,7 @@ class MonsterInstance {
       CD_MAX,
       INHERIT_CD: CD + (inheritSkillId ? floof.model.playerSkills[inheritSkillId].maxCooldown : 0),
       INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? floof.model.playerSkills[inheritSkillId].initialCooldown : 0),
+      SDR: this.latents.filter((l) => l == Latent.SDR).length,
     };
   }
 }

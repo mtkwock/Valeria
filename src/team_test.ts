@@ -14,6 +14,7 @@ interface PlayerMonsterContext {
   INHERIT_CD_MAX: number;
 
   // TODO: Monster Awakenings
+  SDR: number;
 }
 
 interface PlayerTeamContext {

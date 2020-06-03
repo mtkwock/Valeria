@@ -1,4 +1,4 @@
-import { Latent, AwakeningToPlus } from './common';
+import { Latent } from './common';
 import { Card, CardUiAssets, CardAssets, floof } from './ilmina_stripped';
 import { Team } from './player_team';
 import { getLatentPosition, getAwakeningOffsets, FancyPhotoOptions, PhotoArea } from './templates';
