@@ -1952,6 +1952,83 @@
         Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
         const INT_CAP = 2 ** 31 - 1;
         exports.INT_CAP = INT_CAP;
+        var TeamBadge;
+        (function (TeamBadge) {
+            TeamBadge[TeamBadge["NONE"] = 0] = "NONE";
+            TeamBadge[TeamBadge["COST"] = 1] = "COST";
+            TeamBadge[TeamBadge["TIME"] = 2] = "TIME";
+            TeamBadge[TeamBadge["MASS_ATTACK"] = 3] = "MASS_ATTACK";
+            TeamBadge[TeamBadge["RCV"] = 4] = "RCV";
+            TeamBadge[TeamBadge["HP"] = 5] = "HP";
+            TeamBadge[TeamBadge["ATK"] = 6] = "ATK";
+            TeamBadge[TeamBadge["SKILL_BOOST"] = 7] = "SKILL_BOOST";
+            TeamBadge[TeamBadge["RESIST_BIND"] = 8] = "RESIST_BIND";
+            TeamBadge[TeamBadge["SBR"] = 9] = "SBR";
+            TeamBadge[TeamBadge["EXP"] = 10] = "EXP";
+            TeamBadge[TeamBadge["NO_SKYFALL"] = 11] = "NO_SKYFALL";
+            TeamBadge[TeamBadge["RESIST_BLIND"] = 12] = "RESIST_BLIND";
+            TeamBadge[TeamBadge["RESIST_JAMMER"] = 13] = "RESIST_JAMMER";
+            TeamBadge[TeamBadge["RESIST_POISON"] = 14] = "RESIST_POISON";
+            TeamBadge[TeamBadge["RCV_PLUS"] = 17] = "RCV_PLUS";
+            TeamBadge[TeamBadge["HP_PLUS"] = 18] = "HP_PLUS";
+            TeamBadge[TeamBadge["ATK_PLUS"] = 19] = "ATK_PLUS";
+            TeamBadge[TeamBadge["TIME_PLUS"] = 21] = "TIME_PLUS";
+        })(TeamBadge || (TeamBadge = {}));
+        exports.TeamBadge = TeamBadge;
+        const TeamBadgeToName = {
+            0: 'None',
+            1: 'Cost',
+            2: 'Time Extend',
+            3: 'Mass Attack',
+            4: 'RCV',
+            5: "HP",
+            6: 'ATK',
+            7: 'Skill Boost',
+            8: 'Bind Immune',
+            9: 'Skill-Bind Resist',
+            11: 'No-Skyfall',
+            17: 'RCV+',
+            18: 'HP+',
+            19: 'ATK+',
+            21: 'Time Extend+',
+            12: 'Blind Resist',
+            13: 'Jammer Resist',
+            14: 'Poison Resist',
+            10: 'Rank Exp',
+        };
+        exports.TeamBadgeToName = TeamBadgeToName;
+        const TEAM_BADGE_ORDER = [
+            TeamBadge.NONE,
+            TeamBadge.COST,
+            TeamBadge.MASS_ATTACK,
+            TeamBadge.RCV,
+            TeamBadge.HP,
+            TeamBadge.ATK,
+            TeamBadge.SKILL_BOOST,
+            TeamBadge.RESIST_BIND,
+            TeamBadge.SBR,
+            TeamBadge.NO_SKYFALL,
+            TeamBadge.RCV_PLUS,
+            TeamBadge.HP_PLUS,
+            TeamBadge.ATK_PLUS,
+            TeamBadge.TIME_PLUS,
+            TeamBadge.RESIST_BLIND,
+            TeamBadge.RESIST_JAMMER,
+            TeamBadge.RESIST_POISON,
+            TeamBadge.EXP,
+        ];
+        exports.TEAM_BADGE_ORDER = TEAM_BADGE_ORDER;
+        const TeamBadgeToAwakening = new Map([
+            [TeamBadge.TIME, { awakening: Awakening.TIME, count: 2 }],
+            [TeamBadge.SKILL_BOOST, { awakening: Awakening.SKILL_BOOST, count: 1 }],
+            [TeamBadge.RESIST_BIND, { awakening: Awakening.RESIST_BIND, count: 2 }],
+            [TeamBadge.SBR, { awakening: Awakening.SBR, count: 2.5 }],
+            [TeamBadge.TIME_PLUS, { awakening: Awakening.TIME, count: 4 }],
+            [TeamBadge.RESIST_BLIND, { awakening: Awakening.RESIST_BLIND, count: 2.5 }],
+            [TeamBadge.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER, count: 2.5 }],
+            [TeamBadge.RESIST_POISON, { awakening: Awakening.RESIST_POISON, count: 2.5 }],
+        ]);
+        exports.TeamBadgeToAwakening = TeamBadgeToAwakening;
     });
     /**
      All aliases of monsters and dungeons. Keep these in alphabetical order by
@@ -2392,6 +2469,7 @@
             ClassNames["HP_MAX"] = "valeria-hp-max";
             ClassNames["HP_PERCENT"] = "valeria-hp-percent";
             ClassNames["TEAM_CONTAINER"] = "valeria-team-container";
+            ClassNames["BADGE"] = "valeria-team-badge";
             ClassNames["MONSTER_CONTAINER"] = "valeria-monster-container";
             ClassNames["MONSTER_CONTAINER_SELECTED"] = "valeria-monster-container-selected";
             ClassNames["TEAM_TITLE"] = "valeria-team-title";
@@ -3768,6 +3846,18 @@
                     playerModeArea.appendChild(playerModeSelector);
                     playerModeArea.appendChild(playerModeLabel);
                 }
+                this.badgeSelector = create('select');
+                for (const badge of common_2.TEAM_BADGE_ORDER) {
+                    const badgeOption = create('option');
+                    badgeOption.value = `${badge}`;
+                    badgeOption.innerText = common_2.TeamBadgeToName[badge];
+                    this.badgeSelector.appendChild(badgeOption);
+                }
+                this.badgeSelector.onchange = () => {
+                    onUpdate({ badge: Number(this.badgeSelector.value) });
+                };
+                playerModeArea.appendChild(document.createTextNode('Team Badge: '));
+                playerModeArea.appendChild(this.badgeSelector);
                 this.el.appendChild(playerModeArea);
                 this.monsterSelector = new MonsterSelector(fuzzy_search_1.prioritizedMonsterSearch, onUpdate);
                 this.inheritSelector = new MonsterSelector(fuzzy_search_1.prioritizedInheritSearch, onUpdate, true);
@@ -3792,6 +3882,8 @@
                 this.el.appendChild(this.latentEditor.getElement());
             }
             update(ctx) {
+                this.playerModeSelectors[ctx.mode - 1].checked = true;
+                this.badgeSelector.value = `${ctx.badge}`;
                 this.monsterSelector.setId(ctx.id);
                 this.inheritSelector.setId(ctx.inheritId);
                 const c = ilmina_stripped_3.floof.model.cards[ctx.id];
@@ -3946,6 +4038,7 @@
             constructor(storageDisplay, monsterDivs, onTeamUpdate) {
                 this.element_ = create('div');
                 this.teamDivs = [];
+                this.badges = [];
                 this.monsterDivs = [];
                 this.titleEl = create('input', ClassNames.TEAM_TITLE);
                 this.descriptionEl = create('textarea', ClassNames.TEAM_DESCRIPTION);
@@ -4001,6 +4094,10 @@
                 };
                 for (let i = 0; i < 3; i++) {
                     this.teamDivs.push(create('div', ClassNames.TEAM_CONTAINER));
+                    const badge = create('img', ClassNames.BADGE);
+                    badge.src = 'assets/badge/0.png';
+                    this.badges.push(badge);
+                    this.teamDivs[i].appendChild(badge);
                     for (let j = 0; j < 6; j++) {
                         const d = create('div', ClassNames.MONSTER_CONTAINER);
                         d.appendChild(monsterDivs[i * 6 + j]);
@@ -4501,7 +4598,7 @@
                 this.battleEl.appendChild(actualDamageTable);
             }
             // TODO
-            update(playerMode, title, description) {
+            update(playerMode, title, description, badges) {
                 for (let i = 1; i < this.teamDivs.length; i++) {
                     if (i < playerMode) {
                         this.teamDivs[i].style.display = '';
@@ -4512,6 +4609,15 @@
                 }
                 this.titleEl.value = title;
                 this.descriptionEl.value = description;
+                for (let i = 0; i < 3; i++) {
+                    this.badges[i].src = `assets/badge/${badges[i]}.png`;
+                    if (playerMode != 2) {
+                        superShow(this.badges[i]);
+                    }
+                    else {
+                        superHide(this.badges[i]);
+                    }
+                }
             }
             getElement() {
                 return this.element_;
@@ -5308,6 +5414,7 @@
                 this.canvas.style.width = '100%';
                 this.onUpdate = onUpdate;
                 this.createToggle('Display Title', (checked) => this.options.drawTitle = checked, this.options.drawTitle || false);
+                this.createToggle('Display Badges (1P and 3P)', (checked) => this.options.drawBadge = checked, this.options.drawBadge || false);
                 this.createToggle('Display Transformed', (checked) => this.options.useTransform = checked, this.options.useTransform || false);
                 this.createToggle('Display Description', (checked) => this.options.showDescription = checked, this.options.showDescription || false);
                 this.setupAwakeningToggles();
@@ -8092,6 +8199,7 @@
                 this.lastMaxHp = 0;
                 this.action = -1;
                 this.state = Object.assign({}, DEFAULT_STATE);
+                this.badges = [common_7.TeamBadge.NONE, common_7.TeamBadge.NONE, common_7.TeamBadge.NONE];
                 /**
                  * 1P: 0-5
                  * 2P: 0-4, 6-10
@@ -8341,6 +8449,7 @@
                 return {
                     playerMode: this.playerMode,
                     title: this.teamName,
+                    badges: this.badges.slice(),
                     description: this.description,
                     monsters: this.monsters.map((monster) => monster.toJson()),
                     tests: this.tests,
@@ -8350,6 +8459,12 @@
                 this.setPlayerMode(json.playerMode || 1);
                 this.teamName = json.title || 'UNTITLED';
                 this.description = json.description || '';
+                if (json.badges) {
+                    this.badges = json.badges;
+                }
+                else {
+                    this.badges = [common_7.TeamBadge.NONE, common_7.TeamBadge.NONE, common_7.TeamBadge.NONE];
+                }
                 for (let i = 0; i < this.monsters.length; i++) {
                     if (i < json.monsters.length) {
                         this.monsters[i].fromJson(json.monsters[i]);
@@ -8487,7 +8602,14 @@
                     return this.state.fixedHp;
                 }
                 const individualHps = this.getIndividualHp(true, this.playerMode == 2);
-                return individualHps.reduce((total, next) => total + next, 0);
+                let total = individualHps.reduce((total, next) => total + next, 0);
+                if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.HP) {
+                    total = Math.ceil(total * 1.05);
+                }
+                else if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.HP_PLUS) {
+                    total = Math.ceil(total * 1.15);
+                }
+                return total;
             }
             getIndividualRcv(includeLeaderSkill = false) {
                 const rcvs = [];
@@ -8525,7 +8647,14 @@
             getRcv() {
                 const rcvs = this.getIndividualRcv(true);
                 const totalRcv = rcvs.reduce((total, next) => total + next, 0);
-                return totalRcv > 0 ? totalRcv : 0;
+                let total = totalRcv > 0 ? totalRcv : 0;
+                if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.RCV) {
+                    total = Math.ceil(total * 1.25);
+                }
+                else if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.RCV_PLUS) {
+                    total = Math.ceil(total * 1.35);
+                }
+                return total;
             }
             getTime() {
                 const monsters = this.getActiveTeam();
@@ -8538,9 +8667,8 @@
                 }
                 let time = 5;
                 time += leaders.timeExtend(leadId) + leaders.timeExtend(helperId);
+                time += this.countAwakening(common_7.Awakening.TIME, { includeTeamBadge: true }) * 0.5;
                 for (const monster of monsters) {
-                    time += monster.countAwakening(common_7.Awakening.TIME) * 0.5;
-                    // time += monster.countAwakening(Awakening.TIME_PLUS);
                     time += monster.latents.filter((l) => l == common_7.Latent.TIME).length * 0.05;
                     time += monster.latents.filter((l) => l == common_7.Latent.TIME_PLUS).length * 0.12;
                 }
@@ -8579,6 +8707,15 @@
                 // All teams have bigBoard.
                 return 7;
             }
+            getBadge(idx = -1) {
+                if (this.playerMode == 2) {
+                    return common_7.TeamBadge.NONE;
+                }
+                if (idx < 0) {
+                    idx = this.activeTeamIdx;
+                }
+                return this.badges[this.activeTeamIdx];
+            }
             getDamageCombos(comboContainer) {
                 comboContainer.bonusCombosLeader = 0;
                 const pm = this.playerMode;
@@ -8587,6 +8724,7 @@
                 const monsters = this.getActiveTeam();
                 const leadId = monsters[0].bound ? -1 : monsters[0].getCard().leaderSkillId;
                 const helpId = monsters[5].bound ? -1 : monsters[5].getCard().leaderSkillId;
+                const badge = this.getBadge();
                 const partialAtk = (id, ping, healing) => leaders.atk(id, {
                     ping,
                     team: monsters,
@@ -8710,6 +8848,13 @@
                     team: monsters,
                     isMultiplayer: this.isMultiplayer(),
                 });
+                let rcvBadgeMult = 1;
+                if (badge == common_7.TeamBadge.RCV) {
+                    rcvBadgeMult = 1.25;
+                }
+                else if (badge == common_7.TeamBadge.RCV_PLUS) {
+                    rcvBadgeMult = 1.35;
+                }
                 for (const combo of comboContainer.combos['h']) {
                     let multiplier = (combo.count + 1) * 0.25;
                     if (combo.enhanced) {
@@ -8734,7 +8879,7 @@
                             rcv *= (1.5 ** monster.countAwakening(common_7.Awakening.OE_HEART, pm));
                         }
                         const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
-                        healing += common_7.Round.UP(rcv * multiplier * rcvMult);
+                        healing += common_7.Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
                     }
                 }
                 comboContainer.setBonusComboLeader(leaders.plusCombo(leadId, { team: monsters, comboContainer }) +
@@ -8795,16 +8940,21 @@
                         }
                     }
                 }
+                let atkBadgeMult = 1;
+                if (badge == common_7.TeamBadge.ATK) {
+                    atkBadgeMult = 1.05;
+                }
+                else if (badge == common_7.TeamBadge.ATK_PLUS) {
+                    rcvBadgeMult = 1.15;
+                }
                 for (const ping of pings) {
                     if (!ping || !ping.damage) {
                         continue;
                     }
                     let val = ping.damage;
-                    // val = val * partialAtk(leadId, ping, healing);
-                    // val = val * partialAtk(helpId, ping, healing);
                     val = Math.fround(val) * Math.fround(partialAtk(leadId, ping, healing) * 100) / Math.fround(100);
                     val = Math.fround(val) * Math.fround(partialAtk(helpId, ping, healing) * 100) / Math.fround(100);
-                    ping.damage = Math.round(val);
+                    ping.damage = Math.round(val * atkBadgeMult);
                 }
                 healing += this.countAwakening(common_7.Awakening.AUTOHEAL) * 1000;
                 trueBonusAttack += leaders.trueBonusAttack(leadId, {
@@ -8824,7 +8974,7 @@
                 };
             }
             update() {
-                this.teamPane.update(this.playerMode, this.teamName, this.description);
+                this.teamPane.update(this.playerMode, this.teamName, this.description, this.badges);
                 for (let teamIdx = 0; teamIdx < 3; teamIdx++) {
                     for (let monsterIdx = 0; monsterIdx < 6; monsterIdx++) {
                         const displayIndex = 6 * teamIdx + monsterIdx;
@@ -8852,6 +9002,9 @@
             }
             makeTeamContext(idx) {
                 const monsters = this.getTeamAt(idx);
+                const opts = {
+                    includeTeamBadge: true,
+                };
                 const result = {
                     HP: this.getHp(),
                     RCV: this.getRcv(),
@@ -8862,13 +9015,13 @@
                     SUB_2: monsters[2].makeTestContext(this.playerMode),
                     SUB_3: monsters[3].makeTestContext(this.playerMode),
                     SUB_4: monsters[4].makeTestContext(this.playerMode),
-                    SB: this.countAwakening(common_7.Awakening.SKILL_BOOST),
-                    SBR: this.countAwakening(common_7.Awakening.SBR),
+                    SB: this.countAwakening(common_7.Awakening.SKILL_BOOST, opts),
+                    SBR: this.countAwakening(common_7.Awakening.SBR, opts),
                     FUA: this.countAwakening(common_7.Awakening.BONUS_ATTACK),
                     SFUA: this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER),
-                    RESIST_BLIND: this.countAwakening(common_7.Awakening.RESIST_BLIND),
-                    RESIST_POISON: this.countAwakening(common_7.Awakening.RESIST_POISON),
-                    RESIST_JAMMER: this.countAwakening(common_7.Awakening.RESIST_JAMMER),
+                    RESIST_BLIND: this.countAwakening(common_7.Awakening.RESIST_BLIND, opts),
+                    RESIST_POISON: this.countAwakening(common_7.Awakening.RESIST_POISON, opts),
+                    RESIST_JAMMER: this.countAwakening(common_7.Awakening.RESIST_JAMMER, opts),
                     RESIST_CLOUD: this.countAwakening(common_7.Awakening.RESIST_CLOUD),
                     RESIST_TAPE: this.countAwakening(common_7.Awakening.RESIST_TAPE),
                     GUARD_BREAK: this.countAwakening(common_7.Awakening.GUARD_BREAK),
@@ -8904,7 +9057,7 @@
                 }
                 return ctx;
             }
-            countAwakening(awakening, ignoreTransform = false) {
+            countAwakening(awakening, opts = {}) {
                 if (!this.state.awakenings) {
                     return 0;
                 }
@@ -8915,7 +9068,14 @@
                         monsters.push(p2Monsters[i]);
                     }
                 }
-                return monsters.reduce((total, monster) => total + monster.countAwakening(awakening, this.playerMode, ignoreTransform), 0);
+                let initialCount = monsters.reduce((total, monster) => total + monster.countAwakening(awakening, this.playerMode, opts.ignoreTransform || false), 0);
+                if (this.playerMode != 2 && opts.includeTeamBadge) {
+                    const maybeAwakeningCount = common_7.TeamBadgeToAwakening.get(this.badges[this.activeTeamIdx]);
+                    if (maybeAwakeningCount && maybeAwakeningCount.awakening == awakening) {
+                        initialCount += maybeAwakeningCount.count;
+                    }
+                }
+                return initialCount;
             }
             countLatent(latent) {
                 if (!this.state.awakenings) {
@@ -9050,18 +9210,21 @@
                 }
                 const atks = this.getActiveTeam().map((monster) => monster.getAtk(this.playerMode, this.state.awakenings));
                 const counts = new Map();
+                const opts = {
+                    includeTeamBadge: true,
+                };
                 // General
-                counts.set(common_7.Awakening.SKILL_BOOST, this.countAwakening(common_7.Awakening.SKILL_BOOST));
-                counts.set(common_7.Awakening.TIME, this.countAwakening(common_7.Awakening.TIME));
+                counts.set(common_7.Awakening.SKILL_BOOST, this.countAwakening(common_7.Awakening.SKILL_BOOST, opts));
+                counts.set(common_7.Awakening.TIME, this.countAwakening(common_7.Awakening.TIME, opts));
                 counts.set(common_7.Awakening.SOLOBOOST, this.countAwakening(common_7.Awakening.SOLOBOOST));
                 counts.set(common_7.Awakening.BONUS_ATTACK, this.countAwakening(common_7.Awakening.BONUS_ATTACK));
                 counts.set(common_7.Awakening.BONUS_ATTACK_SUPER, this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER));
                 counts.set(common_7.Awakening.L_GUARD, this.countAwakening(common_7.Awakening.L_GUARD));
                 // Resists
-                counts.set(common_7.Awakening.SBR, this.countAwakening(common_7.Awakening.SBR));
-                counts.set(common_7.Awakening.RESIST_POISON, this.countAwakening(common_7.Awakening.RESIST_POISON));
-                counts.set(common_7.Awakening.RESIST_BLIND, this.countAwakening(common_7.Awakening.RESIST_BLIND));
-                counts.set(common_7.Awakening.RESIST_JAMMER, this.countAwakening(common_7.Awakening.RESIST_JAMMER));
+                counts.set(common_7.Awakening.SBR, this.countAwakening(common_7.Awakening.SBR, opts));
+                counts.set(common_7.Awakening.RESIST_POISON, this.countAwakening(common_7.Awakening.RESIST_POISON, opts));
+                counts.set(common_7.Awakening.RESIST_BLIND, this.countAwakening(common_7.Awakening.RESIST_BLIND, opts));
+                counts.set(common_7.Awakening.RESIST_JAMMER, this.countAwakening(common_7.Awakening.RESIST_JAMMER, opts));
                 counts.set(common_7.Awakening.RESIST_CLOUD, this.countAwakening(common_7.Awakening.RESIST_CLOUD));
                 counts.set(common_7.Awakening.RESIST_TAPE, this.countAwakening(common_7.Awakening.RESIST_TAPE));
                 // OE
@@ -9525,6 +9688,7 @@
                     team: ctx.team.getActiveTeam(),
                     currentHp: ctx.team.state.currentHp,
                     maxHp: ctx.team.getHp(),
+                    badge: ctx.team.badges[ctx.team.activeTeamIdx],
                 })[0];
                 const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
                 ctx.team.heal(healAmount);
@@ -9697,6 +9861,7 @@
                     team: ctx.team.getActiveTeam(),
                     currentHp: ctx.team.state.currentHp,
                     maxHp: ctx.team.getHp(),
+                    badge: ctx.team.badges[ctx.team.activeTeamIdx],
                 })[0];
                 const healAmount = Math.ceil(simulateDamage(ping, ctx) * params[1] / 100);
                 ctx.team.heal(healAmount);
@@ -9779,7 +9944,7 @@
         };
         // 144
         const scalingAttackFromTeam = {
-            damage: ([attrBits, atk100, _, attr], { source, playerMode, awakeningsActive, team }) => {
+            damage: ([attrBits, atk100, _, attr], { source, playerMode, awakeningsActive, team, badge }) => {
                 const ping = new damage_ping_2.DamagePing(source, attr);
                 const attrs = new Set(common_9.idxsFromBits(attrBits));
                 for (const m of team) {
@@ -9797,6 +9962,12 @@
                     }
                 }
                 ping.multiply(atk100 / 100, common_9.Round.UP);
+                if (badge == common_9.TeamBadge.ATK) {
+                    ping.multiply(1.05, common_9.Round.UP);
+                }
+                else if (badge == common_9.TeamBadge.ATK_PLUS) {
+                    ping.multiply(1.15, common_9.Round.UP);
+                }
                 return [ping];
             },
         };
@@ -12477,6 +12648,26 @@
                 borderedText(ctx, this.title, ctx.canvas.width / 80, drawnOffsetY + ctx.canvas.width * 0.05, -1, 'black', 'white');
             }
         }
+        class TeamBadgeRow {
+            constructor(badge) {
+                this.badge = badge;
+            }
+            getHeightOverWidth() {
+                return 0.06;
+            }
+            getAssetName() {
+                return `assets/badge/${this.badge}.png`;
+            }
+            imagesToLoad() {
+                return [this.getAssetName()];
+            }
+            draw(ctx, drawnOffsetY, images) {
+                const width = ctx.canvas.width;
+                const badgeWidth = width * 0.06;
+                const badgeHeight = badgeWidth * 41 / 53;
+                ctx.drawImage(images[this.getAssetName()], width / 40, drawnOffsetY + width * 0.004, badgeWidth, badgeHeight);
+            }
+        }
         function drawMonster(ctx, id, sideLength, offsetX, offsetY, images) {
             if (id <= 0) {
                 return;
@@ -12713,9 +12904,15 @@
                 const maxOffset = ctx.canvas.width * 0.9;
                 for (const { awakening, total } of this.totals) {
                     drawAwakening(ctx, awakening, sideLength, xOffset, verticalOffset, im, total ? 1.0 : 0.5);
-                    ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
+                    const text = `x${total}`;
+                    if (text.length < 4) {
+                        ctx.font = `${ctx.canvas.width * 0.033}px Arial`;
+                    }
+                    else {
+                        ctx.font = `${ctx.canvas.width * 0.025}px Arial`;
+                    }
                     ctx.textAlign = 'left';
-                    borderedText(ctx, `x${total}`, xOffset + sideLength, verticalOffset + sideLength, -1, 'black', 'white');
+                    borderedText(ctx, text, xOffset + sideLength, verticalOffset + sideLength, -1, 'black', 'white');
                     xOffset += ctx.canvas.width / (AggregateAwakeningRow.PER_ROW + 1);
                     if (xOffset > maxOffset) {
                         xOffset = 0.05 * ctx.canvas.width;
@@ -12796,6 +12993,7 @@
                 this.rowDraws = [];
                 this.opts = {
                     drawTitle: true,
+                    drawBadge: true,
                     useTransform: false,
                     useLeadswap: false,
                     awakenings: [],
@@ -12827,6 +13025,9 @@
                     this.rowDraws.push(new TitleRow(team.teamName));
                 }
                 for (let i = 0; i < team.playerMode; i++) {
+                    if (this.opts.drawBadge && team.playerMode != 2) {
+                        this.rowDraws.push(new TeamBadgeRow(team.badges[i]));
+                    }
                     team.activeTeamIdx = i;
                     const currentTeam = team.getTeamAt(i);
                     const inherits = currentTeam.map((m) => ({
@@ -12846,7 +13047,7 @@
                     this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
                     if (this.opts.awakenings.length) {
                         const awakeningTotals = this.opts.awakenings.map((awakening) => {
-                            let total = team.countAwakening(awakening, !this.opts.useTransform);
+                            let total = team.countAwakening(awakening, { ignoreTransform: !this.opts.useTransform, includeTeamBadge: true });
                             return { awakening, total };
                         });
                         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
@@ -13033,6 +13234,11 @@
                 this.monsterEditor = new templates_7.MonsterEditor((ctx) => {
                     if (ctx.playerMode) {
                         this.team.setPlayerMode(ctx.playerMode);
+                        this.team.update();
+                        return;
+                    }
+                    if (ctx.badge != undefined) {
+                        this.team.badges[this.team.activeTeamIdx] = ctx.badge;
                         this.team.update();
                         return;
                     }
@@ -13227,6 +13433,8 @@
             updateMonsterEditor() {
                 const monster = this.team.monsters[this.team.activeMonster];
                 this.monsterEditor.update({
+                    mode: this.team.playerMode,
+                    badge: this.team.getBadge(),
                     id: monster.getId(),
                     inheritId: monster.inheritId,
                     level: monster.level,
@@ -13263,6 +13471,7 @@
                         playerMode: this.team.playerMode,
                         currentHp: this.team.state.currentHp,
                         maxHp: this.team.getHp(),
+                        badge: this.team.badges[this.team.activeTeamIdx],
                     });
                 }
                 if (!this.dungeon)
