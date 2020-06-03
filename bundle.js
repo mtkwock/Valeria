@@ -6568,6 +6568,7 @@
                     CD_MAX,
                     INHERIT_CD: CD + (inheritSkillId ? ilmina_stripped_4.floof.model.playerSkills[inheritSkillId].maxCooldown : 0),
                     INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? ilmina_stripped_4.floof.model.playerSkills[inheritSkillId].initialCooldown : 0),
+                    SDR: this.latents.filter((l) => l == common_3.Latent.SDR).length,
                 };
             }
         }
