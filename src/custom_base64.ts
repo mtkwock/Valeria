@@ -4,6 +4,7 @@
  * Encoding is as follows:
  * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
  * For each team in mode:
+ *   5 bits to encode team badge.
  *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
  *     14 bits encode monster sub id.
  *     If monster id is 0, there is no monster here. Go to next monster sub.
@@ -29,6 +30,7 @@
 
 enum Bits {
   PLAYER_MODE = 2, // Must hold up to 3.
+  BADGE = 5, // Must hold up to 21 at the moment.
   ID = 14, // Can contain up to id ~16.2k.
   LEVEL = 7, // Must contain up to 110.
   LATENT_COUNT = 4, // Must be able to hit 8.
@@ -110,6 +112,7 @@ function ValeriaEncode(team: Team): string {
   encoding.queueBits(playerMode, Bits.PLAYER_MODE);
   const monstersPerTeam = playerMode == 2 ? 5 : 6;
   for (let i = 0; i < playerMode; i++) {
+    encoding.queueBits(team.badges[i], Bits.BADGE)
     for (let j = 0; j < monstersPerTeam; j++) {
       const monster = team.monsters[i * 6 + j];
       const id = monster.getId(true);
@@ -146,12 +149,15 @@ function ValeriaEncode(team: Team): string {
   return encoding.getString();
 }
 
-function ValeriaDecodeToPdchu(s: string): string {
+function ValeriaDecodeToPdchu(s: string): { pdchu: string, badges: number[] } {
   let pdchu = '';
+  let badges = [0, 0, 0];
+
   const encoding = new Encoding(s);
   const playerMode = encoding.dequeueBits(2);
   const monstersPerTeam = playerMode == 2 ? 5 : 6;
   for (let i = 0; i < playerMode; i++) {
+    badges[i] = encoding.dequeueBits(Bits.BADGE);
     let teamString = '';
     for (let j = 0; j < monstersPerTeam; j++) {
       const id = encoding.dequeueBits(Bits.ID);
@@ -187,7 +193,10 @@ function ValeriaDecodeToPdchu(s: string): string {
     pdchu += teamString.substring(0, teamString.length - 2) + '; ';
   }
 
-  return pdchu.substring(0, pdchu.length - 2);
+  return {
+    pdchu: pdchu.substring(0, pdchu.length - 2),
+    badges,
+  };
 }
 
 export {

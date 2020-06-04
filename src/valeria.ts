@@ -156,7 +156,9 @@ class Valeria {
     }
     let team = getUrlParameter('team');
     if (team) {
-      team = ValeriaDecodeToPdchu(team);
+      const { pdchu, badges } = ValeriaDecodeToPdchu(team);
+      team = pdchu;
+      this.team.badges = badges;
     } else {
       team = '';
     }

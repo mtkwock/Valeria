@@ -219,7 +219,7 @@ class InheritRow implements RowDraw {
 
       ctx.font = `${width * 0.017}px Arial`;
       borderedText(ctx, `${inherit.id}`, xStats, drawnOffsetY + inheritLength * 0.25, -1, 'black', 'white');
-      borderedText(ctx, `Lv${inherit.lv}`, xStats, drawnOffsetY + inheritLength * 0.583, -1, 'black', 'white');
+      borderedText(ctx, `Lv${inherit.lv}`, xStats, drawnOffsetY + inheritLength * 0.583, -1, 'black', inherit.lv > 99 ? 'cyan' : 'white');
       borderedText(ctx, `+${inherit.plussed ? 297 : 0}`, xStats, drawnOffsetY + inheritLength * 0.916, -1, 'black', 'white');
 
     }
@@ -319,7 +319,7 @@ class MonsterRow implements RowDraw {
       const xLevel = drawnOffsetX + width * 0.0125;
       const yLevel = drawnOffsetY + length * 0.92;
       ctx.font = `${width * 0.022}px Arial`;
-      borderedText(ctx, `Lv${monster.lv}`, xLevel, yLevel, -1, 'black', 'white');
+      borderedText(ctx, `Lv${monster.lv}`, xLevel, yLevel, -1, 'black', monster.lv > 99 ? 'cyan' : 'white');
 
       ctx.textAlign = 'right';
       const xId = drawnOffsetX + length - width * 0.0125;
