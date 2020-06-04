@@ -10173,6 +10173,7 @@
      * Encoding is as follows:
      * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
      * For each team in mode:
+     *   5 bits to encode team badge.
      *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
      *     14 bits encode monster sub id.
      *     If monster id is 0, there is no monster here. Go to next monster sub.
@@ -10201,6 +10202,7 @@
         var Bits;
         (function (Bits) {
             Bits[Bits["PLAYER_MODE"] = 2] = "PLAYER_MODE";
+            Bits[Bits["BADGE"] = 5] = "BADGE";
             Bits[Bits["ID"] = 14] = "ID";
             Bits[Bits["LEVEL"] = 7] = "LEVEL";
             Bits[Bits["LATENT_COUNT"] = 4] = "LATENT_COUNT";
@@ -10268,6 +10270,7 @@
             encoding.queueBits(playerMode, Bits.PLAYER_MODE);
             const monstersPerTeam = playerMode == 2 ? 5 : 6;
             for (let i = 0; i < playerMode; i++) {
+                encoding.queueBits(team.badges[i], Bits.BADGE);
                 for (let j = 0; j < monstersPerTeam; j++) {
                     const monster = team.monsters[i * 6 + j];
                     const id = monster.getId(true);
@@ -10308,10 +10311,12 @@
         exports.ValeriaEncode = ValeriaEncode;
         function ValeriaDecodeToPdchu(s) {
             let pdchu = '';
+            let badges = [0, 0, 0];
             const encoding = new Encoding(s);
             const playerMode = encoding.dequeueBits(2);
             const monstersPerTeam = playerMode == 2 ? 5 : 6;
             for (let i = 0; i < playerMode; i++) {
+                badges[i] = encoding.dequeueBits(Bits.BADGE);
                 let teamString = '';
                 for (let j = 0; j < monstersPerTeam; j++) {
                     const id = encoding.dequeueBits(Bits.ID);
@@ -10346,7 +10351,10 @@
                 }
                 pdchu += teamString.substring(0, teamString.length - 2) + '; ';
             }
-            return pdchu.substring(0, pdchu.length - 2);
+            return {
+                pdchu: pdchu.substring(0, pdchu.length - 2),
+                badges,
+            };
         }
         exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
     });
@@ -12727,7 +12735,7 @@
                     const xStats = drawnOffsetX + inheritLength + width * 0.005;
                     ctx.font = `${width * 0.017}px Arial`;
                     borderedText(ctx, `${inherit.id}`, xStats, drawnOffsetY + inheritLength * 0.25, -1, 'black', 'white');
-                    borderedText(ctx, `Lv${inherit.lv}`, xStats, drawnOffsetY + inheritLength * 0.583, -1, 'black', 'white');
+                    borderedText(ctx, `Lv${inherit.lv}`, xStats, drawnOffsetY + inheritLength * 0.583, -1, 'black', inherit.lv > 99 ? 'cyan' : 'white');
                     borderedText(ctx, `+${inherit.plussed ? 297 : 0}`, xStats, drawnOffsetY + inheritLength * 0.916, -1, 'black', 'white');
                 }
             }
@@ -12797,7 +12805,7 @@
                     const xLevel = drawnOffsetX + width * 0.0125;
                     const yLevel = drawnOffsetY + length * 0.92;
                     ctx.font = `${width * 0.022}px Arial`;
-                    borderedText(ctx, `Lv${monster.lv}`, xLevel, yLevel, -1, 'black', 'white');
+                    borderedText(ctx, `Lv${monster.lv}`, xLevel, yLevel, -1, 'black', monster.lv > 99 ? 'cyan' : 'white');
                     ctx.textAlign = 'right';
                     const xId = drawnOffsetX + length - width * 0.0125;
                     borderedText(ctx, `${monster.id}`, xId, yLevel, -1, 'black', 'white');
@@ -13346,7 +13354,9 @@
                 };
                 let team = url_handler_1.getUrlParameter('team');
                 if (team) {
-                    team = custom_base64_1.ValeriaDecodeToPdchu(team);
+                    const { pdchu, badges } = custom_base64_1.ValeriaDecodeToPdchu(team);
+                    team = pdchu;
+                    this.team.badges = badges;
                 }
                 else {
                     team = '';
