@@ -5986,6 +5986,43 @@
             const added = Math.round(Math.pow(frac, growth) * diff);
             return min + added;
         }
+        function monsterJsonEqual(a, b) {
+            if (a.id != b.id) {
+                return false;
+            }
+            if (a.level != b.level) {
+                return false;
+            }
+            if (a.awakenings != b.awakenings) {
+                return false;
+            }
+            if (String(a.latents) != String(b.latents)) {
+                return false;
+            }
+            if (a.superAwakeningIdx != b.superAwakeningIdx) {
+                return false;
+            }
+            if (a.hpPlus != b.hpPlus) {
+                return false;
+            }
+            if (a.atkPlus != b.atkPlus) {
+                return false;
+            }
+            if (a.rcvPlus != b.rcvPlus) {
+                return false;
+            }
+            if (a.inheritId != b.inheritId) {
+                return false;
+            }
+            if (a.inheritLevel != b.inheritLevel) {
+                return false;
+            }
+            if (a.inheritPlussed != b.inheritPlussed) {
+                return false;
+            }
+            return true;
+        }
+        exports.monsterJsonEqual = monsterJsonEqual;
         class MonsterInstance {
             constructor(id = -1, onUpdate = () => { }) {
                 this.level = 1;
@@ -8120,6 +8157,32 @@
             leadSwaps: [0, 0, 0],
             bigBoard: false,
         };
+        function teamJsonEqual(a, b) {
+            if (a.title != b.title) {
+                return false;
+            }
+            if (String(a.badges) != String(b.badges)) {
+                return false;
+            }
+            if (a.description != b.description) {
+                return false;
+            }
+            if (a.playerMode != b.playerMode) {
+                return false;
+            }
+            if (a.tests != b.tests) {
+                return false;
+            }
+            if (a.monsters.length != b.monsters.length) {
+                return false;
+            }
+            for (let i = 0; i < a.monsters.length; i++) {
+                if (!monster_instance_1.monsterJsonEqual(a.monsters[i], b.monsters[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
         class StoredTeams {
             constructor(team) {
                 this.teams = {};
@@ -8140,8 +8203,11 @@
                 }, 
                 // On Load Click
                 (name) => {
-                    team.fromJson(this.getTeam(name));
-                    team.openTeamTab();
+                    if (team.hasChange() &&
+                        window.confirm('Changes made to current team, load anyways?')) {
+                        team.fromJson(this.getTeam(name));
+                        team.openTeamTab();
+                    }
                 }, 
                 // On Delete Click
                 (name) => {
@@ -8283,7 +8349,17 @@
                     this.update();
                 });
                 this.updateCb = () => { };
-                // TODO: Battle Display - Different Class?
+            }
+            hasChange() {
+                let storedTeam;
+                try {
+                    storedTeam = this.storage.getTeam(this.teamName);
+                }
+                catch (e) {
+                    return true;
+                }
+                const currentJson = this.toJson();
+                return !teamJsonEqual(currentJson, storedTeam);
             }
             updateState(ctx) {
                 if (ctx.leadSwap != undefined) {
@@ -13556,13 +13632,17 @@
                 valeria.team.teamPane.metaTabs.setActiveTab('Photo');
                 valeria.drawTeam();
             };
-            // document.body.appendChild(valeria.teamPhotoCanvas);
             if (localStorage.debug) {
                 document.body.appendChild(debugger_5.debug.getElement());
             }
             window.valeria = valeria;
             const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`);
             el.checked = true;
+            window.onbeforeunload = () => {
+                if (valeria.team.hasChange()) {
+                    return true;
+                }
+            };
         }
         init();
     });
