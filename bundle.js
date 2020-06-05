@@ -1683,10 +1683,9 @@
             [Awakening.SKILL_BOOST, { awakening: Awakening.SKILL_BOOST_PLUS, multiplier: 2 }],
             [Awakening.TIME, { awakening: Awakening.TIME_PLUS, multiplier: 2 }],
             [Awakening.RESIST_BIND, { awakening: Awakening.RESIST_BIND_PLUS, multiplier: 2 }],
-            [Awakening.RESIST_POISON, { awakening: Awakening.RESIST_POISON_PLUS, multiplier: 2 }],
-            [Awakening.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER_PLUS, multiplier: 2 }],
-            [Awakening.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER_PLUS, multiplier: 2 }],
-            [Awakening.RESIST_BLIND, { awakening: Awakening.RESIST_BLIND_PLUS, multiplier: 2 }],
+            [Awakening.RESIST_POISON, { awakening: Awakening.RESIST_POISON_PLUS, multiplier: 5 }],
+            [Awakening.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER_PLUS, multiplier: 5 }],
+            [Awakening.RESIST_BLIND, { awakening: Awakening.RESIST_BLIND_PLUS, multiplier: 5 }],
         ]);
         exports.AwakeningToPlus = AwakeningToPlus;
         const TypeToKiller = {
