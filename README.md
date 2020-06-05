@@ -71,6 +71,10 @@ For the damage calculations, there are three tables.  The first table is the dam
 
 If you're constantly changing your team or sharing it with others, you'll often want to check that the team has certain requirements, such as "Team has enough SB for all monsters to be up on turn 1" or "Team has full Blind Resist and Full SBR".  For this, Valeria supports a basic conformance test language which is run every time your team is updated (or every time you update the textarea containing it).  These tests are also saved with your team.
 
+#### Infographic by Jett#3397 on Discord
+
+![picture](tutorial/test_tutorial_jett.png)
+
 #### Examples
 
 ```
@@ -178,7 +182,6 @@ FALSE: CompareBoolean.FALSE,
 ```
 
 You can see what values are allowed by looking at the first 100 lines of [team_test.ts](https://github.com/mtkwock/Valeria/blob/master/src/team_test.ts).
-
 
 ### View Monster Stats
 
