@@ -397,13 +397,18 @@ async function init(): Promise<void> {
     valeria.team.teamPane.metaTabs.setActiveTab('Photo');
     valeria.drawTeam();
   }
-  // document.body.appendChild(valeria.teamPhotoCanvas);
+
   if (localStorage.debug) {
     document.body.appendChild(debug.getElement());
   }
   window.valeria = valeria;
   const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`) as HTMLInputElement;
   el.checked = true;
+  window.onbeforeunload = () => {
+    if (valeria.team.hasChange()) {
+      return true;
+    }
+  };
 }
 
 init();

@@ -111,6 +111,54 @@ interface MonsterJson {
   inheritPlussed?: boolean | undefined;
 }
 
+function monsterJsonEqual(a: MonsterJson, b: MonsterJson): boolean {
+  if (a.id != b.id) {
+    return false;
+  }
+
+  if (a.level != b.level) {
+    return false;
+  }
+
+  if (a.awakenings != b.awakenings) {
+    return false;
+  }
+
+  if (String(a.latents) != String(b.latents)) {
+    return false;
+  }
+
+  if (a.superAwakeningIdx != b.superAwakeningIdx) {
+    return false;
+  }
+
+  if (a.hpPlus != b.hpPlus) {
+    return false;
+  }
+
+  if (a.atkPlus != b.atkPlus) {
+    return false;
+  }
+
+  if (a.rcvPlus != b.rcvPlus) {
+    return false;
+  }
+
+  if (a.inheritId != b.inheritId) {
+    return false;
+  }
+
+  if (a.inheritLevel != b.inheritLevel) {
+    return false;
+  }
+
+  if (a.inheritPlussed != b.inheritPlussed) {
+    return false;
+  }
+
+  return true;
+}
+
 interface MonsterIconRenderData {
   plusses: number;
   unavailableReason: string,
@@ -889,5 +937,5 @@ class MonsterInstance {
 export {
   LatentToPdchu,
   MonsterInstance,
-  MonsterJson,
+  MonsterJson, monsterJsonEqual,
 }

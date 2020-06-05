@@ -6,7 +6,7 @@ import {
   Round, Shape,
   TeamBadge, TeamBadgeToAwakening,
 } from './common';
-import { MonsterInstance, MonsterJson } from './monster_instance';
+import { MonsterInstance, MonsterJson, monsterJsonEqual } from './monster_instance';
 import { DamagePing } from './damage_ping';
 import { StoredTeamDisplay, TeamPane, TeamUpdate, Stats, MonsterUpdate } from './templates';
 import { ComboContainer } from './combo_container';
@@ -97,11 +97,45 @@ const DEFAULT_STATE: TeamState = {
 
 interface TeamJson {
   title: string;
+  playerMode: number;
   badges: TeamBadge[];
   description: string;
-  playerMode: number;
-  monsters: MonsterJson[];
   tests: string;
+  monsters: MonsterJson[];
+}
+
+function teamJsonEqual(a: TeamJson, b: TeamJson): boolean {
+  if (a.title != b.title) {
+    return false;
+  }
+
+  if (String(a.badges) != String(b.badges)) {
+    return false;
+  }
+
+  if (a.description != b.description) {
+    return false;
+  }
+
+  if (a.playerMode != b.playerMode) {
+    return false;
+  }
+
+  if (a.tests != b.tests) {
+    return false;
+  }
+
+  if (a.monsters.length != b.monsters.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a.monsters.length; i++) {
+    if (!monsterJsonEqual(a.monsters[i], b.monsters[i])) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 class StoredTeams {
@@ -125,8 +159,11 @@ class StoredTeams {
       },
       // On Load Click
       (name: string) => {
-        team.fromJson(this.getTeam(name));
-        team.openTeamTab();
+        if (team.hasChange() &&
+          window.confirm('Changes made to current team, load anyways?')) {
+          team.fromJson(this.getTeam(name));
+          team.openTeamTab();
+        }
       },
       // On Delete Click
       (name: string) => {
@@ -290,8 +327,18 @@ class Team {
     );
 
     this.updateCb = () => { };
+  }
 
-    // TODO: Battle Display - Different Class?
+  hasChange(): boolean {
+    let storedTeam: TeamJson;
+    try {
+      storedTeam = this.storage.getTeam(this.teamName);
+    } catch (e) {
+      return true;
+    }
+    const currentJson = this.toJson();
+
+    return !teamJsonEqual(currentJson, storedTeam);
   }
 
   updateState(ctx: TeamStateContext): void {
