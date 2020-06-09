@@ -1462,7 +1462,6 @@
     define("common", ["require", "exports", "ilmina_stripped"], function (require, exports, ilmina_stripped_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
-        // 3 is red and blue
         // 1 red
         // 2 blue
         // 4 green
@@ -6557,7 +6556,7 @@
                     const inheritBonus = calcScaleStat(inherit, inherit.maxHp, inherit.minHp, this.inheritLevel, inherit.hpGrowth) + (this.inheritPlussed ? 990 : 0);
                     hp += Math.round(inheritBonus * 0.1);
                 }
-                if (playerMode) {
+                if (playerMode > 1 && awakeningsActive) {
                     const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, playerMode);
                     hp *= multiboostMultiplier;
                 }
@@ -6617,7 +6616,7 @@
                     const inheritBonus = calcScaleStat(inherit, inherit.maxRcv, inherit.minRcv, this.inheritLevel, inherit.rcvGrowth) + (this.inheritPlussed ? 297 : 0);
                     rcv += Math.round(inheritBonus * 0.15);
                 }
-                if (playerMode && awakeningsActive) {
+                if (playerMode > 1 && awakeningsActive) {
                     const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, playerMode);
                     rcv *= multiboostMultiplier;
                 }
@@ -8532,6 +8531,7 @@
             }
             fromJson(json) {
                 this.setPlayerMode(json.playerMode || 1);
+                this.action = -1;
                 this.teamName = json.title || 'UNTITLED';
                 this.description = json.description || '';
                 if (json.badges) {
@@ -8650,25 +8650,33 @@
                         isMultiplayer: this.isMultiplayer(),
                     });
                 };
+                let p1TeamHp = monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_HP), 0);
+                let p2TeamHp = 0;
                 if (includeP2) {
                     const p2Monsters = this.getTeamAt(this.activeTeamIdx ^ 1);
                     for (let i = 1; i < 5; i++) {
                         monsters.push(p2Monsters[i]);
                     }
+                    p1TeamHp -= monsters[5].countAwakening(common_7.Awakening.TEAM_HP);
+                    p2TeamHp = monsters.slice(5).reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_HP), 0);
                 }
                 if (!includeLeaderSkill) {
                     return monsters.map((monster) => monster.getHp(this.playerMode, this.state.awakenings));
                 }
                 const hps = [];
-                const teamHpAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_HP), 0) * 0.05) : 0);
-                for (const monster of monsters) {
+                for (let i = 0; i < monsters.length; i++) {
+                    const monster = monsters[i];
                     if (!monster.id || monster.id <= 0) {
                         hps.push(0);
                         continue;
                     }
                     const hpMult = partialLead(monster) * partialHelper(monster);
                     const hpBase = monster.getHp(this.playerMode, this.state.awakenings);
-                    hps.push(Math.round(hpBase * hpMult * teamHpAwakeningsMult));
+                    let totalTeamHp = p1TeamHp;
+                    if (monsters.length > 6 && i >= 5) {
+                        totalTeamHp = p2TeamHp;
+                    }
+                    hps.push(Math.round(hpBase * hpMult * (1 + 0.05 * totalTeamHp)));
                 }
                 return hps;
             }
@@ -8678,11 +8686,13 @@
                 }
                 const individualHps = this.getIndividualHp(true, this.playerMode == 2);
                 let total = individualHps.reduce((total, next) => total + next, 0);
-                if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.HP) {
-                    total = Math.ceil(total * 1.05);
-                }
-                else if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.HP_PLUS) {
-                    total = Math.ceil(total * 1.15);
+                if (this.playerMode != 2) {
+                    if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.HP) {
+                        total = Math.ceil(total * 1.05);
+                    }
+                    else if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.HP_PLUS) {
+                        total = Math.ceil(total * 1.15);
+                    }
                 }
                 return total;
             }
@@ -8706,15 +8716,20 @@
                         isMultiplayer: this.isMultiplayer(),
                     });
                 };
-                const teamRcvAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_RCV), 0) * 0.1) : 0);
-                for (const monster of monsters) {
+                const p1TeamRcv = 1 + monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_RCV), 0) * 0.10;
+                for (let i = 0; i < monsters.length; i++) {
+                    const monster = monsters[i];
                     if (!monster.id || monster.id <= 0) {
                         rcvs.push(0);
                         continue;
                     }
                     const rcvMult = partialLead(monster) * partialHelper(monster);
                     const rcvBase = monster.getRcv(this.playerMode, this.state.awakenings);
-                    rcvs.push(Math.round(rcvBase * rcvMult * teamRcvAwakeningsMult));
+                    // let totalTeamRcv = p1TeamRcv;
+                    // if (monsters.length > 6 && i >= 5) {
+                    //   totalTeamRcv = p2TeamRcv;
+                    // }
+                    rcvs.push(Math.round(rcvBase * rcvMult * p1TeamRcv));
                 }
                 return rcvs;
             }
@@ -8723,11 +8738,13 @@
                 const rcvs = this.getIndividualRcv(true);
                 const totalRcv = rcvs.reduce((total, next) => total + next, 0);
                 let total = totalRcv > 0 ? totalRcv : 0;
-                if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.RCV) {
-                    total = Math.ceil(total * 1.25);
-                }
-                else if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.RCV_PLUS) {
-                    total = Math.ceil(total * 1.35);
+                if (this.playerMode != 2) {
+                    if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.RCV) {
+                        total = Math.ceil(total * 1.25);
+                    }
+                    else if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.RCV_PLUS) {
+                        total = Math.ceil(total * 1.35);
+                    }
                 }
                 return total;
             }
@@ -10246,7 +10263,8 @@
      * Custom Base 64 encoding for Valeria's teams. This uses the 64 available
      * characaters
      * Encoding is as follows:
-     * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
+     * 6 bits to determine encoding version.
+     * 2 bits to determine player mode (1 = 1P, 2 = 2p, 3 = 3p)
      * For each team in mode:
      *   5 bits to encode team badge.
      *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
@@ -10274,8 +10292,11 @@
     define("custom_base64", ["require", "exports", "monster_instance"], function (require, exports, monster_instance_2) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
+        // Any changes to the encoding schema should be noted here by incrementing this.
+        const ENCODING_VERSION = 0;
         var Bits;
         (function (Bits) {
+            Bits[Bits["VERSION"] = 6] = "VERSION";
             Bits[Bits["PLAYER_MODE"] = 2] = "PLAYER_MODE";
             Bits[Bits["BADGE"] = 5] = "BADGE";
             Bits[Bits["ID"] = 14] = "ID";
@@ -10341,6 +10362,7 @@
         exports.Encoding = Encoding;
         function ValeriaEncode(team) {
             const encoding = new Encoding();
+            encoding.queueBits(ENCODING_VERSION, Bits.VERSION);
             const playerMode = team.playerMode;
             encoding.queueBits(playerMode, Bits.PLAYER_MODE);
             const monstersPerTeam = playerMode == 2 ? 5 : 6;
@@ -10384,52 +10406,68 @@
             return encoding.getString();
         }
         exports.ValeriaEncode = ValeriaEncode;
-        function ValeriaDecodeToPdchu(s) {
-            let pdchu = '';
-            let badges = [0, 0, 0];
-            const encoding = new Encoding(s);
-            const playerMode = encoding.dequeueBits(2);
-            const monstersPerTeam = playerMode == 2 ? 5 : 6;
-            for (let i = 0; i < playerMode; i++) {
-                badges[i] = encoding.dequeueBits(Bits.BADGE);
-                let teamString = '';
-                for (let j = 0; j < monstersPerTeam; j++) {
-                    const id = encoding.dequeueBits(Bits.ID);
-                    if (id == 0) {
-                        teamString += ' / ';
-                        continue;
-                    }
-                    teamString += `${id} `;
-                    const inheritId = encoding.dequeueBits(Bits.ID);
-                    if (inheritId != 0) {
-                        teamString += `(${inheritId}| lv${encoding.dequeueBits(Bits.LEVEL)}${encoding.dequeueBit() ? ' +297' : ''})`;
-                    }
-                    const latentCount = encoding.dequeueBits(Bits.LATENT_COUNT);
-                    if (latentCount) {
-                        teamString += '[';
-                        for (let k = 0; k < latentCount; k++) {
-                            teamString += `${monster_instance_2.LatentToPdchu.get(encoding.dequeueBits(Bits.LATENT))},`;
+        // All decoding methods starting from the first VERSION. When adding new ones,
+        // add to the TOP of this, so that it's clear which one is the most recent.
+        const DecodingVersions = {
+            0: (encoding) => {
+                let pdchu = '';
+                let badges = [0, 0, 0];
+                const playerMode = encoding.dequeueBits(2);
+                const monstersPerTeam = playerMode == 2 ? 5 : 6;
+                for (let i = 0; i < playerMode; i++) {
+                    badges[i] = encoding.dequeueBits(Bits.BADGE);
+                    let teamString = '';
+                    for (let j = 0; j < monstersPerTeam; j++) {
+                        const id = encoding.dequeueBits(Bits.ID);
+                        if (id == 0) {
+                            teamString += ' / ';
+                            continue;
                         }
-                        teamString = teamString.substring(0, teamString.length - 1);
-                        teamString += '] ';
+                        teamString += `${id} `;
+                        const inheritId = encoding.dequeueBits(Bits.ID);
+                        if (inheritId != 0) {
+                            teamString += `(${inheritId}| lv${encoding.dequeueBits(Bits.LEVEL)}${encoding.dequeueBit() ? ' +297' : ''})`;
+                        }
+                        const latentCount = encoding.dequeueBits(Bits.LATENT_COUNT);
+                        if (latentCount) {
+                            teamString += '[';
+                            for (let k = 0; k < latentCount; k++) {
+                                teamString += `${monster_instance_2.LatentToPdchu.get(encoding.dequeueBits(Bits.LATENT))},`;
+                            }
+                            teamString = teamString.substring(0, teamString.length - 1);
+                            teamString += '] ';
+                        }
+                        teamString += `| lv${encoding.dequeueBits(Bits.LEVEL)} awk${encoding.dequeueBits(Bits.AWAKENING)} `;
+                        const is297 = encoding.dequeueBit();
+                        if (!is297) {
+                            teamString += `+H${encoding.dequeueBits(Bits.PLUS)} +A${encoding.dequeueBits(Bits.PLUS)} +R${encoding.dequeueBits(Bits.PLUS)} `;
+                        }
+                        const sa = encoding.dequeueBits(Bits.AWAKENING);
+                        if (sa) {
+                            teamString += `sa${sa} `;
+                        }
+                        teamString += '/ ';
                     }
-                    teamString += `| lv${encoding.dequeueBits(Bits.LEVEL)} awk${encoding.dequeueBits(Bits.AWAKENING)} `;
-                    const is297 = encoding.dequeueBit();
-                    if (!is297) {
-                        teamString += `+H${encoding.dequeueBits(Bits.PLUS)} +A${encoding.dequeueBits(Bits.PLUS)} +R${encoding.dequeueBits(Bits.PLUS)} `;
-                    }
-                    const sa = encoding.dequeueBits(Bits.AWAKENING);
-                    if (sa) {
-                        teamString += `sa${sa} `;
-                    }
-                    teamString += '/ ';
+                    pdchu += teamString.substring(0, teamString.length - 2) + '; ';
                 }
-                pdchu += teamString.substring(0, teamString.length - 2) + '; ';
+                return {
+                    pdchu: pdchu.substring(0, pdchu.length - 2),
+                    badges,
+                };
+            },
+        };
+        function ValeriaDecodeToPdchu(s) {
+            const encoding = new Encoding(s);
+            const v = encoding.dequeueBits(Bits.VERSION);
+            const decoder = DecodingVersions[v];
+            if (decoder) {
+                return decoder(encoding);
             }
-            return {
-                pdchu: pdchu.substring(0, pdchu.length - 2),
-                badges,
-            };
+            // Fallback to version 0.
+            // This only becomes an issue if we have >= (1 << 4) versions, at which point
+            // I will safely assume that we do not need them anymore. (16 encoding
+            // updates is pretty big.)
+            return DecodingVersions[0](new Encoding(s));
         }
         exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
     });
@@ -13176,115 +13214,6 @@
             }
         }
         exports.FancyPhoto = FancyPhoto;
-        /*
-        [Title]
-        
-        |+297  *|+297  *|+297  *|+297  *|+297  *|+297  *|
-        |     SA|     SA|     SA|     SA|     SA|     SA|
-        |Lv   ID|Lv   ID|Lv   ID|Lv   ID|Lv   ID|Lv   ID|
-        LATENTS LATENTS LATENTS LATENTS LATENTS LATENTS
-        
-        SB, Resists, SBR, FUA, SFUa (Have a toggle above which changes this.)
-        Max 6 per row?
-        
-        x1-3 times depending on playerMode.
-        
-        [Team Description occurs on second column]
-        What type of special text should be here? Bold?  Title things?
-         */
-        class TeamPhoto {
-            constructor(canvas) {
-                this.attributeBorders = document.createElement('img');
-                this.titleHeight = 20;
-                this.canvasWidth = 600;
-                this.canvasHeight = 960;
-                this.canvas = canvas;
-                this.context = this.canvas.getContext('2d');
-                canvas.width = this.canvasWidth;
-                canvas.height = this.canvasHeight;
-                this.monsterWidth = this.canvasWidth / 6;
-                this.latentHeight = this.monsterWidth / 8;
-                this.latentWidth = this.latentHeight;
-                this.superLatentWidth = 2 * this.latentWidth;
-                this.hyperLatentWidth = 6 * this.latentWidth;
-                this.monsterTotalHeight = 1.5 * this.monsterWidth + this.latentHeight;
-                const assetInfo = ilmina_stripped_10.CardUiAssets.getIconFrame(0, false, ilmina_stripped_10.floof.model);
-                if (assetInfo) {
-                    this.queue = new Promise((resolve) => {
-                        this.loadImage(assetInfo.url).then((image) => {
-                            this.attributeBorders = image;
-                            resolve();
-                        });
-                    });
-                }
-                else {
-                    this.queue = Promise.resolve();
-                }
-            }
-            async loadImage(url) {
-                const image = document.createElement('img');
-                image.src = url;
-                image.style.display = 'none';
-                document.body.appendChild(image);
-                // const oldQueue = this.queue;
-                return new Promise((resolve) => {
-                    image.onload = () => {
-                        resolve(image);
-                    };
-                });
-            }
-            drawAttributes(card, width, drawnOffsetX, drawnOffsetY, drawSubattribute = false) {
-                const attributeDescriptor = ilmina_stripped_10.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_10.floof.model);
-                if (!attributeDescriptor) {
-                    return;
-                }
-                this.context.drawImage(this.attributeBorders, attributeDescriptor.offsetX, attributeDescriptor.offsetY, attributeDescriptor.width, attributeDescriptor.height, drawnOffsetX, drawnOffsetY, width, width);
-                if (drawSubattribute && card.subattribute >= 0) {
-                    const subattributeDescriptor = ilmina_stripped_10.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_10.floof.model);
-                    if (!subattributeDescriptor) {
-                        return;
-                    }
-                    this.context.drawImage(this.attributeBorders, subattributeDescriptor.offsetX, subattributeDescriptor.offsetY, subattributeDescriptor.width, subattributeDescriptor.height, drawnOffsetX, drawnOffsetY, width, width);
-                }
-            }
-            drawMonster(drawData) {
-                const card = ilmina_stripped_10.floof.model.cards[drawData.id];
-                if (!card) {
-                    return;
-                }
-                const { offsetX, offsetY, width, height, url } = ilmina_stripped_10.CardAssets.getIconImageData(card);
-                const drawnWidth = drawData.isInherit ? this.monsterWidth / 2 : this.monsterWidth;
-                let drawnOffsetY = this.titleHeight + (this.monsterTotalHeight) * drawData.teamIdx;
-                if (!drawData.isInherit) {
-                    drawnOffsetY += this.monsterWidth / 2;
-                }
-                const drawnOffsetX = this.monsterWidth * drawData.positionIdx;
-                const oldQueue = this.queue;
-                this.queue = new Promise((resolve) => {
-                    // Await image load before drawing.
-                    this.loadImage(url).then((image) => {
-                        // Await other draw processes before drawing.
-                        oldQueue.then(() => {
-                            this.context.drawImage(image, offsetX, // x coordinate to being clipping.
-                            offsetY, // y coordinate to begin clipping.
-                            width, // width of the clipped image.
-                            height, // Height of the clipped image
-                            drawnOffsetX, // X Coordinate on canvas.
-                            drawnOffsetY, // y coordinate on canvas.
-                            drawnWidth, // width of the drawn image.
-                            drawnWidth);
-                            this.drawAttributes(card, drawnWidth, drawnOffsetX, drawnOffsetY, !drawData.isInherit);
-                            document.body.removeChild(image);
-                            resolve();
-                        });
-                    });
-                });
-            }
-            clear() {
-                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            }
-        }
-        exports.TeamPhoto = TeamPhoto;
     });
     define("url_handler", ["require", "exports"], function (require, exports) {
         "use strict";
