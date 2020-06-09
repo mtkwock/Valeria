@@ -1,6 +1,5 @@
 import { Card } from './ilmina_stripped';
 
-// 3 is red and blue
 // 1 red
 // 2 blue
 // 4 green

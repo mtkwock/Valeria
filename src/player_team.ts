@@ -523,6 +523,7 @@ class Team {
 
   fromJson(json: TeamJson): void {
     this.setPlayerMode(json.playerMode || 1);
+    this.action = -1;
     this.teamName = json.title || 'UNTITLED';
     this.description = json.description || '';
     if (json.badges) {
@@ -642,25 +643,34 @@ class Team {
         isMultiplayer: this.isMultiplayer(),
       });
     };
+    let p1TeamHp = monsters.reduce((total, monster) => total + monster.countAwakening(Awakening.TEAM_HP), 0);
+    let p2TeamHp = 0;
     if (includeP2) {
       const p2Monsters = this.getTeamAt(this.activeTeamIdx ^ 1);
       for (let i = 1; i < 5; i++) {
         monsters.push(p2Monsters[i]);
       }
+      p1TeamHp -= monsters[5].countAwakening(Awakening.TEAM_HP);
+      p2TeamHp = monsters.slice(5).reduce((total, monster) => total + monster.countAwakening(Awakening.TEAM_HP), 0);
     }
     if (!includeLeaderSkill) {
       return monsters.map((monster) => monster.getHp(this.playerMode, this.state.awakenings));
     }
     const hps = [];
-    const teamHpAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(Awakening.TEAM_HP), 0) * 0.05) : 0);
-    for (const monster of monsters) {
+    for (let i = 0; i < monsters.length; i++) {
+      const monster = monsters[i];
       if (!monster.id || monster.id <= 0) {
         hps.push(0);
         continue;
       }
       const hpMult = partialLead(monster) * partialHelper(monster);
       const hpBase = monster.getHp(this.playerMode, this.state.awakenings);
-      hps.push(Math.round(hpBase * hpMult * teamHpAwakeningsMult));
+      let totalTeamHp = p1TeamHp;
+      if (monsters.length > 6 && i >= 5) {
+        totalTeamHp = p2TeamHp;
+      }
+
+      hps.push(Math.round(hpBase * hpMult * (1 + 0.05 * totalTeamHp)));
     }
     return hps;
   }
@@ -671,12 +681,13 @@ class Team {
     }
     const individualHps = this.getIndividualHp(true, this.playerMode == 2);
     let total = individualHps.reduce((total, next) => total + next, 0);
-    if (this.badges[this.activeTeamIdx] == TeamBadge.HP) {
-      total = Math.ceil(total * 1.05);
-    } else if (this.badges[this.activeTeamIdx] == TeamBadge.HP_PLUS) {
-      total = Math.ceil(total * 1.15);
+    if (this.playerMode != 2) {
+      if (this.badges[this.activeTeamIdx] == TeamBadge.HP) {
+        total = Math.ceil(total * 1.05);
+      } else if (this.badges[this.activeTeamIdx] == TeamBadge.HP_PLUS) {
+        total = Math.ceil(total * 1.15);
+      }
     }
-
     return total;
   }
 
@@ -700,15 +711,23 @@ class Team {
         isMultiplayer: this.isMultiplayer(),
       });
     };
-    const teamRcvAwakeningsMult = 1 + (this.state.awakenings ? (monsters.reduce((total, monster) => total + monster.countAwakening(Awakening.TEAM_RCV), 0) * 0.1) : 0);
-    for (const monster of monsters) {
+
+    const p1TeamRcv = 1 + monsters.reduce((total, monster) => total + monster.countAwakening(Awakening.TEAM_RCV), 0) * 0.10;
+
+    for (let i = 0; i < monsters.length; i++) {
+      const monster = monsters[i];
       if (!monster.id || monster.id <= 0) {
         rcvs.push(0);
         continue;
       }
       const rcvMult = partialLead(monster) * partialHelper(monster);
       const rcvBase = monster.getRcv(this.playerMode, this.state.awakenings);
-      rcvs.push(Math.round(rcvBase * rcvMult * teamRcvAwakeningsMult));
+
+      // let totalTeamRcv = p1TeamRcv;
+      // if (monsters.length > 6 && i >= 5) {
+      //   totalTeamRcv = p2TeamRcv;
+      // }
+      rcvs.push(Math.round(rcvBase * rcvMult * p1TeamRcv));
     }
     return rcvs;
   }
@@ -718,10 +737,12 @@ class Team {
     const rcvs = this.getIndividualRcv(true);
     const totalRcv = rcvs.reduce((total, next) => total + next, 0);
     let total = totalRcv > 0 ? totalRcv : 0;
-    if (this.badges[this.activeTeamIdx] == TeamBadge.RCV) {
-      total = Math.ceil(total * 1.25);
-    } else if (this.badges[this.activeTeamIdx] == TeamBadge.RCV_PLUS) {
-      total = Math.ceil(total * 1.35);
+    if (this.playerMode != 2) {
+      if (this.badges[this.activeTeamIdx] == TeamBadge.RCV) {
+        total = Math.ceil(total * 1.25);
+      } else if (this.badges[this.activeTeamIdx] == TeamBadge.RCV_PLUS) {
+        total = Math.ceil(total * 1.35);
+      }
     }
     return total;
   }

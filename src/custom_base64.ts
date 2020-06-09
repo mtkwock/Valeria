@@ -2,7 +2,8 @@
  * Custom Base 64 encoding for Valeria's teams. This uses the 64 available
  * characaters
  * Encoding is as follows:
- * First two bits = mode (1 = 1P, 2 = 2p, 3 = 3p)
+ * 6 bits to determine encoding version.
+ * 2 bits to determine player mode (1 = 1P, 2 = 2p, 3 = 3p)
  * For each team in mode:
  *   5 bits to encode team badge.
  *   If mode is 1P or 3P: Repeat the following 6 times. Else 5 times
@@ -28,7 +29,14 @@
  *       Next 4 bits represents monsters Super Awakening.
  */
 
+import { LatentToPdchu } from './monster_instance'
+import { Team } from './player_team';
+
+// Any changes to the encoding schema should be noted here by incrementing this.
+const ENCODING_VERSION = 0;
+
 enum Bits {
+  VERSION = 6, // We will store up to 64 different decoding versions before doing a complete overhaul.
   PLAYER_MODE = 2, // Must hold up to 3.
   BADGE = 5, // Must hold up to 21 at the moment.
   ID = 14, // Can contain up to id ~16.2k.
@@ -38,9 +46,6 @@ enum Bits {
   AWAKENING = 4, // Must be able to hold up to 9.
   PLUS = 7, // Must be able to hold up to 99.
 }
-
-import { LatentToPdchu } from './monster_instance'
-import { Team } from './player_team';
 
 const CHAR_AT = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const CHAR_TO_NUM: Map<string, number> = new Map(CHAR_AT.split('').map((c, i) => [c, i]));
@@ -108,6 +113,7 @@ class Encoding {
 
 function ValeriaEncode(team: Team): string {
   const encoding = new Encoding();
+  encoding.queueBits(ENCODING_VERSION, Bits.VERSION);
   const playerMode = team.playerMode;
   encoding.queueBits(playerMode, Bits.PLAYER_MODE);
   const monstersPerTeam = playerMode == 2 ? 5 : 6;
@@ -149,54 +155,77 @@ function ValeriaEncode(team: Team): string {
   return encoding.getString();
 }
 
-function ValeriaDecodeToPdchu(s: string): { pdchu: string, badges: number[] } {
-  let pdchu = '';
-  let badges = [0, 0, 0];
+type DecodeResult = {
+  pdchu: string;
+  badges: number[];
+}
 
-  const encoding = new Encoding(s);
-  const playerMode = encoding.dequeueBits(2);
-  const monstersPerTeam = playerMode == 2 ? 5 : 6;
-  for (let i = 0; i < playerMode; i++) {
-    badges[i] = encoding.dequeueBits(Bits.BADGE);
-    let teamString = '';
-    for (let j = 0; j < monstersPerTeam; j++) {
-      const id = encoding.dequeueBits(Bits.ID);
-      if (id == 0) {
-        teamString += ' / ';
-        continue;
-      }
-      teamString += `${id} `;
-      const inheritId = encoding.dequeueBits(Bits.ID);
-      if (inheritId != 0) {
-        teamString += `(${inheritId}| lv${encoding.dequeueBits(Bits.LEVEL)}${encoding.dequeueBit() ? ' +297' : ''})`;
-      }
-      const latentCount = encoding.dequeueBits(Bits.LATENT_COUNT);
-      if (latentCount) {
-        teamString += '[';
-        for (let k = 0; k < latentCount; k++) {
-          teamString += `${LatentToPdchu.get(encoding.dequeueBits(Bits.LATENT))},`;
+// All decoding methods starting from the first VERSION. When adding new ones,
+// add to the TOP of this, so that it's clear which one is the most recent.
+const DecodingVersions: Record<number, (e: Encoding) => DecodeResult> = {
+  0: (encoding: Encoding): DecodeResult => {
+    let pdchu = '';
+    let badges = [0, 0, 0];
+
+    const playerMode = encoding.dequeueBits(2);
+    const monstersPerTeam = playerMode == 2 ? 5 : 6;
+    for (let i = 0; i < playerMode; i++) {
+      badges[i] = encoding.dequeueBits(Bits.BADGE);
+      let teamString = '';
+      for (let j = 0; j < monstersPerTeam; j++) {
+        const id = encoding.dequeueBits(Bits.ID);
+        if (id == 0) {
+          teamString += ' / ';
+          continue;
         }
-        teamString = teamString.substring(0, teamString.length - 1);
-        teamString += '] ';
+        teamString += `${id} `;
+        const inheritId = encoding.dequeueBits(Bits.ID);
+        if (inheritId != 0) {
+          teamString += `(${inheritId}| lv${encoding.dequeueBits(Bits.LEVEL)}${encoding.dequeueBit() ? ' +297' : ''})`;
+        }
+        const latentCount = encoding.dequeueBits(Bits.LATENT_COUNT);
+        if (latentCount) {
+          teamString += '[';
+          for (let k = 0; k < latentCount; k++) {
+            teamString += `${LatentToPdchu.get(encoding.dequeueBits(Bits.LATENT))},`;
+          }
+          teamString = teamString.substring(0, teamString.length - 1);
+          teamString += '] ';
+        }
+        teamString += `| lv${encoding.dequeueBits(Bits.LEVEL)} awk${encoding.dequeueBits(Bits.AWAKENING)} `;
+        const is297 = encoding.dequeueBit();
+        if (!is297) {
+          teamString += `+H${encoding.dequeueBits(Bits.PLUS)} +A${encoding.dequeueBits(Bits.PLUS)} +R${encoding.dequeueBits(Bits.PLUS)} `;
+        }
+        const sa = encoding.dequeueBits(Bits.AWAKENING);
+        if (sa) {
+          teamString += `sa${sa} `;
+        }
+        teamString += '/ ';
       }
-      teamString += `| lv${encoding.dequeueBits(Bits.LEVEL)} awk${encoding.dequeueBits(Bits.AWAKENING)} `;
-      const is297 = encoding.dequeueBit();
-      if (!is297) {
-        teamString += `+H${encoding.dequeueBits(Bits.PLUS)} +A${encoding.dequeueBits(Bits.PLUS)} +R${encoding.dequeueBits(Bits.PLUS)} `;
-      }
-      const sa = encoding.dequeueBits(Bits.AWAKENING);
-      if (sa) {
-        teamString += `sa${sa} `;
-      }
-      teamString += '/ ';
+      pdchu += teamString.substring(0, teamString.length - 2) + '; ';
     }
-    pdchu += teamString.substring(0, teamString.length - 2) + '; ';
+
+    return {
+      pdchu: pdchu.substring(0, pdchu.length - 2),
+      badges,
+    };
+  },
+}
+
+function ValeriaDecodeToPdchu(s: string): DecodeResult {
+  const encoding = new Encoding(s);
+  const v = encoding.dequeueBits(Bits.VERSION);
+  const decoder = DecodingVersions[v];
+  if (decoder) {
+    return decoder(encoding);
   }
 
-  return {
-    pdchu: pdchu.substring(0, pdchu.length - 2),
-    badges,
-  };
+  // Fallback to version 0.
+  // This only becomes an issue if we have >= (1 << 4) versions, at which point
+  // I will safely assume that we do not need them anymore. (16 encoding
+  // updates is pretty big.)
+  return DecodingVersions[0](new Encoding(s));
 }
 
 export {

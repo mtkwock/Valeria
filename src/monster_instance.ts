@@ -751,7 +751,7 @@ class MonsterInstance {
       hp += Math.round(inheritBonus * 0.1);
     }
 
-    if (playerMode) {
+    if (playerMode > 1 && awakeningsActive) {
       const multiboostMultiplier = 1.5 ** this.countAwakening(Awakening.MULTIBOOST, playerMode);
       hp *= multiboostMultiplier;
     }
@@ -823,7 +823,7 @@ class MonsterInstance {
       rcv += Math.round(inheritBonus * 0.15);
     }
 
-    if (playerMode && awakeningsActive) {
+    if (playerMode > 1 && awakeningsActive) {
       const multiboostMultiplier = 1.5 ** this.countAwakening(Awakening.MULTIBOOST, playerMode);
       rcv *= multiboostMultiplier;
     }
