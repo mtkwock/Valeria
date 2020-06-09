@@ -3,6 +3,8 @@
  * characaters
  * Encoding is as follows:
  * 6 bits to determine encoding version.
+
+ * Encoding version 0:
  * 2 bits to determine player mode (1 = 1P, 2 = 2p, 3 = 3p)
  * For each team in mode:
  *   5 bits to encode team badge.
