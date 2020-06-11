@@ -7864,7 +7864,7 @@
             46: hpFromTwoAttrs,
             48: hpFromAttr,
             49: rcvFromAttr,
-            52: dropBoost,
+            53: dropBoost,
             54: coinBoost,
             61: atkScalingFromUniqueColorMatches,
             62: atkHpFromType,
