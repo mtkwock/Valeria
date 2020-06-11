@@ -7302,8 +7302,8 @@
             rcvPost: ([minCombo, _, rcvFlag, rcv100], { comboContainer }) => rcvFlag && comboContainer.comboCount() >= minCombo ? rcv100 / 100 : 1,
         };
         const atkRcvFromAttrCombos = {
-            atk: ([a, attrBits, b, c, d], ctx) => ctx.ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) ? (atkRcvFromCombos.atk || (() => 1))([a, b, c, d], ctx) : 1,
-            rcvPost: ([a, attrBits, b, c, d], ctx) => ctx.monster.anyAttributes(common_6.idxsFromBits(attrBits)) ? (atkRcvFromCombos.rcv || (() => 1))([a, b, c, d], ctx) : 1,
+            atk: ([a, attrBits, b, c, d], ctx) => ctx.ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) ? atkRcvFromCombos.atk([a, b, c, d], ctx) : 1,
+            rcvPost: ([a, attrBits, b, c, d], ctx) => ctx.monster.anyAttributes(common_6.idxsFromBits(attrBits)) ? atkRcvFromCombos.rcv([a, b, c, d], ctx) : 1,
         };
         const atkFromDecreasedRcv = {
             atk: ([_, atk100]) => atk100 / 100,
@@ -7424,9 +7424,9 @@
         };
         // Same as above, but with inverted requirement.
         const atkRcvShieldFromAboveHp = {
-            atk: ([thresh, ...remaining], context) => context.percentHp >= thresh ? (atkRcvShieldFromSubHp.atk || (() => 1))([101, ...remaining], context) : 1,
-            rcvPost: ([thresh, ...remaining], context) => context.percentHp >= thresh ? (atkRcvShieldFromSubHp.rcv || (() => 1))([101, ...remaining], context) : 1,
-            damageMult: ([thresh, ...remaining], context) => context.percentHp >= thresh ? (atkRcvShieldFromSubHp.damageMult || (() => 1))([101, ...remaining], context) : 1,
+            atk: ([thresh, ...remaining], context) => context.percentHp >= thresh ? atkRcvShieldFromSubHp.atk([101, ...remaining], context) : 1,
+            rcvPost: ([thresh, ...remaining], context) => context.percentHp >= thresh ? atkRcvShieldFromSubHp.rcv([101, ...remaining], context) : 1,
+            damageMult: ([thresh, ...remaining], context) => context.percentHp >= thresh ? atkRcvShieldFromSubHp.damageMult([101, ...remaining], context) : 1,
         };
         const atkRcvFromAttrsTypesSkillUse = {
             atk: ([attrBits, typeBits, atk100], { ping, skillUsed }) => atk100 && skillUsed && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
@@ -7485,9 +7485,9 @@
             damageMult: ([_, _a, shield], { comboContainer }) => shield && comboContainer.combos['h'].some((c) => c.shape == common_6.Shape.CROSS) ? 1 - shield / 100 : 1,
         };
         const baseStatFromAttrTypeMultiplayer = {
-            hp: (params, context) => context.isMultiplayer ? (baseStatFromAttrsTypes.hp || (() => 1))(params, context) : 1,
-            atk: (params, context) => context.isMultiplayer ? (baseStatFromAttrsTypes.atk || (() => 1))(params, context) : 1,
-            rcv: (params, context) => context.isMultiplayer ? (baseStatFromAttrsTypes.rcv || (() => 1))(params, context) : 1,
+            hp: (params, context) => context.isMultiplayer ? baseStatFromAttrsTypes.hp(params, context) : 1,
+            atk: (params, context) => context.isMultiplayer ? baseStatFromAttrsTypes.atk(params, context) : 1,
+            rcv: (params, context) => context.isMultiplayer ? baseStatFromAttrsTypes.rcv(params, context) : 1,
         };
         const atkScalingFromCross = {
             atk: (params, { comboContainer }) => {
@@ -7501,9 +7501,9 @@
         };
         const baseStatFromAttrsTypesMinMatch = {
             minOrbMatch: ([minMatch]) => minMatch,
-            hp: ([_, ...params], context) => (baseStatFromAttrsTypes.hp || (() => 1))(params, context),
-            atk: ([_, ...params], context) => (baseStatFromAttrsTypes.atk || (() => 1))(params, context),
-            rcv: ([_, ...params], context) => (baseStatFromAttrsTypes.rcv || (() => 1))(params, context),
+            hp: ([_, ...params], context) => baseStatFromAttrsTypes.hp(params, context),
+            atk: ([_, ...params], context) => baseStatFromAttrsTypes.atk(params, context),
+            rcv: ([_, ...params], context) => baseStatFromAttrsTypes.rcv(params, context),
         };
         const bigBoardLeader = {
             bigBoard: true,
@@ -7556,7 +7556,7 @@
             },
         };
         const atkRcvScalingFromUniqueColorMatches = {
-            atk: ([a, b, c, _, d, e], context) => (atkScalingFromUniqueColorMatches.atk || (() => 1))([a, b, c, d, e], context),
+            atk: ([a, b, c, _, d, e], context) => atkScalingFromUniqueColorMatches.atk([a, b, c, d, e], context),
             rcvPost: ([attrBits, minColors, _, rcv100base, scale100, maxColors], { team, comboContainer }) => {
                 maxColors = maxColors || minColors;
                 scale100 = scale100 || 0;
@@ -7698,9 +7698,9 @@
         };
         const baseStatFromAttrsTypesFixedTime = {
             fixedTime: ([fixedSeconds]) => fixedSeconds,
-            hp: ([, ...params], context) => (baseStatFromAttrsTypes.hp || (() => 1))(params, context),
-            atk: ([, ...params], context) => (baseStatFromAttrsTypes.atk || (() => 1))(params, context),
-            rcv: ([, ...params], context) => (baseStatFromAttrsTypes.rcv || (() => 1))(params, context),
+            hp: ([, ...params], context) => baseStatFromAttrsTypes.hp(params, context),
+            atk: ([, ...params], context) => baseStatFromAttrsTypes.atk(params, context),
+            rcv: ([, ...params], context) => baseStatFromAttrsTypes.rcv(params, context),
         };
         const atkShieldFromLinkedOrbs = {
             atk: ([attrBits, minMatched, atk100], { comboContainer }) => {
@@ -7757,9 +7757,9 @@
         };
         const baseStatFromAttrsTypesTimeExtend = {
             timeExtend: ([sec100]) => sec100 / 100,
-            hp: ([_, ...params], context) => (baseStatFromAttrsTypes.hp || (() => 1))(params, context),
-            atk: ([_, ...params], context) => (baseStatFromAttrsTypes.atk || (() => 1))(params, context),
-            rcv: ([_, ...params], context) => (baseStatFromAttrsTypes.rcv || (() => 1))(params, context),
+            hp: ([_, ...params], context) => baseStatFromAttrsTypes.hp(params, context),
+            atk: ([_, ...params], context) => baseStatFromAttrsTypes.atk(params, context),
+            rcv: ([_, ...params], context) => baseStatFromAttrsTypes.rcv(params, context),
         };
         const baseStatFromAttrsTypesBigBoard = {
             bigBoard: true,
