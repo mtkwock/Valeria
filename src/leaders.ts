@@ -515,9 +515,9 @@ const baseStatShieldFromAttributeType: LeaderSkill = { // 129
 };
 
 const atkRcvShieldFromSubHp: LeaderSkill = { // 130
-  atk: ([thresh, ...remaining], context) => thresh <= context.percentHp ? (baseStatFromAttrType.atk || (() => 1))(remaining, context) : 1,
-  rcvPost: ([thresh, ...remaining], context) => thresh <= context.percentHp ? (baseStatFromAttrType.rcv || (() => 1))(remaining, context) : 1,
-  damageMult: ([thresh, ...remaining], context) => thresh <= context.percentHp ? (baseStatFromAttrType.damageMult || (() => 1))(remaining, context) : 1,
+  atk: ([thresh, attrBits, typeBits, atk100], { percentHp, ping }) => atk100 && percentHp <= thresh && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
+  rcvPost: ([thresh, attrBits, typeBits, _, rcv100], { percentHp, monster }) => rcv100 && percentHp <= thresh && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
+  damageMult: ([thresh, _, _a, _b, _c, _d, _e, attrBits, shield100], { percentHp, attribute }) => shield100 && percentHp <= thresh && idxsFromBits(attrBits).some((attr) => attr == attribute) ? 1 - shield100 / 100 : 1,
 };
 
 const atkRcvShieldFromAboveHp: LeaderSkill = { // 131
