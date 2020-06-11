@@ -225,9 +225,10 @@ const rcvFromAttr: LeaderSkill = { // 49
   rcv: atkRcvFromAttr.rcv,
 };
 
-const dropBoost: LeaderSkill = { // 52
+const dropBoost: LeaderSkill = { // 53
   drop: ([boost100]) => boost100 / 100,
 };
+
 
 const coinBoost: LeaderSkill = { // 54
   coins: ([coins100]) => coins100 / 100,
@@ -1014,7 +1015,7 @@ const LEADER_SKILL_GENERATORS: Record<number, LeaderSkill> = {
   46: hpFromTwoAttrs,
   48: hpFromAttr,
   49: rcvFromAttr,
-  52: dropBoost,
+  53: dropBoost,
   54: coinBoost,
   61: atkScalingFromUniqueColorMatches,
   62: atkHpFromType,
