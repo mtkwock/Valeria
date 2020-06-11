@@ -241,9 +241,10 @@ function countMatchedColors(attrBits: number, comboContainer: ComboContainer, te
 }
 
 const atkScalingFromUniqueColorMatches: LeaderSkill = { // 61
-  atk: ([attrBits, minColors, atk100base, atk100scale, maxColors], { team, comboContainer }) => {
+  atk: ([attrBits, minColors, atk100base, atk100scale, moreColors], { team, comboContainer }) => {
     let count = countMatchedColors(attrBits, comboContainer, team);
     atk100scale = atk100scale || 0;
+    const maxColors = minColors + (moreColors || 0);
     if (count < minColors) {
       return 1;
     }
