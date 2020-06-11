@@ -377,8 +377,8 @@ const atkRcvFromCombos: LeaderSkill = { // 103
 };
 
 const atkRcvFromAttrCombos: LeaderSkill = { // 104
-  atk: ([a, attrBits, b, c, d], ctx) => ctx.ping.source.anyAttributes(idxsFromBits(attrBits)) ? (atkRcvFromCombos.atk || (() => 1))([a, b, c, d], ctx) : 1,
-  rcvPost: ([a, attrBits, b, c, d], ctx) => ctx.monster.anyAttributes(idxsFromBits(attrBits)) ? (atkRcvFromCombos.rcv || (() => 1))([a, b, c, d], ctx) : 1,
+  atk: ([a, attrBits, b, c, d], ctx) => ctx.ping.source.anyAttributes(idxsFromBits(attrBits)) ? atkRcvFromCombos.atk!([a, b, c, d], ctx) : 1,
+  rcvPost: ([a, attrBits, b, c, d], ctx) => ctx.monster.anyAttributes(idxsFromBits(attrBits)) ? atkRcvFromCombos.rcv!([a, b, c, d], ctx) : 1,
 };
 
 const atkFromDecreasedRcv: LeaderSkill = { // 105
@@ -522,9 +522,9 @@ const atkRcvShieldFromSubHp: LeaderSkill = { // 130
 
 // Same as above, but with inverted requirement.
 const atkRcvShieldFromAboveHp: LeaderSkill = { // 131
-  atk: ([thresh, ...remaining], context) => context.percentHp >= thresh ? (atkRcvShieldFromSubHp.atk || (() => 1))([101, ...remaining], context) : 1,
-  rcvPost: ([thresh, ...remaining], context) => context.percentHp >= thresh ? (atkRcvShieldFromSubHp.rcv || (() => 1))([101, ...remaining], context) : 1,
-  damageMult: ([thresh, ...remaining], context) => context.percentHp >= thresh ? (atkRcvShieldFromSubHp.damageMult || (() => 1))([101, ...remaining], context) : 1,
+  atk: ([thresh, ...remaining], context) => context.percentHp >= thresh ? atkRcvShieldFromSubHp.atk!([101, ...remaining], context) : 1,
+  rcvPost: ([thresh, ...remaining], context) => context.percentHp >= thresh ? atkRcvShieldFromSubHp.rcv!([101, ...remaining], context) : 1,
+  damageMult: ([thresh, ...remaining], context) => context.percentHp >= thresh ? atkRcvShieldFromSubHp.damageMult!([101, ...remaining], context) : 1,
 };
 
 const atkRcvFromAttrsTypesSkillUse: LeaderSkill = { // 133
@@ -599,9 +599,9 @@ const atkRcvShieldFromHeartCross: LeaderSkill = { // 151
 };
 
 const baseStatFromAttrTypeMultiplayer: LeaderSkill = { // 155
-  hp: (params, context) => context.isMultiplayer ? (baseStatFromAttrsTypes.hp || (() => 1))(params, context) : 1,
-  atk: (params, context) => context.isMultiplayer ? (baseStatFromAttrsTypes.atk || (() => 1))(params, context) : 1,
-  rcv: (params, context) => context.isMultiplayer ? (baseStatFromAttrsTypes.rcv || (() => 1))(params, context) : 1,
+  hp: (params, context) => context.isMultiplayer ? baseStatFromAttrsTypes.hp!(params, context) : 1,
+  atk: (params, context) => context.isMultiplayer ? baseStatFromAttrsTypes.atk!(params, context) : 1,
+  rcv: (params, context) => context.isMultiplayer ? baseStatFromAttrsTypes.rcv!(params, context) : 1,
 };
 
 const atkScalingFromCross: LeaderSkill = { // 157
@@ -617,9 +617,9 @@ const atkScalingFromCross: LeaderSkill = { // 157
 
 const baseStatFromAttrsTypesMinMatch: LeaderSkill = { // 158
   minOrbMatch: ([minMatch]) => minMatch,
-  hp: ([_, ...params], context) => (baseStatFromAttrsTypes.hp || (() => 1))(params, context),
-  atk: ([_, ...params], context) => (baseStatFromAttrsTypes.atk || (() => 1))(params, context),
-  rcv: ([_, ...params], context) => (baseStatFromAttrsTypes.rcv || (() => 1))(params, context),
+  hp: ([_, ...params], context) => baseStatFromAttrsTypes.hp!(params, context),
+  atk: ([_, ...params], context) => baseStatFromAttrsTypes.atk!(params, context),
+  rcv: ([_, ...params], context) => baseStatFromAttrsTypes.rcv!(params, context),
 };
 
 const bigBoardLeader: LeaderSkill = {
@@ -676,7 +676,7 @@ const atkRcvScalingFromColorMatches: LeaderSkill = { // 164
 };
 
 const atkRcvScalingFromUniqueColorMatches: LeaderSkill = { // 165
-  atk: ([a, b, c, _, d, e], context) => (atkScalingFromUniqueColorMatches.atk || (() => 1))([a, b, c, d, e], context),
+  atk: ([a, b, c, _, d, e], context) => atkScalingFromUniqueColorMatches.atk!([a, b, c, d, e], context),
   rcvPost: ([attrBits, minColors, _, rcv100base, scale100, maxColors], { team, comboContainer }) => {
     maxColors = maxColors || minColors;
     scale100 = scale100 || 0;
@@ -830,9 +830,9 @@ const atkScalingFromOrbsRemaining: LeaderSkill = { // 177
 
 const baseStatFromAttrsTypesFixedTime: LeaderSkill = { // 178
   fixedTime: ([fixedSeconds]) => fixedSeconds,
-  hp: ([, ...params], context) => (baseStatFromAttrsTypes.hp || (() => 1))(params, context),
-  atk: ([, ...params], context) => (baseStatFromAttrsTypes.atk || (() => 1))(params, context),
-  rcv: ([, ...params], context) => (baseStatFromAttrsTypes.rcv || (() => 1))(params, context),
+  hp: ([, ...params], context) => baseStatFromAttrsTypes.hp!(params, context),
+  atk: ([, ...params], context) => baseStatFromAttrsTypes.atk!(params, context),
+  rcv: ([, ...params], context) => baseStatFromAttrsTypes.rcv!(params, context),
 };
 
 const atkShieldFromLinkedOrbs: LeaderSkill = { // 182
@@ -893,9 +893,9 @@ const atkRcvShieldFromMultThresh: LeaderSkill = { // 183
 
 const baseStatFromAttrsTypesTimeExtend: LeaderSkill = { // 185
   timeExtend: ([sec100]) => sec100 / 100,
-  hp: ([_, ...params], context) => (baseStatFromAttrsTypes.hp || (() => 1))(params, context),
-  atk: ([_, ...params], context) => (baseStatFromAttrsTypes.atk || (() => 1))(params, context),
-  rcv: ([_, ...params], context) => (baseStatFromAttrsTypes.rcv || (() => 1))(params, context),
+  hp: ([_, ...params], context) => baseStatFromAttrsTypes.hp!(params, context),
+  atk: ([_, ...params], context) => baseStatFromAttrsTypes.atk!(params, context),
+  rcv: ([_, ...params], context) => baseStatFromAttrsTypes.rcv!(params, context),
 };
 
 const baseStatFromAttrsTypesBigBoard: LeaderSkill = { // 186
