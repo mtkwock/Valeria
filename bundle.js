@@ -7422,10 +7422,11 @@
             rcvPost: ([thresh, attrBits, typeBits, _, rcv100], { percentHp, monster }) => rcv100 && percentHp <= thresh && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
             damageMult: ([thresh, _, _a, _b, _c, _d, _e, attrBits, shield100], { percentHp, attribute }) => shield100 && percentHp <= thresh && common_6.idxsFromBits(attrBits).some((attr) => attr == attribute) ? 1 - shield100 / 100 : 1,
         };
+        // Same as above, but with inverted requirement.
         const atkRcvShieldFromAboveHp = {
-            atk: ([thresh, ...remaining], context) => thresh >= context.percentHp ? (baseStatFromAttrType.atk || (() => 1))(remaining, context) : 1,
-            rcvPost: ([thresh, ...remaining], context) => thresh >= context.percentHp ? (baseStatFromAttrType.rcv || (() => 1))(remaining, context) : 1,
-            damageMult: ([thresh, ...remaining], context) => thresh >= context.percentHp ? (baseStatFromAttrType.damageMult || (() => 1))(remaining, context) : 1,
+            atk: ([thresh, ...remaining], context) => context.percentHp >= thresh ? (atkRcvShieldFromSubHp.atk || (() => 1))([101, ...remaining], context) : 1,
+            rcvPost: ([thresh, ...remaining], context) => context.percentHp >= thresh ? (atkRcvShieldFromSubHp.rcv || (() => 1))([101, ...remaining], context) : 1,
+            damageMult: ([thresh, ...remaining], context) => context.percentHp >= thresh ? (atkRcvShieldFromSubHp.damageMult || (() => 1))([101, ...remaining], context) : 1,
         };
         const atkRcvFromAttrsTypesSkillUse = {
             atk: ([attrBits, typeBits, atk100], { ping, skillUsed }) => atk100 && skillUsed && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
