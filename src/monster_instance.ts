@@ -2,7 +2,7 @@ import { Attribute, Awakening, AwakeningToPlus, Latent, MonsterType, DEFAULT_CAR
 import { Card, CardAssets, floof } from './ilmina_stripped';
 import { create, MonsterIcon, MonsterInherit, MonsterLatent, ClassNames, OnMonsterUpdate } from './templates';
 import { fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch } from './fuzzy_search';
-import { PlayerMonsterContext } from './team_test';
+import { PlayerMonsterContext } from './team_conformance';
 
 const AWAKENING_BONUS = new Map<Awakening, number>([
   [Awakening.HP, 500],
