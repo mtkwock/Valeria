@@ -5416,6 +5416,7 @@
                 this.createToggle('Display Cooldowns', (checked) => this.options.showCooldowns = checked, this.options.showCooldowns || false);
                 this.createToggle('Display Transformed', (checked) => this.options.useTransform = checked, this.options.useTransform || false);
                 this.createToggle('Display Description', (checked) => this.options.showDescription = checked, this.options.showDescription || false);
+                this.createToggle('Transparent Background', (checked) => this.options.transparentBackground = checked, this.options.transparentBackground || false);
                 this.setupAwakeningToggles();
                 this.element.appendChild(this.canvas);
             }
@@ -13163,6 +13164,7 @@
                     showCooldowns: false,
                     awakenings: [],
                     showDescription: true,
+                    transparentBackground: true,
                 };
                 this.photoArea = new templates_6.PhotoArea(this.opts, () => {
                     this.reloadTeam();
@@ -13239,7 +13241,14 @@
                 for (let i = 0; i < idx; i++) {
                     aggregateOffset += this.rowDraws[i].getHeightOverWidth() * this.canvas.width;
                 }
-                this.ctx.clearRect(0, aggregateOffset, this.canvas.width, this.canvas.height - aggregateOffset);
+                // this.ctx.clearRect(0, aggregateOffset, this.canvas.width, this.canvas.height - aggregateOffset);
+                if (this.opts.transparentBackground) {
+                    this.ctx.clearRect(0, aggregateOffset, this.canvas.width, this.canvas.height - aggregateOffset);
+                }
+                else {
+                    this.ctx.fillStyle = 'black';
+                    this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+                }
                 for (const rowDraw of this.rowDraws.slice(idx)) {
                     const imageUrls = rowDraw.imagesToLoad();
                     for (const imageUrl of imageUrls) {
