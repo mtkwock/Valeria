@@ -339,12 +339,12 @@ const leadSwap: MonsterActive = {
 
 // 110
 const grudgeStrike: MonsterActive = {
-  damage: ([_, attr, baseMult, maxMult, scaling], { source, playerMode, awakeningsActive, currentHp, maxHp }) => {
+  damage: ([_, attr, baseMult100, maxMult100, scaling], { source, playerMode, awakeningsActive, currentHp, maxHp }) => {
     const ping = new DamagePing(source, attr);
     ping.isActive = true;
     ping.damage = source.getAtk(playerMode, awakeningsActive);
-    const multiplierScale = (maxMult - baseMult) * ((1 - (currentHp - 1) / maxHp) ** (scaling / 100));
-    ping.multiply(baseMult + multiplierScale, Round.NEAREST);
+    const multiplierScale100 = (maxMult100 - baseMult100) * ((1 - (currentHp - 1) / maxHp) ** (scaling / 100));
+    ping.multiply((baseMult100 + multiplierScale100) / 100, Round.NEAREST);
     return [ping];
   },
 };

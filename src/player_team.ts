@@ -13,7 +13,7 @@ import { ComboContainer } from './combo_container';
 import { floof, compress, decompress } from './ilmina_stripped';
 import * as leaders from './leaders';
 import { debug } from './debugger';
-import { runTests, TestContext, CompareBoolean, PlayerTeamContext } from './team_test';
+import { runTests, TestContext, CompareBoolean, PlayerTeamContext } from './team_conformance';
 
 interface Burst {
   attrRestrictions: Attribute[];

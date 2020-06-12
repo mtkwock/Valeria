@@ -1,7 +1,7 @@
 // import { Awakening } from './common';
 import { debug } from './debugger';
 
-interface PlayerMonsterContext {
+export interface PlayerMonsterContext {
   ID: number;
   HP: number;
   ATTRIBUTE: number;
@@ -17,7 +17,7 @@ interface PlayerMonsterContext {
   SDR: number;
 }
 
-interface PlayerTeamContext {
+export interface PlayerTeamContext {
   HP: number;
   RCV: number;
   TIME: number;
@@ -51,7 +51,7 @@ interface PlayerTeamContext {
   AUTOFUA: CompareBoolean;
 }
 
-interface TestContext {
+export interface TestContext {
   MODE: number;
   P1: PlayerTeamContext;
   P2?: PlayerTeamContext;
@@ -418,9 +418,6 @@ function runTests(testString: string, ctx: TestContext): string[] {
 }
 
 export {
-  PlayerMonsterContext,
-  PlayerTeamContext,
-  TestContext,
   runTest,
   runTests,
   CompareBoolean,
