@@ -5413,6 +5413,7 @@
                 this.onUpdate = onUpdate;
                 this.createToggle('Display Title', (checked) => this.options.drawTitle = checked, this.options.drawTitle || false);
                 this.createToggle('Display Badges (1P and 3P)', (checked) => this.options.drawBadge = checked, this.options.drawBadge || false);
+                this.createToggle('Display Cooldowns', (checked) => this.options.showCooldowns = checked, this.options.showCooldowns || false);
                 this.createToggle('Display Transformed', (checked) => this.options.useTransform = checked, this.options.useTransform || false);
                 this.createToggle('Display Description', (checked) => this.options.showDescription = checked, this.options.showDescription || false);
                 this.setupAwakeningToggles();
@@ -6687,6 +6688,15 @@
                 this.inheritPlussed = otherInstance.inheritPlussed;
                 this.setId(otherInstance.id);
             }
+            getCooldown() {
+                const skillId = this.getCard().activeSkillId;
+                return skillId ? ilmina_stripped_4.floof.model.playerSkills[skillId].maxCooldown : 0;
+            }
+            getCooldownInherit() {
+                const inherit = this.getInheritCard();
+                const inheritSkillId = inherit ? inherit.activeSkillId : 0;
+                return this.getCooldown() + (inheritSkillId ? ilmina_stripped_4.floof.model.playerSkills[inheritSkillId].maxCooldown : 0);
+            }
             static swap(instanceA, instanceB) {
                 const temp = new MonsterInstance();
                 temp.copyFrom(instanceA);
@@ -6695,7 +6705,6 @@
             }
             makeTestContext(playerMode) {
                 const skillId = this.getCard().activeSkillId;
-                const CD = skillId ? ilmina_stripped_4.floof.model.playerSkills[skillId].maxCooldown : 0;
                 const CD_MAX = skillId ? ilmina_stripped_4.floof.model.playerSkills[skillId].initialCooldown : 0;
                 const inherit = this.getInheritCard();
                 const inheritSkillId = inherit ? inherit.activeSkillId : 0;
@@ -6706,9 +6715,9 @@
                     HP: this.getHp(playerMode),
                     ATK: this.getAtk(playerMode),
                     RCV: this.getRcv(playerMode),
-                    CD,
+                    CD: this.getCooldown(),
                     CD_MAX,
-                    INHERIT_CD: CD + (inheritSkillId ? ilmina_stripped_4.floof.model.playerSkills[inheritSkillId].maxCooldown : 0),
+                    INHERIT_CD: this.getCooldownInherit(),
                     INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? ilmina_stripped_4.floof.model.playerSkills[inheritSkillId].initialCooldown : 0),
                     SDR: this.latents.filter((l) => l == common_3.Latent.SDR).length,
                 };
@@ -9279,20 +9288,12 @@
                 const team = this.getActiveTeam();
                 const cds = [];
                 for (const monster of team) {
-                    const card = monster.getCard();
-                    let baseCd = 0;
-                    if (card.activeSkillId > 0) {
-                        baseCd = ilmina_stripped_6.floof.model.playerSkills[card.activeSkillId].maxCooldown;
+                    const baseCd = monster.getCooldown();
+                    const inheritCd = monster.getCooldownInherit();
+                    if (baseCd && baseCd != inheritCd) {
+                        cds.push(`${baseCd}(${inheritCd})`);
                     }
-                    let inheritCd = 0;
-                    const inheritCard = monster.getInheritCard();
-                    if (inheritCard && inheritCard.activeSkillId > 0) {
-                        inheritCd = ilmina_stripped_6.floof.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
-                    }
-                    if (baseCd && inheritCd) {
-                        cds.push(`${baseCd}(${baseCd + inheritCd})`);
-                    }
-                    else if (baseCd && !inheritCd) {
+                    else if (baseCd && baseCd == inheritCd) {
                         cds.push(`${baseCd}`);
                     }
                     else if (!baseCd && inheritCd) {
@@ -13047,6 +13048,44 @@
             }
         }
         AggregateAwakeningRow.PER_ROW = 9;
+        class CooldownRow {
+            constructor(cds) {
+                this.cds = [];
+                for (const { base, inherit } of cds) {
+                    if (base && base != inherit) {
+                        this.cds.push(`${base}(${inherit})`);
+                    }
+                    else if (base && base == inherit) {
+                        this.cds.push(`${base}`);
+                    }
+                    else if (!base && inherit) {
+                        this.cds.push(`?(? + ${inherit})`);
+                    }
+                    else {
+                        this.cds.push('');
+                    }
+                }
+            }
+            imagesToLoad() {
+                return [];
+            }
+            getHeightOverWidth() {
+                return CooldownRow.fontSizeFrac;
+            }
+            draw(ctx, drawnOffsetY) {
+                drawnOffsetY += ctx.canvas.width * CooldownRow.fontSizeFrac;
+                ctx.font = `${ctx.canvas.width * CooldownRow.fontSizeFrac}px Arial`;
+                ctx.textAlign = 'right';
+                for (let i = 0; i < this.cds.length; i++) {
+                    borderedText(ctx, this.cds[i], ctx.canvas.width * ((i + 1) / 6 - 1 / 120), drawnOffsetY, -1, 'black', 'white');
+                }
+                ctx.textAlign = 'left';
+                drawnOffsetY += ctx.canvas.width * CooldownRow.fontSizeFrac * 0.1;
+                ctx.font = `${ctx.canvas.width * CooldownRow.fontSizeFrac * 0.6}px Arial`;
+                borderedText(ctx, 'CD', ctx.canvas.width / 120, drawnOffsetY, -1, 'black', 'white');
+            }
+        }
+        CooldownRow.fontSizeFrac = 1 / 30;
         class TextRow {
             constructor(text, fontSizeFrac = 1 / 30, margin = 1 / 40) {
                 this.text = text;
@@ -13121,6 +13160,7 @@
                     drawBadge: true,
                     useTransform: false,
                     useLeadswap: false,
+                    showCooldowns: false,
                     awakenings: [],
                     showDescription: true,
                 };
@@ -13170,6 +13210,13 @@
                     }));
                     this.rowDraws.push(new MonsterRow(monsters));
                     this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
+                    if (this.opts.showCooldowns) {
+                        const cds = currentTeam.map((monster) => ({
+                            base: monster.getCooldown(),
+                            inherit: monster.getCooldownInherit(),
+                        }));
+                        this.rowDraws.push(new CooldownRow(cds));
+                    }
                     if (this.opts.awakenings.length) {
                         const awakeningTotals = this.opts.awakenings.map((awakening) => {
                             let total = team.countAwakening(awakening, { ignoreTransform: !this.opts.useTransform, includeTeamBadge: true });
