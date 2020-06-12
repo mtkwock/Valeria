@@ -305,7 +305,7 @@ const ShapeToLetter: Record<Shape, string> = {
   5: 'R',
 };
 
-const BASE_URL = (document.getElementById('valeria-referenceable-img') as HTMLImageElement).src.replace('assets/UIPAT1.PNG', '');
+const BASE_URL = window.origin + "/";
 
 async function waitFor(conditionFn: () => boolean, waitMs = 50) {
   while (!conditionFn()) {
