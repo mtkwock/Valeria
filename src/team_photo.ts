@@ -457,6 +457,47 @@ class AggregateAwakeningRow implements RowDraw {
   }
 }
 
+class CooldownRow implements RowDraw {
+  private readonly cds: string[] = [];
+  private static readonly fontSizeFrac = 1 / 30;
+
+  constructor(cds: { base?: number; inherit?: number }[]) {
+    for (const { base, inherit } of cds) {
+      if (base && base != inherit) {
+        this.cds.push(`${base}(${inherit})`);
+      } else if (base && base == inherit) {
+        this.cds.push(`${base}`);
+      } else if (!base && inherit) {
+        this.cds.push(`?(? + ${inherit})`);
+      } else {
+        this.cds.push('');
+      }
+    }
+  }
+
+  imagesToLoad(): string[] {
+    return [];
+  }
+
+  getHeightOverWidth(): number {
+    return CooldownRow.fontSizeFrac;
+  }
+
+  draw(ctx: CanvasRenderingContext2D, drawnOffsetY: number): void {
+    drawnOffsetY += ctx.canvas.width * CooldownRow.fontSizeFrac;
+    ctx.font = `${ctx.canvas.width * CooldownRow.fontSizeFrac}px Arial`;
+    ctx.textAlign = 'right';
+    for (let i = 0; i < this.cds.length; i++) {
+      borderedText(ctx, this.cds[i], ctx.canvas.width * ((i + 1) / 6 - 1 / 120), drawnOffsetY, -1, 'black', 'white');
+    }
+
+    ctx.textAlign = 'left';
+    drawnOffsetY += ctx.canvas.width * CooldownRow.fontSizeFrac * 0.1;
+    ctx.font = `${ctx.canvas.width * CooldownRow.fontSizeFrac * 0.6}px Arial`;
+    borderedText(ctx, 'CD', ctx.canvas.width / 120, drawnOffsetY, -1, 'black', 'white');
+  }
+}
+
 class TextRow implements RowDraw {
   private readonly text: string;
   private readonly fontSizeFrac: number;
@@ -556,6 +597,7 @@ class FancyPhoto {
     drawBadge: true,
     useTransform: false,
     useLeadswap: false,
+    showCooldowns: false,
     awakenings: [],
     showDescription: true,
   };
@@ -616,6 +658,13 @@ class FancyPhoto {
 
       this.rowDraws.push(new MonsterRow(monsters));
       this.rowDraws.push(new LatentRow(currentTeam.map((m) => m.latents)));
+      if (this.opts.showCooldowns) {
+        const cds = currentTeam.map((monster) => ({
+          base: monster.getCooldown(),
+          inherit: monster.getCooldownInherit(),
+        }));
+        this.rowDraws.push(new CooldownRow(cds));
+      }
       if (this.opts.awakenings.length) {
         const awakeningTotals = this.opts.awakenings.map((awakening) => {
           let total = team.countAwakening(awakening, { ignoreTransform: !this.opts.useTransform, includeTeamBadge: true });

@@ -10,7 +10,7 @@ import { MonsterInstance, MonsterJson, monsterJsonEqual } from './monster_instan
 import { DamagePing } from './damage_ping';
 import { StoredTeamDisplay, TeamPane, TeamUpdate, Stats, MonsterUpdate } from './templates';
 import { ComboContainer } from './combo_container';
-import { floof, compress, decompress } from './ilmina_stripped';
+import { compress, decompress } from './ilmina_stripped';
 import * as leaders from './leaders';
 import { debug } from './debugger';
 import { runTests, TestContext, CompareBoolean, PlayerTeamContext } from './team_conformance';
@@ -1330,22 +1330,12 @@ class Team {
     const team = this.getActiveTeam();
     const cds = [];
     for (const monster of team) {
-      const card = monster.getCard();
-      let baseCd = 0;
-      if (card.activeSkillId > 0) {
-        baseCd = floof.model.playerSkills[card.activeSkillId].maxCooldown;
-      }
+      const baseCd = monster.getCooldown();
+      const inheritCd = monster.getCooldownInherit();
 
-      let inheritCd = 0;
-
-      const inheritCard = monster.getInheritCard();
-      if (inheritCard && inheritCard.activeSkillId > 0) {
-        inheritCd = floof.model.playerSkills[inheritCard.activeSkillId].maxCooldown;
-      }
-
-      if (baseCd && inheritCd) {
-        cds.push(`${baseCd}(${baseCd + inheritCd})`);
-      } else if (baseCd && !inheritCd) {
+      if (baseCd && baseCd != inheritCd) {
+        cds.push(`${baseCd}(${inheritCd})`);
+      } else if (baseCd && baseCd == inheritCd) {
         cds.push(`${baseCd}`);
       } else if (!baseCd && inheritCd) {
         cds.push(`?(? + ${inheritCd})`);

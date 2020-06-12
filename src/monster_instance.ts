@@ -905,6 +905,17 @@ class MonsterInstance {
     this.setId(otherInstance.id);
   }
 
+  getCooldown(): number {
+    const skillId = this.getCard().activeSkillId;
+    return skillId ? floof.model.playerSkills[skillId].maxCooldown : 0;
+  }
+
+  getCooldownInherit(): number {
+    const inherit = this.getInheritCard();
+    const inheritSkillId = inherit ? inherit.activeSkillId : 0;
+    return this.getCooldown() + (inheritSkillId ? floof.model.playerSkills[inheritSkillId].maxCooldown : 0);
+  }
+
   static swap(instanceA: MonsterInstance, instanceB: MonsterInstance): void {
     const temp = new MonsterInstance();
     temp.copyFrom(instanceA);
@@ -914,7 +925,6 @@ class MonsterInstance {
 
   makeTestContext(playerMode: number): PlayerMonsterContext {
     const skillId = this.getCard().activeSkillId;
-    const CD = skillId ? floof.model.playerSkills[skillId].maxCooldown : 0;
     const CD_MAX = skillId ? floof.model.playerSkills[skillId].initialCooldown : 0;
     const inherit = this.getInheritCard();
     const inheritSkillId = inherit ? inherit.activeSkillId : 0;
@@ -925,9 +935,9 @@ class MonsterInstance {
       HP: this.getHp(playerMode),
       ATK: this.getAtk(playerMode),
       RCV: this.getRcv(playerMode),
-      CD,
+      CD: this.getCooldown(),
       CD_MAX,
-      INHERIT_CD: CD + (inheritSkillId ? floof.model.playerSkills[inheritSkillId].maxCooldown : 0),
+      INHERIT_CD: this.getCooldownInherit(),
       INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? floof.model.playerSkills[inheritSkillId].initialCooldown : 0),
       SDR: this.latents.filter((l) => l == Latent.SDR).length,
     };

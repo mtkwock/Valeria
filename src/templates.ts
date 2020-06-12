@@ -3615,6 +3615,7 @@ interface FancyPhotoOptions {
   drawBadge?: boolean;
   useTransform?: boolean;
   useLeadswap?: boolean;
+  showCooldowns?: boolean;
   awakenings: number[];
   showTeamStats?: boolean;
   showDescription?: boolean;
@@ -3633,6 +3634,7 @@ class PhotoArea {
     this.onUpdate = onUpdate;
     this.createToggle('Display Title', (checked) => this.options.drawTitle = checked, this.options.drawTitle || false);
     this.createToggle('Display Badges (1P and 3P)', (checked) => this.options.drawBadge = checked, this.options.drawBadge || false);
+    this.createToggle('Display Cooldowns', (checked) => this.options.showCooldowns = checked, this.options.showCooldowns || false);
     this.createToggle('Display Transformed', (checked) => this.options.useTransform = checked, this.options.useTransform || false);
     this.createToggle('Display Description', (checked) => this.options.showDescription = checked, this.options.showDescription || false);
 
