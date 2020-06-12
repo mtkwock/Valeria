@@ -5561,7 +5561,7 @@
         const debug = new DebuggerEl();
         exports.debug = debug;
     });
-    define("team_test", ["require", "exports", "debugger"], function (require, exports, debugger_1) {
+    define("team_conformance", ["require", "exports", "debugger"], function (require, exports, debugger_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function replacify(text, ctx) {
@@ -8131,7 +8131,7 @@
         }
         exports.awokenBindClear = awokenBindClear;
     });
-    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_test"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_6, leaders, debugger_2, team_test_1) {
+    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_conformance"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_6, leaders, debugger_2, team_conformance_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const DEFAULT_STATE = {
@@ -9125,7 +9125,7 @@
                     RESIST_LIGHT: this.countAwakening(common_7.Awakening.RESIST_LIGHT) * 7 + this.countLatent(common_7.Latent.RESIST_LIGHT) + this.countLatent(common_7.Latent.RESIST_LIGHT_PLUS) * 2.5,
                     RESIST_DARK: this.countAwakening(common_7.Awakening.RESIST_DARK) * 7 + this.countLatent(common_7.Latent.RESIST_DARK) + this.countLatent(common_7.Latent.RESIST_DARK_PLUS) * 2.5,
                     // Leader Skill capabilities.
-                    AUTOFUA: team_test_1.CompareBoolean.FALSE,
+                    AUTOFUA: team_conformance_1.CompareBoolean.FALSE,
                 };
                 return result;
             }
@@ -9140,8 +9140,8 @@
                     LIGHT: 1 << 3,
                     DARK: 1 << 4,
                     ALL_ATTRIBUTES: 31,
-                    TRUE: team_test_1.CompareBoolean.TRUE,
-                    FALSE: team_test_1.CompareBoolean.FALSE,
+                    TRUE: team_conformance_1.CompareBoolean.TRUE,
+                    FALSE: team_conformance_1.CompareBoolean.FALSE,
                 };
                 if (this.playerMode > 1) {
                     ctx.P2 = this.makeTeamContext(1);
@@ -9342,7 +9342,7 @@
                 counts.set(common_7.Awakening.RESIST_LIGHT, this.countAwakening(common_7.Awakening.RESIST_LIGHT));
                 counts.set(common_7.Awakening.RESIST_DARK, this.countAwakening(common_7.Awakening.RESIST_DARK));
                 counts.set(common_7.Awakening.AUTOHEAL, this.countAwakening(common_7.Awakening.AUTOHEAL));
-                const testResult = team_test_1.runTests(this.tests, this.makeTestContext());
+                const testResult = team_conformance_1.runTests(this.tests, this.makeTestContext());
                 return {
                     hps: this.getIndividualHp(),
                     atks,
@@ -9924,12 +9924,12 @@
         };
         // 110
         const grudgeStrike = {
-            damage: ([_, attr, baseMult, maxMult, scaling], { source, playerMode, awakeningsActive, currentHp, maxHp }) => {
+            damage: ([_, attr, baseMult100, maxMult100, scaling], { source, playerMode, awakeningsActive, currentHp, maxHp }) => {
                 const ping = new damage_ping_2.DamagePing(source, attr);
                 ping.isActive = true;
                 ping.damage = source.getAtk(playerMode, awakeningsActive);
-                const multiplierScale = (maxMult - baseMult) * ((1 - (currentHp - 1) / maxHp) ** (scaling / 100));
-                ping.multiply(baseMult + multiplierScale, common_9.Round.NEAREST);
+                const multiplierScale100 = (maxMult100 - baseMult100) * ((1 - (currentHp - 1) / maxHp) ** (scaling / 100));
+                ping.multiply((baseMult100 + multiplierScale100) / 100, common_9.Round.NEAREST);
                 return [ping];
             },
         };
