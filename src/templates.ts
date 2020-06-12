@@ -3619,6 +3619,7 @@ interface FancyPhotoOptions {
   awakenings: number[];
   showTeamStats?: boolean;
   showDescription?: boolean;
+  transparentBackground?: boolean;
 }
 
 class PhotoArea {
@@ -3637,6 +3638,7 @@ class PhotoArea {
     this.createToggle('Display Cooldowns', (checked) => this.options.showCooldowns = checked, this.options.showCooldowns || false);
     this.createToggle('Display Transformed', (checked) => this.options.useTransform = checked, this.options.useTransform || false);
     this.createToggle('Display Description', (checked) => this.options.showDescription = checked, this.options.showDescription || false);
+    this.createToggle('Transparent Background', (checked) => this.options.transparentBackground = checked, this.options.transparentBackground || false);
 
     this.setupAwakeningToggles();
     this.element.appendChild(this.canvas);

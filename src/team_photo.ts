@@ -600,6 +600,7 @@ class FancyPhoto {
     showCooldowns: false,
     awakenings: [],
     showDescription: true,
+    transparentBackground: true,
   };
   private photoArea: PhotoArea;
   private lastTeam?: Team;
@@ -689,7 +690,14 @@ class FancyPhoto {
     for (let i = 0; i < idx; i++) {
       aggregateOffset += this.rowDraws[i].getHeightOverWidth() * this.canvas.width;
     }
-    this.ctx.clearRect(0, aggregateOffset, this.canvas.width, this.canvas.height - aggregateOffset);
+    // this.ctx.clearRect(0, aggregateOffset, this.canvas.width, this.canvas.height - aggregateOffset);
+
+    if (this.opts.transparentBackground) {
+      this.ctx.clearRect(0, aggregateOffset, this.canvas.width, this.canvas.height - aggregateOffset);
+    } else {
+      this.ctx.fillStyle = 'black';
+      this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+    }
 
     for (const rowDraw of this.rowDraws.slice(idx)) {
       const imageUrls = rowDraw.imagesToLoad();
