@@ -1826,7 +1826,7 @@
             5: 'R',
         };
         exports.ShapeToLetter = ShapeToLetter;
-        const BASE_URL = window.origin + "/";
+        const BASE_URL = window.origin + window.location.pathname;
         exports.BASE_URL = BASE_URL;
         async function waitFor(conditionFn, waitMs = 50) {
             while (!conditionFn()) {
