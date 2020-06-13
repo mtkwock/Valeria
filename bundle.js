@@ -2052,7 +2052,8 @@
             'aa2': 2660002,
             'aa3': 2660003,
             'aa4': 2660004,
-            'beleth': 3437003,
+            'ta1': 3638001,
+            'ta2': 4182001,
         };
         exports.DUNGEON_ALIASES = DUNGEON_ALIASES;
     });
