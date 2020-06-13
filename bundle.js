@@ -9,6 +9,13 @@
         Object.defineProperty(exports, "__cjsModule", { value: true });
         Object.defineProperty(exports, "default", { value: (name) => resolve(name) });
     });
+    var __importStar = (this && this.__importStar) || function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+        result["default"] = mod;
+        return result;
+    };
     /**
      * Simpler ajax function so that jQuery isn't necessary.  Only things required
      * are the url and optionally a done and fail function.
@@ -1819,7 +1826,7 @@
             5: 'R',
         };
         exports.ShapeToLetter = ShapeToLetter;
-        const BASE_URL = document.getElementById('valeria-referenceable-img').src.replace('assets/UIPAT1.PNG', '');
+        const BASE_URL = window.origin + "/";
         exports.BASE_URL = BASE_URL;
         async function waitFor(conditionFn, waitMs = 50) {
             while (!conditionFn()) {
@@ -8200,6 +8207,7 @@
     define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_conformance"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_6, leaders, debugger_2, team_conformance_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
+        leaders = __importStar(leaders);
         const DEFAULT_STATE = {
             awakenings: true,
             currentHp: -1,
