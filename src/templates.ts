@@ -90,6 +90,7 @@ enum ClassNames {
   BADGE = 'valeria-team-badge',
   MONSTER_CONTAINER = 'valeria-monster-container',
   MONSTER_CONTAINER_SELECTED = 'valeria-monster-container-selected',
+  MONSTER_CLICKED = 'valeria-monster-clicked',
   TEAM_TITLE = 'valeria-team-title',
   TEAM_DESCRIPTION = 'valeria-team-description',
 
@@ -2029,6 +2030,9 @@ class TeamPane {
 
   private hpDamage: HTMLSpanElement = create('span') as HTMLSpanElement;
 
+  private baseToSwap: number = -1;
+  public onMonsterSwap: (idx1: number, idx2: number) => void = () => { };
+
   constructor(
     storageDisplay: HTMLElement,
     monsterDivs: HTMLElement[],
@@ -2043,6 +2047,13 @@ class TeamPane {
       this.onTeamUpdate({ title: this.titleEl.value });
     };
 
+    const resetClickStatus = () => {
+      this.baseToSwap = -1;
+      for (const d of this.monsterDivs) {
+        d.classList.remove(ClassNames.MONSTER_CLICKED);
+      }
+    };
+
     for (let i = 0; i < 3; i++) {
       this.teamDivs.push(create('div', ClassNames.TEAM_CONTAINER) as HTMLDivElement);
       const badge = create('img', ClassNames.BADGE) as HTMLImageElement;
@@ -2052,18 +2063,41 @@ class TeamPane {
 
       for (let j = 0; j < 6; j++) {
         const d = create('div', ClassNames.MONSTER_CONTAINER);
-        d.appendChild(monsterDivs[i * 6 + j]);
-        d.onclick = () => {
+        const idx = i * 6 + j;
+        d.appendChild(monsterDivs[idx]);
+        d.onmousedown = () => {
+          console.log(`Setting base to swap to ${idx}`);
+          this.baseToSwap = idx;
+          d.classList.add(ClassNames.MONSTER_CLICKED);
+        };
+        d.onmouseover = () => {
+          // Nothing right now;
+        };
+        d.onmouseup = () => {
+          if (this.baseToSwap < 0) {
+            return;
+          }
+
+          if (this.baseToSwap == idx) {
+            console.log('Selecting monster, NOT SWAPPING');
+          } else {
+            console.log(`Swapping monsters ${this.baseToSwap}-${idx}`);
+            this.onMonsterSwap(this.baseToSwap, idx);
+          }
+
           this.onTeamUpdate({
             teamIdx: i,
-            monsterIdx: i * 6 + j,
+            monsterIdx: idx,
           });
-          this.selectMonster(i * 6 + j);
+          this.selectMonster(idx);
+          resetClickStatus();
         };
         this.monsterDivs.push(d);
         this.teamDivs[i].appendChild(d);
       }
       teamTab.appendChild(this.teamDivs[i]);
+      teamTab.onmouseup = resetClickStatus;
+      teamTab.onmouseleave = resetClickStatus;
     }
 
     const descriptionTab = this.detailTabs.getTab('Description');

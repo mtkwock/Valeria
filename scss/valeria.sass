@@ -313,7 +313,7 @@ table.valeria-monster-icon-info > tr:nth-child(3)
   display: none
 
 .valeria-team-container
-  width: 6 * $icon-size * 1px
+  width: (6 * $icon-size + 2) * 1px
 
 .valeria-team-container-disabled
   display: none
@@ -340,6 +340,18 @@ table.valeria-monster-icon-info > tr:nth-child(3)
 .valeria-monster-container
   // position: relative
   display: inline-block
+
+  // Make text unselectable.
+  // https://stackoverflow.com/questions/2310734/how-to-make-html-text-unselectable
+  -webkit-touch-callout: none
+  -webkit-user-select: none
+  -khtml-user-select: none
+  -moz-user-select: none
+  -ms-user-select: none
+  user-select: none
+
+.valeria-monster-clicked
+  border: $white-border
 
 .valeria-monster-container:hover
   background: $bright-selection

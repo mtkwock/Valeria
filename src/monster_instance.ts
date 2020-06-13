@@ -207,13 +207,13 @@ class MonsterInstance {
     this.icon.setOnUpdate(onUpdate);
     this.latentIcon = new MonsterLatent();
     const inheritIconEl = this.inheritIcon.getElement();
-    inheritIconEl.onclick = () => {
-      const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
-      if (els.length > 1) {
-        const el = els[1] as HTMLInputElement;
-        el.focus();
-      }
-    }
+    // inheritIconEl.onclick = () => {
+    //   const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
+    //   if (els.length > 1) {
+    //     const el = els[1] as HTMLInputElement;
+    //     el.focus();
+    //   }
+    // }
     this.el.appendChild(inheritIconEl);
     this.el.appendChild(this.icon.getElement());
     this.el.onclick = () => {
@@ -891,18 +891,19 @@ class MonsterInstance {
 
   // TODO: Consider loading this like a fromJson.
   copyFrom(otherInstance: MonsterInstance) {
-    this.level = otherInstance.level;
-    this.awakenings = otherInstance.awakenings;
-    this.latents = [...otherInstance.latents];
-    this.superAwakeningIdx = otherInstance.superAwakeningIdx;
-    this.hpPlus = otherInstance.hpPlus;
-    this.atkPlus = otherInstance.atkPlus;
-    this.rcvPlus = otherInstance.rcvPlus;
-
-    this.inheritId = otherInstance.inheritId;
-    this.inheritLevel = otherInstance.inheritLevel;
-    this.inheritPlussed = otherInstance.inheritPlussed;
-    this.setId(otherInstance.id);
+    this.fromJson(otherInstance.toJson());
+    // this.level = otherInstance.level;
+    // this.awakenings = otherInstance.awakenings;
+    // this.latents = [...otherInstance.latents];
+    // this.superAwakeningIdx = otherInstance.superAwakeningIdx;
+    // this.hpPlus = otherInstance.hpPlus;
+    // this.atkPlus = otherInstance.atkPlus;
+    // this.rcvPlus = otherInstance.rcvPlus;
+    //
+    // this.inheritId = otherInstance.inheritId;
+    // this.inheritLevel = otherInstance.inheritLevel;
+    // this.inheritPlussed = otherInstance.inheritPlussed;
+    // this.setId(otherInstance.id);
   }
 
   getCooldown(): number {

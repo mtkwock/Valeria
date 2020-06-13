@@ -326,6 +326,12 @@ class Team {
         this.update();
       }
     );
+    this.teamPane.onMonsterSwap = (a: number, b: number) => {
+      const idxA = this.getMonsterIdx(Math.floor(a / 6), a % 6);
+      const idxB = this.getMonsterIdx(Math.floor(b / 6), b % 6);
+
+      MonsterInstance.swap(this.monsters[idxA], this.monsters[idxB]);
+    };
 
     this.updateCb = () => { };
   }
