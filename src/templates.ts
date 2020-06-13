@@ -771,6 +771,8 @@ class ComboEditor {
   private element: HTMLElement = create('div', ClassNames.COMBO_EDITOR);
   // private colorTables: Record<string, HTMLTableElement> = {};
   public totalCombo = create('div');
+  public plusComboLeaderInput = create('input') as HTMLInputElement;
+  public plusComboActiveInput = create('input') as HTMLInputElement;
   private pieceArea = create('div');
 
   constructor() {
@@ -782,6 +784,20 @@ class ComboEditor {
     this.element.appendChild(guideAnchor);
     this.element.appendChild(this.commandInput);
     this.totalCombo.innerText = 'Total Combos: 0';
+    const plusComboLeaderArea = create('div');
+    plusComboLeaderArea.appendChild(document.createTextNode('+Combo (Leader) '));
+    this.plusComboLeaderInput.type = 'number';
+    this.plusComboLeaderInput.value = '0';
+    this.plusComboLeaderInput.disabled = true;
+    plusComboLeaderArea.appendChild(this.plusComboLeaderInput);
+    this.element.appendChild(plusComboLeaderArea);
+
+    const plusComboActiveArea = create('div');
+    plusComboActiveArea.appendChild(document.createTextNode('+Combo (Active) '));
+    this.plusComboActiveInput.type = 'number';
+    this.plusComboActiveInput.value = '0';
+    plusComboActiveArea.appendChild(this.plusComboActiveInput);
+    this.element.appendChild(plusComboActiveArea);
     this.element.appendChild(this.totalCombo);
     this.element.appendChild(this.pieceArea);
   }

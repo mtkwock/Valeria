@@ -60,6 +60,10 @@ class ComboContainer {
     this.bonusCombosActive = 0;
     this.onUpdate = [];
     this.comboEditor = new ComboEditor();
+    this.comboEditor.plusComboActiveInput.onchange = () => {
+      this.bonusCombosActive = parseInt(this.comboEditor.plusComboActiveInput.value);
+      this.update();
+    }
 
     this.comboEditor.commandInput.onkeyup = (e) => {
       if (e.keyCode == 13) {
@@ -313,11 +317,14 @@ class ComboContainer {
     for (const fn of this.onUpdate) {
       fn(this);
     }
+    this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+    this.comboEditor.plusComboActiveInput.value = String(this.bonusCombosActive);
   }
 
   setBonusComboLeader(bonus: number) {
     this.bonusCombosLeader = bonus;
     this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+    this.comboEditor.plusComboLeaderInput.value = String(this.bonusCombosLeader);
   }
 
   comboCount(): number {
