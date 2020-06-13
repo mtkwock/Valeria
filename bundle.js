@@ -3077,6 +3077,8 @@
                 this.element = create('div', ClassNames.COMBO_EDITOR);
                 // private colorTables: Record<string, HTMLTableElement> = {};
                 this.totalCombo = create('div');
+                this.plusComboLeaderInput = create('input');
+                this.plusComboActiveInput = create('input');
                 this.pieceArea = create('div');
                 this.commandInput.placeholder = 'Combo Commands';
                 const guideAnchor = create('a');
@@ -3086,6 +3088,19 @@
                 this.element.appendChild(guideAnchor);
                 this.element.appendChild(this.commandInput);
                 this.totalCombo.innerText = 'Total Combos: 0';
+                const plusComboLeaderArea = create('div');
+                plusComboLeaderArea.appendChild(document.createTextNode('+Combo (Leader) '));
+                this.plusComboLeaderInput.type = 'number';
+                this.plusComboLeaderInput.value = '0';
+                this.plusComboLeaderInput.disabled = true;
+                plusComboLeaderArea.appendChild(this.plusComboLeaderInput);
+                this.element.appendChild(plusComboLeaderArea);
+                const plusComboActiveArea = create('div');
+                plusComboActiveArea.appendChild(document.createTextNode('+Combo (Active) '));
+                this.plusComboActiveInput.type = 'number';
+                this.plusComboActiveInput.value = '0';
+                plusComboActiveArea.appendChild(this.plusComboActiveInput);
+                this.element.appendChild(plusComboActiveArea);
                 this.element.appendChild(this.totalCombo);
                 this.element.appendChild(this.pieceArea);
             }
@@ -6800,6 +6815,10 @@
                 this.bonusCombosActive = 0;
                 this.onUpdate = [];
                 this.comboEditor = new templates_3.ComboEditor();
+                this.comboEditor.plusComboActiveInput.onchange = () => {
+                    this.bonusCombosActive = parseInt(this.comboEditor.plusComboActiveInput.value);
+                    this.update();
+                };
                 this.comboEditor.commandInput.onkeyup = (e) => {
                     if (e.keyCode == 13) {
                         const remainingCommands = this.doCommands(this.comboEditor.commandInput.value);
@@ -7046,10 +7065,13 @@
                 for (const fn of this.onUpdate) {
                     fn(this);
                 }
+                this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+                this.comboEditor.plusComboActiveInput.value = String(this.bonusCombosActive);
             }
             setBonusComboLeader(bonus) {
                 this.bonusCombosLeader = bonus;
                 this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+                this.comboEditor.plusComboLeaderInput.value = String(this.bonusCombosLeader);
             }
             comboCount() {
                 let total = 0;
