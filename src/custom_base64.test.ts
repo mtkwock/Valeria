@@ -1,4 +1,4 @@
-import { ValeriaEncode, ValeriaDecodeToPdchu } from "./custom_base64";
+import { ValeriaDecodeToPdchu } from "./custom_base64";
 
 test("Decode Valeria encoding", () => {
     const encoding = "AgLSi06BMUUUUUVjSCziqXARwQQbois4qlIEcEEG6IrOypGBHBBBjmCzsl+ATFFFFFFY5gBaUWtQI4IIMaQIUQAAMbQIUQAAMbQIUQAAMbQIUQAAMbQA";
