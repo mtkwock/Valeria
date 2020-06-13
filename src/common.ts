@@ -305,7 +305,7 @@ const ShapeToLetter: Record<Shape, string> = {
   5: 'R',
 };
 
-const BASE_URL = window.origin + window.pathname;
+const BASE_URL = window.origin + window.location.pathname;
 
 async function waitFor(conditionFn: () => boolean, waitMs = 50) {
   while (!conditionFn()) {
