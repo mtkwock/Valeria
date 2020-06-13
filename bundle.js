@@ -8298,6 +8298,7 @@
                 this.action = -1;
                 this.state = Object.assign({}, DEFAULT_STATE);
                 this.badges = [common_7.TeamBadge.NONE, common_7.TeamBadge.NONE, common_7.TeamBadge.NONE];
+                this.onSelectMonster = () => { };
                 /**
                  * 1P: 0-5
                  * 2P: 0-4, 6-10
@@ -8440,24 +8441,29 @@
                         idx -= leadSwap;
                     }
                 }
-                this.activeMonster = idx;
-                // If the current action equals the active, choose inherit instead.
-                // If current action is the inherit, reset to combos.
-                // Otherwise set action to the base monster's active.
-                if (this.action == 2 * relativeIdx) {
-                    if (this.getActiveTeam()[relativeIdx].inheritId > 0) {
-                        this.action++;
+                if (this.activeMonster == idx) {
+                    // If the current action equals the active, choose inherit instead.
+                    // If current action is the inherit, reset to combos.
+                    // Otherwise set action to the base monster's active.
+                    if (this.action == 2 * relativeIdx) {
+                        if (this.getActiveTeam()[relativeIdx].inheritId > 0) {
+                            this.action++;
+                        }
+                        else {
+                            this.action = -1;
+                        }
                     }
-                    else {
+                    else if (this.action == 2 * relativeIdx + 1 || this.getActiveTeam()[relativeIdx].getId() <= 0) {
                         this.action = -1;
                     }
-                }
-                else if (this.action == 2 * relativeIdx + 1 || this.getActiveTeam()[relativeIdx].getId() <= 0) {
-                    this.action = -1;
+                    else {
+                        this.action = 2 * relativeIdx;
+                    }
                 }
                 else {
-                    this.action = 2 * relativeIdx;
+                    this.onSelectMonster();
                 }
+                this.activeMonster = idx;
                 this.updateCb(idx);
             }
             resetState(partial = false) {
@@ -13403,6 +13409,9 @@
                 this.team.updateCb = () => {
                     this.updateMonsterEditor();
                     this.updateDamage();
+                };
+                this.team.onSelectMonster = () => {
+                    this.display.leftTabs.setActiveTab('Monster Editor');
                 };
                 this.team.teamPane.applyActionButton.onclick = () => {
                     const action = this.team.action;
