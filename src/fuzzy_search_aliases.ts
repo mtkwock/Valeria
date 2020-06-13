@@ -20,7 +20,8 @@ const DUNGEON_ALIASES: Record<string, number> = {
   'aa2': 2660002,
   'aa3': 2660003,
   'aa4': 2660004,
-  'beleth': 3437003,
+  'ta1': 3638001,
+  'ta2': 4182001,
 };
 
 export {
