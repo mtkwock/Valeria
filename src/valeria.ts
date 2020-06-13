@@ -114,7 +114,10 @@ class Valeria {
     this.team.updateCb = (): void => {
       this.updateMonsterEditor();
       this.updateDamage();
-    }
+    };
+    this.team.onSelectMonster = () => {
+      this.display.leftTabs.setActiveTab('Monster Editor');
+    };
     this.team.teamPane.applyActionButton.onclick = () => {
       const action = this.team.action;
       const { endEnemyHp, healing } = this.updateDamage();

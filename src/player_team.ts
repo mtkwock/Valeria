@@ -234,6 +234,7 @@ class Team {
   badges: TeamBadge[] = [TeamBadge.NONE, TeamBadge.NONE, TeamBadge.NONE];
   // On change monster selection.
   updateCb: (idx: number) => void;
+  onSelectMonster: () => void = () => { };
 
   constructor() {
     /**
@@ -390,21 +391,25 @@ class Team {
         idx -= leadSwap;
       }
     }
-    this.activeMonster = idx;
-    // If the current action equals the active, choose inherit instead.
-    // If current action is the inherit, reset to combos.
-    // Otherwise set action to the base monster's active.
-    if (this.action == 2 * relativeIdx) {
-      if (this.getActiveTeam()[relativeIdx].inheritId > 0) {
-        this.action++;
-      } else {
+    if (this.activeMonster == idx) {
+      // If the current action equals the active, choose inherit instead.
+      // If current action is the inherit, reset to combos.
+      // Otherwise set action to the base monster's active.
+      if (this.action == 2 * relativeIdx) {
+        if (this.getActiveTeam()[relativeIdx].inheritId > 0) {
+          this.action++;
+        } else {
+          this.action = -1;
+        }
+      } else if (this.action == 2 * relativeIdx + 1 || this.getActiveTeam()[relativeIdx].getId() <= 0) {
         this.action = -1;
+      } else {
+        this.action = 2 * relativeIdx;
       }
-    } else if (this.action == 2 * relativeIdx + 1 || this.getActiveTeam()[relativeIdx].getId() <= 0) {
-      this.action = -1;
     } else {
-      this.action = 2 * relativeIdx;
+      this.onSelectMonster();
     }
+    this.activeMonster = idx;
     this.updateCb(idx);
   }
 
