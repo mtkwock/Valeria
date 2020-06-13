@@ -2470,6 +2470,7 @@
             ClassNames["BADGE"] = "valeria-team-badge";
             ClassNames["MONSTER_CONTAINER"] = "valeria-monster-container";
             ClassNames["MONSTER_CONTAINER_SELECTED"] = "valeria-monster-container-selected";
+            ClassNames["MONSTER_CLICKED"] = "valeria-monster-clicked";
             ClassNames["TEAM_TITLE"] = "valeria-team-title";
             ClassNames["TEAM_DESCRIPTION"] = "valeria-team-description";
             ClassNames["MONSTER_SELECTOR"] = "valeria-monster-selector";
@@ -4098,12 +4099,20 @@
                 this.actualPingTotal = create('td');
                 this.actualPingPercent = create('td');
                 this.hpDamage = create('span');
+                this.baseToSwap = -1;
+                this.onMonsterSwap = () => { };
                 this.onTeamUpdate = onTeamUpdate;
                 const teamTab = this.metaTabs.getTab('Team');
                 this.titleEl.placeholder = 'Team Name';
                 teamTab.appendChild(this.titleEl);
                 this.titleEl.onchange = () => {
                     this.onTeamUpdate({ title: this.titleEl.value });
+                };
+                const resetClickStatus = () => {
+                    this.baseToSwap = -1;
+                    for (const d of this.monsterDivs) {
+                        d.classList.remove(ClassNames.MONSTER_CLICKED);
+                    }
                 };
                 for (let i = 0; i < 3; i++) {
                     this.teamDivs.push(create('div', ClassNames.TEAM_CONTAINER));
@@ -4113,18 +4122,40 @@
                     this.teamDivs[i].appendChild(badge);
                     for (let j = 0; j < 6; j++) {
                         const d = create('div', ClassNames.MONSTER_CONTAINER);
-                        d.appendChild(monsterDivs[i * 6 + j]);
-                        d.onclick = () => {
+                        const idx = i * 6 + j;
+                        d.appendChild(monsterDivs[idx]);
+                        d.onmousedown = () => {
+                            console.log(`Setting base to swap to ${idx}`);
+                            this.baseToSwap = idx;
+                            d.classList.add(ClassNames.MONSTER_CLICKED);
+                        };
+                        d.onmouseover = () => {
+                            // Nothing right now;
+                        };
+                        d.onmouseup = () => {
+                            if (this.baseToSwap < 0) {
+                                return;
+                            }
+                            if (this.baseToSwap == idx) {
+                                console.log('Selecting monster, NOT SWAPPING');
+                            }
+                            else {
+                                console.log(`Swapping monsters ${this.baseToSwap}-${idx}`);
+                                this.onMonsterSwap(this.baseToSwap, idx);
+                            }
                             this.onTeamUpdate({
                                 teamIdx: i,
-                                monsterIdx: i * 6 + j,
+                                monsterIdx: idx,
                             });
-                            this.selectMonster(i * 6 + j);
+                            this.selectMonster(idx);
+                            resetClickStatus();
                         };
                         this.monsterDivs.push(d);
                         this.teamDivs[i].appendChild(d);
                     }
                     teamTab.appendChild(this.teamDivs[i]);
+                    teamTab.onmouseup = resetClickStatus;
+                    teamTab.onmouseleave = resetClickStatus;
                 }
                 const descriptionTab = this.detailTabs.getTab('Description');
                 this.descriptionEl.placeholder = 'Team Description (This can displayed in Photo and saved)';
@@ -6062,13 +6093,13 @@
                 this.icon.setOnUpdate(onUpdate);
                 this.latentIcon = new templates_2.MonsterLatent();
                 const inheritIconEl = this.inheritIcon.getElement();
-                inheritIconEl.onclick = () => {
-                    const els = document.getElementsByClassName(templates_2.ClassNames.MONSTER_SELECTOR);
-                    if (els.length > 1) {
-                        const el = els[1];
-                        el.focus();
-                    }
-                };
+                // inheritIconEl.onclick = () => {
+                //   const els = document.getElementsByClassName(ClassNames.MONSTER_SELECTOR);
+                //   if (els.length > 1) {
+                //     const el = els[1] as HTMLInputElement;
+                //     el.focus();
+                //   }
+                // }
                 this.el.appendChild(inheritIconEl);
                 this.el.appendChild(this.icon.getElement());
                 this.el.onclick = () => {
@@ -6692,17 +6723,19 @@
             }
             // TODO: Consider loading this like a fromJson.
             copyFrom(otherInstance) {
-                this.level = otherInstance.level;
-                this.awakenings = otherInstance.awakenings;
-                this.latents = [...otherInstance.latents];
-                this.superAwakeningIdx = otherInstance.superAwakeningIdx;
-                this.hpPlus = otherInstance.hpPlus;
-                this.atkPlus = otherInstance.atkPlus;
-                this.rcvPlus = otherInstance.rcvPlus;
-                this.inheritId = otherInstance.inheritId;
-                this.inheritLevel = otherInstance.inheritLevel;
-                this.inheritPlussed = otherInstance.inheritPlussed;
-                this.setId(otherInstance.id);
+                this.fromJson(otherInstance.toJson());
+                // this.level = otherInstance.level;
+                // this.awakenings = otherInstance.awakenings;
+                // this.latents = [...otherInstance.latents];
+                // this.superAwakeningIdx = otherInstance.superAwakeningIdx;
+                // this.hpPlus = otherInstance.hpPlus;
+                // this.atkPlus = otherInstance.atkPlus;
+                // this.rcvPlus = otherInstance.rcvPlus;
+                //
+                // this.inheritId = otherInstance.inheritId;
+                // this.inheritLevel = otherInstance.inheritLevel;
+                // this.inheritPlussed = otherInstance.inheritPlussed;
+                // this.setId(otherInstance.id);
             }
             getCooldown() {
                 const skillId = this.getCard().activeSkillId;
@@ -8382,6 +8415,11 @@
                     }
                     this.update();
                 });
+                this.teamPane.onMonsterSwap = (a, b) => {
+                    const idxA = this.getMonsterIdx(Math.floor(a / 6), a % 6);
+                    const idxB = this.getMonsterIdx(Math.floor(b / 6), b % 6);
+                    monster_instance_1.MonsterInstance.swap(this.monsters[idxA], this.monsters[idxB]);
+                };
                 this.updateCb = () => { };
             }
             hasChange() {

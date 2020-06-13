@@ -315,7 +315,7 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 }
 
 .valeria-team-container {
-  width: 367.2px;
+  width: 369.2px;
 }
 
 .valeria-team-container-disabled {
@@ -346,6 +346,16 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 
 .valeria-monster-container {
   display: inline-block;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.valeria-monster-clicked {
+  border: 1px solid white;
 }
 
 .valeria-monster-container:hover {
