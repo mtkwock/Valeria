@@ -845,6 +845,7 @@ class Team {
       healing,
     });
 
+
     const enhancedCounts: Record<string, number> = {
       r: this.countAwakening(Awakening.OE_FIRE),
       b: this.countAwakening(Awakening.OE_WATER),
@@ -885,6 +886,27 @@ class Team {
 
     // monsters = monsters.filter((monster) => monster.getId() > 0);
     const pings: DamagePing[] = Array(2 * monsters.length);
+    const mults: {
+      base: number,
+      combo: number;
+      badge: number;
+      lead: number;
+      help: number;
+      awakenings: number;
+      final: number;
+    }[] = [];
+
+    for (let i = 0; i < pings.length; i++) {
+      mults.push({
+        base: 0,
+        combo: 1,
+        badge: 1,
+        lead: 1,
+        help: 1,
+        awakenings: 1,
+        final: 0,
+      });
+    }
 
     const NO_ONE = new MonsterInstance(-1, () => null);
 
@@ -957,6 +979,9 @@ class Team {
         }
       }
     }
+    for (let i = 0; i < pings.length; i++) {
+      mults[i].base = pings[i].damage;
+    }
 
     let healing = 0;
     const teamRcvAwakenings = this.countAwakening(Awakening.TEAM_RCV);
@@ -1012,9 +1037,10 @@ class Team {
     const comboCount = comboContainer.comboCount();
     const comboMultiplier = comboCount * 0.25 + 0.75;
 
-    for (const ping of pings) {
-      if (ping) {
-        ping.multiply(comboMultiplier, Round.UP);
+    for (let i = 0; i < pings.length; i++) {
+      mults[i].combo = comboMultiplier;
+      if (pings[i]) {
+        pings[i].multiply(comboMultiplier, Round.UP);
       }
     }
     healing = Round.UP(healing * comboMultiplier);
@@ -1027,10 +1053,12 @@ class Team {
     // Assuming:
     // (7c/10c), (80%/50%), Rows, Sfua, L-Guard, JammerBless, PoisonBless
     if (awoke) {
-      for (const ping of pings) {
+      for (let i = 0; i < pings.length; i++) {
+        const ping = pings[i];
         if (!ping || ping.damage == 0) {
           continue;
         }
+        const baseDamage = ping.damage;
         const apply = (awakening: Awakening, multiplier: number) => {
           const count = ping.source.countAwakening(awakening, pm);
           if (count) {
@@ -1065,6 +1093,7 @@ class Team {
         if (comboContainer.combos['p'].length || comboContainer.combos['m'].length) {
           apply(Awakening.POISON_BOOST, 2);
         }
+        mults[i].awakenings = pings[i].damage / baseDamage;
       }
     }
 
@@ -1075,7 +1104,8 @@ class Team {
       atkBadgeMult = 1.15;
     }
 
-    for (const ping of pings) {
+    for (let i = 0; i < pings.length; i++) {
+      const ping = pings[i];
       if (!ping || !ping.damage) {
         continue;
       }
@@ -1083,7 +1113,11 @@ class Team {
       let val = ping.damage;
       val = Math.fround(val) * Math.fround(partialAtk(leadId, ping, healing) * 100) / Math.fround(100);
       val = Math.fround(val) * Math.fround(partialAtk(helpId, ping, healing) * 100) / Math.fround(100);
+      mults[i].badge = atkBadgeMult;
+      mults[i].lead = partialAtk(leadId, ping, healing);
+      mults[i].help = partialAtk(helpId, ping, healing);
       ping.damage = Math.round(val * atkBadgeMult);
+      mults[i].final = ping.damage;
     }
 
     healing += this.countAwakening(Awakening.AUTOHEAL) * 1000;
@@ -1099,6 +1133,8 @@ class Team {
         ping.damage = 2 ** 31 - 1;
       }
     }
+
+    console.log(mults);
 
     return {
       pings,
