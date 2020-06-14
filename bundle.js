@@ -16,6 +16,573 @@
         result["default"] = mod;
         return result;
     };
+    define("common", ["require", "exports"], function (require, exports) {
+        "use strict";
+        Object.defineProperty(exports, "__esModule", { value: true });
+        // 1 red
+        // 2 blue
+        // 4 green
+        // 8 light
+        // 16 dark
+        // 32 heart
+        // 64 jammer
+        // 128 poison
+        // 256 mortal poison
+        // const COLOR_ORDER = 'rbgldhjpmou';
+        const COLORS = [
+            'r',
+            'b',
+            'g',
+            'l',
+            'd',
+            'h',
+            'j',
+            'p',
+            'm',
+            'o',
+            'u',
+        ];
+        exports.COLORS = COLORS;
+        function idxsFromBits(bits) {
+            const idxs = [];
+            for (let idx = 0; bits >> idx; idx++) {
+                if (bits >> idx & 1) {
+                    idxs.push(idx);
+                }
+            }
+            return idxs;
+        }
+        exports.idxsFromBits = idxsFromBits;
+        var Attribute;
+        (function (Attribute) {
+            Attribute[Attribute["FIRE"] = 0] = "FIRE";
+            Attribute[Attribute["WATER"] = 1] = "WATER";
+            Attribute[Attribute["WOOD"] = 2] = "WOOD";
+            Attribute[Attribute["LIGHT"] = 3] = "LIGHT";
+            Attribute[Attribute["DARK"] = 4] = "DARK";
+            Attribute[Attribute["HEART"] = 5] = "HEART";
+            Attribute[Attribute["JAMMER"] = 6] = "JAMMER";
+            Attribute[Attribute["POISON"] = 7] = "POISON";
+            Attribute[Attribute["MORTAL_POSION"] = 8] = "MORTAL_POSION";
+            Attribute[Attribute["BOMB"] = 9] = "BOMB";
+            Attribute[Attribute["FIXED"] = -2] = "FIXED";
+            Attribute[Attribute["NONE"] = -1] = "NONE";
+        })(Attribute || (Attribute = {}));
+        exports.Attribute = Attribute;
+        const AttributeToName = new Map();
+        exports.AttributeToName = AttributeToName;
+        AttributeToName.set(Attribute.FIRE, 'Fire');
+        AttributeToName.set(Attribute.WATER, 'Water');
+        AttributeToName.set(Attribute.WOOD, 'Wood');
+        AttributeToName.set(Attribute.LIGHT, 'Light');
+        AttributeToName.set(Attribute.DARK, 'Dark');
+        AttributeToName.set(Attribute.NONE, 'None');
+        AttributeToName.set(Attribute.HEART, 'Heart');
+        AttributeToName.set(Attribute.JAMMER, 'Jammer');
+        AttributeToName.set(Attribute.POISON, 'Poison');
+        AttributeToName.set(Attribute.MORTAL_POSION, 'Mortal Poison');
+        var MonsterType;
+        (function (MonsterType) {
+            MonsterType[MonsterType["NONE"] = -1] = "NONE";
+            MonsterType[MonsterType["EVO"] = 0] = "EVO";
+            MonsterType[MonsterType["BALANCED"] = 1] = "BALANCED";
+            MonsterType[MonsterType["PHYSICAL"] = 2] = "PHYSICAL";
+            MonsterType[MonsterType["HEALER"] = 3] = "HEALER";
+            MonsterType[MonsterType["DRAGON"] = 4] = "DRAGON";
+            MonsterType[MonsterType["GOD"] = 5] = "GOD";
+            MonsterType[MonsterType["ATTACKER"] = 6] = "ATTACKER";
+            MonsterType[MonsterType["DEVIL"] = 7] = "DEVIL";
+            MonsterType[MonsterType["MACHINE"] = 8] = "MACHINE";
+            MonsterType[MonsterType["AWOKEN"] = 12] = "AWOKEN";
+            MonsterType[MonsterType["ENHANCED"] = 14] = "ENHANCED";
+            MonsterType[MonsterType["REDEEMABLE"] = 15] = "REDEEMABLE";
+            MonsterType[MonsterType["UNKNOWN_1"] = 9] = "UNKNOWN_1";
+            MonsterType[MonsterType["UNKNOWN_2"] = 10] = "UNKNOWN_2";
+            MonsterType[MonsterType["UNKNOWN_3"] = 11] = "UNKNOWN_3";
+            MonsterType[MonsterType["UNKNOWN_4"] = 13] = "UNKNOWN_4";
+        })(MonsterType || (MonsterType = {}));
+        exports.MonsterType = MonsterType;
+        const TypeToName = new Map();
+        exports.TypeToName = TypeToName;
+        TypeToName.set(MonsterType.EVO, 'Evo');
+        TypeToName.set(MonsterType.BALANCED, 'Balanced');
+        TypeToName.set(MonsterType.PHYSICAL, 'Physical');
+        TypeToName.set(MonsterType.HEALER, 'Healer');
+        TypeToName.set(MonsterType.DRAGON, 'Dragon');
+        TypeToName.set(MonsterType.GOD, 'God');
+        TypeToName.set(MonsterType.ATTACKER, 'Attacker');
+        TypeToName.set(MonsterType.DEVIL, 'Devil');
+        TypeToName.set(MonsterType.MACHINE, 'Machine');
+        TypeToName.set(MonsterType.AWOKEN, 'Awakening');
+        TypeToName.set(MonsterType.ENHANCED, 'Enhanced');
+        TypeToName.set(MonsterType.REDEEMABLE, 'Redeemable');
+        TypeToName.set(MonsterType.NONE, 'None');
+        var Latent;
+        (function (Latent) {
+            Latent[Latent["HP"] = 0] = "HP";
+            Latent[Latent["ATK"] = 1] = "ATK";
+            Latent[Latent["RCV"] = 2] = "RCV";
+            Latent[Latent["TIME"] = 3] = "TIME";
+            Latent[Latent["AUTOHEAL"] = 4] = "AUTOHEAL";
+            Latent[Latent["RESIST_FIRE"] = 5] = "RESIST_FIRE";
+            Latent[Latent["RESIST_WATER"] = 6] = "RESIST_WATER";
+            Latent[Latent["RESIST_WOOD"] = 7] = "RESIST_WOOD";
+            Latent[Latent["RESIST_LIGHT"] = 8] = "RESIST_LIGHT";
+            Latent[Latent["RESIST_DARK"] = 9] = "RESIST_DARK";
+            Latent[Latent["SDR"] = 10] = "SDR";
+            Latent[Latent["ALL_STATS"] = 11] = "ALL_STATS";
+            Latent[Latent["EVO"] = 12] = "EVO";
+            Latent[Latent["AWOKEN"] = 13] = "AWOKEN";
+            Latent[Latent["ENHANCED"] = 14] = "ENHANCED";
+            Latent[Latent["REDEEMABLE"] = 15] = "REDEEMABLE";
+            Latent[Latent["GOD"] = 16] = "GOD";
+            Latent[Latent["DRAGON"] = 17] = "DRAGON";
+            Latent[Latent["DEVIL"] = 18] = "DEVIL";
+            Latent[Latent["MACHINE"] = 19] = "MACHINE";
+            Latent[Latent["BALANCED"] = 20] = "BALANCED";
+            Latent[Latent["ATTACKER"] = 21] = "ATTACKER";
+            Latent[Latent["PHYSICAL"] = 22] = "PHYSICAL";
+            Latent[Latent["HEALER"] = 23] = "HEALER";
+            Latent[Latent["HP_PLUS"] = 24] = "HP_PLUS";
+            Latent[Latent["ATK_PLUS"] = 25] = "ATK_PLUS";
+            Latent[Latent["RCV_PLUS"] = 26] = "RCV_PLUS";
+            Latent[Latent["TIME_PLUS"] = 27] = "TIME_PLUS";
+            Latent[Latent["RESIST_FIRE_PLUS"] = 28] = "RESIST_FIRE_PLUS";
+            Latent[Latent["RESIST_WATER_PLUS"] = 29] = "RESIST_WATER_PLUS";
+            Latent[Latent["RESIST_WOOD_PLUS"] = 30] = "RESIST_WOOD_PLUS";
+            Latent[Latent["RESIST_LIGHT_PLUS"] = 31] = "RESIST_LIGHT_PLUS";
+            Latent[Latent["RESIST_DARK_PLUS"] = 32] = "RESIST_DARK_PLUS";
+            Latent[Latent["RESIST_ATTRIBUTE_ABSORB"] = 33] = "RESIST_ATTRIBUTE_ABSORB";
+            Latent[Latent["RESIST_DAMAGE_VOID"] = 34] = "RESIST_DAMAGE_VOID";
+            Latent[Latent["RESIST_POISON_SKYFALL"] = 35] = "RESIST_POISON_SKYFALL";
+            Latent[Latent["RESIST_JAMMER_SKYFALL"] = 36] = "RESIST_JAMMER_SKYFALL";
+            Latent[Latent["RESIST_LEADER_SWAP"] = 37] = "RESIST_LEADER_SWAP";
+        })(Latent || (Latent = {}));
+        exports.Latent = Latent;
+        var Awakening;
+        (function (Awakening) {
+            Awakening[Awakening["HP"] = 1] = "HP";
+            Awakening[Awakening["ATK"] = 2] = "ATK";
+            Awakening[Awakening["RCV"] = 3] = "RCV";
+            Awakening[Awakening["RESIST_FIRE"] = 4] = "RESIST_FIRE";
+            Awakening[Awakening["RESIST_WATER"] = 5] = "RESIST_WATER";
+            Awakening[Awakening["RESIST_WOOD"] = 6] = "RESIST_WOOD";
+            Awakening[Awakening["RESIST_LIGHT"] = 7] = "RESIST_LIGHT";
+            Awakening[Awakening["RESIST_DARK"] = 8] = "RESIST_DARK";
+            Awakening[Awakening["AUTOHEAL"] = 9] = "AUTOHEAL";
+            Awakening[Awakening["RESIST_BIND"] = 10] = "RESIST_BIND";
+            Awakening[Awakening["RESIST_BLIND"] = 11] = "RESIST_BLIND";
+            Awakening[Awakening["RESIST_JAMMER"] = 12] = "RESIST_JAMMER";
+            Awakening[Awakening["RESIST_POISON"] = 13] = "RESIST_POISON";
+            Awakening[Awakening["OE_FIRE"] = 14] = "OE_FIRE";
+            Awakening[Awakening["OE_WATER"] = 15] = "OE_WATER";
+            Awakening[Awakening["OE_WOOD"] = 16] = "OE_WOOD";
+            Awakening[Awakening["OE_LIGHT"] = 17] = "OE_LIGHT";
+            Awakening[Awakening["OE_DARK"] = 18] = "OE_DARK";
+            Awakening[Awakening["TIME"] = 19] = "TIME";
+            Awakening[Awakening["RECOVER_BIND"] = 20] = "RECOVER_BIND";
+            Awakening[Awakening["SKILL_BOOST"] = 21] = "SKILL_BOOST";
+            Awakening[Awakening["ROW_FIRE"] = 22] = "ROW_FIRE";
+            Awakening[Awakening["ROW_WATER"] = 23] = "ROW_WATER";
+            Awakening[Awakening["ROW_WOOD"] = 24] = "ROW_WOOD";
+            Awakening[Awakening["ROW_LIGHT"] = 25] = "ROW_LIGHT";
+            Awakening[Awakening["ROW_DARK"] = 26] = "ROW_DARK";
+            Awakening[Awakening["TPA"] = 27] = "TPA";
+            Awakening[Awakening["SBR"] = 28] = "SBR";
+            Awakening[Awakening["OE_HEART"] = 29] = "OE_HEART";
+            Awakening[Awakening["MULTIBOOST"] = 30] = "MULTIBOOST";
+            Awakening[Awakening["DRAGON"] = 31] = "DRAGON";
+            Awakening[Awakening["GOD"] = 32] = "GOD";
+            Awakening[Awakening["DEVIL"] = 33] = "DEVIL";
+            Awakening[Awakening["MACHINE"] = 34] = "MACHINE";
+            Awakening[Awakening["BALANCED"] = 35] = "BALANCED";
+            Awakening[Awakening["ATTACKER"] = 36] = "ATTACKER";
+            Awakening[Awakening["PHYSICAL"] = 37] = "PHYSICAL";
+            Awakening[Awakening["HEALER"] = 38] = "HEALER";
+            Awakening[Awakening["EVO"] = 39] = "EVO";
+            Awakening[Awakening["AWOKEN"] = 40] = "AWOKEN";
+            Awakening[Awakening["ENHANCED"] = 41] = "ENHANCED";
+            Awakening[Awakening["REDEEMABLE"] = 42] = "REDEEMABLE";
+            Awakening[Awakening["COMBO_7"] = 43] = "COMBO_7";
+            Awakening[Awakening["GUARD_BREAK"] = 44] = "GUARD_BREAK";
+            Awakening[Awakening["BONUS_ATTACK"] = 45] = "BONUS_ATTACK";
+            Awakening[Awakening["TEAM_HP"] = 46] = "TEAM_HP";
+            Awakening[Awakening["TEAM_RCV"] = 47] = "TEAM_RCV";
+            Awakening[Awakening["VDP"] = 48] = "VDP";
+            Awakening[Awakening["AWOKEN_ASSIST"] = 49] = "AWOKEN_ASSIST";
+            Awakening[Awakening["BONUS_ATTACK_SUPER"] = 50] = "BONUS_ATTACK_SUPER";
+            Awakening[Awakening["SKILL_CHARGE"] = 51] = "SKILL_CHARGE";
+            Awakening[Awakening["RESIST_BIND_PLUS"] = 52] = "RESIST_BIND_PLUS";
+            Awakening[Awakening["TIME_PLUS"] = 53] = "TIME_PLUS";
+            Awakening[Awakening["RESIST_CLOUD"] = 54] = "RESIST_CLOUD";
+            Awakening[Awakening["RESIST_TAPE"] = 55] = "RESIST_TAPE";
+            Awakening[Awakening["SKILL_BOOST_PLUS"] = 56] = "SKILL_BOOST_PLUS";
+            Awakening[Awakening["HP_GREATER"] = 57] = "HP_GREATER";
+            Awakening[Awakening["HP_LESSER"] = 58] = "HP_LESSER";
+            Awakening[Awakening["L_GUARD"] = 59] = "L_GUARD";
+            Awakening[Awakening["L_UNLOCK"] = 60] = "L_UNLOCK";
+            Awakening[Awakening["COMBO_10"] = 61] = "COMBO_10";
+            Awakening[Awakening["COMBO_ORB"] = 62] = "COMBO_ORB";
+            Awakening[Awakening["VOICE"] = 63] = "VOICE";
+            Awakening[Awakening["SOLOBOOST"] = 64] = "SOLOBOOST";
+            Awakening[Awakening["HP_MINUS"] = 65] = "HP_MINUS";
+            Awakening[Awakening["ATK_MINUS"] = 66] = "ATK_MINUS";
+            Awakening[Awakening["RCV_MINUS"] = 67] = "RCV_MINUS";
+            Awakening[Awakening["RESIST_BLIND_PLUS"] = 68] = "RESIST_BLIND_PLUS";
+            Awakening[Awakening["RESIST_JAMMER_PLUS"] = 69] = "RESIST_JAMMER_PLUS";
+            Awakening[Awakening["RESIST_POISON_PLUS"] = 70] = "RESIST_POISON_PLUS";
+            Awakening[Awakening["JAMMER_BOOST"] = 71] = "JAMMER_BOOST";
+            Awakening[Awakening["POISON_BOOST"] = 72] = "POISON_BOOST";
+        })(Awakening || (Awakening = {}));
+        exports.Awakening = Awakening;
+        const AwakeningToPlus = new Map([
+            [Awakening.SKILL_BOOST, { awakening: Awakening.SKILL_BOOST_PLUS, multiplier: 2 }],
+            [Awakening.TIME, { awakening: Awakening.TIME_PLUS, multiplier: 2 }],
+            [Awakening.RESIST_BIND, { awakening: Awakening.RESIST_BIND_PLUS, multiplier: 2 }],
+            [Awakening.RESIST_POISON, { awakening: Awakening.RESIST_POISON_PLUS, multiplier: 5 }],
+            [Awakening.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER_PLUS, multiplier: 5 }],
+            [Awakening.RESIST_BLIND, { awakening: Awakening.RESIST_BLIND_PLUS, multiplier: 5 }],
+        ]);
+        exports.AwakeningToPlus = AwakeningToPlus;
+        const TypeToKiller = {
+            0: Awakening.EVO,
+            1: Awakening.BALANCED,
+            2: Awakening.PHYSICAL,
+            3: Awakening.HEALER,
+            4: Awakening.DRAGON,
+            5: Awakening.GOD,
+            6: Awakening.ATTACKER,
+            7: Awakening.DEVIL,
+            8: Awakening.MACHINE,
+            12: Awakening.AWOKEN,
+            14: Awakening.ENHANCED,
+            15: Awakening.REDEEMABLE,
+            // Unset values.
+            '-1': Awakening.AUTOHEAL,
+            9: Awakening.AUTOHEAL,
+            10: Awakening.AUTOHEAL,
+            11: Awakening.AUTOHEAL,
+            13: Awakening.AUTOHEAL,
+        };
+        exports.TypeToKiller = TypeToKiller;
+        const TypeToLatentKiller = {
+            0: Latent.EVO,
+            1: Latent.BALANCED,
+            2: Latent.PHYSICAL,
+            3: Latent.HEALER,
+            4: Latent.DRAGON,
+            5: Latent.GOD,
+            6: Latent.ATTACKER,
+            7: Latent.DEVIL,
+            8: Latent.MACHINE,
+            12: Latent.AWOKEN,
+            14: Latent.ENHANCED,
+            15: Latent.REDEEMABLE,
+            // Unset values.
+            '-1': Latent.AUTOHEAL,
+            9: Latent.AUTOHEAL,
+            10: Latent.AUTOHEAL,
+            11: Latent.AUTOHEAL,
+            13: Latent.AUTOHEAL,
+        };
+        exports.TypeToLatentKiller = TypeToLatentKiller;
+        const AwakeningToPlusAwakening = new Map([
+            [Awakening.SKILL_BOOST, Awakening.SKILL_BOOST_PLUS],
+            [Awakening.TIME, Awakening.TIME_PLUS],
+            [Awakening.RESIST_BIND, Awakening.RESIST_BIND_PLUS],
+            [Awakening.RESIST_BLIND, Awakening.RESIST_BLIND_PLUS],
+            [Awakening.RESIST_POISON, Awakening.RESIST_POISON_PLUS],
+            [Awakening.RESIST_JAMMER, Awakening.RESIST_JAMMER_PLUS],
+        ]);
+        exports.AwakeningToPlusAwakening = AwakeningToPlusAwakening;
+        const PlusAwakeningMultiplier = new Map();
+        exports.PlusAwakeningMultiplier = PlusAwakeningMultiplier;
+        PlusAwakeningMultiplier.set(Awakening.SKILL_BOOST_PLUS, 2);
+        PlusAwakeningMultiplier.set(Awakening.TIME_PLUS, 2);
+        PlusAwakeningMultiplier.set(Awakening.RESIST_BIND_PLUS, 2);
+        PlusAwakeningMultiplier.set(Awakening.RESIST_BLIND_PLUS, 5);
+        PlusAwakeningMultiplier.set(Awakening.RESIST_JAMMER_PLUS, 5);
+        PlusAwakeningMultiplier.set(Awakening.RESIST_POISON_PLUS, 5);
+        const AwakeningToName = [
+            'NULL',
+            'HP', 'ATK', 'RCV', 'Resist Fire', 'Resist Water', 'Resist Wood', 'Resist Light', 'Resist Dark',
+            'Autoheal', 'Resist Bind', 'Resist Blind', 'Resist Jammer', 'Resist Poison',
+            'Fire OE', 'Water OE', 'Wood OE', 'Light OE', 'Dark OE',
+            'Time',
+            'Recover Bind',
+            'Skill Boost',
+            'Fire Row', 'Water Row', 'Wood Row', 'Light Row', 'Dark Row',
+            'TPA', 'Skill-Bind Resist', 'Heart OE', 'Multiboost',
+            'Dragon Killer', 'God Killer', 'Devil Killer', 'Machine Killer',
+            'Balanced Killer', 'Attacker Killer', 'Physical Killer', 'Healer Killer',
+            'Evo Killer', 'Awakening Killer', 'Enhanced Killer', 'Redeemable Killer',
+            'Enhanced Combo', 'Guard Break', 'Bonus Attack', 'Team HP+', 'Team RCV+',
+            'Damage Void Piercer', 'Awoken Assist', 'Super Bonus Attack', 'Skill Charge',
+            'Resist Bind+', 'Time+', 'Resist Cloud', 'Resist Immobility', 'Skill Boost+',
+            '>=80% Enhace', '<=50% Enhance', 'L-Guard', 'L-Unlock', 'Enhanced Combo+',
+            'Combo Orb', 'Voice', 'Soloboost', 'HP-', 'ATK-', 'RCV-',
+            'Resist Blind+', 'Resist Poison+', 'Resist Jammer+',
+            'Jammer Blessing', 'Poison Blessing',
+        ];
+        exports.AwakeningToName = AwakeningToName;
+        const Round = {
+            UP: Math.ceil,
+            DOWN: Math.floor,
+            NEAREST: Math.round,
+            NONE: (a) => a,
+        };
+        exports.Round = Round;
+        function numberWithCommas(x) {
+            return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        exports.numberWithCommas = numberWithCommas;
+        const LatentSuper = new Set([
+            Latent.EVO, Latent.AWOKEN, Latent.ENHANCED, Latent.REDEEMABLE,
+            Latent.GOD, Latent.DRAGON, Latent.DEVIL, Latent.MACHINE,
+            Latent.BALANCED, Latent.ATTACKER, Latent.PHYSICAL, Latent.HEALER,
+            Latent.ALL_STATS, Latent.HP_PLUS, Latent.ATK_PLUS,
+            Latent.RCV_PLUS, Latent.TIME_PLUS,
+            Latent.RESIST_FIRE_PLUS, Latent.RESIST_WATER_PLUS, Latent.RESIST_WOOD_PLUS,
+            Latent.RESIST_LIGHT_PLUS, Latent.RESIST_DARK_PLUS,
+        ]);
+        exports.LatentSuper = LatentSuper;
+        var Shape;
+        (function (Shape) {
+            Shape[Shape["AMORPHOUS"] = 0] = "AMORPHOUS";
+            Shape[Shape["L"] = 1] = "L";
+            Shape[Shape["COLUMN"] = 2] = "COLUMN";
+            Shape[Shape["CROSS"] = 3] = "CROSS";
+            Shape[Shape["BOX"] = 4] = "BOX";
+            Shape[Shape["ROW"] = 5] = "ROW";
+        })(Shape || (Shape = {}));
+        exports.Shape = Shape;
+        const LetterToShape = {
+            'A': Shape.AMORPHOUS,
+            'L': Shape.L,
+            'C': Shape.COLUMN,
+            'X': Shape.CROSS,
+            'B': Shape.BOX,
+            'R': Shape.ROW,
+        };
+        exports.LetterToShape = LetterToShape;
+        const ShapeToLetter = {
+            0: 'A',
+            1: 'L',
+            2: 'C',
+            3: 'X',
+            4: 'B',
+            5: 'R',
+        };
+        exports.ShapeToLetter = ShapeToLetter;
+        const BASE_URL = window.origin + window.location.pathname;
+        exports.BASE_URL = BASE_URL;
+        async function waitFor(conditionFn, waitMs = 50) {
+            while (!conditionFn()) {
+                await new Promise((resolve) => setTimeout(resolve, waitMs));
+            }
+        }
+        exports.waitFor = waitFor;
+        var FontColor;
+        (function (FontColor) {
+            FontColor["FIRE"] = "red";
+            FontColor["WATER"] = "cyan";
+            FontColor["WOOD"] = "lawngreen";
+            FontColor["LIGHT"] = "yellow";
+            FontColor["DARK"] = "fuchsia";
+            FontColor["HEART"] = "pink";
+            FontColor["JAMMER"] = "lightgray";
+            FontColor["POISON"] = "purple";
+            FontColor["MORTAL_POSION"] = "darkpurple";
+            FontColor["BOMB"] = "brown";
+            FontColor["COLORLESS"] = "gray";
+            FontColor["FIXED"] = "white";
+            FontColor["NONE"] = "black";
+        })(FontColor || (FontColor = {}));
+        exports.FontColor = FontColor;
+        const AttributeToFontColor = {
+            0: FontColor.FIRE,
+            1: FontColor.WATER,
+            2: FontColor.WOOD,
+            3: FontColor.LIGHT,
+            4: FontColor.DARK,
+            5: FontColor.HEART,
+            6: FontColor.JAMMER,
+            7: FontColor.POISON,
+            8: FontColor.MORTAL_POSION,
+            9: FontColor.BOMB,
+            '-2': FontColor.FIXED,
+            '-1': FontColor.NONE,
+        };
+        exports.AttributeToFontColor = AttributeToFontColor;
+        // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
+        function addCommas(n) {
+            return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            // let decimalPart = '';
+            // if (!Number.isInteger(n)) {
+            //   let fn = Math.floor;
+            //   if (n < 0) {
+            //     fn = Math.ceil;
+            //   }
+            //   decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
+            //   while (decimalPart[decimalPart.length - 1] == '0') {
+            //     decimalPart = decimalPart.substring(0, decimalPart.length - 1);
+            //   }
+            //   n = fn(n);
+            // }
+            // const reversed = String(n).split('').reverse().join('');
+            // const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
+            // if (forwardCommaArray[0] == ',') {
+            //   forwardCommaArray.splice(0, 1);
+            // } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
+            //   forwardCommaArray.splice(1, 1);
+            // }
+            // return forwardCommaArray.join('') + decimalPart;
+        }
+        exports.addCommas = addCommas;
+        function removeCommas(s) {
+            return Number(s.replace(/,/g, ''));
+        }
+        exports.removeCommas = removeCommas;
+        class Rational {
+            constructor(numerator = 0, denominator = 1) {
+                this.numerator = 0;
+                this.denominator = 1;
+                this.numerator = numerator;
+                this.denominator = denominator;
+            }
+            multiply(n, roundingFn = (x) => x) {
+                return roundingFn(n * this.numerator / this.denominator);
+            }
+            reduce() {
+                // Cannot reduce if denominator already 1
+                if (this.denominator == 1) {
+                    return;
+                }
+                // Can only reduce integral pairs.
+                if (!Number.isInteger(this.numerator) || !Number.isInteger(this.denominator)) {
+                    return;
+                }
+                function divides(num, den) {
+                    return Number.isInteger(num / den);
+                }
+                function gcd(a, b) {
+                    while (!divides(a, b) && !divides(b, a)) {
+                        if (a > b) {
+                            a -= b;
+                        }
+                        else {
+                            b -= a;
+                        }
+                    }
+                    return Math.min(a, b);
+                }
+                const divisor = gcd(this.numerator, this.denominator);
+                if (divisor == 1) {
+                    return;
+                }
+                this.numerator /= divisor;
+                this.denominator /= divisor;
+            }
+            toString() {
+                this.reduce();
+                if (this.denominator == 1) {
+                    return String(this.numerator);
+                }
+                return `${this.numerator} / ${this.denominator}`;
+            }
+            static from(s) {
+                if (!s.includes('/')) {
+                    return new Rational(Number(s));
+                }
+                let match = s.match(Rational.matcher);
+                if (match && match[0] == s) {
+                    return new Rational(Number(match[1]), Number(match[2]));
+                }
+                return new Rational(NaN);
+            }
+        }
+        exports.Rational = Rational;
+        Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
+        const INT_CAP = 2 ** 31 - 1;
+        exports.INT_CAP = INT_CAP;
+        var TeamBadge;
+        (function (TeamBadge) {
+            TeamBadge[TeamBadge["NONE"] = 0] = "NONE";
+            TeamBadge[TeamBadge["COST"] = 1] = "COST";
+            TeamBadge[TeamBadge["TIME"] = 2] = "TIME";
+            TeamBadge[TeamBadge["MASS_ATTACK"] = 3] = "MASS_ATTACK";
+            TeamBadge[TeamBadge["RCV"] = 4] = "RCV";
+            TeamBadge[TeamBadge["HP"] = 5] = "HP";
+            TeamBadge[TeamBadge["ATK"] = 6] = "ATK";
+            TeamBadge[TeamBadge["SKILL_BOOST"] = 7] = "SKILL_BOOST";
+            TeamBadge[TeamBadge["RESIST_BIND"] = 8] = "RESIST_BIND";
+            TeamBadge[TeamBadge["SBR"] = 9] = "SBR";
+            TeamBadge[TeamBadge["EXP"] = 10] = "EXP";
+            TeamBadge[TeamBadge["NO_SKYFALL"] = 11] = "NO_SKYFALL";
+            TeamBadge[TeamBadge["RESIST_BLIND"] = 12] = "RESIST_BLIND";
+            TeamBadge[TeamBadge["RESIST_JAMMER"] = 13] = "RESIST_JAMMER";
+            TeamBadge[TeamBadge["RESIST_POISON"] = 14] = "RESIST_POISON";
+            TeamBadge[TeamBadge["RCV_PLUS"] = 17] = "RCV_PLUS";
+            TeamBadge[TeamBadge["HP_PLUS"] = 18] = "HP_PLUS";
+            TeamBadge[TeamBadge["ATK_PLUS"] = 19] = "ATK_PLUS";
+            TeamBadge[TeamBadge["TIME_PLUS"] = 21] = "TIME_PLUS";
+        })(TeamBadge || (TeamBadge = {}));
+        exports.TeamBadge = TeamBadge;
+        const TeamBadgeToName = {
+            0: 'None',
+            1: 'Cost',
+            2: 'Time Extend',
+            3: 'Mass Attack',
+            4: 'RCV',
+            5: "HP",
+            6: 'ATK',
+            7: 'Skill Boost',
+            8: 'Bind Immune',
+            9: 'Skill-Bind Resist',
+            11: 'No-Skyfall',
+            17: 'RCV+',
+            18: 'HP+',
+            19: 'ATK+',
+            21: 'Time Extend+',
+            12: 'Blind Resist',
+            13: 'Jammer Resist',
+            14: 'Poison Resist',
+            10: 'Rank Exp',
+        };
+        exports.TeamBadgeToName = TeamBadgeToName;
+        const TEAM_BADGE_ORDER = [
+            TeamBadge.NONE,
+            TeamBadge.COST,
+            TeamBadge.MASS_ATTACK,
+            TeamBadge.RCV,
+            TeamBadge.HP,
+            TeamBadge.ATK,
+            TeamBadge.SKILL_BOOST,
+            TeamBadge.RESIST_BIND,
+            TeamBadge.SBR,
+            TeamBadge.NO_SKYFALL,
+            TeamBadge.RCV_PLUS,
+            TeamBadge.HP_PLUS,
+            TeamBadge.ATK_PLUS,
+            TeamBadge.TIME_PLUS,
+            TeamBadge.RESIST_BLIND,
+            TeamBadge.RESIST_JAMMER,
+            TeamBadge.RESIST_POISON,
+            TeamBadge.EXP,
+        ];
+        exports.TEAM_BADGE_ORDER = TEAM_BADGE_ORDER;
+        const TeamBadgeToAwakening = new Map([
+            [TeamBadge.TIME, { awakening: Awakening.TIME, count: 2 }],
+            [TeamBadge.SKILL_BOOST, { awakening: Awakening.SKILL_BOOST, count: 1 }],
+            [TeamBadge.RESIST_BIND, { awakening: Awakening.RESIST_BIND, count: 2 }],
+            [TeamBadge.SBR, { awakening: Awakening.SBR, count: 2.5 }],
+            [TeamBadge.TIME_PLUS, { awakening: Awakening.TIME, count: 4 }],
+            [TeamBadge.RESIST_BLIND, { awakening: Awakening.RESIST_BLIND, count: 2.5 }],
+            [TeamBadge.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER, count: 2.5 }],
+            [TeamBadge.RESIST_POISON, { awakening: Awakening.RESIST_POISON, count: 2.5 }],
+        ]);
+        exports.TeamBadgeToAwakening = TeamBadgeToAwakening;
+    });
     /**
      * Simpler ajax function so that jQuery isn't necessary.  Only things required
      * are the url and optionally a done and fail function.
@@ -487,6 +1054,27 @@
                 setInterval(() => {
                     DateConverter.updateTime();
                 }, 1000);
+            }
+            getCard(id) {
+                const maybeCard = this.model.cards[id];
+                if (maybeCard) {
+                    return maybeCard;
+                }
+                const c = new Card();
+                c.id = id;
+                return c;
+            }
+            hasCard(id) {
+                return Boolean(this.model.cards[id]);
+            }
+            getEnemySkill(id) {
+                return this.model.enemySkills[id];
+            }
+            getPlayerSkill(id) {
+                return this.model.playerSkills[id];
+            }
+            getModel() {
+                return this.model;
             }
         }
         const Awakening = {
@@ -1466,575 +2054,6 @@
         exports.floof = floof;
         window.floof = floof;
     });
-    define("common", ["require", "exports", "ilmina_stripped"], function (require, exports, ilmina_stripped_1) {
-        "use strict";
-        Object.defineProperty(exports, "__esModule", { value: true });
-        // 1 red
-        // 2 blue
-        // 4 green
-        // 8 light
-        // 16 dark
-        // 32 heart
-        // 64 jammer
-        // 128 poison
-        // 256 mortal poison
-        // const COLOR_ORDER = 'rbgldhjpmou';
-        const COLORS = [
-            'r',
-            'b',
-            'g',
-            'l',
-            'd',
-            'h',
-            'j',
-            'p',
-            'm',
-            'o',
-            'u',
-        ];
-        exports.COLORS = COLORS;
-        function idxsFromBits(bits) {
-            const idxs = [];
-            for (let idx = 0; bits >> idx; idx++) {
-                if (bits >> idx & 1) {
-                    idxs.push(idx);
-                }
-            }
-            return idxs;
-        }
-        exports.idxsFromBits = idxsFromBits;
-        var Attribute;
-        (function (Attribute) {
-            Attribute[Attribute["FIRE"] = 0] = "FIRE";
-            Attribute[Attribute["WATER"] = 1] = "WATER";
-            Attribute[Attribute["WOOD"] = 2] = "WOOD";
-            Attribute[Attribute["LIGHT"] = 3] = "LIGHT";
-            Attribute[Attribute["DARK"] = 4] = "DARK";
-            Attribute[Attribute["HEART"] = 5] = "HEART";
-            Attribute[Attribute["JAMMER"] = 6] = "JAMMER";
-            Attribute[Attribute["POISON"] = 7] = "POISON";
-            Attribute[Attribute["MORTAL_POSION"] = 8] = "MORTAL_POSION";
-            Attribute[Attribute["BOMB"] = 9] = "BOMB";
-            Attribute[Attribute["FIXED"] = -2] = "FIXED";
-            Attribute[Attribute["NONE"] = -1] = "NONE";
-        })(Attribute || (Attribute = {}));
-        exports.Attribute = Attribute;
-        const AttributeToName = new Map();
-        exports.AttributeToName = AttributeToName;
-        AttributeToName.set(Attribute.FIRE, 'Fire');
-        AttributeToName.set(Attribute.WATER, 'Water');
-        AttributeToName.set(Attribute.WOOD, 'Wood');
-        AttributeToName.set(Attribute.LIGHT, 'Light');
-        AttributeToName.set(Attribute.DARK, 'Dark');
-        AttributeToName.set(Attribute.NONE, 'None');
-        AttributeToName.set(Attribute.HEART, 'Heart');
-        AttributeToName.set(Attribute.JAMMER, 'Jammer');
-        AttributeToName.set(Attribute.POISON, 'Poison');
-        AttributeToName.set(Attribute.MORTAL_POSION, 'Mortal Poison');
-        var MonsterType;
-        (function (MonsterType) {
-            MonsterType[MonsterType["NONE"] = -1] = "NONE";
-            MonsterType[MonsterType["EVO"] = 0] = "EVO";
-            MonsterType[MonsterType["BALANCED"] = 1] = "BALANCED";
-            MonsterType[MonsterType["PHYSICAL"] = 2] = "PHYSICAL";
-            MonsterType[MonsterType["HEALER"] = 3] = "HEALER";
-            MonsterType[MonsterType["DRAGON"] = 4] = "DRAGON";
-            MonsterType[MonsterType["GOD"] = 5] = "GOD";
-            MonsterType[MonsterType["ATTACKER"] = 6] = "ATTACKER";
-            MonsterType[MonsterType["DEVIL"] = 7] = "DEVIL";
-            MonsterType[MonsterType["MACHINE"] = 8] = "MACHINE";
-            MonsterType[MonsterType["AWOKEN"] = 12] = "AWOKEN";
-            MonsterType[MonsterType["ENHANCED"] = 14] = "ENHANCED";
-            MonsterType[MonsterType["REDEEMABLE"] = 15] = "REDEEMABLE";
-            MonsterType[MonsterType["UNKNOWN_1"] = 9] = "UNKNOWN_1";
-            MonsterType[MonsterType["UNKNOWN_2"] = 10] = "UNKNOWN_2";
-            MonsterType[MonsterType["UNKNOWN_3"] = 11] = "UNKNOWN_3";
-            MonsterType[MonsterType["UNKNOWN_4"] = 13] = "UNKNOWN_4";
-        })(MonsterType || (MonsterType = {}));
-        exports.MonsterType = MonsterType;
-        const TypeToName = new Map();
-        exports.TypeToName = TypeToName;
-        TypeToName.set(MonsterType.EVO, 'Evo');
-        TypeToName.set(MonsterType.BALANCED, 'Balanced');
-        TypeToName.set(MonsterType.PHYSICAL, 'Physical');
-        TypeToName.set(MonsterType.HEALER, 'Healer');
-        TypeToName.set(MonsterType.DRAGON, 'Dragon');
-        TypeToName.set(MonsterType.GOD, 'God');
-        TypeToName.set(MonsterType.ATTACKER, 'Attacker');
-        TypeToName.set(MonsterType.DEVIL, 'Devil');
-        TypeToName.set(MonsterType.MACHINE, 'Machine');
-        TypeToName.set(MonsterType.AWOKEN, 'Awakening');
-        TypeToName.set(MonsterType.ENHANCED, 'Enhanced');
-        TypeToName.set(MonsterType.REDEEMABLE, 'Redeemable');
-        TypeToName.set(MonsterType.NONE, 'None');
-        var Latent;
-        (function (Latent) {
-            Latent[Latent["HP"] = 0] = "HP";
-            Latent[Latent["ATK"] = 1] = "ATK";
-            Latent[Latent["RCV"] = 2] = "RCV";
-            Latent[Latent["TIME"] = 3] = "TIME";
-            Latent[Latent["AUTOHEAL"] = 4] = "AUTOHEAL";
-            Latent[Latent["RESIST_FIRE"] = 5] = "RESIST_FIRE";
-            Latent[Latent["RESIST_WATER"] = 6] = "RESIST_WATER";
-            Latent[Latent["RESIST_WOOD"] = 7] = "RESIST_WOOD";
-            Latent[Latent["RESIST_LIGHT"] = 8] = "RESIST_LIGHT";
-            Latent[Latent["RESIST_DARK"] = 9] = "RESIST_DARK";
-            Latent[Latent["SDR"] = 10] = "SDR";
-            Latent[Latent["ALL_STATS"] = 11] = "ALL_STATS";
-            Latent[Latent["EVO"] = 12] = "EVO";
-            Latent[Latent["AWOKEN"] = 13] = "AWOKEN";
-            Latent[Latent["ENHANCED"] = 14] = "ENHANCED";
-            Latent[Latent["REDEEMABLE"] = 15] = "REDEEMABLE";
-            Latent[Latent["GOD"] = 16] = "GOD";
-            Latent[Latent["DRAGON"] = 17] = "DRAGON";
-            Latent[Latent["DEVIL"] = 18] = "DEVIL";
-            Latent[Latent["MACHINE"] = 19] = "MACHINE";
-            Latent[Latent["BALANCED"] = 20] = "BALANCED";
-            Latent[Latent["ATTACKER"] = 21] = "ATTACKER";
-            Latent[Latent["PHYSICAL"] = 22] = "PHYSICAL";
-            Latent[Latent["HEALER"] = 23] = "HEALER";
-            Latent[Latent["HP_PLUS"] = 24] = "HP_PLUS";
-            Latent[Latent["ATK_PLUS"] = 25] = "ATK_PLUS";
-            Latent[Latent["RCV_PLUS"] = 26] = "RCV_PLUS";
-            Latent[Latent["TIME_PLUS"] = 27] = "TIME_PLUS";
-            Latent[Latent["RESIST_FIRE_PLUS"] = 28] = "RESIST_FIRE_PLUS";
-            Latent[Latent["RESIST_WATER_PLUS"] = 29] = "RESIST_WATER_PLUS";
-            Latent[Latent["RESIST_WOOD_PLUS"] = 30] = "RESIST_WOOD_PLUS";
-            Latent[Latent["RESIST_LIGHT_PLUS"] = 31] = "RESIST_LIGHT_PLUS";
-            Latent[Latent["RESIST_DARK_PLUS"] = 32] = "RESIST_DARK_PLUS";
-            Latent[Latent["RESIST_ATTRIBUTE_ABSORB"] = 33] = "RESIST_ATTRIBUTE_ABSORB";
-            Latent[Latent["RESIST_DAMAGE_VOID"] = 34] = "RESIST_DAMAGE_VOID";
-            Latent[Latent["RESIST_POISON_SKYFALL"] = 35] = "RESIST_POISON_SKYFALL";
-            Latent[Latent["RESIST_JAMMER_SKYFALL"] = 36] = "RESIST_JAMMER_SKYFALL";
-            Latent[Latent["RESIST_LEADER_SWAP"] = 37] = "RESIST_LEADER_SWAP";
-        })(Latent || (Latent = {}));
-        exports.Latent = Latent;
-        var Awakening;
-        (function (Awakening) {
-            Awakening[Awakening["HP"] = 1] = "HP";
-            Awakening[Awakening["ATK"] = 2] = "ATK";
-            Awakening[Awakening["RCV"] = 3] = "RCV";
-            Awakening[Awakening["RESIST_FIRE"] = 4] = "RESIST_FIRE";
-            Awakening[Awakening["RESIST_WATER"] = 5] = "RESIST_WATER";
-            Awakening[Awakening["RESIST_WOOD"] = 6] = "RESIST_WOOD";
-            Awakening[Awakening["RESIST_LIGHT"] = 7] = "RESIST_LIGHT";
-            Awakening[Awakening["RESIST_DARK"] = 8] = "RESIST_DARK";
-            Awakening[Awakening["AUTOHEAL"] = 9] = "AUTOHEAL";
-            Awakening[Awakening["RESIST_BIND"] = 10] = "RESIST_BIND";
-            Awakening[Awakening["RESIST_BLIND"] = 11] = "RESIST_BLIND";
-            Awakening[Awakening["RESIST_JAMMER"] = 12] = "RESIST_JAMMER";
-            Awakening[Awakening["RESIST_POISON"] = 13] = "RESIST_POISON";
-            Awakening[Awakening["OE_FIRE"] = 14] = "OE_FIRE";
-            Awakening[Awakening["OE_WATER"] = 15] = "OE_WATER";
-            Awakening[Awakening["OE_WOOD"] = 16] = "OE_WOOD";
-            Awakening[Awakening["OE_LIGHT"] = 17] = "OE_LIGHT";
-            Awakening[Awakening["OE_DARK"] = 18] = "OE_DARK";
-            Awakening[Awakening["TIME"] = 19] = "TIME";
-            Awakening[Awakening["RECOVER_BIND"] = 20] = "RECOVER_BIND";
-            Awakening[Awakening["SKILL_BOOST"] = 21] = "SKILL_BOOST";
-            Awakening[Awakening["ROW_FIRE"] = 22] = "ROW_FIRE";
-            Awakening[Awakening["ROW_WATER"] = 23] = "ROW_WATER";
-            Awakening[Awakening["ROW_WOOD"] = 24] = "ROW_WOOD";
-            Awakening[Awakening["ROW_LIGHT"] = 25] = "ROW_LIGHT";
-            Awakening[Awakening["ROW_DARK"] = 26] = "ROW_DARK";
-            Awakening[Awakening["TPA"] = 27] = "TPA";
-            Awakening[Awakening["SBR"] = 28] = "SBR";
-            Awakening[Awakening["OE_HEART"] = 29] = "OE_HEART";
-            Awakening[Awakening["MULTIBOOST"] = 30] = "MULTIBOOST";
-            Awakening[Awakening["DRAGON"] = 31] = "DRAGON";
-            Awakening[Awakening["GOD"] = 32] = "GOD";
-            Awakening[Awakening["DEVIL"] = 33] = "DEVIL";
-            Awakening[Awakening["MACHINE"] = 34] = "MACHINE";
-            Awakening[Awakening["BALANCED"] = 35] = "BALANCED";
-            Awakening[Awakening["ATTACKER"] = 36] = "ATTACKER";
-            Awakening[Awakening["PHYSICAL"] = 37] = "PHYSICAL";
-            Awakening[Awakening["HEALER"] = 38] = "HEALER";
-            Awakening[Awakening["EVO"] = 39] = "EVO";
-            Awakening[Awakening["AWOKEN"] = 40] = "AWOKEN";
-            Awakening[Awakening["ENHANCED"] = 41] = "ENHANCED";
-            Awakening[Awakening["REDEEMABLE"] = 42] = "REDEEMABLE";
-            Awakening[Awakening["COMBO_7"] = 43] = "COMBO_7";
-            Awakening[Awakening["GUARD_BREAK"] = 44] = "GUARD_BREAK";
-            Awakening[Awakening["BONUS_ATTACK"] = 45] = "BONUS_ATTACK";
-            Awakening[Awakening["TEAM_HP"] = 46] = "TEAM_HP";
-            Awakening[Awakening["TEAM_RCV"] = 47] = "TEAM_RCV";
-            Awakening[Awakening["VDP"] = 48] = "VDP";
-            Awakening[Awakening["AWOKEN_ASSIST"] = 49] = "AWOKEN_ASSIST";
-            Awakening[Awakening["BONUS_ATTACK_SUPER"] = 50] = "BONUS_ATTACK_SUPER";
-            Awakening[Awakening["SKILL_CHARGE"] = 51] = "SKILL_CHARGE";
-            Awakening[Awakening["RESIST_BIND_PLUS"] = 52] = "RESIST_BIND_PLUS";
-            Awakening[Awakening["TIME_PLUS"] = 53] = "TIME_PLUS";
-            Awakening[Awakening["RESIST_CLOUD"] = 54] = "RESIST_CLOUD";
-            Awakening[Awakening["RESIST_TAPE"] = 55] = "RESIST_TAPE";
-            Awakening[Awakening["SKILL_BOOST_PLUS"] = 56] = "SKILL_BOOST_PLUS";
-            Awakening[Awakening["HP_GREATER"] = 57] = "HP_GREATER";
-            Awakening[Awakening["HP_LESSER"] = 58] = "HP_LESSER";
-            Awakening[Awakening["L_GUARD"] = 59] = "L_GUARD";
-            Awakening[Awakening["L_UNLOCK"] = 60] = "L_UNLOCK";
-            Awakening[Awakening["COMBO_10"] = 61] = "COMBO_10";
-            Awakening[Awakening["COMBO_ORB"] = 62] = "COMBO_ORB";
-            Awakening[Awakening["VOICE"] = 63] = "VOICE";
-            Awakening[Awakening["SOLOBOOST"] = 64] = "SOLOBOOST";
-            Awakening[Awakening["HP_MINUS"] = 65] = "HP_MINUS";
-            Awakening[Awakening["ATK_MINUS"] = 66] = "ATK_MINUS";
-            Awakening[Awakening["RCV_MINUS"] = 67] = "RCV_MINUS";
-            Awakening[Awakening["RESIST_BLIND_PLUS"] = 68] = "RESIST_BLIND_PLUS";
-            Awakening[Awakening["RESIST_JAMMER_PLUS"] = 69] = "RESIST_JAMMER_PLUS";
-            Awakening[Awakening["RESIST_POISON_PLUS"] = 70] = "RESIST_POISON_PLUS";
-            Awakening[Awakening["JAMMER_BOOST"] = 71] = "JAMMER_BOOST";
-            Awakening[Awakening["POISON_BOOST"] = 72] = "POISON_BOOST";
-        })(Awakening || (Awakening = {}));
-        exports.Awakening = Awakening;
-        const AwakeningToPlus = new Map([
-            [Awakening.SKILL_BOOST, { awakening: Awakening.SKILL_BOOST_PLUS, multiplier: 2 }],
-            [Awakening.TIME, { awakening: Awakening.TIME_PLUS, multiplier: 2 }],
-            [Awakening.RESIST_BIND, { awakening: Awakening.RESIST_BIND_PLUS, multiplier: 2 }],
-            [Awakening.RESIST_POISON, { awakening: Awakening.RESIST_POISON_PLUS, multiplier: 5 }],
-            [Awakening.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER_PLUS, multiplier: 5 }],
-            [Awakening.RESIST_BLIND, { awakening: Awakening.RESIST_BLIND_PLUS, multiplier: 5 }],
-        ]);
-        exports.AwakeningToPlus = AwakeningToPlus;
-        const TypeToKiller = {
-            0: Awakening.EVO,
-            1: Awakening.BALANCED,
-            2: Awakening.PHYSICAL,
-            3: Awakening.HEALER,
-            4: Awakening.DRAGON,
-            5: Awakening.GOD,
-            6: Awakening.ATTACKER,
-            7: Awakening.DEVIL,
-            8: Awakening.MACHINE,
-            12: Awakening.AWOKEN,
-            14: Awakening.ENHANCED,
-            15: Awakening.REDEEMABLE,
-            // Unset values.
-            '-1': Awakening.AUTOHEAL,
-            9: Awakening.AUTOHEAL,
-            10: Awakening.AUTOHEAL,
-            11: Awakening.AUTOHEAL,
-            13: Awakening.AUTOHEAL,
-        };
-        exports.TypeToKiller = TypeToKiller;
-        const TypeToLatentKiller = {
-            0: Latent.EVO,
-            1: Latent.BALANCED,
-            2: Latent.PHYSICAL,
-            3: Latent.HEALER,
-            4: Latent.DRAGON,
-            5: Latent.GOD,
-            6: Latent.ATTACKER,
-            7: Latent.DEVIL,
-            8: Latent.MACHINE,
-            12: Latent.AWOKEN,
-            14: Latent.ENHANCED,
-            15: Latent.REDEEMABLE,
-            // Unset values.
-            '-1': Latent.AUTOHEAL,
-            9: Latent.AUTOHEAL,
-            10: Latent.AUTOHEAL,
-            11: Latent.AUTOHEAL,
-            13: Latent.AUTOHEAL,
-        };
-        exports.TypeToLatentKiller = TypeToLatentKiller;
-        const AwakeningToPlusAwakening = new Map([
-            [Awakening.SKILL_BOOST, Awakening.SKILL_BOOST_PLUS],
-            [Awakening.TIME, Awakening.TIME_PLUS],
-            [Awakening.RESIST_BIND, Awakening.RESIST_BIND_PLUS],
-            [Awakening.RESIST_BLIND, Awakening.RESIST_BLIND_PLUS],
-            [Awakening.RESIST_POISON, Awakening.RESIST_POISON_PLUS],
-            [Awakening.RESIST_JAMMER, Awakening.RESIST_JAMMER_PLUS],
-        ]);
-        exports.AwakeningToPlusAwakening = AwakeningToPlusAwakening;
-        const PlusAwakeningMultiplier = new Map();
-        exports.PlusAwakeningMultiplier = PlusAwakeningMultiplier;
-        PlusAwakeningMultiplier.set(Awakening.SKILL_BOOST_PLUS, 2);
-        PlusAwakeningMultiplier.set(Awakening.TIME_PLUS, 2);
-        PlusAwakeningMultiplier.set(Awakening.RESIST_BIND_PLUS, 2);
-        PlusAwakeningMultiplier.set(Awakening.RESIST_BLIND_PLUS, 5);
-        PlusAwakeningMultiplier.set(Awakening.RESIST_JAMMER_PLUS, 5);
-        PlusAwakeningMultiplier.set(Awakening.RESIST_POISON_PLUS, 5);
-        const AwakeningToName = [
-            'NULL',
-            'HP', 'ATK', 'RCV', 'Resist Fire', 'Resist Water', 'Resist Wood', 'Resist Light', 'Resist Dark',
-            'Autoheal', 'Resist Bind', 'Resist Blind', 'Resist Jammer', 'Resist Poison',
-            'Fire OE', 'Water OE', 'Wood OE', 'Light OE', 'Dark OE',
-            'Time',
-            'Recover Bind',
-            'Skill Boost',
-            'Fire Row', 'Water Row', 'Wood Row', 'Light Row', 'Dark Row',
-            'TPA', 'Skill-Bind Resist', 'Heart OE', 'Multiboost',
-            'Dragon Killer', 'God Killer', 'Devil Killer', 'Machine Killer',
-            'Balanced Killer', 'Attacker Killer', 'Physical Killer', 'Healer Killer',
-            'Evo Killer', 'Awakening Killer', 'Enhanced Killer', 'Redeemable Killer',
-            'Enhanced Combo', 'Guard Break', 'Bonus Attack', 'Team HP+', 'Team RCV+',
-            'Damage Void Piercer', 'Awoken Assist', 'Super Bonus Attack', 'Skill Charge',
-            'Resist Bind+', 'Time+', 'Resist Cloud', 'Resist Immobility', 'Skill Boost+',
-            '>=80% Enhace', '<=50% Enhance', 'L-Guard', 'L-Unlock', 'Enhanced Combo+',
-            'Combo Orb', 'Voice', 'Soloboost', 'HP-', 'ATK-', 'RCV-',
-            'Resist Blind+', 'Resist Poison+', 'Resist Jammer+',
-            'Jammer Blessing', 'Poison Blessing',
-        ];
-        exports.AwakeningToName = AwakeningToName;
-        const Round = {
-            UP: Math.ceil,
-            DOWN: Math.floor,
-            NEAREST: Math.round,
-            NONE: (a) => a,
-        };
-        exports.Round = Round;
-        function numberWithCommas(x) {
-            return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
-        exports.numberWithCommas = numberWithCommas;
-        const DEFAULT_CARD = new ilmina_stripped_1.Card();
-        exports.DEFAULT_CARD = DEFAULT_CARD;
-        const LatentSuper = new Set([
-            Latent.EVO, Latent.AWOKEN, Latent.ENHANCED, Latent.REDEEMABLE,
-            Latent.GOD, Latent.DRAGON, Latent.DEVIL, Latent.MACHINE,
-            Latent.BALANCED, Latent.ATTACKER, Latent.PHYSICAL, Latent.HEALER,
-            Latent.ALL_STATS, Latent.HP_PLUS, Latent.ATK_PLUS,
-            Latent.RCV_PLUS, Latent.TIME_PLUS,
-            Latent.RESIST_FIRE_PLUS, Latent.RESIST_WATER_PLUS, Latent.RESIST_WOOD_PLUS,
-            Latent.RESIST_LIGHT_PLUS, Latent.RESIST_DARK_PLUS,
-        ]);
-        exports.LatentSuper = LatentSuper;
-        var Shape;
-        (function (Shape) {
-            Shape[Shape["AMORPHOUS"] = 0] = "AMORPHOUS";
-            Shape[Shape["L"] = 1] = "L";
-            Shape[Shape["COLUMN"] = 2] = "COLUMN";
-            Shape[Shape["CROSS"] = 3] = "CROSS";
-            Shape[Shape["BOX"] = 4] = "BOX";
-            Shape[Shape["ROW"] = 5] = "ROW";
-        })(Shape || (Shape = {}));
-        exports.Shape = Shape;
-        const LetterToShape = {
-            'A': Shape.AMORPHOUS,
-            'L': Shape.L,
-            'C': Shape.COLUMN,
-            'X': Shape.CROSS,
-            'B': Shape.BOX,
-            'R': Shape.ROW,
-        };
-        exports.LetterToShape = LetterToShape;
-        const ShapeToLetter = {
-            0: 'A',
-            1: 'L',
-            2: 'C',
-            3: 'X',
-            4: 'B',
-            5: 'R',
-        };
-        exports.ShapeToLetter = ShapeToLetter;
-        const BASE_URL = window.origin + window.location.pathname;
-        exports.BASE_URL = BASE_URL;
-        async function waitFor(conditionFn, waitMs = 50) {
-            while (!conditionFn()) {
-                await new Promise((resolve) => setTimeout(resolve, waitMs));
-            }
-        }
-        exports.waitFor = waitFor;
-        var FontColor;
-        (function (FontColor) {
-            FontColor["FIRE"] = "red";
-            FontColor["WATER"] = "cyan";
-            FontColor["WOOD"] = "lawngreen";
-            FontColor["LIGHT"] = "yellow";
-            FontColor["DARK"] = "fuchsia";
-            FontColor["HEART"] = "pink";
-            FontColor["JAMMER"] = "lightgray";
-            FontColor["POISON"] = "purple";
-            FontColor["MORTAL_POSION"] = "darkpurple";
-            FontColor["BOMB"] = "brown";
-            FontColor["COLORLESS"] = "gray";
-            FontColor["FIXED"] = "white";
-            FontColor["NONE"] = "black";
-        })(FontColor || (FontColor = {}));
-        exports.FontColor = FontColor;
-        const AttributeToFontColor = {
-            0: FontColor.FIRE,
-            1: FontColor.WATER,
-            2: FontColor.WOOD,
-            3: FontColor.LIGHT,
-            4: FontColor.DARK,
-            5: FontColor.HEART,
-            6: FontColor.JAMMER,
-            7: FontColor.POISON,
-            8: FontColor.MORTAL_POSION,
-            9: FontColor.BOMB,
-            '-2': FontColor.FIXED,
-            '-1': FontColor.NONE,
-        };
-        exports.AttributeToFontColor = AttributeToFontColor;
-        // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
-        function addCommas(n) {
-            return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            // let decimalPart = '';
-            // if (!Number.isInteger(n)) {
-            //   let fn = Math.floor;
-            //   if (n < 0) {
-            //     fn = Math.ceil;
-            //   }
-            //   decimalPart = String(n - fn(n)).substring(1, 2 + maxPrecision);
-            //   while (decimalPart[decimalPart.length - 1] == '0') {
-            //     decimalPart = decimalPart.substring(0, decimalPart.length - 1);
-            //   }
-            //   n = fn(n);
-            // }
-            // const reversed = String(n).split('').reverse().join('');
-            // const forwardCommaArray = reversed.replace(/(\d\d\d)/g, '$1,').split('').reverse();
-            // if (forwardCommaArray[0] == ',') {
-            //   forwardCommaArray.splice(0, 1);
-            // } else if (forwardCommaArray[0] == '-' && forwardCommaArray[1] == ',') {
-            //   forwardCommaArray.splice(1, 1);
-            // }
-            // return forwardCommaArray.join('') + decimalPart;
-        }
-        exports.addCommas = addCommas;
-        function removeCommas(s) {
-            return Number(s.replace(/,/g, ''));
-        }
-        exports.removeCommas = removeCommas;
-        class Rational {
-            constructor(numerator = 0, denominator = 1) {
-                this.numerator = 0;
-                this.denominator = 1;
-                this.numerator = numerator;
-                this.denominator = denominator;
-            }
-            multiply(n, roundingFn = (x) => x) {
-                return roundingFn(n * this.numerator / this.denominator);
-            }
-            reduce() {
-                // Cannot reduce if denominator already 1
-                if (this.denominator == 1) {
-                    return;
-                }
-                // Can only reduce integral pairs.
-                if (!Number.isInteger(this.numerator) || !Number.isInteger(this.denominator)) {
-                    return;
-                }
-                function divides(num, den) {
-                    return Number.isInteger(num / den);
-                }
-                function gcd(a, b) {
-                    while (!divides(a, b) && !divides(b, a)) {
-                        if (a > b) {
-                            a -= b;
-                        }
-                        else {
-                            b -= a;
-                        }
-                    }
-                    return Math.min(a, b);
-                }
-                const divisor = gcd(this.numerator, this.denominator);
-                if (divisor == 1) {
-                    return;
-                }
-                this.numerator /= divisor;
-                this.denominator /= divisor;
-            }
-            toString() {
-                this.reduce();
-                if (this.denominator == 1) {
-                    return String(this.numerator);
-                }
-                return `${this.numerator} / ${this.denominator}`;
-            }
-            static from(s) {
-                if (!s.includes('/')) {
-                    return new Rational(Number(s));
-                }
-                let match = s.match(Rational.matcher);
-                if (match && match[0] == s) {
-                    return new Rational(Number(match[1]), Number(match[2]));
-                }
-                return new Rational(NaN);
-            }
-        }
-        exports.Rational = Rational;
-        Rational.matcher = /\s*(-?\d+)\s*\/\s*(\d+)\s*/;
-        const INT_CAP = 2 ** 31 - 1;
-        exports.INT_CAP = INT_CAP;
-        var TeamBadge;
-        (function (TeamBadge) {
-            TeamBadge[TeamBadge["NONE"] = 0] = "NONE";
-            TeamBadge[TeamBadge["COST"] = 1] = "COST";
-            TeamBadge[TeamBadge["TIME"] = 2] = "TIME";
-            TeamBadge[TeamBadge["MASS_ATTACK"] = 3] = "MASS_ATTACK";
-            TeamBadge[TeamBadge["RCV"] = 4] = "RCV";
-            TeamBadge[TeamBadge["HP"] = 5] = "HP";
-            TeamBadge[TeamBadge["ATK"] = 6] = "ATK";
-            TeamBadge[TeamBadge["SKILL_BOOST"] = 7] = "SKILL_BOOST";
-            TeamBadge[TeamBadge["RESIST_BIND"] = 8] = "RESIST_BIND";
-            TeamBadge[TeamBadge["SBR"] = 9] = "SBR";
-            TeamBadge[TeamBadge["EXP"] = 10] = "EXP";
-            TeamBadge[TeamBadge["NO_SKYFALL"] = 11] = "NO_SKYFALL";
-            TeamBadge[TeamBadge["RESIST_BLIND"] = 12] = "RESIST_BLIND";
-            TeamBadge[TeamBadge["RESIST_JAMMER"] = 13] = "RESIST_JAMMER";
-            TeamBadge[TeamBadge["RESIST_POISON"] = 14] = "RESIST_POISON";
-            TeamBadge[TeamBadge["RCV_PLUS"] = 17] = "RCV_PLUS";
-            TeamBadge[TeamBadge["HP_PLUS"] = 18] = "HP_PLUS";
-            TeamBadge[TeamBadge["ATK_PLUS"] = 19] = "ATK_PLUS";
-            TeamBadge[TeamBadge["TIME_PLUS"] = 21] = "TIME_PLUS";
-        })(TeamBadge || (TeamBadge = {}));
-        exports.TeamBadge = TeamBadge;
-        const TeamBadgeToName = {
-            0: 'None',
-            1: 'Cost',
-            2: 'Time Extend',
-            3: 'Mass Attack',
-            4: 'RCV',
-            5: "HP",
-            6: 'ATK',
-            7: 'Skill Boost',
-            8: 'Bind Immune',
-            9: 'Skill-Bind Resist',
-            11: 'No-Skyfall',
-            17: 'RCV+',
-            18: 'HP+',
-            19: 'ATK+',
-            21: 'Time Extend+',
-            12: 'Blind Resist',
-            13: 'Jammer Resist',
-            14: 'Poison Resist',
-            10: 'Rank Exp',
-        };
-        exports.TeamBadgeToName = TeamBadgeToName;
-        const TEAM_BADGE_ORDER = [
-            TeamBadge.NONE,
-            TeamBadge.COST,
-            TeamBadge.MASS_ATTACK,
-            TeamBadge.RCV,
-            TeamBadge.HP,
-            TeamBadge.ATK,
-            TeamBadge.SKILL_BOOST,
-            TeamBadge.RESIST_BIND,
-            TeamBadge.SBR,
-            TeamBadge.NO_SKYFALL,
-            TeamBadge.RCV_PLUS,
-            TeamBadge.HP_PLUS,
-            TeamBadge.ATK_PLUS,
-            TeamBadge.TIME_PLUS,
-            TeamBadge.RESIST_BLIND,
-            TeamBadge.RESIST_JAMMER,
-            TeamBadge.RESIST_POISON,
-            TeamBadge.EXP,
-        ];
-        exports.TEAM_BADGE_ORDER = TEAM_BADGE_ORDER;
-        const TeamBadgeToAwakening = new Map([
-            [TeamBadge.TIME, { awakening: Awakening.TIME, count: 2 }],
-            [TeamBadge.SKILL_BOOST, { awakening: Awakening.SKILL_BOOST, count: 1 }],
-            [TeamBadge.RESIST_BIND, { awakening: Awakening.RESIST_BIND, count: 2 }],
-            [TeamBadge.SBR, { awakening: Awakening.SBR, count: 2.5 }],
-            [TeamBadge.TIME_PLUS, { awakening: Awakening.TIME, count: 4 }],
-            [TeamBadge.RESIST_BLIND, { awakening: Awakening.RESIST_BLIND, count: 2.5 }],
-            [TeamBadge.RESIST_JAMMER, { awakening: Awakening.RESIST_JAMMER, count: 2.5 }],
-            [TeamBadge.RESIST_POISON, { awakening: Awakening.RESIST_POISON, count: 2.5 }],
-        ]);
-        exports.TeamBadgeToAwakening = TeamBadgeToAwakening;
-    });
     /**
      All aliases of monsters and dungeons. Keep these in alphabetical order by
      alias. The value must be the exact ID of the monster or dungeon.
@@ -2064,7 +2083,7 @@
         };
         exports.DUNGEON_ALIASES = DUNGEON_ALIASES;
     });
-    define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search_aliases"], function (require, exports, common_1, ilmina_stripped_2, fuzzy_search_aliases_1) {
+    define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search_aliases"], function (require, exports, common_1, ilmina_stripped_1, fuzzy_search_aliases_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const prefixToCardIds = {};
@@ -2083,9 +2102,9 @@
             });
         }
         function SearchInit() {
-            const ids = Object.keys(ilmina_stripped_2.floof.model.cards).map((id) => Number(id));
-            exports.prioritizedEnemySearch = prioritizedEnemySearch = ids.map((id) => ilmina_stripped_2.floof.model.cards[id]).reverse();
-            exports.prioritizedMonsterSearch = prioritizedMonsterSearch = ids.map((id) => ilmina_stripped_2.floof.model.cards[id]).filter((card) => {
+            const ids = Object.keys(ilmina_stripped_1.floof.getModel().cards).map((id) => Number(id));
+            exports.prioritizedEnemySearch = prioritizedEnemySearch = ids.map((id) => ilmina_stripped_1.floof.getCard(id)).reverse();
+            exports.prioritizedMonsterSearch = prioritizedMonsterSearch = ids.map((id) => ilmina_stripped_1.floof.getCard(id)).filter((card) => {
                 return card.id < 100000;
             }).sort((card1, card2) => {
                 if (isLowPriority(card1.name) != isLowPriority(card2.name)) {
@@ -2119,7 +2138,7 @@
                 }
                 return card2.id - card1.id;
             });
-            for (const group of ilmina_stripped_2.floof.model.cardGroups) {
+            for (const group of ilmina_stripped_1.floof.getModel().cardGroups) {
                 for (const alias of group.aliases.filter((alias) => alias.indexOf(' ') == -1 && alias == alias.toLowerCase())) {
                     prefixToCardIds[alias] = group.cards;
                     if (alias == 'halloween') {
@@ -2169,7 +2188,7 @@
                 text = text.replace('srevo', 'super reincarnated');
             }
             // Test for exact match.
-            if (text in ilmina_stripped_2.floof.model.cards) {
+            if (ilmina_stripped_1.floof.hasCard(Number(text))) {
                 result.push(Number(text));
             }
             let lowerPriority = [];
@@ -2299,9 +2318,9 @@
             if (toEquip) {
                 let equips = [];
                 for (const id of result) {
-                    const treeId = ilmina_stripped_2.floof.model.cards[id].evoTreeBaseId;
-                    if (treeId in ilmina_stripped_2.floof.model.evoTrees) {
-                        for (const card of ilmina_stripped_2.floof.model.evoTrees[treeId].cards) {
+                    const treeId = ilmina_stripped_1.floof.getCard(id).evoTreeBaseId;
+                    if (treeId in ilmina_stripped_1.floof.getModel().evoTrees) {
+                        for (const card of ilmina_stripped_1.floof.getModel().evoTrees[treeId].cards) {
                             if (!equips.some((id) => id == card.id) && card.awakenings[0] == common_1.Awakening.AWOKEN_ASSIST) {
                                 equips.push(card.id);
                             }
@@ -2322,7 +2341,7 @@
                 }
             }
             if (toBase) {
-                let bases = result.map((id) => ilmina_stripped_2.floof.model.cards[id].evoTreeBaseId);
+                let bases = result.map((id) => ilmina_stripped_1.floof.getCard(id).evoTreeBaseId);
                 const seen = new Set();
                 result.length = 0;
                 for (const id of bases) {
@@ -2412,7 +2431,7 @@
      * TODO: Consider making some of these into proper soy templates and then
      * compiling them here so that the structure is more consistent.
      */
-    define("templates", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search", "fuzzy_search_aliases"], function (require, exports, common_2, ilmina_stripped_3, fuzzy_search_1, fuzzy_search_aliases_2) {
+    define("templates", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search", "fuzzy_search_aliases"], function (require, exports, common_2, ilmina_stripped_2, fuzzy_search_1, fuzzy_search_aliases_2) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // import { debug } from './debugger';
@@ -2825,14 +2844,14 @@
                 if (!this.hideInfoTable) {
                     superShow(this.infoTable);
                 }
-                const card = ilmina_stripped_3.floof.model.cards[d.id] || common_2.DEFAULT_CARD;
-                const descriptor = ilmina_stripped_3.CardAssets.getIconImageData(card);
+                const card = ilmina_stripped_2.floof.getCard(d.id);
+                const descriptor = ilmina_stripped_2.CardAssets.getIconImageData(card);
                 if (descriptor) {
                     this.element.style.backgroundSize = `${TEAM_SCALING * descriptor.baseWidth}px ${descriptor.baseHeight * TEAM_SCALING}px`;
                     this.element.style.backgroundImage = `url(${descriptor.url})`;
                     this.element.style.backgroundPosition = `-${descriptor.offsetX * TEAM_SCALING}px -${descriptor.offsetY * TEAM_SCALING}`;
                 }
-                const attrDescriptor = ilmina_stripped_3.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_3.floof.model);
+                const attrDescriptor = ilmina_stripped_2.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_2.floof.getModel());
                 if (attrDescriptor) {
                     show(this.attributeEl);
                     this.attributeEl.style.backgroundImage = `url(${attrDescriptor.url})`;
@@ -2841,7 +2860,7 @@
                 else {
                     hide(this.attributeEl);
                 }
-                const subDescriptor = ilmina_stripped_3.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_3.floof.model);
+                const subDescriptor = ilmina_stripped_2.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_2.floof.getModel());
                 if (subDescriptor) {
                     show(this.subattributeEl);
                     this.subattributeEl.style.backgroundImage = `url(${subDescriptor.url})`;
@@ -2863,7 +2882,7 @@
                     show(awakeningEl);
                     const maxAwokenImage = awakeningEl.getElementsByTagName('img')[0];
                     const numberArea = awakeningEl.getElementsByTagName('div')[0];
-                    if (d.awakening >= ilmina_stripped_3.floof.model.cards[d.id].awakenings.length || d.activeTransform) {
+                    if (d.awakening >= ilmina_stripped_2.floof.getCard(d.id).awakenings.length || d.activeTransform) {
                         superShow(maxAwokenImage);
                         superHide(numberArea);
                     }
@@ -2932,8 +2951,8 @@
                     hide(this.plusEl);
                     return;
                 }
-                const card = ilmina_stripped_3.floof.model.cards[id] || common_2.DEFAULT_CARD;
-                const desInherit = ilmina_stripped_3.CardAssets.getIconImageData(card);
+                const card = ilmina_stripped_2.floof.getCard(id);
+                const desInherit = ilmina_stripped_2.CardAssets.getIconImageData(card);
                 if (desInherit) {
                     show(this.icon);
                     this.icon.style.backgroundImage = `url(${desInherit.url})`;
@@ -2943,7 +2962,7 @@
                 else {
                     hide(this.icon);
                 }
-                const desAttr = ilmina_stripped_3.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_3.floof.model);
+                const desAttr = ilmina_stripped_2.CardUiAssets.getIconFrame(card.attribute, false, ilmina_stripped_2.floof.getModel());
                 if (desAttr) {
                     show(this.attr);
                     this.attr.style.backgroundImage = `url(${desAttr.url})`;
@@ -2952,7 +2971,7 @@
                 else {
                     hide(this.attr);
                 }
-                const desSub = ilmina_stripped_3.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_3.floof.model);
+                const desSub = ilmina_stripped_2.CardUiAssets.getIconFrame(card.subattribute, true, ilmina_stripped_2.floof.getModel());
                 if (desSub) {
                     show(this.attr);
                     this.sub.style.backgroundImage = `url(${desSub.url})`;
@@ -3347,7 +3366,7 @@
                     return 'None';
                 }
                 else {
-                    return `${id}: ${ilmina_stripped_3.floof.model.cards[id].name}`;
+                    return `${id}: ${ilmina_stripped_2.floof.getCard(id).name}`;
                 }
             }
             getFuzzyMatches(text) {
@@ -3356,7 +3375,7 @@
             }
             postFilter(matches) {
                 if (this.isInherit) {
-                    return matches.filter((match) => ilmina_stripped_3.floof.model.cards[match].inheritanceType & 1);
+                    return matches.filter((match) => ilmina_stripped_2.floof.getCard(match).inheritanceType & 1);
                 }
                 return matches;
             }
@@ -3908,7 +3927,7 @@
                 this.badgeSelector.value = `${ctx.badge}`;
                 this.monsterSelector.setId(ctx.id);
                 this.inheritSelector.setId(ctx.inheritId);
-                const c = ilmina_stripped_3.floof.model.cards[ctx.id];
+                const c = ilmina_stripped_2.floof.getCard(ctx.id);
                 for (let i = 0; i < 3; i++) {
                     if (!c || i >= c.types.length) {
                         superHide(this.types[i].getElement());
@@ -3924,10 +3943,10 @@
                     maxLevel = c.isLimitBreakable ? 110 : c.maxLevel;
                 }
                 let inheritMaxLevel = 1;
-                if (ctx.inheritId in ilmina_stripped_3.floof.model.cards) {
-                    inheritMaxLevel = ilmina_stripped_3.floof.model.cards[ctx.inheritId].isLimitBreakable
+                if (ilmina_stripped_2.floof.hasCard(ctx.inheritId)) {
+                    inheritMaxLevel = ilmina_stripped_2.floof.getCard(ctx.inheritId).isLimitBreakable
                         ? 110
-                        : ilmina_stripped_3.floof.model.cards[ctx.inheritId].maxLevel;
+                        : ilmina_stripped_2.floof.getCard(ctx.inheritId).maxLevel;
                 }
                 this.levelEditor.update({
                     level: ctx.level,
@@ -3943,12 +3962,12 @@
                     awakenings = c.awakenings;
                     superAwakenings = c.superAwakenings;
                 }
-                if (ctx.inheritId in ilmina_stripped_3.floof.model.cards) {
-                    inheritAwakenings = ilmina_stripped_3.floof.model.cards[ctx.inheritId].awakenings;
+                if (ilmina_stripped_2.floof.hasCard(ctx.inheritId)) {
+                    inheritAwakenings = ilmina_stripped_2.floof.getCard(ctx.inheritId).awakenings;
                 }
                 this.awakeningEditor.update(awakenings, superAwakenings, inheritAwakenings, ctx.awakeningLevel, ctx.superAwakeningIdx, -1);
                 let latentKillers = [];
-                if (ctx.id in ilmina_stripped_3.floof.model.cards) {
+                if (ilmina_stripped_2.floof.hasCard(ctx.id)) {
                     latentKillers = c.latentKillers;
                 }
                 let maxLatents = 6;
@@ -4133,7 +4152,6 @@
                         const idx = i * 6 + j;
                         d.appendChild(monsterDivs[idx]);
                         d.onmousedown = () => {
-                            console.log(`Setting base to swap to ${idx}`);
                             this.baseToSwap = idx;
                             d.classList.add(ClassNames.MONSTER_CLICKED);
                         };
@@ -4144,11 +4162,7 @@
                             if (this.baseToSwap < 0) {
                                 return;
                             }
-                            if (this.baseToSwap == idx) {
-                                console.log('Selecting monster, NOT SWAPPING');
-                            }
-                            else {
-                                console.log(`Swapping monsters ${this.baseToSwap}-${idx}`);
+                            if (this.baseToSwap != idx) {
                                 this.onMonsterSwap(this.baseToSwap, idx);
                             }
                             this.onTeamUpdate({
@@ -4712,7 +4726,7 @@
             updateBattle(teamBattle) {
                 this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
                 for (let i = 0; i < this.actionOptions.length; i++) {
-                    const c = ilmina_stripped_3.floof.model.cards[teamBattle.ids[i]];
+                    const c = ilmina_stripped_2.floof.getCard(teamBattle.ids[i]);
                     const option = this.actionOptions[i];
                     if (!c) {
                         option.innerText = '';
@@ -4720,7 +4734,7 @@
                         superHide(option);
                     }
                     else {
-                        let text = `${Math.floor(i / 2) + 1}: ${ilmina_stripped_3.floof.model.playerSkills[c.activeSkillId].description.replace('\n', ' ')}`;
+                        let text = `${Math.floor(i / 2) + 1}: ${ilmina_stripped_2.floof.getPlayerSkill(c.activeSkillId).description.replace('\n', ' ')}`;
                         option.innerText = text.length >= 80 ? text.substring(0, 77) + '...' : text;
                         option.disabled = false;
                         superShow(option);
@@ -5313,7 +5327,7 @@
                             // el.scrollIntoView({ block: 'nearest' });
                             const id = this.dungeonEnemies[i][j].id;
                             this.enemyPicture.updateId(id);
-                            const card = ilmina_stripped_3.floof.model.cards[id];
+                            const card = ilmina_stripped_2.floof.getCard(id);
                             for (let i = 0; i < this.enemyTypes.length; i++) {
                                 if (card && card.types && i < card.types.length) {
                                     show(this.enemyTypes[i].getElement());
@@ -5952,7 +5966,7 @@
         }
         exports.runTests = runTests;
     });
-    define("monster_instance", ["require", "exports", "common", "ilmina_stripped", "templates", "fuzzy_search"], function (require, exports, common_3, ilmina_stripped_4, templates_2, fuzzy_search_2) {
+    define("monster_instance", ["require", "exports", "common", "ilmina_stripped", "templates", "fuzzy_search"], function (require, exports, common_3, ilmina_stripped_3, templates_2, fuzzy_search_2) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const AWAKENING_BONUS = new Map([
@@ -6124,7 +6138,7 @@
                 return this.el;
             }
             setId(id) {
-                if (id >= 0 && !(id in ilmina_stripped_4.floof.model.cards)) {
+                if (id >= 0 && !(ilmina_stripped_3.floof.hasCard(id))) {
                     console.warn('Invalid monster id: ' + String(id));
                     return;
                 }
@@ -6164,7 +6178,7 @@
                 else {
                     this.superAwakeningIdx = -1;
                 }
-                if (!ilmina_stripped_4.CardAssets.canPlus(c)) {
+                if (!ilmina_stripped_3.CardAssets.canPlus(c)) {
                     this.setHpPlus(0);
                     this.setAtkPlus(0);
                     this.setRcvPlus(0);
@@ -6258,21 +6272,14 @@
             }
             getCard(ignoreTransform = false) {
                 const id = this.getId(ignoreTransform);
-                let c = ilmina_stripped_4.floof.model.cards[id];
-                if (c) {
-                    return c;
-                }
-                return common_3.DEFAULT_CARD;
+                return ilmina_stripped_3.floof.getCard(id);
             }
             getInheritCard() {
-                if (this.inheritId == 0) {
-                    return common_3.DEFAULT_CARD;
-                }
-                return ilmina_stripped_4.floof.model.cards[this.inheritId];
+                return ilmina_stripped_3.floof.getCard(this.inheritId);
             }
             toPdchu() {
                 let string = '';
-                if (this.id in ilmina_stripped_4.floof.model.cards) {
+                if (ilmina_stripped_3.floof.hasCard(this.id)) {
                     string += String(this.id);
                 }
                 else {
@@ -6473,7 +6480,7 @@
                     this.setHpPlus(hpPlus);
                     this.setAtkPlus(atkPlus);
                     this.setRcvPlus(rcvPlus);
-                    this.awakenings = Math.min(ilmina_stripped_4.floof.model.cards[bestGuessIds[0]].awakenings.length, awakeningLevel);
+                    this.awakenings = Math.min(ilmina_stripped_3.floof.getCard(bestGuessIds[0]).awakenings.length, awakeningLevel);
                 }
                 if (assistName) {
                     const bestGuessInheritIds = fuzzy_search_2.fuzzyMonsterSearch(assistName, 20, fuzzy_search_2.prioritizedInheritSearch);
@@ -6747,12 +6754,12 @@
             }
             getCooldown() {
                 const skillId = this.getCard().activeSkillId;
-                return skillId ? ilmina_stripped_4.floof.model.playerSkills[skillId].maxCooldown : 0;
+                return skillId ? ilmina_stripped_3.floof.getPlayerSkill(skillId).maxCooldown : 0;
             }
             getCooldownInherit() {
                 const inherit = this.getInheritCard();
                 const inheritSkillId = inherit ? inherit.activeSkillId : 0;
-                return this.getCooldown() + (inheritSkillId ? ilmina_stripped_4.floof.model.playerSkills[inheritSkillId].maxCooldown : 0);
+                return this.getCooldown() + (inheritSkillId ? ilmina_stripped_3.floof.getPlayerSkill(inheritSkillId).maxCooldown : 0);
             }
             static swap(instanceA, instanceB) {
                 const temp = new MonsterInstance();
@@ -6762,7 +6769,7 @@
             }
             makeTestContext(playerMode) {
                 const skillId = this.getCard().activeSkillId;
-                const CD_MAX = skillId ? ilmina_stripped_4.floof.model.playerSkills[skillId].initialCooldown : 0;
+                const CD_MAX = skillId ? ilmina_stripped_3.floof.getPlayerSkill(skillId).initialCooldown : 0;
                 const inherit = this.getInheritCard();
                 const inheritSkillId = inherit ? inherit.activeSkillId : 0;
                 return {
@@ -6775,7 +6782,7 @@
                     CD: this.getCooldown(),
                     CD_MAX,
                     INHERIT_CD: this.getCooldownInherit(),
-                    INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? ilmina_stripped_4.floof.model.playerSkills[inheritSkillId].initialCooldown : 0),
+                    INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? ilmina_stripped_3.floof.getPlayerSkill(inheritSkillId).initialCooldown : 0),
                     SDR: this.latents.filter((l) => l == common_3.Latent.SDR).length,
                 };
             }
@@ -7131,7 +7138,7 @@
         }
         exports.ComboContainer = ComboContainer;
     });
-    define("leaders", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_6, ilmina_stripped_5) {
+    define("leaders", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_6, ilmina_stripped_4) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function subs(team) {
@@ -8019,7 +8026,7 @@
         };
         // Functions for libraries to call directly.
         function bigBoard(id) {
-            const playerSkill = ilmina_stripped_5.floof.model.playerSkills[id];
+            const playerSkill = ilmina_stripped_4.floof.getPlayerSkill(id);
             // Handle multiple leader skills.
             if (playerSkill.internalEffectId == 138) {
                 return playerSkill.internalEffectArguments.some((i) => bigBoard(i));
@@ -8028,7 +8035,7 @@
         }
         exports.bigBoard = bigBoard;
         function noSkyfall(id) {
-            const playerSkill = ilmina_stripped_5.floof.model.playerSkills[id];
+            const playerSkill = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (playerSkill.internalEffectId == 138) {
                 return playerSkill.internalEffectArguments.some((i) => noSkyfall(i));
             }
@@ -8036,7 +8043,7 @@
         }
         exports.noSkyfall = noSkyfall;
         function ignorePoison(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             // Handle multiple leader skills.
             if (internalEffectId == 138) {
                 return internalEffectArguments.some((i) => ignorePoison(i));
@@ -8045,7 +8052,7 @@
         }
         exports.ignorePoison = ignorePoison;
         function drumEffect(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             // Handle multiple leader skills.
             if (internalEffectId == 138) {
                 return internalEffectArguments.some((i) => drumEffect(i));
@@ -8054,7 +8061,7 @@
         }
         exports.drumEffect = drumEffect;
         function minOrbMatch(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return Math.max(...internalEffectArguments.map((i) => minOrbMatch(i)));
             }
@@ -8062,7 +8069,7 @@
         }
         exports.minOrbMatch = minOrbMatch;
         function resolve(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return Math.min(...internalEffectArguments.map((i) => resolve(i)));
             }
@@ -8070,7 +8077,7 @@
         }
         exports.resolve = resolve;
         function fixedTime(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 const times = internalEffectArguments.map((i) => fixedTime(i)).filter((t) => t > 0);
                 return times.length ? Math.min(...times) : 0;
@@ -8079,7 +8086,7 @@
         }
         exports.fixedTime = fixedTime;
         function timeExtend(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => timeExtend(i)).reduce((total, value) => total + value);
             }
@@ -8087,7 +8094,7 @@
         }
         exports.timeExtend = timeExtend;
         function hp(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => hp(i, context)).reduce((total, value) => total * value);
             }
@@ -8095,7 +8102,7 @@
         }
         exports.hp = hp;
         function atk(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => atk(i, context)).reduce((total, value) => total * value);
             }
@@ -8103,7 +8110,7 @@
         }
         exports.atk = atk;
         function rcv(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => rcv(i, context)).reduce((total, value) => total * value);
             }
@@ -8111,7 +8118,7 @@
         }
         exports.rcv = rcv;
         function rcvPost(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => rcvPost(i, context)).reduce((total, value) => total * value);
             }
@@ -8119,7 +8126,7 @@
         }
         exports.rcvPost = rcvPost;
         function damageMult(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => damageMult(i, context)).reduce((total, value) => total * value);
             }
@@ -8127,7 +8134,7 @@
         }
         exports.damageMult = damageMult;
         function plusCombo(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => plusCombo(i, context)).reduce((total, value) => total + value, 0);
             }
@@ -8135,7 +8142,7 @@
         }
         exports.plusCombo = plusCombo;
         function drop(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => drop(i)).reduce((total, value) => total * value);
             }
@@ -8143,7 +8150,7 @@
         }
         exports.drop = drop;
         function coins(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => coins(i)).reduce((total, value) => total * value);
             }
@@ -8151,7 +8158,7 @@
         }
         exports.coins = coins;
         function exp(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => exp(i)).reduce((total, value) => total * value);
             }
@@ -8159,7 +8166,7 @@
         }
         exports.exp = exp;
         function autoHeal(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => autoHeal(i)).reduce((total, value) => total + value);
             }
@@ -8167,7 +8174,7 @@
         }
         exports.autoHeal = autoHeal;
         function trueBonusAttack(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => trueBonusAttack(i, context)).reduce((total, value) => total + value);
             }
@@ -8175,7 +8182,7 @@
         }
         exports.trueBonusAttack = trueBonusAttack;
         function bonusAttack(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => bonusAttack(i)).reduce((total, value) => total + value);
             }
@@ -8183,7 +8190,7 @@
         }
         exports.bonusAttack = bonusAttack;
         function counter(id) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments
                     .map((i) => counter(i))
@@ -8196,7 +8203,7 @@
         }
         exports.counter = counter;
         function awokenBindClear(id, context) {
-            const { internalEffectId, internalEffectArguments } = ilmina_stripped_5.floof.model.playerSkills[id];
+            const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
                 return internalEffectArguments.map((i) => awokenBindClear(i, context)).reduce((total, value) => total + value);
             }
@@ -8204,7 +8211,7 @@
         }
         exports.awokenBindClear = awokenBindClear;
     });
-    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_conformance"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_6, leaders, debugger_2, team_conformance_1) {
+    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_conformance"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_5, leaders, debugger_2, team_conformance_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         leaders = __importStar(leaders);
@@ -8263,11 +8270,11 @@
                 this.teams = {};
                 if (window.localStorage.idcStoredTeams) {
                     try {
-                        this.teams = JSON.parse(ilmina_stripped_6.decompress(window.localStorage.idcStoredTeams));
+                        this.teams = JSON.parse(ilmina_stripped_5.decompress(window.localStorage.idcStoredTeams));
                     }
                     catch (e) {
                         this.teams = JSON.parse(window.localStorage.idcStoredTeams);
-                        window.localStorage.idcStoredTeams = ilmina_stripped_6.compress(window.localStorage.idcStoredTeams);
+                        window.localStorage.idcStoredTeams = ilmina_stripped_5.compress(window.localStorage.idcStoredTeams);
                     }
                 }
                 this.display = new templates_4.StoredTeamDisplay(
@@ -8306,12 +8313,12 @@
             // TODO: Add confirmation if overriding.
             saveTeam(teamJson) {
                 this.teams[teamJson.title] = teamJson;
-                window.localStorage.idcStoredTeams = ilmina_stripped_6.compress(JSON.stringify(this.teams));
+                window.localStorage.idcStoredTeams = ilmina_stripped_5.compress(JSON.stringify(this.teams));
             }
             // TODO: Add confirmation.
             deleteTeam(title) {
                 delete this.teams[title];
-                window.localStorage.idcStoredTeams = ilmina_stripped_6.compress(JSON.stringify(this.teams));
+                window.localStorage.idcStoredTeams = ilmina_stripped_5.compress(JSON.stringify(this.teams));
             }
         }
         const SHARED_AWAKENINGS = new Set([
@@ -9436,7 +9443,7 @@
         }
         exports.Team = Team;
     });
-    define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_8, ilmina_stripped_7) {
+    define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_8, ilmina_stripped_6) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function calcScaleStat(max, min, level, growth) {
@@ -9548,7 +9555,7 @@
                 const c = this.getCard();
                 return c.enemySkills
                     .map((skill) => skill.enemySkillId)
-                    .map((id) => ilmina_stripped_7.floof.model.enemySkills[id])
+                    .map((id) => ilmina_stripped_6.floof.getEnemySkill(id))
                     .filter((skill) => internalEffectId < 0 || skill.internalEffectId == internalEffectId);
             }
             getResolve() {
@@ -9590,17 +9597,14 @@
                 };
             }
             getCard() {
-                if (!ilmina_stripped_7.floof.model.cards[this.id]) {
-                    return common_8.DEFAULT_CARD;
-                }
-                return ilmina_stripped_7.floof.model.cards[this.id];
+                return ilmina_stripped_6.floof.getCard(this.id);
             }
             getAttribute() {
-                if (this.id in ilmina_stripped_7.floof.model.cards && this.currentAttribute == -1) {
-                    return ilmina_stripped_7.floof.model.cards[this.id].attribute;
+                if (ilmina_stripped_6.floof.hasCard(this.id) && this.currentAttribute == -1) {
+                    return ilmina_stripped_6.floof.getCard(this.id).attribute;
                 }
-                if (this.id in ilmina_stripped_7.floof.model.cards && this.currentAttribute == -2) {
-                    return ilmina_stripped_7.floof.model.cards[this.id].subattribute > -1 ? ilmina_stripped_7.floof.model.cards[this.id].subattribute : ilmina_stripped_7.floof.model.cards[this.id].attribute;
+                if (ilmina_stripped_6.floof.hasCard(this.id) && this.currentAttribute == -2) {
+                    return ilmina_stripped_6.floof.getCard(this.id).subattribute > -1 ? ilmina_stripped_6.floof.getCard(this.id).subattribute : ilmina_stripped_6.floof.getCard(this.id).attribute;
                 }
                 return this.currentAttribute;
             }
@@ -9617,7 +9621,7 @@
                     currentDamage = Math.ceil(currentDamage / 2);
                 }
                 // Handle killers.
-                const types = ilmina_stripped_7.floof.model.cards[this.id] ? ilmina_stripped_7.floof.model.cards[this.id].types : [];
+                const types = ilmina_stripped_6.floof.getCard(this.id).types;
                 if (!ping.isActive) {
                     let killerCount = 0;
                     let latentCount = 0;
@@ -9676,17 +9680,17 @@
                 return currentDamage;
             }
             setId(id) {
-                if (!(id in ilmina_stripped_7.floof.model.cards)) {
+                if (!ilmina_stripped_6.floof.hasCard(id)) {
                     return;
                 }
                 this.id = id;
                 this.reset();
             }
             getName() {
-                if (this.id < 0 || !(this.id in ilmina_stripped_7.floof.model.cards)) {
+                if (this.id < 0 || !ilmina_stripped_6.floof.hasCard(this.id)) {
                     return 'UNSET';
                 }
-                return ilmina_stripped_7.floof.model.cards[this.id].name;
+                return ilmina_stripped_6.floof.getCard(this.id).name;
             }
             reset( /** idc */) {
                 this.currentHp = this.getHp();
@@ -9705,21 +9709,13 @@
                 this.delayed = false;
                 // Assume that only large monsters are alone.
                 this.otherEnemyHp = this.getCard().monsterSize == 5 ? 0 : 100;
-                this.charges = ilmina_stripped_7.floof.model.cards[this.id].charges;
+                this.charges = ilmina_stripped_6.floof.getCard(this.id).charges;
                 this.counter = 0;
                 this.flags = 0;
             }
-            // TODO
-            // useSkillset(skillIdx, idc) {
-            //   if (!skillIdx in this.skillsets) {
-            //     console.warn(`Invalid idx: ${skillIdx}, not performing any.`)
-            //     return;
-            //   }
-            //   this.skillsets[skillIdx].applySkillset(idc, this);
-            // }
             toJson() {
                 const obj = {};
-                if (this.id in ilmina_stripped_7.floof.model.cards) {
+                if (ilmina_stripped_6.floof.hasCard(this.id)) {
                     obj.id = this.id;
                 }
                 if (this.lv != 10) {
@@ -9737,7 +9733,7 @@
         }
         exports.EnemyInstance = EnemyInstance;
     });
-    define("actives", ["require", "exports", "common", "damage_ping", "ilmina_stripped", "debugger"], function (require, exports, common_9, damage_ping_2, ilmina_stripped_8, debugger_3) {
+    define("actives", ["require", "exports", "common", "damage_ping", "ilmina_stripped", "debugger"], function (require, exports, common_9, damage_ping_2, ilmina_stripped_7, debugger_3) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // 0
@@ -10293,11 +10289,11 @@
             202: transform,
         };
         function getGeneratorIfExists(activeId) {
-            if (!ilmina_stripped_8.floof.model.playerSkills[activeId]) {
+            if (!ilmina_stripped_7.floof.getPlayerSkill(activeId)) {
                 debugger_3.debug.print(`Active ID not found: ${activeId}`);
                 return;
             }
-            const active = ilmina_stripped_8.floof.model.playerSkills[activeId];
+            const active = ilmina_stripped_7.floof.getPlayerSkill(activeId);
             const generator = ACTIVE_GENERATORS[active.internalEffectId];
             if (!generator) {
                 debugger_3.debug.print(`Active Internal Effect ${active.internalEffectId} not implemented`);
@@ -10310,7 +10306,7 @@
             if (!generator || !generator.damage) {
                 return [];
             }
-            return generator.damage(ilmina_stripped_8.floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+            return generator.damage(ilmina_stripped_7.floof.getPlayerSkill(activeId).internalEffectArguments, ctx);
         }
         exports.damage = damage;
         function teamEffect(activeId, ctx) {
@@ -10318,7 +10314,7 @@
             if (!generator || !generator.teamEffect) {
                 return;
             }
-            return generator.teamEffect(ilmina_stripped_8.floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+            return generator.teamEffect(ilmina_stripped_7.floof.getPlayerSkill(activeId).internalEffectArguments, ctx);
         }
         exports.teamEffect = teamEffect;
         function enemyEffect(activeId, ctx) {
@@ -10326,7 +10322,7 @@
             if (!generator || !generator.enemyEffect) {
                 return;
             }
-            return generator.enemyEffect(ilmina_stripped_8.floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+            return generator.enemyEffect(ilmina_stripped_7.floof.getPlayerSkill(activeId).internalEffectArguments, ctx);
         }
         exports.enemyEffect = enemyEffect;
         function boardEffect(activeId, ctx) {
@@ -10334,7 +10330,7 @@
             if (!generator || !generator.boardEffect) {
                 return;
             }
-            return generator.boardEffect(ilmina_stripped_8.floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+            return generator.boardEffect(ilmina_stripped_7.floof.getPlayerSkill(activeId).internalEffectArguments, ctx);
         }
         exports.boardEffect = boardEffect;
     });
@@ -10552,7 +10548,7 @@
         }
         exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
     });
-    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common", "debugger"], function (require, exports, ilmina_stripped_9, common_10, debugger_4) {
+    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common", "debugger"], function (require, exports, ilmina_stripped_8, common_10, debugger_4) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         var SkillType;
@@ -11540,7 +11536,7 @@
         const skillset = {
             textify: (skillCtx, ctx) => {
                 const subEffects = skillCtx.skillArgs.map((skillId) => {
-                    const effect = ilmina_stripped_9.floof.model.enemySkills[skillId];
+                    const effect = ilmina_stripped_8.floof.getEnemySkill(skillId);
                     const newContext = {
                         id: skillId,
                         ai: skillCtx.ai,
@@ -11560,7 +11556,7 @@
             aiEffect: () => { },
             effect: (skillCtx, ctx) => {
                 for (const skillId of skillCtx.skillArgs) {
-                    const eff = ilmina_stripped_9.floof.model.enemySkills[skillId];
+                    const eff = ilmina_stripped_8.floof.getEnemySkill(skillId);
                     const newContext = {
                         id: skillId,
                         ai: skillCtx.ai,
@@ -11662,7 +11658,7 @@
         // 90
         const gotoIfCardOnTeam = {
             textify: ({ rnd, skillArgs }) => {
-                return `If any of ${skillArgs.filter(Boolean).map(id => ilmina_stripped_9.floof.model.cards[id].name)} are on the team, go to skill at ${rnd}`;
+                return `If any of ${skillArgs.filter(Boolean).map(id => ilmina_stripped_8.floof.getCard(id).name)} are on the team, go to skill at ${rnd}`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -12002,7 +11998,7 @@
         };
         // 125
         const transformLead = {
-            textify: ({ skillArgs }) => `Transform player lead into ${ilmina_stripped_9.floof.model.cards[skillArgs[1]].name} for ${skillArgs[0]} turns.`,
+            textify: ({ skillArgs }) => `Transform player lead into ${ilmina_stripped_8.floof.getCard(skillArgs[1]).name} for ${skillArgs[0]} turns.`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { team }) => {
@@ -12201,7 +12197,7 @@
             130: playerAtkDebuff,
         };
         function toSkillContext(id, skillIdx) {
-            const cardEnemySkill = ilmina_stripped_9.floof.model.cards[id].enemySkills[skillIdx];
+            const cardEnemySkill = ilmina_stripped_8.floof.getCard(id).enemySkills[skillIdx];
             const skill = {
                 id: -1,
                 ai: -1,
@@ -12219,7 +12215,7 @@
             skill.id = cardEnemySkill.enemySkillId;
             skill.ai = cardEnemySkill.ai;
             skill.rnd = cardEnemySkill.rnd;
-            const enemySkill = ilmina_stripped_9.floof.model.enemySkills[skill.id];
+            const enemySkill = ilmina_stripped_8.floof.getEnemySkill(skill.id);
             if (!enemySkill) {
                 return skill;
             }
@@ -12254,7 +12250,7 @@
          */
         function determineSkillset(ctx) {
             const possibleEffects = [];
-            const skills = Array(ilmina_stripped_9.floof.model.cards[ctx.cardId].enemySkills.length);
+            const skills = Array(ilmina_stripped_8.floof.getCard(ctx.cardId).enemySkills.length);
             if (!skills.length) {
                 return possibleEffects;
             }
@@ -12290,7 +12286,7 @@
                     // If neither rnd or ai are set on a terminating skill, assume it MUST happen.
                     let chance = skills[idx].rnd || skills[idx].ai || 100;
                     ctx.charges -= skill.aiArgs[3];
-                    if (ilmina_stripped_9.floof.model.cards[ctx.cardId].aiVersion == 1) {
+                    if (ilmina_stripped_8.floof.getCard(ctx.cardId).aiVersion == 1) {
                         // Do new
                         chance = Math.min(chance, remainingChance);
                         remainingChance -= chance;
@@ -12358,8 +12354,8 @@
         }
         exports.aiEffect = aiEffect;
         function skillType(enemyId, skillIdx) {
-            const baseSkill = ilmina_stripped_9.floof.model.cards[enemyId].enemySkills[skillIdx];
-            const effectId = ilmina_stripped_9.floof.model.enemySkills[baseSkill.enemySkillId].internalEffectId;
+            const baseSkill = ilmina_stripped_8.floof.getCard(enemyId).enemySkills[skillIdx];
+            const effectId = ilmina_stripped_8.floof.getEnemySkill(baseSkill.enemySkillId).internalEffectId;
             // const skill = toSkillContext(ctx.cardId, skillIdx);
             const effect = ENEMY_SKILL_GENERATORS[effectId];
             if (!effect) {
@@ -12403,7 +12399,7 @@
         exports.textifyEnemySkill = textifyEnemySkill;
         function textifyEnemySkills(enemy) {
             const val = [];
-            for (let i = 0; i < ilmina_stripped_9.floof.model.cards[enemy.id].enemySkills.length; i++) {
+            for (let i = 0; i < ilmina_stripped_8.floof.getCard(enemy.id).enemySkills.length; i++) {
                 val.push(textifyEnemySkill(enemy, i));
             }
             return val;
@@ -12818,7 +12814,7 @@
         }
         exports.DungeonInstance = DungeonInstance;
     });
-    define("team_photo", ["require", "exports", "ilmina_stripped", "templates"], function (require, exports, ilmina_stripped_10, templates_6) {
+    define("team_photo", ["require", "exports", "ilmina_stripped", "templates"], function (require, exports, ilmina_stripped_9, templates_6) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function borderedText(ctx, text, x, y, borderThickness = -1, borderColor = 'black', color = 'yellow') {
@@ -12874,8 +12870,8 @@
             if (id <= 0) {
                 return;
             }
-            const d = ilmina_stripped_10.CardAssets.getIconImageData(ilmina_stripped_10.floof.model.cards[id]);
-            const a = ilmina_stripped_10.CardUiAssets.getIconFrame(ilmina_stripped_10.floof.model.cards[id].attribute, false, ilmina_stripped_10.floof.model);
+            const d = ilmina_stripped_9.CardAssets.getIconImageData(ilmina_stripped_9.floof.getCard(id));
+            const a = ilmina_stripped_9.CardUiAssets.getIconFrame(ilmina_stripped_9.floof.getCard(id).attribute, false, ilmina_stripped_9.floof.getModel());
             ctx.drawImage(images[d.url], d.offsetX, // x coordinate to being clipping.
             d.offsetY, // y coordinate to begin clipping.
             d.width, // width of the clipped image.
@@ -12887,8 +12883,8 @@
             if (a) {
                 ctx.drawImage(images[a.url], a.offsetX, a.offsetY, a.width, a.height, offsetX, offsetY, sideLength, sideLength);
             }
-            if (ilmina_stripped_10.floof.model.cards[id].subattribute >= 0) {
-                const s = ilmina_stripped_10.CardUiAssets.getIconFrame(ilmina_stripped_10.floof.model.cards[id].subattribute, true, ilmina_stripped_10.floof.model);
+            if (ilmina_stripped_9.floof.getCard(id).subattribute >= 0) {
+                const s = ilmina_stripped_9.CardUiAssets.getIconFrame(ilmina_stripped_9.floof.getCard(id).subattribute, true, ilmina_stripped_9.floof.getModel());
                 if (s) {
                     ctx.drawImage(images[s.url], s.offsetX, s.offsetY, s.width, s.height, offsetX, offsetY, sideLength, sideLength);
                 }
@@ -12936,8 +12932,8 @@
             imagesToLoad() {
                 const monsterUrls = this.getIds()
                     .filter((id) => id > 0)
-                    .map((id) => ilmina_stripped_10.CardAssets.getIconImageData(ilmina_stripped_10.floof.model.cards[id]).url);
-                const attributeBorder = ilmina_stripped_10.CardUiAssets.getIconFrame(0, false, ilmina_stripped_10.floof.model);
+                    .map((id) => ilmina_stripped_9.CardAssets.getIconImageData(ilmina_stripped_9.floof.getCard(id)).url);
+                const attributeBorder = ilmina_stripped_9.CardUiAssets.getIconFrame(0, false, ilmina_stripped_9.floof.getModel());
                 if (attributeBorder) {
                     return monsterUrls.concat(attributeBorder.url);
                 }
@@ -12976,7 +12972,7 @@
                         ctx.fillStyle = 'black';
                     }
                     if (monster.awakenings) {
-                        if (monster.awakenings >= ilmina_stripped_10.floof.model.cards[monster.id].awakenings.length) {
+                        if (monster.awakenings >= ilmina_stripped_9.floof.getCard(monster.id).awakenings.length) {
                             ctx.drawImage(images[MonsterRow.MAX_AWOKEN_URL], 0, 0, 55, 55, drawnOffsetX + 0.7 * length, drawnOffsetY + width * .0125, length * 0.23, length * 0.23);
                         }
                         else {
@@ -12988,7 +12984,7 @@
                         }
                     }
                     if (monster.superAwakeningIdx >= 0) {
-                        const sa = ilmina_stripped_10.floof.model.cards[monster.id].superAwakenings[monster.superAwakeningIdx];
+                        const sa = ilmina_stripped_9.floof.getCard(monster.id).superAwakenings[monster.superAwakeningIdx];
                         if (sa != undefined) {
                             const xSa = drawnOffsetX + length * 0.7;
                             const ySa = drawnOffsetY + length * 0.375;
@@ -13008,9 +13004,9 @@
             imagesToLoad() {
                 const monsterUrls = this.getIds()
                     .filter((id) => id > 0)
-                    .map((id) => ilmina_stripped_10.CardAssets.getIconImageData(ilmina_stripped_10.floof.model.cards[id]).url)
+                    .map((id) => ilmina_stripped_9.CardAssets.getIconImageData(ilmina_stripped_9.floof.getCard(id)).url)
                     .concat(MonsterRow.MAX_AWOKEN_URL, MonsterRow.AWAKENING_URL);
-                const attributeBorder = ilmina_stripped_10.CardUiAssets.getIconFrame(0, false, ilmina_stripped_10.floof.model);
+                const attributeBorder = ilmina_stripped_9.CardUiAssets.getIconFrame(0, false, ilmina_stripped_9.floof.getModel());
                 if (attributeBorder) {
                     return monsterUrls.concat(attributeBorder.url);
                 }
@@ -13365,7 +13361,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_10, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // import { testTestTestTest } from './team_test';
@@ -13474,7 +13470,7 @@
                     this.dungeon.getActiveEnemy().setHp(endEnemyHp);
                     const team = this.team.getActiveTeam();
                     const source = team[Math.floor(action / 2)];
-                    const activeId = ilmina_stripped_11.floof.model.cards[action & 1 ? source.inheritId : source.getId()].activeSkillId;
+                    const activeId = ilmina_stripped_10.floof.getCard(action & 1 ? source.inheritId : source.getId()).activeSkillId;
                     const enemy = this.dungeon.getActiveEnemy();
                     actives_1.teamEffect(activeId, {
                         source,
@@ -13549,7 +13545,7 @@
                     debugger_5.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
                     const skillCtx = enemy_skills_2.toSkillContext(enemy.id, idx);
                     enemy_skills_2.effect(skillCtx, { enemy, team: this.team, comboContainer: this.comboContainer });
-                    enemy.charges -= ilmina_stripped_11.floof.model.enemySkills[enemy.getCard().enemySkills[idx].enemySkillId].aiArgs[3];
+                    enemy.charges -= ilmina_stripped_10.floof.getEnemySkill(enemy.getCard().enemySkills[idx].enemySkillId).aiArgs[3];
                     enemy.charges += enemy.getCard().chargeGain;
                     this.dungeon.update(true);
                     this.team.updateState({});
@@ -13614,7 +13610,7 @@
                     const team = this.team.getActiveTeam();
                     const source = team[Math.floor(this.team.action / 2)];
                     const id = this.team.action & 1 ? source.inheritId : source.getId();
-                    const activeId = ilmina_stripped_11.floof.model.cards[id].activeSkillId;
+                    const activeId = ilmina_stripped_10.floof.getCard(id).activeSkillId;
                     pings = actives_1.damage(activeId, {
                         source,
                         team,
@@ -13683,7 +13679,7 @@
             }
         }
         async function init() {
-            await common_12.waitFor(() => ilmina_stripped_11.floof.ready);
+            await common_12.waitFor(() => ilmina_stripped_10.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
