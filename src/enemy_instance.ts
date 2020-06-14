@@ -1,4 +1,4 @@
-import { Attribute, MonsterType, DEFAULT_CARD, idxsFromBits, Rational, Latent, TypeToKiller, TypeToLatentKiller, INT_CAP, Awakening } from './common';
+import { Attribute, MonsterType, idxsFromBits, Rational, Latent, TypeToKiller, TypeToLatentKiller, INT_CAP, Awakening } from './common';
 import { floof, Card, EnemySkill } from './ilmina_stripped';
 import { DamagePing } from './damage_ping';
 import { ComboContainer } from './combo_container';
@@ -150,7 +150,7 @@ class EnemyInstance {
     const c = this.getCard();
     return c.enemySkills
       .map((skill) => skill.enemySkillId)
-      .map((id) => floof.model.enemySkills[id])
+      .map((id) => floof.getEnemySkill(id))
       .filter((skill) => internalEffectId < 0 || skill.internalEffectId == internalEffectId);
   }
 
@@ -196,18 +196,15 @@ class EnemyInstance {
   }
 
   getCard(): Card {
-    if (!floof.model.cards[this.id]) {
-      return DEFAULT_CARD;
-    }
-    return floof.model.cards[this.id];
+    return floof.getCard(this.id);
   }
 
   getAttribute() {
-    if (this.id in floof.model.cards && this.currentAttribute == -1) {
-      return floof.model.cards[this.id].attribute;
+    if (floof.hasCard(this.id) && this.currentAttribute == -1) {
+      return floof.getCard(this.id).attribute;
     }
-    if (this.id in floof.model.cards && this.currentAttribute == -2) {
-      return floof.model.cards[this.id].subattribute > -1 ? floof.model.cards[this.id].subattribute : floof.model.cards[this.id].attribute;
+    if (floof.hasCard(this.id) && this.currentAttribute == -2) {
+      return floof.getCard(this.id).subattribute > -1 ? floof.getCard(this.id).subattribute : floof.getCard(this.id).attribute;
     }
     return this.currentAttribute;
   }
@@ -232,7 +229,7 @@ class EnemyInstance {
     }
 
     // Handle killers.
-    const types: MonsterType[] = floof.model.cards[this.id] ? floof.model.cards[this.id].types : [];
+    const types: MonsterType[] = floof.getCard(this.id).types;
     if (!ping.isActive) {
       let killerCount = 0;
       let latentCount = 0;
@@ -296,7 +293,7 @@ class EnemyInstance {
   }
 
   setId(id: number): void {
-    if (!(id in floof.model.cards)) {
+    if (!floof.hasCard(id)) {
       return;
     }
 
@@ -305,10 +302,10 @@ class EnemyInstance {
   }
 
   getName(): string {
-    if (this.id < 0 || !(this.id in floof.model.cards)) {
+    if (this.id < 0 || !floof.hasCard(this.id)) {
       return 'UNSET';
     }
-    return floof.model.cards[this.id].name;
+    return floof.getCard(this.id).name;
   }
 
   reset(/** idc */) {
@@ -330,23 +327,14 @@ class EnemyInstance {
     // Assume that only large monsters are alone.
     this.otherEnemyHp = this.getCard().monsterSize == 5 ? 0 : 100;
 
-    this.charges = floof.model.cards[this.id].charges;
+    this.charges = floof.getCard(this.id).charges;
     this.counter = 0;
     this.flags = 0;
   }
 
-  // TODO
-  // useSkillset(skillIdx, idc) {
-  //   if (!skillIdx in this.skillsets) {
-  //     console.warn(`Invalid idx: ${skillIdx}, not performing any.`)
-  //     return;
-  //   }
-  //   this.skillsets[skillIdx].applySkillset(idc, this);
-  // }
-
   toJson(): EnemyInstanceJson {
     const obj: EnemyInstanceJson = {};
-    if (this.id in floof.model.cards) {
+    if (floof.hasCard(this.id)) {
       obj.id = this.id;
     }
     if (this.lv != 10) {

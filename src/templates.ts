@@ -8,7 +8,7 @@
  */
 
 import {
-  BASE_URL, COLORS, DEFAULT_CARD,
+  BASE_URL, COLORS,
   Attribute, AttributeToFontColor, FontColor, AttributeToName,
   Awakening, AwakeningToName, Latent,
   MonsterType, TypeToName,
@@ -498,7 +498,7 @@ class MonsterIcon {
       superShow(this.infoTable);
     }
 
-    const card = floof.model.cards[d.id] || DEFAULT_CARD;
+    const card = floof.getCard(d.id);
 
     const descriptor = CardAssets.getIconImageData(card);
     if (descriptor) {
@@ -507,7 +507,7 @@ class MonsterIcon {
       this.element.style.backgroundPosition = `-${descriptor.offsetX * TEAM_SCALING}px -${descriptor.offsetY * TEAM_SCALING}`;
     }
 
-    const attrDescriptor = CardUiAssets.getIconFrame(card.attribute, false, floof.model);
+    const attrDescriptor = CardUiAssets.getIconFrame(card.attribute, false, floof.getModel());
     if (attrDescriptor) {
       show(this.attributeEl);
       this.attributeEl.style.backgroundImage = `url(${attrDescriptor.url})`;
@@ -516,7 +516,7 @@ class MonsterIcon {
       hide(this.attributeEl);
     }
 
-    const subDescriptor = CardUiAssets.getIconFrame(card.subattribute, true, floof.model);
+    const subDescriptor = CardUiAssets.getIconFrame(card.subattribute, true, floof.getModel());
     if (subDescriptor) {
       show(this.subattributeEl);
       this.subattributeEl.style.backgroundImage = `url(${subDescriptor.url})`;
@@ -538,7 +538,7 @@ class MonsterIcon {
       show(awakeningEl);
       const maxAwokenImage = awakeningEl.getElementsByTagName('img')[0] as HTMLImageElement;
       const numberArea = awakeningEl.getElementsByTagName('div')[0] as HTMLDivElement;
-      if (d.awakening >= floof.model.cards[d.id].awakenings.length || d.activeTransform) {
+      if (d.awakening >= floof.getCard(d.id).awakenings.length || d.activeTransform) {
         superShow(maxAwokenImage);
         superHide(numberArea);
       } else {
@@ -614,7 +614,7 @@ class MonsterInherit {
       return;
     }
 
-    const card = floof.model.cards[id] || DEFAULT_CARD;
+    const card = floof.getCard(id);
     const desInherit = CardAssets.getIconImageData(card);
     if (desInherit) {
       show(this.icon);
@@ -624,7 +624,7 @@ class MonsterInherit {
     } else {
       hide(this.icon);
     }
-    const desAttr = CardUiAssets.getIconFrame(card.attribute, false, floof.model);
+    const desAttr = CardUiAssets.getIconFrame(card.attribute, false, floof.getModel());
     if (desAttr) {
       show(this.attr);
       this.attr.style.backgroundImage = `url(${desAttr.url})`;
@@ -632,7 +632,7 @@ class MonsterInherit {
     } else {
       hide(this.attr);
     }
-    const desSub = CardUiAssets.getIconFrame(card.subattribute, true, floof.model);
+    const desSub = CardUiAssets.getIconFrame(card.subattribute, true, floof.getModel());
     if (desSub) {
       show(this.attr);
       this.sub.style.backgroundImage = `url(${desSub.url})`;
@@ -1094,7 +1094,7 @@ class MonsterSelector extends GenericSelector<number> {
     if (id == -1) {
       return 'None';
     } else {
-      return `${id}: ${floof.model.cards[id].name}`;
+      return `${id}: ${floof.getCard(id).name}`;
     }
   }
 
@@ -1105,7 +1105,7 @@ class MonsterSelector extends GenericSelector<number> {
 
   postFilter(matches: number[]): number[] {
     if (this.isInherit) {
-      return matches.filter((match) => floof.model.cards[match].inheritanceType & 1);
+      return matches.filter((match) => floof.getCard(match).inheritanceType & 1);
     }
     return matches;
   }
@@ -1737,7 +1737,7 @@ class MonsterEditor {
     this.badgeSelector.value = `${ctx.badge}`;
     this.monsterSelector.setId(ctx.id);
     this.inheritSelector.setId(ctx.inheritId);
-    const c = floof.model.cards[ctx.id];
+    const c = floof.getCard(ctx.id);
     for (let i = 0; i < 3; i++) {
       if (!c || i >= c.types.length) {
         superHide(this.types[i].getElement());
@@ -1752,10 +1752,10 @@ class MonsterEditor {
       maxLevel = c.isLimitBreakable ? 110 : c.maxLevel;
     }
     let inheritMaxLevel = 1;
-    if (ctx.inheritId in floof.model.cards) {
-      inheritMaxLevel = floof.model.cards[ctx.inheritId].isLimitBreakable
+    if (floof.hasCard(ctx.inheritId)) {
+      inheritMaxLevel = floof.getCard(ctx.inheritId).isLimitBreakable
         ? 110
-        : floof.model.cards[ctx.inheritId].maxLevel;
+        : floof.getCard(ctx.inheritId).maxLevel;
     }
     this.levelEditor.update({
       level: ctx.level,
@@ -1772,8 +1772,8 @@ class MonsterEditor {
       awakenings = c.awakenings;
       superAwakenings = c.superAwakenings;
     }
-    if (ctx.inheritId in floof.model.cards) {
-      inheritAwakenings = floof.model.cards[ctx.inheritId].awakenings;
+    if (floof.hasCard(ctx.inheritId)) {
+      inheritAwakenings = floof.getCard(ctx.inheritId).awakenings;
     }
     this.awakeningEditor.update(
       awakenings,
@@ -1785,7 +1785,7 @@ class MonsterEditor {
     );
 
     let latentKillers: Latent[] = [];
-    if (ctx.id in floof.model.cards) {
+    if (floof.hasCard(ctx.id)) {
       latentKillers = c.latentKillers;
     }
     let maxLatents = 6;
@@ -2066,7 +2066,6 @@ class TeamPane {
         const idx = i * 6 + j;
         d.appendChild(monsterDivs[idx]);
         d.onmousedown = () => {
-          console.log(`Setting base to swap to ${idx}`);
           this.baseToSwap = idx;
           d.classList.add(ClassNames.MONSTER_CLICKED);
         };
@@ -2078,10 +2077,7 @@ class TeamPane {
             return;
           }
 
-          if (this.baseToSwap == idx) {
-            console.log('Selecting monster, NOT SWAPPING');
-          } else {
-            console.log(`Swapping monsters ${this.baseToSwap}-${idx}`);
+          if (this.baseToSwap != idx) {
             this.onMonsterSwap(this.baseToSwap, idx);
           }
 
@@ -2715,14 +2711,14 @@ class TeamPane {
   updateBattle(teamBattle: TeamBattle): void {
     this.hpBar.setHp(teamBattle.currentHp, teamBattle.maxHp);
     for (let i = 0; i < this.actionOptions.length; i++) {
-      const c = floof.model.cards[teamBattle.ids[i]];
+      const c = floof.getCard(teamBattle.ids[i]);
       const option = this.actionOptions[i];
       if (!c) {
         option.innerText = '';
         option.disabled = true;
         superHide(option);
       } else {
-        let text = `${Math.floor(i / 2) + 1}: ${floof.model.playerSkills[c.activeSkillId].description.replace('\n', ' ')}`;
+        let text = `${Math.floor(i / 2) + 1}: ${floof.getPlayerSkill(c.activeSkillId).description.replace('\n', ' ')}`;
         option.innerText = text.length >= 80 ? text.substring(0, 77) + '...' : text;
         option.disabled = false;
         superShow(option);
@@ -3505,7 +3501,7 @@ class DungeonEditor {
           // el.scrollIntoView({ block: 'nearest' });
           const id = this.dungeonEnemies[i][j].id;
           this.enemyPicture.updateId(id);
-          const card = floof.model.cards[id];
+          const card = floof.getCard(id);
           for (let i = 0; i < this.enemyTypes.length; i++) {
             if (card && card.types && i < card.types.length) {
               show(this.enemyTypes[i].getElement())

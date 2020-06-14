@@ -1,5 +1,3 @@
-import { Card } from './ilmina_stripped';
-
 // 1 red
 // 2 blue
 // 4 green
@@ -264,8 +262,6 @@ const Round = {
 function numberWithCommas(x: number): string {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
-
-const DEFAULT_CARD = new Card();
 
 const LatentSuper = new Set<Latent>([
   Latent.EVO, Latent.AWOKEN, Latent.ENHANCED, Latent.REDEEMABLE,
@@ -540,7 +536,6 @@ export {
   TypeToKiller, TypeToLatentKiller,
   BASE_URL,
   COLORS,
-  DEFAULT_CARD,
   INT_CAP,
   idxsFromBits,
   numberWithCommas,

@@ -650,11 +650,11 @@ const ACTIVE_GENERATORS: Record<number, MonsterActive> = {
 };
 
 function getGeneratorIfExists(activeId: number): MonsterActive | void {
-  if (!floof.model.playerSkills[activeId]) {
+  if (!floof.getPlayerSkill(activeId)) {
     debug.print(`Active ID not found: ${activeId}`);
     return;
   }
-  const active = floof.model.playerSkills[activeId];
+  const active = floof.getPlayerSkill(activeId);
   const generator = ACTIVE_GENERATORS[active.internalEffectId];
   if (!generator) {
     debug.print(`Active Internal Effect ${active.internalEffectId} not implemented`);
@@ -668,7 +668,7 @@ function damage(activeId: number, ctx: DamageContext): DamagePing[] {
   if (!generator || !generator.damage) {
     return [];
   }
-  return generator.damage(floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+  return generator.damage(floof.getPlayerSkill(activeId).internalEffectArguments, ctx);
 }
 
 function teamEffect(activeId: number, ctx: TeamEffectContext): void {
@@ -676,7 +676,7 @@ function teamEffect(activeId: number, ctx: TeamEffectContext): void {
   if (!generator || !generator.teamEffect) {
     return;
   }
-  return generator.teamEffect(floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+  return generator.teamEffect(floof.getPlayerSkill(activeId).internalEffectArguments, ctx);
 }
 
 function enemyEffect(activeId: number, ctx: EnemyEffectContext): void {
@@ -684,7 +684,7 @@ function enemyEffect(activeId: number, ctx: EnemyEffectContext): void {
   if (!generator || !generator.enemyEffect) {
     return;
   }
-  return generator.enemyEffect(floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+  return generator.enemyEffect(floof.getPlayerSkill(activeId).internalEffectArguments, ctx);
 }
 
 function boardEffect(activeId: number, ctx: ComboContainer): void {
@@ -692,7 +692,7 @@ function boardEffect(activeId: number, ctx: ComboContainer): void {
   if (!generator || !generator.boardEffect) {
     return;
   }
-  return generator.boardEffect(floof.model.playerSkills[activeId].internalEffectArguments, ctx);
+  return generator.boardEffect(floof.getPlayerSkill(activeId).internalEffectArguments, ctx);
 }
 
 export {

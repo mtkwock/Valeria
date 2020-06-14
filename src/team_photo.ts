@@ -108,8 +108,8 @@ function drawMonster(ctx: CanvasRenderingContext2D, id: number, sideLength: numb
     return;
   }
 
-  const d = CardAssets.getIconImageData(floof.model.cards[id]);
-  const a = CardUiAssets.getIconFrame(floof.model.cards[id].attribute, false, floof.model);
+  const d = CardAssets.getIconImageData(floof.getCard(id));
+  const a = CardUiAssets.getIconFrame(floof.getCard(id).attribute, false, floof.getModel());
 
   ctx.drawImage(
     images[d.url],
@@ -137,8 +137,8 @@ function drawMonster(ctx: CanvasRenderingContext2D, id: number, sideLength: numb
     );
   }
 
-  if (floof.model.cards[id].subattribute >= 0) {
-    const s = CardUiAssets.getIconFrame(floof.model.cards[id].subattribute, true, floof.model)
+  if (floof.getCard(id).subattribute >= 0) {
+    const s = CardUiAssets.getIconFrame(floof.getCard(id).subattribute, true, floof.getModel())
     if (s) {
       ctx.drawImage(
         images[s.url],
@@ -215,8 +215,8 @@ class InheritRow implements RowDraw {
   imagesToLoad(): string[] {
     const monsterUrls = this.getIds()
       .filter((id) => id > 0)
-      .map((id) => CardAssets.getIconImageData(floof.model.cards[id]).url);
-    const attributeBorder = CardUiAssets.getIconFrame(0, false, floof.model);
+      .map((id) => CardAssets.getIconImageData(floof.getCard(id)).url);
+    const attributeBorder = CardUiAssets.getIconFrame(0, false, floof.getModel());
     if (attributeBorder) {
       return monsterUrls.concat(attributeBorder.url);
     }
@@ -272,7 +272,7 @@ class MonsterRow implements RowDraw {
         ctx.fillStyle = 'black';
       }
       if (monster.awakenings) {
-        if (monster.awakenings >= floof.model.cards[monster.id].awakenings.length) {
+        if (monster.awakenings >= floof.getCard(monster.id).awakenings.length) {
           ctx.drawImage(
             images[MonsterRow.MAX_AWOKEN_URL],
             0,
@@ -294,7 +294,7 @@ class MonsterRow implements RowDraw {
       }
 
       if (monster.superAwakeningIdx >= 0) {
-        const sa = floof.model.cards[monster.id].superAwakenings[monster.superAwakeningIdx];
+        const sa = floof.getCard(monster.id).superAwakenings[monster.superAwakeningIdx];
         if (sa != undefined) {
           const xSa = drawnOffsetX + length * 0.7;
           const ySa = drawnOffsetY + length * 0.375;
@@ -317,9 +317,9 @@ class MonsterRow implements RowDraw {
   imagesToLoad(): string[] {
     const monsterUrls = this.getIds()
       .filter((id) => id > 0)
-      .map((id) => CardAssets.getIconImageData(floof.model.cards[id]).url)
+      .map((id) => CardAssets.getIconImageData(floof.getCard(id)).url)
       .concat(MonsterRow.MAX_AWOKEN_URL, MonsterRow.AWAKENING_URL);
-    const attributeBorder = CardUiAssets.getIconFrame(0, false, floof.model);
+    const attributeBorder = CardUiAssets.getIconFrame(0, false, floof.getModel());
     if (attributeBorder) {
       return monsterUrls.concat(attributeBorder.url);
     }

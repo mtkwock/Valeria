@@ -1112,7 +1112,7 @@ const attackWithoutName: EnemySkillEffect = {
 const skillset: EnemySkillEffect = {
   textify: (skillCtx, ctx) => {
     const subEffects = skillCtx.skillArgs.map((skillId) => {
-      const effect = floof.model.enemySkills[skillId];
+      const effect = floof.getEnemySkill(skillId);
       const newContext: SkillContext = {
         id: skillId,
         ai: skillCtx.ai,
@@ -1133,7 +1133,7 @@ const skillset: EnemySkillEffect = {
   aiEffect: () => { },
   effect: (skillCtx, ctx) => {
     for (const skillId of skillCtx.skillArgs) {
-      const eff = floof.model.enemySkills[skillId];
+      const eff = floof.getEnemySkill(skillId);
       const newContext: SkillContext = {
         id: skillId,
         ai: skillCtx.ai,
@@ -1241,7 +1241,7 @@ const skillDelay: EnemySkillEffect = {
 // 90
 const gotoIfCardOnTeam: EnemySkillEffect = {
   textify: ({ rnd, skillArgs }) => {
-    return `If any of ${skillArgs.filter(Boolean).map(id => floof.model.cards[id].name)} are on the team, go to skill at ${rnd}`;
+    return `If any of ${skillArgs.filter(Boolean).map(id => floof.getCard(id).name)} are on the team, go to skill at ${rnd}`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -1610,7 +1610,7 @@ const gachadra: EnemySkillEffect = {
 
 // 125
 const transformLead: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Transform player lead into ${floof.model.cards[skillArgs[1]].name} for ${skillArgs[0]} turns.`,
+  textify: ({ skillArgs }) => `Transform player lead into ${floof.getCard(skillArgs[1]).name} for ${skillArgs[0]} turns.`,
   condition: () => true,
   aiEffect: () => { },
   effect: ({ skillArgs }, { team }) => {
@@ -1817,7 +1817,7 @@ const ENEMY_SKILL_GENERATORS: Record<number, EnemySkillEffect> = {
 };
 
 function toSkillContext(id: number, skillIdx: number): SkillContext {
-  const cardEnemySkill = floof.model.cards[id].enemySkills[skillIdx];
+  const cardEnemySkill = floof.getCard(id).enemySkills[skillIdx];
   const skill: SkillContext = {
     id: -1,
     ai: -1,
@@ -1837,7 +1837,7 @@ function toSkillContext(id: number, skillIdx: number): SkillContext {
   skill.ai = cardEnemySkill.ai;
   skill.rnd = cardEnemySkill.rnd;
 
-  const enemySkill = floof.model.enemySkills[skill.id];
+  const enemySkill = floof.getEnemySkill(skill.id);
   if (!enemySkill) {
     return skill;
   }
@@ -1892,7 +1892,7 @@ const PREEMPTIVE_MARKERS = [47, 49];
 function determineSkillset(ctx: AiContext): EnemyEffect[] {
   const possibleEffects: EnemyEffect[] = [];
 
-  const skills: SkillContext[] = Array(floof.model.cards[ctx.cardId].enemySkills.length);
+  const skills: SkillContext[] = Array(floof.getCard(ctx.cardId).enemySkills.length);
   if (!skills.length) {
     return possibleEffects;
   }
@@ -1929,7 +1929,7 @@ function determineSkillset(ctx: AiContext): EnemyEffect[] {
       // If neither rnd or ai are set on a terminating skill, assume it MUST happen.
       let chance = skills[idx].rnd || skills[idx].ai || 100;
       ctx.charges -= skill.aiArgs[3];
-      if (floof.model.cards[ctx.cardId].aiVersion == 1) {
+      if (floof.getCard(ctx.cardId).aiVersion == 1) {
         // Do new
         chance = Math.min(chance, remainingChance);
         remainingChance -= chance;
@@ -1995,8 +1995,8 @@ export function aiEffect(ctx: AiContext, skillIdx: number) {
 }
 
 export function skillType(enemyId: number, skillIdx: number): SkillType {
-  const baseSkill = floof.model.cards[enemyId].enemySkills[skillIdx];
-  const effectId = floof.model.enemySkills[baseSkill.enemySkillId].internalEffectId;
+  const baseSkill = floof.getCard(enemyId).enemySkills[skillIdx];
+  const effectId = floof.getEnemySkill(baseSkill.enemySkillId).internalEffectId;
   // const skill = toSkillContext(ctx.cardId, skillIdx);
   const effect = ENEMY_SKILL_GENERATORS[effectId];
   if (!effect) {
@@ -2043,7 +2043,7 @@ function textifyEnemySkills(enemy: {
   atk: number,
 }): string[] {
   const val = [];
-  for (let i = 0; i < floof.model.cards[enemy.id].enemySkills.length; i++) {
+  for (let i = 0; i < floof.getCard(enemy.id).enemySkills.length; i++) {
     val.push(textifyEnemySkill(enemy, i));
   }
   return val;

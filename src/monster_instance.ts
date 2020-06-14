@@ -1,4 +1,4 @@
-import { Attribute, Awakening, AwakeningToPlus, Latent, MonsterType, DEFAULT_CARD, idxsFromBits } from './common';
+import { Attribute, Awakening, AwakeningToPlus, Latent, MonsterType, idxsFromBits } from './common';
 import { Card, CardAssets, floof } from './ilmina_stripped';
 import { create, MonsterIcon, MonsterInherit, MonsterLatent, ClassNames, OnMonsterUpdate } from './templates';
 import { fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch } from './fuzzy_search';
@@ -233,7 +233,7 @@ class MonsterInstance {
   }
 
   setId(id: number): void {
-    if (id >= 0 && !(id in floof.model.cards)) {
+    if (id >= 0 && !(floof.hasCard(id))) {
       console.warn('Invalid monster id: ' + String(id));
       return;
     }
@@ -374,23 +374,16 @@ class MonsterInstance {
 
   getCard(ignoreTransform: boolean = false): Card {
     const id = this.getId(ignoreTransform);
-    let c = floof.model.cards[id];
-    if (c) {
-      return c;
-    }
-    return DEFAULT_CARD;
+    return floof.getCard(id);
   }
 
   getInheritCard(): Card | void {
-    if (this.inheritId == 0) {
-      return DEFAULT_CARD;
-    }
-    return floof.model.cards[this.inheritId];
+    return floof.getCard(this.inheritId);
   }
 
   toPdchu(): string {
     let string = '';
-    if (this.id in floof.model.cards) {
+    if (floof.hasCard(this.id)) {
       string += String(this.id);
     } else {
       string += 'sdr';
@@ -604,7 +597,7 @@ class MonsterInstance {
       this.setHpPlus(hpPlus);
       this.setAtkPlus(atkPlus);
       this.setRcvPlus(rcvPlus);
-      this.awakenings = Math.min(floof.model.cards[bestGuessIds[0]].awakenings.length, awakeningLevel);
+      this.awakenings = Math.min(floof.getCard(bestGuessIds[0]).awakenings.length, awakeningLevel);
     }
     if (assistName) {
       const bestGuessInheritIds = fuzzyMonsterSearch(assistName, 20, prioritizedInheritSearch);
@@ -908,13 +901,13 @@ class MonsterInstance {
 
   getCooldown(): number {
     const skillId = this.getCard().activeSkillId;
-    return skillId ? floof.model.playerSkills[skillId].maxCooldown : 0;
+    return skillId ? floof.getPlayerSkill(skillId).maxCooldown : 0;
   }
 
   getCooldownInherit(): number {
     const inherit = this.getInheritCard();
     const inheritSkillId = inherit ? inherit.activeSkillId : 0;
-    return this.getCooldown() + (inheritSkillId ? floof.model.playerSkills[inheritSkillId].maxCooldown : 0);
+    return this.getCooldown() + (inheritSkillId ? floof.getPlayerSkill(inheritSkillId).maxCooldown : 0);
   }
 
   static swap(instanceA: MonsterInstance, instanceB: MonsterInstance): void {
@@ -926,7 +919,7 @@ class MonsterInstance {
 
   makeTestContext(playerMode: number): PlayerMonsterContext {
     const skillId = this.getCard().activeSkillId;
-    const CD_MAX = skillId ? floof.model.playerSkills[skillId].initialCooldown : 0;
+    const CD_MAX = skillId ? floof.getPlayerSkill(skillId).initialCooldown : 0;
     const inherit = this.getInheritCard();
     const inheritSkillId = inherit ? inherit.activeSkillId : 0;
     return {
@@ -939,7 +932,7 @@ class MonsterInstance {
       CD: this.getCooldown(),
       CD_MAX,
       INHERIT_CD: this.getCooldownInherit(),
-      INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? floof.model.playerSkills[inheritSkillId].initialCooldown : 0),
+      INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? floof.getPlayerSkill(inheritSkillId).initialCooldown : 0),
       SDR: this.latents.filter((l) => l == Latent.SDR).length,
     };
   }

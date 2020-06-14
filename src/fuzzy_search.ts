@@ -17,10 +17,10 @@ function isLowPriority(s: string): boolean {
   });
 }
 function SearchInit() {
-  const ids: number[] = Object.keys(floof.model.cards).map((id) => Number(id));
+  const ids: number[] = Object.keys(floof.getModel().cards).map((id) => Number(id));
 
-  prioritizedEnemySearch = ids.map((id: number) => floof.model.cards[id]).reverse();
-  prioritizedMonsterSearch = ids.map((id: number) => floof.model.cards[id]).filter((card: Card) => {
+  prioritizedEnemySearch = ids.map((id: number) => floof.getCard(id)).reverse();
+  prioritizedMonsterSearch = ids.map((id: number) => floof.getCard(id)).filter((card: Card) => {
     return card.id < 100000;
   }).sort((card1, card2) => {
     if (isLowPriority(card1.name) != isLowPriority(card2.name)) {
@@ -56,7 +56,7 @@ function SearchInit() {
     return card2.id - card1.id;
   });
 
-  for (const group of floof.model.cardGroups) {
+  for (const group of floof.getModel().cardGroups) {
     for (const alias of group.aliases.filter(
       (alias) => alias.indexOf(' ') == -1 && alias == alias.toLowerCase())) {
       prefixToCardIds[alias] = group.cards;
@@ -108,7 +108,7 @@ function fuzzyMonsterSearch(
     text = text.replace('srevo', 'super reincarnated');
   }
   // Test for exact match.
-  if (text in floof.model.cards) {
+  if (floof.hasCard(Number(text))) {
     result.push(Number(text));
   }
   let lowerPriority: number[] = [];
@@ -236,9 +236,9 @@ function fuzzyMonsterSearch(
   if (toEquip) {
     let equips: number[] = [];
     for (const id of result) {
-      const treeId = floof.model.cards[id].evoTreeBaseId;
-      if (treeId in floof.model.evoTrees) {
-        for (const card of floof.model.evoTrees[treeId].cards) {
+      const treeId = floof.getCard(id).evoTreeBaseId;
+      if (treeId in floof.getModel().evoTrees) {
+        for (const card of floof.getModel().evoTrees[treeId].cards) {
           if (!equips.some((id) => id == card.id) && card.awakenings[0] == Awakening.AWOKEN_ASSIST) {
             equips.push(card.id);
           }
@@ -259,7 +259,7 @@ function fuzzyMonsterSearch(
     }
   }
   if (toBase) {
-    let bases = result.map((id) => floof.model.cards[id].evoTreeBaseId);
+    let bases = result.map((id) => floof.getCard(id).evoTreeBaseId);
 
     const seen = new Set<number>();
     result.length = 0;

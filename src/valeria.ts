@@ -133,7 +133,7 @@ class Valeria {
 
       const team = this.team.getActiveTeam();
       const source = team[Math.floor(action / 2)];
-      const activeId = floof.model.cards[action & 1 ? source.inheritId : source.getId()].activeSkillId;
+      const activeId = floof.getCard(action & 1 ? source.inheritId : source.getId()).activeSkillId;
       const enemy = this.dungeon.getActiveEnemy();
 
       teamEffect(activeId, {
@@ -293,7 +293,7 @@ class Valeria {
       const team = this.team.getActiveTeam();
       const source = team[Math.floor(this.team.action / 2)];
       const id = this.team.action & 1 ? source.inheritId : source.getId();
-      const activeId = floof.model.cards[id].activeSkillId;
+      const activeId = floof.getCard(id).activeSkillId;
       pings = activeDamage(activeId, {
         source,
         team,

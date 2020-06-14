@@ -1099,7 +1099,7 @@ const LEADER_SKILL_GENERATORS: Record<number, LeaderSkill> = {
 // Functions for libraries to call directly.
 
 export function bigBoard(id: number): boolean {
-  const playerSkill = floof.model.playerSkills[id];
+  const playerSkill = floof.getPlayerSkill(id);
 
   // Handle multiple leader skills.
   if (playerSkill.internalEffectId == 138) {
@@ -1109,7 +1109,7 @@ export function bigBoard(id: number): boolean {
 }
 
 export function noSkyfall(id: number): boolean {
-  const playerSkill = floof.model.playerSkills[id];
+  const playerSkill = floof.getPlayerSkill(id);
 
   if (playerSkill.internalEffectId == 138) {
     return playerSkill.internalEffectArguments.some((i) => noSkyfall(i));
@@ -1118,7 +1118,7 @@ export function noSkyfall(id: number): boolean {
 }
 
 export function ignorePoison(id: number): boolean {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   // Handle multiple leader skills.
   if (internalEffectId == 138) {
@@ -1128,7 +1128,7 @@ export function ignorePoison(id: number): boolean {
 }
 
 export function drumEffect(id: number): boolean {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   // Handle multiple leader skills.
   if (internalEffectId == 138) {
@@ -1139,7 +1139,7 @@ export function drumEffect(id: number): boolean {
 }
 
 export function minOrbMatch(id: number): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return Math.max(...internalEffectArguments.map((i) => minOrbMatch(i)));
@@ -1149,7 +1149,7 @@ export function minOrbMatch(id: number): number {
 }
 
 export function resolve(id: number): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return Math.min(...internalEffectArguments.map((i) => resolve(i)));
@@ -1159,7 +1159,7 @@ export function resolve(id: number): number {
 }
 
 export function fixedTime(id: number): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     const times = internalEffectArguments.map((i) => fixedTime(i)).filter((t) => t > 0);
@@ -1170,7 +1170,7 @@ export function fixedTime(id: number): number {
 }
 
 export function timeExtend(id: number): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => timeExtend(i)).reduce(
@@ -1181,7 +1181,7 @@ export function timeExtend(id: number): number {
 }
 
 export function hp(id: number, context: HpContext): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => hp(i, context)).reduce(
@@ -1192,7 +1192,7 @@ export function hp(id: number, context: HpContext): number {
 }
 
 export function atk(id: number, context: AttackContext): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => atk(i, context)).reduce(
@@ -1203,7 +1203,7 @@ export function atk(id: number, context: AttackContext): number {
 }
 
 export function rcv(id: number, context: RcvContext): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => rcv(i, context)).reduce(
@@ -1214,7 +1214,7 @@ export function rcv(id: number, context: RcvContext): number {
 }
 
 export function rcvPost(id: number, context: RcvPostContext): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => rcvPost(i, context)).reduce(
@@ -1225,7 +1225,7 @@ export function rcvPost(id: number, context: RcvPostContext): number {
 }
 
 export function damageMult(id: number, context: DamageMultContext): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => damageMult(i, context)).reduce(
@@ -1236,7 +1236,7 @@ export function damageMult(id: number, context: DamageMultContext): number {
 }
 
 export function plusCombo(id: number, context: PlusComboContext): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => plusCombo(i, context)).reduce(
@@ -1247,7 +1247,7 @@ export function plusCombo(id: number, context: PlusComboContext): number {
 }
 
 export function drop(id: number): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => drop(i)).reduce(
@@ -1258,7 +1258,7 @@ export function drop(id: number): number {
 }
 
 export function coins(id: number): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => coins(i)).reduce(
@@ -1269,7 +1269,7 @@ export function coins(id: number): number {
 }
 
 export function exp(id: number): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => exp(i)).reduce(
@@ -1280,7 +1280,7 @@ export function exp(id: number): number {
 }
 
 export function autoHeal(id: number): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => autoHeal(i)).reduce(
@@ -1291,7 +1291,7 @@ export function autoHeal(id: number): number {
 }
 
 export function trueBonusAttack(id: number, context: TrueBonusAttackContext): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => trueBonusAttack(i, context)).reduce(
@@ -1303,7 +1303,7 @@ export function trueBonusAttack(id: number, context: TrueBonusAttackContext): nu
 }
 
 export function bonusAttack(id: number): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => bonusAttack(i)).reduce(
@@ -1314,7 +1314,7 @@ export function bonusAttack(id: number): number {
 }
 
 export function counter(id: number): { multiplier: number, attribute: Attribute } {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments
@@ -1329,7 +1329,7 @@ export function counter(id: number): { multiplier: number, attribute: Attribute 
 }
 
 export function awokenBindClear(id: number, context: AwokenBindClearContext): number {
-  const { internalEffectId, internalEffectArguments } = floof.model.playerSkills[id];
+  const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
     return internalEffectArguments.map((i) => awokenBindClear(i, context)).reduce(

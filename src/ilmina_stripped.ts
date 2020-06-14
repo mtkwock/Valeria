@@ -341,7 +341,7 @@ class GraphicDescription {
 class Ilmina {
   cards: Record<number, Card> = {};
   errorMessage: (s: string) => string = (s) => s;
-  model: Model = new Model();
+  private model: Model = new Model();
   apkMetadata: Record<string, { width: number, height: number }> = {};
   ready: boolean = false;
   // Initialization
@@ -458,6 +458,27 @@ class Ilmina {
     setInterval(() => {
       DateConverter.updateTime();
     }, 1000);
+  }
+
+  getCard(id: number): Card {
+    const maybeCard = this.model.cards[id];
+    return maybeCard || DEFAULT_CARD;
+  }
+
+  hasCard(id: number): boolean {
+    return Boolean(this.model.cards[id]);
+  }
+
+  getEnemySkill(id: number): EnemySkill {
+    return this.model.enemySkills[id];
+  }
+
+  getPlayerSkill(id: number): PlayerSkill {
+    return this.model.playerSkills[id];
+  }
+
+  getModel(): Model {
+    return this.model;
   }
 }
 
@@ -634,6 +655,7 @@ class Card {
    */
   aiVersion: number = 0;
 }
+
 class CardEnemySkill {
   enemySkillId: number = -1;
   ai: number = -1;
@@ -1429,6 +1451,7 @@ class RawDataReader {
   }
 }
 
+const DEFAULT_CARD = new Card();
 const floof = new Ilmina();
 
 declare global {
