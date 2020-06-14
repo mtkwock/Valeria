@@ -1456,7 +1456,6 @@ class RawDataReader {
   }
 }
 
-const DEFAULT_CARD = new Card();
 const floof = new Ilmina();
 
 declare global {
