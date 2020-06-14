@@ -566,15 +566,14 @@ const stackingBaseStatsFromTypes: LeaderSkill = { // 137
 // 138 see 116
 
 const atkFromAttrTypeMultiThresh: LeaderSkill = { // 139
-  atk: ([attrBits, typeBits, threshA, isGreaterA, atk100a, threshB, isGreaterB, atk100b], { ping, percentHp }) => {
+  atk: ([attrBits, typeBits, threshA, isLesserA, atk100a, threshB, isLesserB, atk100b], { ping, percentHp }) => {
     if (!ping.source.anyAttributeTypeBits(attrBits, typeBits)) {
       return 1;
     }
     let multiplier = 1;
-    if ((isGreaterA && percentHp >= threshA) || (!isGreaterA && percentHp <= threshA)) {
+    if ((isLesserA && percentHp <= threshA) || (!isLesserA && percentHp >= threshA)) {
       multiplier *= atk100a / 100;
-    }
-    if ((isGreaterB && percentHp >= threshB) || (!isGreaterB && percentHp <= threshB)) {
+    } else if ((isLesserB && percentHp <= threshB) || (!isLesserB && percentHp >= threshB)) {
       multiplier *= atk100b / 100;
     }
     return multiplier;
