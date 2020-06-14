@@ -462,7 +462,12 @@ class Ilmina {
 
   getCard(id: number): Card {
     const maybeCard = this.model.cards[id];
-    return maybeCard || DEFAULT_CARD;
+    if (maybeCard) {
+      return maybeCard;
+    }
+    const c = new Card();
+    c.id = id;
+    return c;
   }
 
   hasCard(id: number): boolean {
