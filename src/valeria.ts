@@ -226,7 +226,9 @@ class Valeria {
       this.team.updateState({});
     }
     this.dungeon.onEnemyChange = () => {
-      this.usePreempt();
+      if (!this.dungeon.isNormal) {
+        this.usePreempt();
+      }
       this.updateDamage();
     };
     this.dungeon.onEnemyUpdate = () => {

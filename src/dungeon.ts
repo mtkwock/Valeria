@@ -57,6 +57,7 @@ class DungeonFloor {
 interface DungeonInstanceJson {
   title: string;
   floors: DungeonFloorJson[];
+  isNormal: boolean;
   hp?: string,
   atk?: string,
   def?: string,
@@ -90,6 +91,12 @@ type SubDungeonDataRaw = {
 // Info loaded from DadGuide
 type DungeonDataRaw = {
   dungeon_id: number,
+  // 0 is normal
+  // 1 is technical.
+  // 2: Annihilation
+  // 3 is One-Time only
+  // 4: Ranking
+  // 7: 3P
   dungeon_type: number,
   name_na: string,
   sub_dungeons: SubDungeonDataRaw[],
@@ -132,6 +139,7 @@ request.done((data) => {
       const dungeonInstanceJson: DungeonInstanceJson = {
         title: `${datum.name_na} - ${subDatum.name_na}`,
         floors: floorsJson,
+        isNormal: datum.dungeon_type == 0,
         hp: String(subDatum.hp_mult),
         atk: String(subDatum.atk_mult),
         def: String(subDatum.def_mult),
@@ -150,14 +158,15 @@ class DungeonInstance {
   boardWidth: number = 6;
   fixedTime: number = 0;
   isRogue: boolean = false; // UNIMPLEMENTED
+  isNormal = false;
   allAttributesRequired: boolean = false;
   noDupes: boolean = false;
   floors: DungeonFloor[];
-  hpMultiplier: Rational = new Rational(1);
-  atkMultiplier: Rational = new Rational(1);
-  defMultiplier: Rational = new Rational(1);
-  activeFloor: number = 0;
-  activeEnemy: number = 0;
+  hpMultiplier = new Rational(1);
+  atkMultiplier = new Rational(1);
+  defMultiplier = new Rational(1);
+  activeFloor = 0;
+  activeEnemy = 0;
 
   pane: DungeonPane;
   skillArea: EnemySkillArea;
@@ -479,6 +488,7 @@ class DungeonInstance {
   toJson(): DungeonInstanceJson {
     const obj: DungeonInstanceJson = {
       title: this.title,
+      isNormal: this.isNormal,
       floors: this.floors.map((floor) => floor.toJson()),
     };
 
@@ -504,6 +514,7 @@ class DungeonInstance {
     if (!this.floors) {
       this.addFloor();
     }
+    this.isNormal = json.isNormal;
     this.activeFloor = 0;
     this.setActiveEnemy(0);
     this.hpMultiplier = Rational.from(json.hp || '1');
