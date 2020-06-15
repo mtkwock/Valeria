@@ -12782,6 +12782,7 @@
                     const dungeonInstanceJson = {
                         title: `${datum.name_na} - ${subDatum.name_na}`,
                         floors: floorsJson,
+                        isNormal: datum.dungeon_type == 0,
                         hp: String(subDatum.hp_mult),
                         atk: String(subDatum.atk_mult),
                         def: String(subDatum.def_mult),
@@ -12800,6 +12801,7 @@
                 this.boardWidth = 6;
                 this.fixedTime = 0;
                 this.isRogue = false; // UNIMPLEMENTED
+                this.isNormal = false;
                 this.allAttributesRequired = false;
                 this.noDupes = false;
                 this.hpMultiplier = new common_11.Rational(1);
@@ -13084,6 +13086,7 @@
             toJson() {
                 const obj = {
                     title: this.title,
+                    isNormal: this.isNormal,
                     floors: this.floors.map((floor) => floor.toJson()),
                 };
                 const hpString = this.hpMultiplier.toString();
@@ -13106,6 +13109,7 @@
                 if (!this.floors) {
                     this.addFloor();
                 }
+                this.isNormal = json.isNormal;
                 this.activeFloor = 0;
                 this.setActiveEnemy(0);
                 this.hpMultiplier = common_11.Rational.from(json.hp || '1');
@@ -13853,7 +13857,9 @@
                     this.team.updateState({});
                 };
                 this.dungeon.onEnemyChange = () => {
-                    this.usePreempt();
+                    if (!this.dungeon.isNormal) {
+                        this.usePreempt();
+                    }
                     this.updateDamage();
                 };
                 this.dungeon.onEnemyUpdate = () => {
