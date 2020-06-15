@@ -1457,12 +1457,12 @@ export function atk(id: number, context: AttackContext | undefined = undefined):
         const skill = floof.getPlayerSkill(arg);
         // Heart Cross uses one cross.
         if (skill.internalEffectId == 151) {
-          if (remainingCrosses) {
+          if (!remainingCrosses) {
             continue;
           }
           remainingCrosses--;
         }
-        // Normal Cross scaling uses up to 3.
+        // Normal Cross scaling all remaining.
         if (floof.getPlayerSkill(arg).internalEffectId == 157) {
           if (remainingCrosses) {
             multiplier *= atkScalingFromCross.atkMax!(skill.internalEffectArguments) ** remainingCrosses;
