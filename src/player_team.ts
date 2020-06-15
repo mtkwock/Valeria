@@ -1440,6 +1440,10 @@ class Team {
 
     const testResult = runTests(this.tests, this.makeTestContext());
 
+    const monsters = this.getActiveTeam();
+    const leadId = monsters[0].getCard().leaderSkillId;
+    const helpId = monsters[5].getCard().leaderSkillId;
+
     return {
       hps: this.getIndividualHp(),
       atks,
@@ -1451,6 +1455,16 @@ class Team {
       counts,
       tests: this.tests,
       testResult,
+
+      lead: {
+        hp: leaders.hp(leadId) * leaders.hp(helpId),
+        atk: leaders.atk(leadId) * leaders.atk(helpId),
+        rcv: leaders.rcv(leadId) * leaders.rcv(helpId),
+        damageMult: leaders.damageMult(leadId) * leaders.damageMult(helpId),
+        plusCombo: leaders.plusCombo(leadId) + leaders.plusCombo(helpId),
+        bonusAttack: leaders.bonusAttack(leadId) * monsters[0].getAtk(this.playerMode, this.state.awakenings) + leaders.bonusAttack(helpId) * monsters[5].getAtk(this.playerMode, this.state.awakenings),
+        trueBonusAttack: leaders.trueBonusAttack(leadId) + leaders.trueBonusAttack(helpId),
+      },
     };
   }
 }

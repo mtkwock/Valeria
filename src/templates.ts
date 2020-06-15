@@ -1914,6 +1914,16 @@ interface Stats {
   counts: Map<Awakening, number>;
   tests: string;
   testResult: string[],
+
+  lead: {
+    hp: number,
+    atk: number,
+    rcv: number,
+    damageMult: number,
+    plusCombo: number,
+    bonusAttack: number,
+    trueBonusAttack: number,
+  }
 }
 
 interface TeamBattle {
@@ -1983,6 +1993,7 @@ class TeamPane {
   private totalHpValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   private totalRcvValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   private totalTimeValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
+  private leaderSkillEl = create('div') as HTMLDivElement;
   battleEl: HTMLDivElement = create('div') as HTMLDivElement;
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
   private testResultDiv = create('div');
@@ -2192,6 +2203,7 @@ class TeamPane {
     totalBaseStatEl.appendChild(this.totalRcvValue);
     totalBaseStatEl.appendChild(totalTimeLabel);
     totalBaseStatEl.appendChild(this.totalTimeValue);
+    totalBaseStatEl.appendChild(this.leaderSkillEl);
     this.statsEl.appendChild(totalBaseStatEl);
 
     const awakeningsToDisplay = [
@@ -2685,6 +2697,29 @@ class TeamPane {
     this.totalHpValue.innerText = String(stats.totalHp);
     this.totalRcvValue.innerText = String(stats.totalRcv);
     this.totalTimeValue.innerText = `${stats.totalTime}s`;
+
+    const lead = stats.lead;
+    let leaderSkillString = `${lead.hp}-${lead.atk}-${lead.rcv}`;
+    if (lead.damageMult != 1) {
+      leaderSkillString += ` Resist: ${((1 - lead.damageMult) * 100).toPrecision(2)}%`;
+    }
+    if (lead.plusCombo) {
+      leaderSkillString += ` +C: ${lead.plusCombo}`;
+    }
+    if (lead.bonusAttack || lead.trueBonusAttack) {
+      leaderSkillString += ' Autofua: ';
+      if (lead.bonusAttack) {
+        leaderSkillString += `${addCommas(lead.bonusAttack)}`;
+      }
+      if (lead.bonusAttack && lead.trueBonusAttack) {
+        leaderSkillString += ' + ';
+      }
+      if (lead.trueBonusAttack) {
+        leaderSkillString += `${addCommas(lead.trueBonusAttack)} true`;
+      }
+    }
+    this.leaderSkillEl.innerText = leaderSkillString;
+
     for (const awakening of this.aggregatedAwakeningCounts.keys()) {
       const val = this.aggregatedAwakeningCounts.get(awakening)
       if (val) {
