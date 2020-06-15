@@ -1909,6 +1909,7 @@ interface Stats {
   rcvs: number[];
   cds: string[];
   totalHp: number;
+  effectiveHp: number;
   totalRcv: number;
   totalTime: number;
   counts: Map<Awakening, number>;
@@ -1916,6 +1917,7 @@ interface Stats {
   testResult: string[],
 
   lead: {
+    bigBoard: boolean,
     hp: number,
     atk: number,
     rcv: number,
@@ -1993,7 +1995,7 @@ class TeamPane {
   private totalHpValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   private totalRcvValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
   private totalTimeValue: HTMLSpanElement = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLSpanElement;
-  private leaderSkillEl = create('div') as HTMLDivElement;
+  private leaderSkillEl = create('span', ClassNames.STAT_TOTAL_VALUE) as HTMLDivElement;
   battleEl: HTMLDivElement = create('div') as HTMLDivElement;
   private aggregatedAwakeningCounts: Map<Awakening, HTMLSpanElement> = new Map();
   private testResultDiv = create('div');
@@ -2191,19 +2193,20 @@ class TeamPane {
     this.statsEl.appendChild(statsTable);
 
     const totalBaseStatEl = create('div') as HTMLDivElement;
-    const totalHpLabel = create('span') as HTMLSpanElement;
-    totalHpLabel.innerText = 'Total HP:';
-    const totalRcvLabel = create('span') as HTMLSpanElement;
-    totalRcvLabel.innerText = 'Total RCV:';
-    const totalTimeLabel = create('span') as HTMLSpanElement;
-    totalTimeLabel.innerText = 'Time:';
-    totalBaseStatEl.appendChild(totalHpLabel);
-    totalBaseStatEl.appendChild(this.totalHpValue);
-    totalBaseStatEl.appendChild(totalRcvLabel);
-    totalBaseStatEl.appendChild(this.totalRcvValue);
-    totalBaseStatEl.appendChild(totalTimeLabel);
-    totalBaseStatEl.appendChild(this.totalTimeValue);
+    // const totalHpLabel = create('span') as HTMLSpanElement;
+    // totalHpLabel.innerText = 'Total HP:';
+    // const totalRcvLabel = create('span') as HTMLSpanElement;
+    // totalRcvLabel.innerText = 'Total RCV:';
+    // const totalTimeLabel = create('span') as HTMLSpanElement;
+    // totalTimeLabel.innerText = 'Time:';
     totalBaseStatEl.appendChild(this.leaderSkillEl);
+    totalBaseStatEl.appendChild(create('br'));
+    // totalBaseStatEl.appendChild(totalHpLabel);
+    totalBaseStatEl.appendChild(this.totalHpValue);
+    // totalBaseStatEl.appendChild(totalRcvLabel);
+    totalBaseStatEl.appendChild(this.totalRcvValue);
+    // totalBaseStatEl.appendChild(totalTimeLabel);
+    totalBaseStatEl.appendChild(this.totalTimeValue);
     this.statsEl.appendChild(totalBaseStatEl);
 
     const awakeningsToDisplay = [
@@ -2694,17 +2697,24 @@ class TeamPane {
       statsByIdx[StatIndex.RCV].innerText = stats.hps[i] ? String(stats.rcvs[i]) : '';
       statsByIdx[StatIndex.CD].innerText = stats.cds[i];
     }
-    this.totalHpValue.innerText = String(stats.totalHp);
-    this.totalRcvValue.innerText = String(stats.totalRcv);
-    this.totalTimeValue.innerText = `${stats.totalTime}s`;
+    this.totalHpValue.innerText = `Total HP: ${addCommas(stats.totalHp)}`;
+    if (stats.totalHp != stats.effectiveHp) {
+      this.totalHpValue.innerText += ` (${addCommas(stats.effectiveHp)})`;
+    }
+    this.totalRcvValue.innerText = `Total RCV: ${addCommas(stats.totalRcv)}`;
+    this.totalTimeValue.innerText = `Time: ${stats.totalTime}s`;
 
     const lead = stats.lead;
-    let leaderSkillString = `${lead.hp}-${lead.atk}-${lead.rcv}`;
+    let leaderSkillString = 'Lead: ';
+    if (lead.bigBoard) {
+      leaderSkillString += '[7x6] ';
+    }
+    leaderSkillString += `${lead.hp}-${lead.atk}-${lead.rcv}`;
     if (lead.damageMult != 1) {
       leaderSkillString += ` Resist: ${((1 - lead.damageMult) * 100).toPrecision(2)}%`;
     }
     if (lead.plusCombo) {
-      leaderSkillString += ` +C: ${lead.plusCombo}`;
+      leaderSkillString += ` +${lead.plusCombo}c`;
     }
     if (lead.bonusAttack || lead.trueBonusAttack) {
       leaderSkillString += ' Autofua: ';

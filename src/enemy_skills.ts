@@ -297,14 +297,17 @@ const enrageFromMinimumAttacks: EnemySkillEffect = {
 
 // 20
 const statusShield: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Void status ailments for ${skillArgs[0]} turns`,
+  textify: ({ skillArgs, aiArgs }, { atk }) => `Void status ailments for ${skillArgs[0]} turns` + aiArgs[4] ? ` and hit for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : '',
   condition: () => true,
   aiEffect: () => { },
-  effect: (_, { enemy }) => {
+  effect: ({ aiArgs }, { enemy, team, comboContainer }) => {
     enemy.statusShield = true;
     enemy.poison = 0;
     enemy.delayed = false;
     enemy.ignoreDefensePercent = 0;
+    if (aiArgs[4]) {
+      team.damage(Math.ceil(enemy.getAtk() * aiArgs[4] / 100), enemy.getAttribute(), comboContainer);
+    }
   },
   goto: () => TERMINATE,
 };

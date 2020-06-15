@@ -702,6 +702,16 @@ class Team {
     return total;
   }
 
+  getEffectiveHp(): number {
+    const baseHp = this.getHp();
+    const monsters = this.getActiveTeam();
+    const leadId = monsters[0].getCard().leaderSkillId;
+    const helpId = monsters[5].getCard().leaderSkillId;
+    const mult = leaders.damageMult(leadId) * leaders.damageMult(helpId);
+
+    return Math.floor(baseHp / mult);
+  }
+
   getIndividualRcv(includeLeaderSkill: boolean = false): number[] {
     const rcvs = [];
     const monsters = this.getActiveTeam();
@@ -1444,12 +1454,16 @@ class Team {
     const leadId = monsters[0].getCard().leaderSkillId;
     const helpId = monsters[5].getCard().leaderSkillId;
 
+    const leadBaseId = monsters[0].getCard(true).leaderSkillId;
+    const helpBaseId = monsters[5].getCard(true).leaderSkillId;
+
     return {
       hps: this.getIndividualHp(),
       atks,
       rcvs: this.getIndividualRcv(),
       cds,
       totalHp: this.getHp(),
+      effectiveHp: this.getEffectiveHp(),
       totalRcv: this.getRcv(),
       totalTime: this.getTime(),
       counts,
@@ -1457,6 +1471,7 @@ class Team {
       testResult,
 
       lead: {
+        bigBoard: leaders.bigBoard(leadBaseId) || leaders.bigBoard(helpBaseId),
         hp: leaders.hp(leadId) * leaders.hp(helpId),
         atk: leaders.atk(leadId) * leaders.atk(helpId),
         rcv: leaders.rcv(leadId) * leaders.rcv(helpId),

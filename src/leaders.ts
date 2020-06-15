@@ -788,7 +788,7 @@ const atkScalingFromCross: LeaderSkill = { // 157
   },
 
   // Assume triple cross
-  atkMax: ([_a, mult1, _b, mult2, _c, mult3]) => (Math.max(mult1 || 0, mult2 || 0, mult3 || 0) / 100) ** 3,
+  atkMax: ([_a, mult1, _b, mult2, _c, mult3, _d, mult4, _e, mult5]) => (Math.max(mult1 || 0, mult2 || 0, mult3 || 0, mult4 || 0, mult5 || 0) / 100),
 };
 
 const baseStatFromAttrsTypesMinMatch: LeaderSkill = { // 158
@@ -1449,6 +1449,31 @@ export function atk(id: number, context: AttackContext | undefined = undefined):
   const { internalEffectId, internalEffectArguments } = floof.getPlayerSkill(id);
 
   if (internalEffectId == 138) {
+    // Stupid handling of multiple cross leads.
+    if (!context) {
+      let remainingCrosses = 3;
+      let multiplier = 1;
+      for (const arg of internalEffectArguments) {
+        const skill = floof.getPlayerSkill(arg);
+        // Heart Cross uses one cross.
+        if (skill.internalEffectId == 151) {
+          if (remainingCrosses) {
+            continue;
+          }
+          remainingCrosses--;
+        }
+        // Normal Cross scaling uses up to 3.
+        if (floof.getPlayerSkill(arg).internalEffectId == 157) {
+          if (remainingCrosses) {
+            multiplier *= atkScalingFromCross.atkMax!(skill.internalEffectArguments) ** remainingCrosses;
+            remainingCrosses = 0;
+          }
+          continue;
+        }
+        multiplier *= (LEADER_SKILL_GENERATORS[skill.internalEffectId].atkMax || (() => 1))(skill.internalEffectArguments);
+      }
+      return multiplier;
+    }
     return internalEffectArguments.map((i) => atk(i, context)).reduce(
       (total: number, value: number) => total * value);
   }
