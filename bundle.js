@@ -4088,7 +4088,7 @@
                 this.totalHpValue = create('span', ClassNames.STAT_TOTAL_VALUE);
                 this.totalRcvValue = create('span', ClassNames.STAT_TOTAL_VALUE);
                 this.totalTimeValue = create('span', ClassNames.STAT_TOTAL_VALUE);
-                this.leaderSkillEl = create('div');
+                this.leaderSkillEl = create('span', ClassNames.STAT_TOTAL_VALUE);
                 this.battleEl = create('div');
                 this.aggregatedAwakeningCounts = new Map();
                 this.testResultDiv = create('div');
@@ -4251,19 +4251,20 @@
                 statsTable.appendChild(cdRow);
                 this.statsEl.appendChild(statsTable);
                 const totalBaseStatEl = create('div');
-                const totalHpLabel = create('span');
-                totalHpLabel.innerText = 'Total HP:';
-                const totalRcvLabel = create('span');
-                totalRcvLabel.innerText = 'Total RCV:';
-                const totalTimeLabel = create('span');
-                totalTimeLabel.innerText = 'Time:';
-                totalBaseStatEl.appendChild(totalHpLabel);
-                totalBaseStatEl.appendChild(this.totalHpValue);
-                totalBaseStatEl.appendChild(totalRcvLabel);
-                totalBaseStatEl.appendChild(this.totalRcvValue);
-                totalBaseStatEl.appendChild(totalTimeLabel);
-                totalBaseStatEl.appendChild(this.totalTimeValue);
+                // const totalHpLabel = create('span') as HTMLSpanElement;
+                // totalHpLabel.innerText = 'Total HP:';
+                // const totalRcvLabel = create('span') as HTMLSpanElement;
+                // totalRcvLabel.innerText = 'Total RCV:';
+                // const totalTimeLabel = create('span') as HTMLSpanElement;
+                // totalTimeLabel.innerText = 'Time:';
                 totalBaseStatEl.appendChild(this.leaderSkillEl);
+                totalBaseStatEl.appendChild(create('br'));
+                // totalBaseStatEl.appendChild(totalHpLabel);
+                totalBaseStatEl.appendChild(this.totalHpValue);
+                // totalBaseStatEl.appendChild(totalRcvLabel);
+                totalBaseStatEl.appendChild(this.totalRcvValue);
+                // totalBaseStatEl.appendChild(totalTimeLabel);
+                totalBaseStatEl.appendChild(this.totalTimeValue);
                 this.statsEl.appendChild(totalBaseStatEl);
                 const awakeningsToDisplay = [
                     [
@@ -4698,16 +4699,23 @@
                     statsByIdx[StatIndex.RCV].innerText = stats.hps[i] ? String(stats.rcvs[i]) : '';
                     statsByIdx[StatIndex.CD].innerText = stats.cds[i];
                 }
-                this.totalHpValue.innerText = String(stats.totalHp);
-                this.totalRcvValue.innerText = String(stats.totalRcv);
-                this.totalTimeValue.innerText = `${stats.totalTime}s`;
+                this.totalHpValue.innerText = `Total HP: ${common_2.addCommas(stats.totalHp)}`;
+                if (stats.totalHp != stats.effectiveHp) {
+                    this.totalHpValue.innerText += ` (${common_2.addCommas(stats.effectiveHp)})`;
+                }
+                this.totalRcvValue.innerText = `Total RCV: ${common_2.addCommas(stats.totalRcv)}`;
+                this.totalTimeValue.innerText = `Time: ${stats.totalTime}s`;
                 const lead = stats.lead;
-                let leaderSkillString = `${lead.hp}-${lead.atk}-${lead.rcv}`;
+                let leaderSkillString = 'Lead: ';
+                if (lead.bigBoard) {
+                    leaderSkillString += '[7x6] ';
+                }
+                leaderSkillString += `${lead.hp}-${lead.atk}-${lead.rcv}`;
                 if (lead.damageMult != 1) {
                     leaderSkillString += ` Resist: ${((1 - lead.damageMult) * 100).toPrecision(2)}%`;
                 }
                 if (lead.plusCombo) {
-                    leaderSkillString += ` +C: ${lead.plusCombo}`;
+                    leaderSkillString += ` +${lead.plusCombo}c`;
                 }
                 if (lead.bonusAttack || lead.trueBonusAttack) {
                     leaderSkillString += ' Autofua: ';
@@ -7717,7 +7725,7 @@
                 return multiplier;
             },
             // Assume triple cross
-            atkMax: ([_a, mult1, _b, mult2, _c, mult3]) => (Math.max(mult1 || 0, mult2 || 0, mult3 || 0) / 100) ** 3,
+            atkMax: ([_a, mult1, _b, mult2, _c, mult3, _d, mult4, _e, mult5]) => (Math.max(mult1 || 0, mult2 || 0, mult3 || 0, mult4 || 0, mult5 || 0) / 100),
         };
         const baseStatFromAttrsTypesMinMatch = {
             minOrbMatch: ([minMatch]) => minMatch,
@@ -8303,6 +8311,31 @@
         function atk(id, context = undefined) {
             const { internalEffectId, internalEffectArguments } = ilmina_stripped_4.floof.getPlayerSkill(id);
             if (internalEffectId == 138) {
+                // Stupid handling of multiple cross leads.
+                if (!context) {
+                    let remainingCrosses = 3;
+                    let multiplier = 1;
+                    for (const arg of internalEffectArguments) {
+                        const skill = ilmina_stripped_4.floof.getPlayerSkill(arg);
+                        // Heart Cross uses one cross.
+                        if (skill.internalEffectId == 151) {
+                            if (remainingCrosses) {
+                                continue;
+                            }
+                            remainingCrosses--;
+                        }
+                        // Normal Cross scaling uses up to 3.
+                        if (ilmina_stripped_4.floof.getPlayerSkill(arg).internalEffectId == 157) {
+                            if (remainingCrosses) {
+                                multiplier *= atkScalingFromCross.atkMax(skill.internalEffectArguments) ** remainingCrosses;
+                                remainingCrosses = 0;
+                            }
+                            continue;
+                        }
+                        multiplier *= (LEADER_SKILL_GENERATORS[skill.internalEffectId].atkMax || (() => 1))(skill.internalEffectArguments);
+                    }
+                    return multiplier;
+                }
                 return internalEffectArguments.map((i) => atk(i, context)).reduce((total, value) => total * value);
             }
             if (context) {
@@ -9007,6 +9040,14 @@
                 }
                 return total;
             }
+            getEffectiveHp() {
+                const baseHp = this.getHp();
+                const monsters = this.getActiveTeam();
+                const leadId = monsters[0].getCard().leaderSkillId;
+                const helpId = monsters[5].getCard().leaderSkillId;
+                const mult = leaders.damageMult(leadId) * leaders.damageMult(helpId);
+                return Math.floor(baseHp / mult);
+            }
             getIndividualRcv(includeLeaderSkill = false) {
                 const rcvs = [];
                 const monsters = this.getActiveTeam();
@@ -9672,18 +9713,22 @@
                 const monsters = this.getActiveTeam();
                 const leadId = monsters[0].getCard().leaderSkillId;
                 const helpId = monsters[5].getCard().leaderSkillId;
+                const leadBaseId = monsters[0].getCard(true).leaderSkillId;
+                const helpBaseId = monsters[5].getCard(true).leaderSkillId;
                 return {
                     hps: this.getIndividualHp(),
                     atks,
                     rcvs: this.getIndividualRcv(),
                     cds,
                     totalHp: this.getHp(),
+                    effectiveHp: this.getEffectiveHp(),
                     totalRcv: this.getRcv(),
                     totalTime: this.getTime(),
                     counts,
                     tests: this.tests,
                     testResult,
                     lead: {
+                        bigBoard: leaders.bigBoard(leadBaseId) || leaders.bigBoard(helpBaseId),
                         hp: leaders.hp(leadId) * leaders.hp(helpId),
                         atk: leaders.atk(leadId) * leaders.atk(helpId),
                         rcv: leaders.rcv(leadId) * leaders.rcv(helpId),
@@ -11027,14 +11072,17 @@
         };
         // 20
         const statusShield = {
-            textify: ({ skillArgs }) => `Void status ailments for ${skillArgs[0]} turns`,
+            textify: ({ skillArgs, aiArgs }, { atk }) => `Void status ailments for ${skillArgs[0]} turns` + aiArgs[4] ? ` and hit for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : '',
             condition: () => true,
             aiEffect: () => { },
-            effect: (_, { enemy }) => {
+            effect: ({ aiArgs }, { enemy, team, comboContainer }) => {
                 enemy.statusShield = true;
                 enemy.poison = 0;
                 enemy.delayed = false;
                 enemy.ignoreDefensePercent = 0;
+                if (aiArgs[4]) {
+                    team.damage(Math.ceil(enemy.getAtk() * aiArgs[4] / 100), enemy.getAttribute(), comboContainer);
+                }
             },
             goto: () => TERMINATE,
         };
