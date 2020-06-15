@@ -8319,12 +8319,12 @@
                         const skill = ilmina_stripped_4.floof.getPlayerSkill(arg);
                         // Heart Cross uses one cross.
                         if (skill.internalEffectId == 151) {
-                            if (remainingCrosses) {
+                            if (!remainingCrosses) {
                                 continue;
                             }
                             remainingCrosses--;
                         }
-                        // Normal Cross scaling uses up to 3.
+                        // Normal Cross scaling all remaining.
                         if (ilmina_stripped_4.floof.getPlayerSkill(arg).internalEffectId == 157) {
                             if (remainingCrosses) {
                                 multiplier *= atkScalingFromCross.atkMax(skill.internalEffectArguments) ** remainingCrosses;
