@@ -316,6 +316,7 @@ table.valeria-monster-icon-info > tr:nth-child(3) {
 
 .valeria-team-container {
   width: 369.2px;
+  overflow-x: hidden;
 }
 
 .valeria-team-container-disabled {

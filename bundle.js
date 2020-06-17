@@ -4251,19 +4251,10 @@
                 statsTable.appendChild(cdRow);
                 this.statsEl.appendChild(statsTable);
                 const totalBaseStatEl = create('div');
-                // const totalHpLabel = create('span') as HTMLSpanElement;
-                // totalHpLabel.innerText = 'Total HP:';
-                // const totalRcvLabel = create('span') as HTMLSpanElement;
-                // totalRcvLabel.innerText = 'Total RCV:';
-                // const totalTimeLabel = create('span') as HTMLSpanElement;
-                // totalTimeLabel.innerText = 'Time:';
                 totalBaseStatEl.appendChild(this.leaderSkillEl);
                 totalBaseStatEl.appendChild(create('br'));
-                // totalBaseStatEl.appendChild(totalHpLabel);
                 totalBaseStatEl.appendChild(this.totalHpValue);
-                // totalBaseStatEl.appendChild(totalRcvLabel);
                 totalBaseStatEl.appendChild(this.totalRcvValue);
-                // totalBaseStatEl.appendChild(totalTimeLabel);
                 totalBaseStatEl.appendChild(this.totalTimeValue);
                 this.statsEl.appendChild(totalBaseStatEl);
                 const awakeningsToDisplay = [
@@ -9474,16 +9465,22 @@
                 const opts = {
                     includeTeamBadge: true,
                 };
+                const LEADER = monsters[0].makeTestContext(this.playerMode);
+                const HELPER = monsters[5].makeTestContext(this.playerMode);
+                const SUB_1 = monsters[1].makeTestContext(this.playerMode);
+                const SUB_2 = monsters[2].makeTestContext(this.playerMode);
+                const SUB_3 = monsters[3].makeTestContext(this.playerMode);
+                const SUB_4 = monsters[4].makeTestContext(this.playerMode);
+                const leadId = monsters[0].getCard().leaderSkillId;
+                const helpId = monsters[5].getCard().leaderSkillId;
+                const hasAutofua = leaders.bonusAttack(leadId) || leaders.trueBonusAttack(leadId) || leaders.bonusAttack(helpId) || leaders.trueBonusAttack(helpId);
                 const result = {
                     HP: this.getHp(),
+                    EFFECTIVE_HP: this.getEffectiveHp(),
                     RCV: this.getRcv(),
                     TIME: this.getTime(),
-                    LEADER: monsters[0].makeTestContext(this.playerMode),
-                    HELPER: monsters[5].makeTestContext(this.playerMode),
-                    SUB_1: monsters[1].makeTestContext(this.playerMode),
-                    SUB_2: monsters[2].makeTestContext(this.playerMode),
-                    SUB_3: monsters[3].makeTestContext(this.playerMode),
-                    SUB_4: monsters[4].makeTestContext(this.playerMode),
+                    LEADER, HELPER, SUB_1, SUB_2, SUB_3, SUB_4,
+                    ATTRIBUTES: LEADER.ATTRIBUTE | LEADER.SUBATTRIBUTE | HELPER.ATTRIBUTE | HELPER.SUBATTRIBUTE | SUB_1.ATTRIBUTE | SUB_1.SUBATTRIBUTE | SUB_2.ATTRIBUTE | SUB_2.SUBATTRIBUTE | SUB_3.ATTRIBUTE | SUB_3.SUBATTRIBUTE | SUB_4.ATTRIBUTE | SUB_4.SUBATTRIBUTE,
                     SB: this.countAwakening(common_7.Awakening.SKILL_BOOST, opts),
                     SBR: this.countAwakening(common_7.Awakening.SBR, opts),
                     FUA: this.countAwakening(common_7.Awakening.BONUS_ATTACK),
@@ -9500,7 +9497,7 @@
                     RESIST_LIGHT: this.countAwakening(common_7.Awakening.RESIST_LIGHT) * 7 + this.countLatent(common_7.Latent.RESIST_LIGHT) + this.countLatent(common_7.Latent.RESIST_LIGHT_PLUS) * 2.5,
                     RESIST_DARK: this.countAwakening(common_7.Awakening.RESIST_DARK) * 7 + this.countLatent(common_7.Latent.RESIST_DARK) + this.countLatent(common_7.Latent.RESIST_DARK_PLUS) * 2.5,
                     // Leader Skill capabilities.
-                    AUTOFUA: team_conformance_1.CompareBoolean.FALSE,
+                    AUTOFUA: hasAutofua ? team_conformance_1.CompareBoolean.TRUE : team_conformance_1.CompareBoolean.FALSE,
                 };
                 return result;
             }
@@ -10868,28 +10865,39 @@
         }
         // 1
         const bindRandom = {
-            textify: ({ skillArgs }) => {
+            textify: ({ skillArgs, aiArgs }, { atk }) => {
                 const [count, min, max] = skillArgs;
-                return `Binds ${count} of all monsters for ${range(min, max)}.`;
+                return `Binds ${count} of all monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}.`;
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: () => {
+            effect: ({ aiArgs }, { team, enemy, comboContainer }) => {
                 // let [count, min, max] = skillArgs;
                 console.warn('Bind not yet supported');
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+                if (aiArgs[4]) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
+                }
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { atk, aiArgs }) => {
+                if (aiArgs[4]) {
+                    mechanic.hits.push(Math.ceil(aiArgs[4] * atk / 100));
+                }
+                mechanic.leaderBind = true;
+                mechanic.helperBind = true;
+                mechanic.subBind = true;
+            },
         };
         // 2
         const bindAttr = {
-            textify: ({ skillArgs }, { atk }) => {
+            textify: ({ skillArgs, aiArgs }, { atk }) => {
                 const [color, min, max] = skillArgs;
-                return `Binds ${common_10.AttributeToName.get(color || 0)} monsters for ${range(min, max)}. If none exist and part of skillset, hits for ${common_10.addCommas(atk)}. Else continue.`;
+                return `Binds ${common_10.AttributeToName.get(color || 0)} monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}. If none exist and part of skillset, hits for ${common_10.addCommas(atk)}. Else continue.`;
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+            effect: ({ skillArgs, aiArgs }, { team, enemy, comboContainer }) => {
                 const a = skillArgs[0];
                 if (team.getActiveTeam().every((m) => !m.isAttribute(a))) {
                     team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
@@ -10897,18 +10905,29 @@
                 }
                 console.warn('Bind not yet supported');
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+                if (aiArgs[4]) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
+                }
             },
             goto: ({ skillArgs }, { teamAttributes }) => teamAttributes.has(skillArgs[0] || 0) ? TERMINATE : TO_NEXT,
+            addMechanic: (mechanic, { atk, aiArgs }) => {
+                if (aiArgs[4]) {
+                    mechanic.hits.push(Math.ceil(aiArgs[4] * atk / 100));
+                }
+                mechanic.leaderBind = true;
+                mechanic.helperBind = true;
+                mechanic.subBind = true;
+            },
         };
         // 3
         const bindType = {
-            textify: ({ skillArgs }, { atk }) => {
+            textify: ({ skillArgs, aiArgs }, { atk }) => {
                 const [type, min, max] = skillArgs;
-                return `Binds ${common_10.TypeToName.get(type)} monsters for ${range(min, max)}. If none exist, hits for ${common_10.addCommas(atk)}.`;
+                return `Binds ${common_10.TypeToName.get(type)} monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}. If none exist, hits for ${common_10.addCommas(atk)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
+            effect: ({ skillArgs, aiArgs }, { enemy, team, comboContainer }) => {
                 const t = skillArgs[0];
                 if (team.getActiveTeam().every((m) => !m.isType(t))) {
                     team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
@@ -10916,8 +10935,19 @@
                 }
                 console.warn('Bind not yet supported');
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+                if (aiArgs[4]) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
+                }
             },
             goto: ({ skillArgs }, { teamTypes }) => teamTypes.has(skillArgs[0] || 0) ? TERMINATE : TO_NEXT,
+            addMechanic: (mechanic, { aiArgs, atk }) => {
+                if (aiArgs[4]) {
+                    mechanic.hits.push(Math.ceil(aiArgs[4] * atk / 100));
+                }
+                mechanic.leaderBind = true;
+                mechanic.helperBind = true;
+                mechanic.subBind = true;
+            },
         };
         // 4
         const orbChange = {
@@ -10935,6 +10965,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.blind = true;
+            },
         };
         // 6
         const dispelBuffs = {
@@ -10987,6 +11020,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.jammerChange = true;
+            },
         };
         // 13
         const multiOrbToJammer = {
@@ -10995,6 +11031,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.jammerChange = true;
+            },
         };
         // 14
         const skillBind = {
@@ -11005,6 +11044,9 @@
                 team.skillBind();
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.skillBind = true;
+            },
         };
         // 15
         const multihit = {
@@ -11026,6 +11068,11 @@
                 }
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { atk, skillArgs }) => {
+                for (let i = 0; i < skillArgs[1]; i++) {
+                    mechanic.hits.push(Math.ceil(skillArgs[2] * atk / 100));
+                }
+            },
         };
         // 17
         const enrage = {
@@ -11072,7 +11119,7 @@
         };
         // 20
         const statusShield = {
-            textify: ({ skillArgs, aiArgs }, { atk }) => `Void status ailments for ${skillArgs[0]} turns` + aiArgs[4] ? ` and hit for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : '',
+            textify: ({ skillArgs, aiArgs }, { atk }) => `Void status ailments for ${skillArgs[0]} turns` + (aiArgs[4] ? ` and hit for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''),
             condition: () => true,
             aiEffect: () => { },
             effect: ({ aiArgs }, { enemy, team, comboContainer }) => {
@@ -11085,6 +11132,11 @@
                 }
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanics, { aiArgs, atk }) => {
+                if (aiArgs[4]) {
+                    mechanics.hits.push(Math.ceil(atk * aiArgs[4] / 100));
+                }
+            }
         };
         // 22
         const setFlagAndContinue = {
@@ -11245,6 +11297,9 @@
                 team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { atk }) => {
+                mechanic.hits.push(atk);
+            },
         };
         // 37
         const displayCounterOrContinue = {
@@ -11299,6 +11354,9 @@
                 team.state.timeIsMult = !flatDebuff;
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.timeDebuff = true;
+            },
         };
         // 40
         const suicide = {
@@ -11387,7 +11445,7 @@
         // 47
         const oldPreemptiveAttack = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Preemptive: Do ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
+                return `Preemptive: Do ${skillArgs[1]}% (${common_10.addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
             },
             condition: () => true,
             effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
@@ -11395,6 +11453,9 @@
             },
             aiEffect: () => { },
             goto: (_, ctx) => ctx.isPreempt ? TERMINATE : TO_NEXT,
+            addMechanic: (mechanic, { atk, skillArgs }) => {
+                mechanic.hits.push(Math.ceil(atk * skillArgs[1] / 100));
+            },
         };
         // 48
         const attackAndSingleOrbChange = {
@@ -11412,6 +11473,9 @@
                 // Convert orbs?!
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { atk, skillArgs }) => {
+                mechanic.hits.push(Math.ceil(atk * skillArgs[0] / 100));
+            },
         };
         // 49
         const preemptiveMarker = {
@@ -11441,6 +11505,9 @@
                 team.update();
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                mechanic.hits.push(`${skillArgs[0]}%`);
+            },
         };
         // 52
         const resurrect = {
@@ -11466,6 +11533,9 @@
                 enemy.attributeAbsorb = common_10.idxsFromBits(skillArgs[2]);
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                mechanic.attributesAbsorbed |= skillArgs[2];
+            },
         };
         // 54
         const directedBindAll = {
@@ -11495,6 +11565,17 @@
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                if (skillArgs[0] & 1) {
+                    mechanic.leaderBind = true;
+                }
+                if (skillArgs[0] & 2) {
+                    mechanic.helperBind = true;
+                }
+                if (skillArgs[0] & 4) {
+                    mechanic.subBind = true;
+                }
+            },
         };
         // 55
         const healPlayerIfHpBelow = {
@@ -11527,6 +11608,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.poisonChange = true;
+            },
         };
         // 57
         const multiOrbToPoison = {
@@ -11535,6 +11619,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.poisonChange = true;
+            },
         };
         // 60
         const randomPoisonSpawn = {
@@ -11543,11 +11630,14 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.poisonChange = true;
+            },
         };
         // 62
         const attackAndBlind = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Hits once for ${skillArgs[0]} % (${common_10.addCommas(Math.ceil(skillArgs[0] / 100 * atk))}) and blinds the board.`;
+                return `Hits once for ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[0] / 100 * atk))}) and blinds the board.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -11556,6 +11646,10 @@
                 team.damage(Math.ceil(enemy.getAtk() * percent / 100), enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { atk, skillArgs }) => {
+                mechanic.hits.push(Math.ceil(atk * skillArgs[0] / 100));
+                mechanic.blind = true;
+            },
         };
         // 63
         const attackAndBind = {
@@ -11574,7 +11668,7 @@
                         text.push('Subs');
                     }
                 }
-                return `Hits once for ${percent} % (${common_10.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${range(min, max)}.`;
+                return `Hits once for ${percent}% (${common_10.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${range(min, max)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -11586,6 +11680,18 @@
                 // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs, atk }) => {
+                mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
+                if (!skillArgs[3] || skillArgs[3] & 1) {
+                    mechanic.leaderBind = true;
+                }
+                if (!skillArgs[3] || skillArgs[3] & 2) {
+                    mechanic.helperBind = true;
+                }
+                if (!skillArgs[3] || skillArgs[3] & 4) {
+                    mechanic.subBind = true;
+                }
+            },
         };
         // 64
         const attackAndPoisonSpawn = {
@@ -11601,6 +11707,10 @@
                 // Convert orbs?!
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { atk, skillArgs }) => {
+                mechanic.poisonChange = true;
+                mechanic.hits.push(Math.ceil(atk * (skillArgs[0] || 0) / 100));
+            },
         };
         // 65
         const bindSubs = {
@@ -11611,6 +11721,11 @@
                 console.warn('Binds not yet supported');
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.leaderBind = true;
+                mechanic.helperBind = true;
+                mechanic.subBind = true;
+            },
         };
         // 66
         const skipTurn = {
@@ -11629,6 +11744,9 @@
                 enemy.comboAbsorb = skillArgs[2];
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                mechanic.comboAbsorb = Math.max(mechanic.comboAbsorb, skillArgs[2]);
+            },
         };
         // 68
         const skyfall = {
@@ -11640,6 +11758,15 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                const colors = common_10.idxsFromBits(skillArgs[0]);
+                if (colors.includes(common_10.Attribute.POISON) || colors.includes(common_10.Attribute.MORTAL_POSION)) {
+                    mechanic.poisonSkyfall = true;
+                }
+                if (colors.includes(common_10.Attribute.JAMMER)) {
+                    mechanic.jammerSkyfall = true;
+                }
+            },
         };
         // 69
         const transformAnimation = {
@@ -11664,6 +11791,9 @@
                 enemy.damageVoid = skillArgs[2];
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.damageVoid = true;
+            },
         };
         // 72
         const attributeResist = {
@@ -11682,6 +11812,9 @@
             effect: () => { },
             goto: () => TO_NEXT,
             type: SkillType.PASSIVE,
+            addMechanic: (mechanic) => {
+                mechanic.resolve = true;
+            },
         };
         // 74
         const shield = {
@@ -11717,6 +11850,9 @@
                 });
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.leaderSwap = true;
+            },
         };
         // 76
         const columnChange = {
@@ -11736,6 +11872,20 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                const spawnSets = new Set();
+                for (const o of [skillArgs[1], skillArgs[3], skillArgs[5], skillArgs[7], skillArgs[9]]) {
+                    for (const a of common_10.idxsFromBits(o || 0)) {
+                        spawnSets.add(a);
+                    }
+                }
+                if (spawnSets.has(common_10.Attribute.POISON) || spawnSets.has(common_10.Attribute.MORTAL_POSION)) {
+                    mechanic.poisonChange = true;
+                }
+                if (spawnSets.has(common_10.Attribute.JAMMER) || spawnSets.has(common_10.Attribute.BOMB)) {
+                    mechanic.jammerChange = true;
+                }
+            },
         };
         // 77
         const attackAndColumnChange = {
@@ -11759,6 +11909,21 @@
                 team.damage(damage, enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs, atk }) => {
+                const spawnSets = new Set();
+                for (const o of [skillArgs[1], skillArgs[3], skillArgs[5]]) {
+                    for (const a of common_10.idxsFromBits(o || 0)) {
+                        spawnSets.add(a);
+                    }
+                }
+                if (spawnSets.has(common_10.Attribute.POISON) || spawnSets.has(common_10.Attribute.MORTAL_POSION)) {
+                    mechanic.poisonChange = true;
+                }
+                if (spawnSets.has(common_10.Attribute.JAMMER) || spawnSets.has(common_10.Attribute.BOMB)) {
+                    mechanic.jammerChange = true;
+                }
+                mechanic.hits.push(Math.ceil(skillArgs[6] * atk / 100));
+            },
         };
         // 78
         const rowChange = {
@@ -11779,6 +11944,20 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                const spawnSets = new Set();
+                for (const o of [skillArgs[1], skillArgs[3], skillArgs[5], skillArgs[7], skillArgs[9]]) {
+                    for (const a of common_10.idxsFromBits(o || 0)) {
+                        spawnSets.add(a);
+                    }
+                }
+                if (spawnSets.has(common_10.Attribute.POISON) || spawnSets.has(common_10.Attribute.MORTAL_POSION)) {
+                    mechanic.poisonChange = true;
+                }
+                if (spawnSets.has(common_10.Attribute.JAMMER) || spawnSets.has(common_10.Attribute.BOMB)) {
+                    mechanic.jammerChange = true;
+                }
+            },
         };
         // 79
         const attackAndRowChange = {
@@ -11802,6 +11981,21 @@
                 team.damage(damage, enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs, atk }) => {
+                const spawnSets = new Set();
+                for (const o of [skillArgs[1], skillArgs[3], skillArgs[5]]) {
+                    for (const a of common_10.idxsFromBits(o || 0)) {
+                        spawnSets.add(a);
+                    }
+                }
+                if (spawnSets.has(common_10.Attribute.POISON) || spawnSets.has(common_10.Attribute.MORTAL_POSION)) {
+                    mechanic.poisonChange = true;
+                }
+                if (spawnSets.has(common_10.Attribute.JAMMER) || spawnSets.has(common_10.Attribute.BOMB)) {
+                    mechanic.jammerChange = true;
+                }
+                mechanic.hits.push(Math.ceil(skillArgs[6] * atk / 100));
+            },
         };
         // 81
         const attackAndChangeBoardOld = {
@@ -11823,6 +12017,17 @@
                 team.damage(damage, enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs, atk }) => {
+                mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
+                for (let i = 1; i < skillArgs.length && skillArgs[i] >= 0; i++) {
+                    if (skillArgs[i] == common_10.Attribute.POISON || skillArgs[i] == common_10.Attribute.MORTAL_POSION) {
+                        mechanic.poisonChange = true;
+                    }
+                    if (skillArgs[i] == common_10.Attribute.JAMMER || skillArgs[i] == common_10.Attribute.BOMB) {
+                        mechanic.jammerChange = true;
+                    }
+                }
+            },
         };
         // 82
         const attackWithoutName = {
@@ -11833,6 +12038,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { atk }) => {
+                mechanic.hits.push(atk);
+            },
         };
         // 83
         const skillset = {
@@ -11874,6 +12082,17 @@
                 }
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, ctx) => {
+                for (const skillId of ctx.skillArgs) {
+                    const eff = ilmina_stripped_8.floof.getEnemySkill(skillId);
+                    const subCtx = {
+                        atk: ctx.atk,
+                        skillArgs: [...eff.skillArgs],
+                        aiArgs: [...eff.aiArgs],
+                    };
+                    addMechanic(mechanic, skillId, subCtx);
+                }
+            }
         };
         // 84
         const boardChange = {
@@ -11885,6 +12104,16 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                for (const o of common_10.idxsFromBits(skillArgs[0])) {
+                    if (o == common_10.Attribute.POISON || o == common_10.Attribute.MORTAL_POSION) {
+                        mechanic.poisonChange = true;
+                    }
+                    if (o == common_10.Attribute.JAMMER || o == common_10.Attribute.BOMB) {
+                        mechanic.jammerChange = true;
+                    }
+                }
+            },
         };
         // 85
         const attackAndChangeBoard = {
@@ -11899,6 +12128,17 @@
                 team.damage(damage, enemy.getAttribute(), comboContainer);
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs, atk }) => {
+                mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
+                for (const o of common_10.idxsFromBits(skillArgs[1])) {
+                    if (o == common_10.Attribute.POISON || o == common_10.Attribute.MORTAL_POSION) {
+                        mechanic.poisonChange = true;
+                    }
+                    if (o == common_10.Attribute.JAMMER || o == common_10.Attribute.BOMB) {
+                        mechanic.jammerChange = true;
+                    }
+                }
+            },
         };
         // 86
         const healPercent = {
@@ -11927,6 +12167,9 @@
                 enemy.damageAbsorb = skillArgs[1];
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.damageAbsorb = true;
+            },
         };
         // 88
         const awokenBind = {
@@ -11946,6 +12189,9 @@
             },
             // TODO: If player is awoken bound, this should be TO_NEXT
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.awokenBind = true;
+            },
         };
         // 89
         const skillDelay = {
@@ -11956,6 +12202,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                mechanic.skillDelay = Math.max(mechanic.skillDelay, skillArgs[1]);
+            },
         };
         // 90
         const gotoIfCardOnTeam = {
@@ -11975,6 +12224,16 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                for (const o of common_10.idxsFromBits(skillArgs[1])) {
+                    if (o == common_10.Attribute.POISON || o == common_10.Attribute.MORTAL_POSION) {
+                        mechanic.poisonChange = true;
+                    }
+                    if (o == common_10.Attribute.JAMMER || o == common_10.Attribute.BOMB) {
+                        mechanic.jammerChange = true;
+                    }
+                }
+            },
         };
         // 93
         const finalFantasyAndContinue = {
@@ -11999,6 +12258,9 @@
             effect: () => { },
             // TODO: Determine if any orbs can be locked.  If no, then return TO_NEXT instead.
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.lock = true;
+            },
         };
         // 95
         const onDeathSkillset = {
@@ -12022,6 +12284,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.lock = true;
+            },
         };
         // 97
         const randomStickyBlind = {
@@ -12041,6 +12306,9 @@
                 }
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.blind = true;
+            },
         };
         // 98
         const patternStickyBlind = {
@@ -12049,6 +12317,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.blind = true;
+            },
         };
         // 99
         const tapeColumns = {
@@ -12068,6 +12339,9 @@
                 }
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.tape = true;
+            },
         };
         // 100
         const tapeRows = {
@@ -12087,6 +12361,9 @@
                 }
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.tape = true;
+            },
         };
         // 101
         const fixedStartingPoint = {
@@ -12103,6 +12380,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.jammerChange = true;
+            },
         };
         // 103
         const patternBombSpawn = {
@@ -12111,6 +12391,12 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs }) => {
+                mechanic.jammerChange = true;
+                if (skillArgs[7]) {
+                    mechanic.lock = true;
+                }
+            },
         };
         // 104
         const cloudRandom = {
@@ -12129,6 +12415,9 @@
                 }
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.cloud = true;
+            },
         };
         // 105
         const rcv = {
@@ -12147,6 +12436,9 @@
                 team.state.rcvMult = (skillArgs[1] || 0) / 100;
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.rcvDebuff = true;
+            },
         };
         // 106
         const changeTurnTimer = {
@@ -12165,6 +12457,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.unmatchable = true;
+            },
         };
         // 108
         const attackAndMultiOrbChange = {
@@ -12182,6 +12477,17 @@
                 // Convert orbs?!
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic, { skillArgs, atk }) => {
+                mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
+                for (const o of common_10.idxsFromBits(skillArgs[2])) {
+                    if (o == common_10.Attribute.POISON || o == common_10.Attribute.MORTAL_POSION) {
+                        mechanic.poisonChange = true;
+                    }
+                    if (o == common_10.Attribute.JAMMER || o == common_10.Attribute.BOMB) {
+                        mechanic.jammerChange = true;
+                    }
+                }
+            },
         };
         // 109
         const spinners = {
@@ -12193,6 +12499,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.spinner = true;
+            },
         };
         // 110
         const spinnerPattern = {
@@ -12204,6 +12513,9 @@
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.spinner = true;
+            },
         };
         // 111
         const fixedHp = {
@@ -12331,6 +12643,9 @@
                 // No skyfall?!
             },
             goto: (_, { bigBoard }) => bigBoard ? TO_NEXT : TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.noSkyfall = true;
+            },
         };
         // 128
         const stickyBlindSkyfall = {
@@ -12348,6 +12663,9 @@
             effect: () => { },
             goto: () => TO_NEXT,
             type: SkillType.PASSIVE,
+            addMechanic: (mechanic) => {
+                mechanic.superResolve = true;
+            },
         };
         // 130
         const playerAtkDebuff = {
@@ -12365,6 +12683,9 @@
                 team.state.burst.multiplier = 1 - (skillArgs[1] / 100);
             },
             goto: () => TERMINATE,
+            addMechanic: (mechanic) => {
+                mechanic.atkDebuff = true;
+            },
         };
         const ENEMY_SKILL_GENERATORS = {
             1: bindRandom,
@@ -12627,6 +12948,18 @@
             ENEMY_SKILL_GENERATORS[skillCtx.effectId].effect(skillCtx, ctx);
         }
         exports.effect = effect;
+        function addMechanic(mechanic, id, ctx) {
+            const skill = ilmina_stripped_8.floof.getEnemySkill(id);
+            if (!ENEMY_SKILL_GENERATORS[skill.internalEffectId]) {
+                console.warn(`UNIMPLEMENTED EFFECT ID: ${id}`);
+                return;
+            }
+            const fn = ENEMY_SKILL_GENERATORS[skill.internalEffectId].addMechanic;
+            if (fn) {
+                fn(mechanic, ctx);
+            }
+        }
+        exports.addMechanic = addMechanic;
         function textify(ctx, skillCtx) {
             if (!ENEMY_SKILL_GENERATORS[skillCtx.effectId]) {
                 return `UNIMPLEMENTED EFFECT ID: ${skillCtx.effectId} \n${JSON.stringify(skillCtx)} `;
@@ -12708,12 +13041,10 @@
         }
         exports.textifyEnemySkills = textifyEnemySkills;
     });
-    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills"], function (require, exports, common_11, ajax_2, enemy_instance_1, templates_5, enemy_skills_1) {
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills", "ilmina_stripped"], function (require, exports, common_11, ajax_2, enemy_instance_1, templates_5, enemy_skills_1, ilmina_stripped_9) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DungeonFloor {
-            // dungeonEditor: DungeonEditor;
-            // combinations: number[][];
             constructor() {
                 this.activeEnemy = 0;
                 this.enemies = [new enemy_instance_1.EnemyInstance()];
@@ -12867,6 +13198,127 @@
                     }
                     this.onEnemySkill(skillIdx, otherSkills);
                 }
+            }
+            getEnemyMechanics(teamIds, teamAttrs, teamTypes, bigBoard, floorIdx = -1, enemyIdx = -1, preemptOnly = false, mechanics = undefined) {
+                if (floorIdx < 0) {
+                    floorIdx = this.activeFloor;
+                }
+                if (enemyIdx < 0) {
+                    enemyIdx = this.activeEnemy;
+                }
+                const enemy = this.floors[floorIdx].enemies[enemyIdx];
+                enemy.dungeonMultipliers.hp = this.hpMultiplier;
+                enemy.dungeonMultipliers.atk = this.atkMultiplier;
+                enemy.dungeonMultipliers.def = this.defMultiplier;
+                enemy.reset();
+                mechanics = mechanics || {
+                    // Occurs no matter what
+                    resolve: false,
+                    superResolve: false,
+                    skillDelay: 0,
+                    skillBind: false,
+                    leaderBind: false,
+                    helperBind: false,
+                    subBind: false,
+                    hits: [],
+                    timeDebuff: false,
+                    rcvDebuff: false,
+                    atkDebuff: false,
+                    comboAbsorb: 0,
+                    damageAbsorb: false,
+                    attributesAbsorbed: 0,
+                    damageVoid: false,
+                    leaderSwap: false,
+                    poisonChange: false,
+                    jammerChange: false,
+                    blind: false,
+                    cloud: false,
+                    tape: false,
+                    poisonSkyfall: false,
+                    jammerSkyfall: false,
+                    blindSkyfall: false,
+                    spinner: false,
+                    awokenBind: false,
+                    lock: false,
+                    unmatchable: false,
+                    noSkyfall: false,
+                };
+                mechanics.resolve = mechanics.resolve || enemy.getResolve() > 0;
+                mechanics.superResolve = mechanics.superResolve || enemy.getSuperResolve().minHp > 0;
+                let skills = [];
+                if (preemptOnly) {
+                    skills = enemy_skills_1.determineSkillset({
+                        cardId: enemy.id,
+                        lv: enemy.lv,
+                        attribute: enemy.getAttribute(),
+                        atk: enemy.getAtk(),
+                        hpPercent: Math.round(enemy.currentHp / enemy.getHp() * 100),
+                        charges: enemy.charges,
+                        flags: enemy.flags,
+                        counter: enemy.counter,
+                        otherEnemyHp: enemy.otherEnemyHp,
+                        isPreempt: true,
+                        combo: 0,
+                        teamIds,
+                        bigBoard,
+                        teamAttributes: teamAttrs,
+                        teamTypes: teamTypes,
+                    }).map((skill) => skill.idx);
+                }
+                else {
+                    for (let i = 0; i < enemy.getCard().enemySkills.length; i++) {
+                        skills.push(i);
+                    }
+                }
+                for (const idx of skills) {
+                    const enemySkill = enemy.getCard().enemySkills[idx];
+                    const skill = ilmina_stripped_9.floof.getEnemySkill(enemySkill.enemySkillId);
+                    enemy_skills_1.addMechanic(mechanics, enemySkill.enemySkillId, {
+                        aiArgs: skill.aiArgs,
+                        skillArgs: skill.skillArgs,
+                        atk: enemy.getAtkBase(),
+                    });
+                }
+                return mechanics;
+            }
+            getDungeonMechanics(teamIds, teamAttrs, teamTypes, bigBoard, preemptOnly = false) {
+                const mechanics = {
+                    resolve: false,
+                    superResolve: false,
+                    skillDelay: 0,
+                    skillBind: false,
+                    leaderBind: false,
+                    helperBind: false,
+                    subBind: false,
+                    hits: [],
+                    timeDebuff: false,
+                    rcvDebuff: false,
+                    atkDebuff: false,
+                    comboAbsorb: 0,
+                    damageAbsorb: false,
+                    attributesAbsorbed: 0,
+                    damageVoid: false,
+                    leaderSwap: false,
+                    poisonChange: false,
+                    jammerChange: false,
+                    blind: false,
+                    cloud: false,
+                    tape: false,
+                    poisonSkyfall: false,
+                    jammerSkyfall: false,
+                    blindSkyfall: false,
+                    spinner: false,
+                    awokenBind: false,
+                    lock: false,
+                    unmatchable: false,
+                    noSkyfall: false,
+                };
+                for (let i = 0; i < this.floors.length; i++) {
+                    for (let j = 0; j < this.floors[i].enemies.length; j++) {
+                        this.getEnemyMechanics(teamIds, teamAttrs, teamTypes, bigBoard, i, j, preemptOnly, mechanics);
+                    }
+                }
+                return mechanics;
             }
             getUpdateFunction() {
                 return (ctx) => {
@@ -13120,7 +13572,7 @@
         }
         exports.DungeonInstance = DungeonInstance;
     });
-    define("team_photo", ["require", "exports", "ilmina_stripped", "templates"], function (require, exports, ilmina_stripped_9, templates_6) {
+    define("team_photo", ["require", "exports", "ilmina_stripped", "templates"], function (require, exports, ilmina_stripped_10, templates_6) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function borderedText(ctx, text, x, y, borderThickness = -1, borderColor = 'black', color = 'yellow') {
@@ -13176,8 +13628,8 @@
             if (id <= 0) {
                 return;
             }
-            const d = ilmina_stripped_9.CardAssets.getIconImageData(ilmina_stripped_9.floof.getCard(id));
-            const a = ilmina_stripped_9.CardUiAssets.getIconFrame(ilmina_stripped_9.floof.getCard(id).attribute, false, ilmina_stripped_9.floof.getModel());
+            const d = ilmina_stripped_10.CardAssets.getIconImageData(ilmina_stripped_10.floof.getCard(id));
+            const a = ilmina_stripped_10.CardUiAssets.getIconFrame(ilmina_stripped_10.floof.getCard(id).attribute, false, ilmina_stripped_10.floof.getModel());
             ctx.drawImage(images[d.url], d.offsetX, // x coordinate to being clipping.
             d.offsetY, // y coordinate to begin clipping.
             d.width, // width of the clipped image.
@@ -13189,8 +13641,8 @@
             if (a) {
                 ctx.drawImage(images[a.url], a.offsetX, a.offsetY, a.width, a.height, offsetX, offsetY, sideLength, sideLength);
             }
-            if (ilmina_stripped_9.floof.getCard(id).subattribute >= 0) {
-                const s = ilmina_stripped_9.CardUiAssets.getIconFrame(ilmina_stripped_9.floof.getCard(id).subattribute, true, ilmina_stripped_9.floof.getModel());
+            if (ilmina_stripped_10.floof.getCard(id).subattribute >= 0) {
+                const s = ilmina_stripped_10.CardUiAssets.getIconFrame(ilmina_stripped_10.floof.getCard(id).subattribute, true, ilmina_stripped_10.floof.getModel());
                 if (s) {
                     ctx.drawImage(images[s.url], s.offsetX, s.offsetY, s.width, s.height, offsetX, offsetY, sideLength, sideLength);
                 }
@@ -13238,8 +13690,8 @@
             imagesToLoad() {
                 const monsterUrls = this.getIds()
                     .filter((id) => id > 0)
-                    .map((id) => ilmina_stripped_9.CardAssets.getIconImageData(ilmina_stripped_9.floof.getCard(id)).url);
-                const attributeBorder = ilmina_stripped_9.CardUiAssets.getIconFrame(0, false, ilmina_stripped_9.floof.getModel());
+                    .map((id) => ilmina_stripped_10.CardAssets.getIconImageData(ilmina_stripped_10.floof.getCard(id)).url);
+                const attributeBorder = ilmina_stripped_10.CardUiAssets.getIconFrame(0, false, ilmina_stripped_10.floof.getModel());
                 if (attributeBorder) {
                     return monsterUrls.concat(attributeBorder.url);
                 }
@@ -13278,7 +13730,7 @@
                         ctx.fillStyle = 'black';
                     }
                     if (monster.awakenings) {
-                        if (monster.awakenings >= ilmina_stripped_9.floof.getCard(monster.id).awakenings.length) {
+                        if (monster.awakenings >= ilmina_stripped_10.floof.getCard(monster.id).awakenings.length) {
                             ctx.drawImage(images[MonsterRow.MAX_AWOKEN_URL], 0, 0, 55, 55, drawnOffsetX + 0.7 * length, drawnOffsetY + width * .0125, length * 0.23, length * 0.23);
                         }
                         else {
@@ -13290,7 +13742,7 @@
                         }
                     }
                     if (monster.superAwakeningIdx >= 0) {
-                        const sa = ilmina_stripped_9.floof.getCard(monster.id).superAwakenings[monster.superAwakeningIdx];
+                        const sa = ilmina_stripped_10.floof.getCard(monster.id).superAwakenings[monster.superAwakeningIdx];
                         if (sa != undefined) {
                             const xSa = drawnOffsetX + length * 0.7;
                             const ySa = drawnOffsetY + length * 0.375;
@@ -13310,9 +13762,9 @@
             imagesToLoad() {
                 const monsterUrls = this.getIds()
                     .filter((id) => id > 0)
-                    .map((id) => ilmina_stripped_9.CardAssets.getIconImageData(ilmina_stripped_9.floof.getCard(id)).url)
+                    .map((id) => ilmina_stripped_10.CardAssets.getIconImageData(ilmina_stripped_10.floof.getCard(id)).url)
                     .concat(MonsterRow.MAX_AWOKEN_URL, MonsterRow.AWAKENING_URL);
-                const attributeBorder = ilmina_stripped_9.CardUiAssets.getIconFrame(0, false, ilmina_stripped_9.floof.getModel());
+                const attributeBorder = ilmina_stripped_10.CardUiAssets.getIconFrame(0, false, ilmina_stripped_10.floof.getModel());
                 if (attributeBorder) {
                     return monsterUrls.concat(attributeBorder.url);
                 }
@@ -13667,7 +14119,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_10, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // import { testTestTestTest } from './team_test';
@@ -13776,7 +14228,7 @@
                     this.dungeon.getActiveEnemy().setHp(endEnemyHp);
                     const team = this.team.getActiveTeam();
                     const source = team[Math.floor(action / 2)];
-                    const activeId = ilmina_stripped_10.floof.getCard(action & 1 ? source.inheritId : source.getId()).activeSkillId;
+                    const activeId = ilmina_stripped_11.floof.getCard(action & 1 ? source.inheritId : source.getId()).activeSkillId;
                     const enemy = this.dungeon.getActiveEnemy();
                     actives_1.teamEffect(activeId, {
                         source,
@@ -13851,7 +14303,7 @@
                     debugger_5.debug.print(enemy_skills_2.textifyEnemySkill({ id: enemy.id, atk: enemy.getAtk() }, idx));
                     const skillCtx = enemy_skills_2.toSkillContext(enemy.id, idx);
                     enemy_skills_2.effect(skillCtx, { enemy, team: this.team, comboContainer: this.comboContainer });
-                    enemy.charges -= ilmina_stripped_10.floof.getEnemySkill(enemy.getCard().enemySkills[idx].enemySkillId).aiArgs[3];
+                    enemy.charges -= ilmina_stripped_11.floof.getEnemySkill(enemy.getCard().enemySkills[idx].enemySkillId).aiArgs[3];
                     enemy.charges += enemy.getCard().chargeGain;
                     this.dungeon.update(true);
                     this.team.updateState({});
@@ -13866,6 +14318,36 @@
                     this.updateDamage();
                 };
                 this.fancyPhoto = new team_photo_1.FancyPhoto();
+                debugger_5.debug.addButton('Enemy Preemptive Mechanics', () => {
+                    const attributes = new Set();
+                    const types = new Set();
+                    for (const m of this.team.getActiveTeam()) {
+                        for (const type of m.getCard().types) {
+                            types.add(type);
+                        }
+                        attributes.add(m.getAttribute());
+                        attributes.add(m.getSubattribute());
+                    }
+                    const mechanics = this.dungeon.getEnemyMechanics(this.team.getActiveTeam().map((m) => m.getId()), // teamIds
+                    attributes, types, this.team.getBoardWidth() == 7, // bigBoard
+                    -1, -1, true);
+                    debugger_5.debug.print(JSON.stringify(mechanics, null, 2));
+                });
+                debugger_5.debug.addButton('Preemptive Mechanic List', () => {
+                    const attributes = new Set();
+                    const types = new Set();
+                    for (const m of this.team.getActiveTeam()) {
+                        for (const type of m.getCard().types) {
+                            types.add(type);
+                        }
+                        attributes.add(m.getAttribute());
+                        attributes.add(m.getSubattribute());
+                    }
+                    const mechanics = this.dungeon.getDungeonMechanics(this.team.getActiveTeam().map((m) => m.getId()), // teamIds
+                    attributes, types, this.team.getBoardWidth() == 7, // bigBoard
+                    true);
+                    debugger_5.debug.print(JSON.stringify(mechanics, null, 2));
+                });
             }
             drawTeam() {
                 this.fancyPhoto.loadTeam(this.team);
@@ -13918,7 +14400,7 @@
                     const team = this.team.getActiveTeam();
                     const source = team[Math.floor(this.team.action / 2)];
                     const id = this.team.action & 1 ? source.inheritId : source.getId();
-                    const activeId = ilmina_stripped_10.floof.getCard(id).activeSkillId;
+                    const activeId = ilmina_stripped_11.floof.getCard(id).activeSkillId;
                     pings = actives_1.damage(activeId, {
                         source,
                         team,
@@ -13987,7 +14469,7 @@
             }
         }
         async function init() {
-            await common_12.waitFor(() => ilmina_stripped_10.floof.ready);
+            await common_12.waitFor(() => ilmina_stripped_11.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
