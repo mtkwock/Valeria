@@ -606,6 +606,17 @@ class MonsterInstance {
         console.warn('No inherits matched');
       } else {
         this.inheritId = bestGuessInheritIds[0];
+        const inheritCard = this.getInheritCard();
+        if (inheritCard) {
+          if (!inheritCard.isLimitBreakable) {
+            this.inheritLevel = Math.min(this.inheritLevel, inheritCard.maxLevel);
+          }
+          const card = this.getCard();
+          if (card.attribute != inheritCard.attribute) {
+            this.inheritLevel = 1;
+            this.inheritPlussed = false;
+          }
+        }
       }
     } else {
       this.inheritId = -1;
