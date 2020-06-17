@@ -1,6 +1,6 @@
 import { floof } from './ilmina_stripped';
 import { EnemyInstance } from './enemy_instance';
-import { idxsFromBits, AttributeToName, TypeToName, addCommas, Latent } from './common';
+import { idxsFromBits, AttributeToName, TypeToName, addCommas, Latent, DungeonMechanics, Attribute } from './common';
 import { Team } from './player_team';
 import { ComboContainer } from './combo_container';
 import { debug } from './debugger';
@@ -47,6 +47,12 @@ interface GameContext {
   comboContainer: ComboContainer;
 }
 
+interface MechanicContext {
+  skillArgs: number[];
+  aiArgs: number[];
+  atk: number;
+}
+
 enum SkillType {
   EFFECT = 0,
   LOGIC = 1,
@@ -54,15 +60,16 @@ enum SkillType {
 }
 
 interface EnemySkillEffect {
-  textify: (skillCtx: SkillContext, ctx: AiContext) => string,
-  condition: (skillCtx: SkillContext, ctx: AiContext) => boolean,
-  aiEffect: (skillCtx: SkillContext, ctx: AiContext) => void,
-  effect: (skillCtx: SkillContext, ctx: GameContext) => void,
+  textify: (skillCtx: SkillContext, ctx: AiContext) => string;
+  condition: (skillCtx: SkillContext, ctx: AiContext) => boolean;
+  aiEffect: (skillCtx: SkillContext, ctx: AiContext) => void;
+  effect: (skillCtx: SkillContext, ctx: GameContext) => void;
   // 0 is terminate,
   // -1 is go to next.
   // >= 1 is go to index.
-  goto: (skillCtx: SkillContext, ctx: AiContext) => number,
-  type?: SkillType,
+  goto: (skillCtx: SkillContext, ctx: AiContext) => number;
+  type?: SkillType;
+  addMechanic?: (mechanic: DungeonMechanics, ctx: MechanicContext) => void;
 }
 
 const TO_NEXT = -1;
@@ -79,29 +86,40 @@ function range(begin: number, end: number, singular = ' turn', plural = ' turns'
 
 // 1
 const bindRandom: EnemySkillEffect = {
-  textify: ({ skillArgs }) => {
+  textify: ({ skillArgs, aiArgs }, { atk }) => {
     const [count, min, max] = skillArgs;
-    return `Binds ${count} of all monsters for ${range(min, max)}.`
+    return `Binds ${count} of all monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}.`
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: () => {
+  effect: ({ aiArgs }, { team, enemy, comboContainer }) => {
     // let [count, min, max] = skillArgs;
     console.warn('Bind not yet supported');
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+    if (aiArgs[4]) {
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
+    }
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { atk, aiArgs }) => {
+    if (aiArgs[4]) {
+      mechanic.hits.push(Math.ceil(aiArgs[4] * atk / 100));
+    }
+    mechanic.leaderBind = true;
+    mechanic.helperBind = true;
+    mechanic.subBind = true;
+  },
 };
 
 // 2
 const bindAttr: EnemySkillEffect = {
-  textify: ({ skillArgs }, { atk }) => {
+  textify: ({ skillArgs, aiArgs }, { atk }) => {
     const [color, min, max] = skillArgs;
-    return `Binds ${AttributeToName.get(color || 0)} monsters for ${range(min, max)}. If none exist and part of skillset, hits for ${addCommas(atk)}. Else continue.`;
+    return `Binds ${AttributeToName.get(color || 0)} monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}. If none exist and part of skillset, hits for ${addCommas(atk)}. Else continue.`;
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
+  effect: ({ skillArgs, aiArgs }, { team, enemy, comboContainer }) => {
     const a = skillArgs[0];
     if (team.getActiveTeam().every((m) => !m.isAttribute(a))) {
       team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
@@ -109,19 +127,30 @@ const bindAttr: EnemySkillEffect = {
     }
     console.warn('Bind not yet supported');
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+    if (aiArgs[4]) {
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
+    }
   },
   goto: ({ skillArgs }, { teamAttributes }) => teamAttributes.has(skillArgs[0] || 0) ? TERMINATE : TO_NEXT,
+  addMechanic: (mechanic, { atk, aiArgs }) => {
+    if (aiArgs[4]) {
+      mechanic.hits.push(Math.ceil(aiArgs[4] * atk / 100));
+    }
+    mechanic.leaderBind = true;
+    mechanic.helperBind = true;
+    mechanic.subBind = true;
+  },
 };
 
 // 3
 const bindType: EnemySkillEffect = {
-  textify: ({ skillArgs }, { atk }) => {
+  textify: ({ skillArgs, aiArgs }, { atk }) => {
     const [type, min, max] = skillArgs;
-    return `Binds ${TypeToName.get(type)} monsters for ${range(min, max)}. If none exist, hits for ${addCommas(atk)}.`;
+    return `Binds ${TypeToName.get(type)} monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}. If none exist, hits for ${addCommas(atk)}.`;
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { enemy, team, comboContainer }) => {
+  effect: ({ skillArgs, aiArgs }, { enemy, team, comboContainer }) => {
     const t = skillArgs[0];
     if (team.getActiveTeam().every((m) => !m.isType(t))) {
       team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
@@ -129,8 +158,19 @@ const bindType: EnemySkillEffect = {
     }
     console.warn('Bind not yet supported');
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
+    if (aiArgs[4]) {
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
+    }
   },
   goto: ({ skillArgs }, { teamTypes }) => teamTypes.has(skillArgs[0] || 0) ? TERMINATE : TO_NEXT,
+  addMechanic: (mechanic, { aiArgs, atk }) => {
+    if (aiArgs[4]) {
+      mechanic.hits.push(Math.ceil(aiArgs[4] * atk / 100));
+    }
+    mechanic.leaderBind = true;
+    mechanic.helperBind = true;
+    mechanic.subBind = true;
+  },
 };
 
 // 4
@@ -150,6 +190,9 @@ const blindBoard: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.blind = true;
+  },
 };
 
 // 6
@@ -205,6 +248,9 @@ const singleOrbToJammer: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.jammerChange = true;
+  },
 };
 
 // 13
@@ -214,6 +260,9 @@ const multiOrbToJammer: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.jammerChange = true;
+  },
 };
 
 // 14
@@ -225,6 +274,9 @@ const skillBind: EnemySkillEffect = {
     team.skillBind();
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.skillBind = true;
+  },
 };
 
 // 15
@@ -247,6 +299,11 @@ const multihit: EnemySkillEffect = {
     }
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { atk, skillArgs }) => {
+    for (let i = 0; i < skillArgs[1]; i++) {
+      mechanic.hits.push(Math.ceil(skillArgs[2] * atk / 100));
+    }
+  },
 }
 
 // 17
@@ -297,7 +354,7 @@ const enrageFromMinimumAttacks: EnemySkillEffect = {
 
 // 20
 const statusShield: EnemySkillEffect = {
-  textify: ({ skillArgs, aiArgs }, { atk }) => `Void status ailments for ${skillArgs[0]} turns` + aiArgs[4] ? ` and hit for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : '',
+  textify: ({ skillArgs, aiArgs }, { atk }) => `Void status ailments for ${skillArgs[0]} turns` + (aiArgs[4] ? ` and hit for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''),
   condition: () => true,
   aiEffect: () => { },
   effect: ({ aiArgs }, { enemy, team, comboContainer }) => {
@@ -310,6 +367,11 @@ const statusShield: EnemySkillEffect = {
     }
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanics, { aiArgs, atk }) => {
+    if (aiArgs[4]) {
+      mechanics.hits.push(Math.ceil(atk * aiArgs[4] / 100));
+    }
+  }
 };
 
 // 22
@@ -485,6 +547,9 @@ const fallbackAttack: EnemySkillEffect = {
     team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { atk }) => {
+    mechanic.hits.push(atk);
+  },
 };
 
 // 37
@@ -541,6 +606,9 @@ const timeDebuff: EnemySkillEffect = {
     team.state.timeIsMult = !flatDebuff;
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.timeDebuff = true;
+  },
 };
 
 // 40
@@ -635,7 +703,7 @@ const changeAttribute: EnemySkillEffect = {
 // 47
 const oldPreemptiveAttack: EnemySkillEffect = {
   textify: ({ skillArgs }, { atk }) => {
-    return `Preemptive: Do ${skillArgs[0]}% (${addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
+    return `Preemptive: Do ${skillArgs[1]}% (${addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
   },
   condition: () => true,
   effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
@@ -643,6 +711,9 @@ const oldPreemptiveAttack: EnemySkillEffect = {
   },
   aiEffect: () => { },
   goto: (_, ctx: AiContext) => ctx.isPreempt ? TERMINATE : TO_NEXT,
+  addMechanic: (mechanic, { atk, skillArgs }) => {
+    mechanic.hits.push(Math.ceil(atk * skillArgs[1] / 100));
+  },
 };
 
 // 48
@@ -661,6 +732,9 @@ const attackAndSingleOrbChange: EnemySkillEffect = {
     // Convert orbs?!
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { atk, skillArgs }) => {
+    mechanic.hits.push(Math.ceil(atk * skillArgs[0] / 100));
+  },
 };
 
 // 49
@@ -692,6 +766,9 @@ const gravity: EnemySkillEffect = {
     team.update();
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs }) => {
+    mechanic.hits.push(`${skillArgs[0]}%`);
+  },
 };
 
 // 52
@@ -719,6 +796,9 @@ const attributeAbsorb: EnemySkillEffect = {
     enemy.attributeAbsorb = idxsFromBits(skillArgs[2]);
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs }) => {
+    mechanic.attributesAbsorbed |= skillArgs[2];
+  },
 };
 
 // 54
@@ -749,6 +829,17 @@ const directedBindAll: EnemySkillEffect = {
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs }) => {
+    if (skillArgs[0] & 1) {
+      mechanic.leaderBind = true;
+    }
+    if (skillArgs[0] & 2) {
+      mechanic.helperBind = true;
+    }
+    if (skillArgs[0] & 4) {
+      mechanic.subBind = true;
+    }
+  },
 };
 
 // 55
@@ -782,6 +873,9 @@ const singleOrbToPoison: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.poisonChange = true;
+  },
 };
 
 // 57
@@ -791,6 +885,9 @@ const multiOrbToPoison: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.poisonChange = true;
+  },
 };
 
 // 60
@@ -800,12 +897,15 @@ const randomPoisonSpawn: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { }, // Implement later?!
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.poisonChange = true;
+  },
 };
 
 // 62
 const attackAndBlind: EnemySkillEffect = {
   textify: ({ skillArgs }, { atk }) => {
-    return `Hits once for ${skillArgs[0]} % (${addCommas(Math.ceil(skillArgs[0] / 100 * atk))}) and blinds the board.`;
+    return `Hits once for ${skillArgs[0]}% (${addCommas(Math.ceil(skillArgs[0] / 100 * atk))}) and blinds the board.`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -814,6 +914,10 @@ const attackAndBlind: EnemySkillEffect = {
     team.damage(Math.ceil(enemy.getAtk() * percent / 100), enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { atk, skillArgs }) => {
+    mechanic.hits.push(Math.ceil(atk * skillArgs[0] / 100));
+    mechanic.blind = true;
+  },
 };
 
 // 63
@@ -833,7 +937,7 @@ const attackAndBind: EnemySkillEffect = {
         text.push('Subs');
       }
     }
-    return `Hits once for ${percent} % (${addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${range(min, max)}.`;
+    return `Hits once for ${percent}% (${addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${range(min, max)}.`;
   },
   condition: () => true,
   aiEffect: () => { },
@@ -845,6 +949,18 @@ const attackAndBind: EnemySkillEffect = {
     // team.bind(count, Boolean(positionMask & 1), Boolean(positionMask & 2), Boolean(positionMask & 4));
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs, atk }) => {
+    mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
+    if (!skillArgs[3] || skillArgs[3] & 1) {
+      mechanic.leaderBind = true;
+    }
+    if (!skillArgs[3] || skillArgs[3] & 2) {
+      mechanic.helperBind = true;
+    }
+    if (!skillArgs[3] || skillArgs[3] & 4) {
+      mechanic.subBind = true;
+    }
+  },
 };
 
 // 64
@@ -861,6 +977,10 @@ const attackAndPoisonSpawn: EnemySkillEffect = {
     // Convert orbs?!
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { atk, skillArgs }) => {
+    mechanic.poisonChange = true;
+    mechanic.hits.push(Math.ceil(atk * (skillArgs[0] || 0) / 100));
+  },
 }
 
 // 65
@@ -872,6 +992,11 @@ const bindSubs: EnemySkillEffect = {
     console.warn('Binds not yet supported');
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.leaderBind = true;
+    mechanic.helperBind = true;
+    mechanic.subBind = true;
+  },
 }
 
 // 66
@@ -892,6 +1017,9 @@ const comboAbsorb: EnemySkillEffect = {
     enemy.comboAbsorb = skillArgs[2];
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs }) => {
+    mechanic.comboAbsorb = Math.max(mechanic.comboAbsorb, skillArgs[2]);
+  },
 };
 
 // 68
@@ -904,6 +1032,16 @@ const skyfall: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+
+  addMechanic: (mechanic, { skillArgs }) => {
+    const colors = idxsFromBits(skillArgs[0]);
+    if (colors.includes(Attribute.POISON) || colors.includes(Attribute.MORTAL_POSION)) {
+      mechanic.poisonSkyfall = true;
+    }
+    if (colors.includes(Attribute.JAMMER)) {
+      mechanic.jammerSkyfall = true;
+    }
+  },
 };
 
 // 69
@@ -930,6 +1068,9 @@ const voidDamage: EnemySkillEffect = {
     enemy.damageVoid = skillArgs[2];
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.damageVoid = true;
+  },
 }
 
 // 72
@@ -950,6 +1091,9 @@ const resolve: EnemySkillEffect = {
   effect: () => { },
   goto: () => TO_NEXT,
   type: SkillType.PASSIVE,
+  addMechanic: (mechanic) => {
+    mechanic.resolve = true;
+  },
 };
 
 // 74
@@ -987,6 +1131,9 @@ const leadSwap: EnemySkillEffect = {
     });
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.leaderSwap = true;
+  },
 };
 
 // 76
@@ -1007,6 +1154,20 @@ const columnChange: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs }) => {
+    const spawnSets = new Set<number>();
+    for (const o of [skillArgs[1], skillArgs[3], skillArgs[5], skillArgs[7], skillArgs[9]]) {
+      for (const a of idxsFromBits(o || 0)) {
+        spawnSets.add(a);
+      }
+    }
+    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POSION)) {
+      mechanic.poisonChange = true;
+    }
+    if (spawnSets.has(Attribute.JAMMER) || spawnSets.has(Attribute.BOMB)) {
+      mechanic.jammerChange = true;
+    }
+  },
 };
 
 // 77
@@ -1031,6 +1192,21 @@ const attackAndColumnChange: EnemySkillEffect = {
     team.damage(damage, enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs, atk }) => {
+    const spawnSets = new Set<number>();
+    for (const o of [skillArgs[1], skillArgs[3], skillArgs[5]]) {
+      for (const a of idxsFromBits(o || 0)) {
+        spawnSets.add(a);
+      }
+    }
+    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POSION)) {
+      mechanic.poisonChange = true;
+    }
+    if (spawnSets.has(Attribute.JAMMER) || spawnSets.has(Attribute.BOMB)) {
+      mechanic.jammerChange = true;
+    }
+    mechanic.hits.push(Math.ceil(skillArgs[6] * atk / 100));
+  },
 };
 
 // 78
@@ -1052,6 +1228,20 @@ const rowChange: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs }) => {
+    const spawnSets = new Set<number>();
+    for (const o of [skillArgs[1], skillArgs[3], skillArgs[5], skillArgs[7], skillArgs[9]]) {
+      for (const a of idxsFromBits(o || 0)) {
+        spawnSets.add(a);
+      }
+    }
+    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POSION)) {
+      mechanic.poisonChange = true;
+    }
+    if (spawnSets.has(Attribute.JAMMER) || spawnSets.has(Attribute.BOMB)) {
+      mechanic.jammerChange = true;
+    }
+  },
 };
 
 // 79
@@ -1076,6 +1266,21 @@ const attackAndRowChange: EnemySkillEffect = {
     team.damage(damage, enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs, atk }) => {
+    const spawnSets = new Set<number>();
+    for (const o of [skillArgs[1], skillArgs[3], skillArgs[5]]) {
+      for (const a of idxsFromBits(o || 0)) {
+        spawnSets.add(a);
+      }
+    }
+    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POSION)) {
+      mechanic.poisonChange = true;
+    }
+    if (spawnSets.has(Attribute.JAMMER) || spawnSets.has(Attribute.BOMB)) {
+      mechanic.jammerChange = true;
+    }
+    mechanic.hits.push(Math.ceil(skillArgs[6] * atk / 100));
+  },
 };
 
 // 81
@@ -1098,6 +1303,17 @@ const attackAndChangeBoardOld: EnemySkillEffect = {
     team.damage(damage, enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs, atk }) => {
+    mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
+    for (let i = 1; i < skillArgs.length && skillArgs[i] >= 0; i++) {
+      if (skillArgs[i] == Attribute.POISON || skillArgs[i] == Attribute.MORTAL_POSION) {
+        mechanic.poisonChange = true;
+      }
+      if (skillArgs[i] == Attribute.JAMMER || skillArgs[i] == Attribute.BOMB) {
+        mechanic.jammerChange = true;
+      }
+    }
+  },
 }
 
 // 82
@@ -1109,6 +1325,9 @@ const attackWithoutName: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { atk }) => {
+    mechanic.hits.push(atk);
+  },
 };
 
 // 83
@@ -1153,6 +1372,17 @@ const skillset: EnemySkillEffect = {
     }
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, ctx) => {
+    for (const skillId of ctx.skillArgs) {
+      const eff = floof.getEnemySkill(skillId);
+      const subCtx: MechanicContext = {
+        atk: ctx.atk,
+        skillArgs: [...eff.skillArgs],
+        aiArgs: [...eff.aiArgs],
+      };
+      addMechanic(mechanic, skillId, subCtx);
+    }
+  }
 };
 
 // 84
@@ -1165,7 +1395,17 @@ const boardChange: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
-}
+  addMechanic: (mechanic, { skillArgs }) => {
+    for (const o of idxsFromBits(skillArgs[0])) {
+      if (o == Attribute.POISON || o == Attribute.MORTAL_POSION) {
+        mechanic.poisonChange = true;
+      }
+      if (o == Attribute.JAMMER || o == Attribute.BOMB) {
+        mechanic.jammerChange = true;
+      }
+    }
+  },
+};
 
 // 85
 const attackAndChangeBoard: EnemySkillEffect = {
@@ -1180,6 +1420,17 @@ const attackAndChangeBoard: EnemySkillEffect = {
     team.damage(damage, enemy.getAttribute(), comboContainer);
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs, atk }) => {
+    mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100))
+    for (const o of idxsFromBits(skillArgs[1])) {
+      if (o == Attribute.POISON || o == Attribute.MORTAL_POSION) {
+        mechanic.poisonChange = true;
+      }
+      if (o == Attribute.JAMMER || o == Attribute.BOMB) {
+        mechanic.jammerChange = true;
+      }
+    }
+  },
 }
 
 // 86
@@ -1209,6 +1460,9 @@ const damageAbsorb: EnemySkillEffect = {
     enemy.damageAbsorb = skillArgs[1];
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.damageAbsorb = true;
+  },
 };
 
 // 88
@@ -1228,6 +1482,9 @@ const awokenBind: EnemySkillEffect = {
   },
   // TODO: If player is awoken bound, this should be TO_NEXT
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.awokenBind = true;
+  },
 };
 
 // 89
@@ -1239,6 +1496,9 @@ const skillDelay: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs }) => {
+    mechanic.skillDelay = Math.max(mechanic.skillDelay, skillArgs[1]);
+  },
 };
 
 // 90
@@ -1260,6 +1520,16 @@ const randomOrbSpawn: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { }, // Implement later?!
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs }) => {
+    for (const o of idxsFromBits(skillArgs[1])) {
+      if (o == Attribute.POISON || o == Attribute.MORTAL_POSION) {
+        mechanic.poisonChange = true;
+      }
+      if (o == Attribute.JAMMER || o == Attribute.BOMB) {
+        mechanic.jammerChange = true;
+      }
+    }
+  },
 };
 
 // 93
@@ -1286,6 +1556,9 @@ const lockOrbs: EnemySkillEffect = {
   effect: () => { },
   // TODO: Determine if any orbs can be locked.  If no, then return TO_NEXT instead.
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.lock = true;
+  },
 };
 
 // 95
@@ -1311,6 +1584,9 @@ const lockSkyfall: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.lock = true;
+  },
 };
 
 // 97
@@ -1331,6 +1607,9 @@ const randomStickyBlind: EnemySkillEffect = {
     }
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.blind = true;
+  },
 };
 
 // 98
@@ -1340,6 +1619,9 @@ const patternStickyBlind: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { }, // Implement later?!
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.blind = true;
+  },
 };
 
 // 99
@@ -1360,6 +1642,9 @@ const tapeColumns: EnemySkillEffect = {
     }
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.tape = true;
+  },
 };
 
 // 100
@@ -1380,6 +1665,9 @@ const tapeRows: EnemySkillEffect = {
     }
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.tape = true;
+  },
 };
 
 // 101
@@ -1398,6 +1686,9 @@ const randomBombSpawn: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { }, // Implement later?!
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.jammerChange = true;
+  },
 };
 
 // 103
@@ -1407,6 +1698,12 @@ const patternBombSpawn: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { }, // Implement later?!
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs }) => {
+    mechanic.jammerChange = true;
+    if (skillArgs[7]) {
+      mechanic.lock = true;
+    }
+  },
 };
 
 // 104
@@ -1426,6 +1723,9 @@ const cloudRandom: EnemySkillEffect = {
     }
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.cloud = true;
+  },
 };
 
 // 105
@@ -1445,6 +1745,9 @@ const rcv: EnemySkillEffect = {
     team.state.rcvMult = (skillArgs[1] || 0) / 100;
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.rcvDebuff = true;
+  },
 };
 
 // 106
@@ -1465,6 +1768,9 @@ const unmatchable: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.unmatchable = true;
+  },
 };
 
 // 108
@@ -1483,6 +1789,17 @@ const attackAndMultiOrbChange: EnemySkillEffect = {
     // Convert orbs?!
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic, { skillArgs, atk }) => {
+    mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
+    for (const o of idxsFromBits(skillArgs[2])) {
+      if (o == Attribute.POISON || o == Attribute.MORTAL_POSION) {
+        mechanic.poisonChange = true;
+      }
+      if (o == Attribute.JAMMER || o == Attribute.BOMB) {
+        mechanic.jammerChange = true;
+      }
+    }
+  },
 }
 
 // 109
@@ -1495,6 +1812,9 @@ const spinners: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.spinner = true;
+  },
 }
 
 // 110
@@ -1507,6 +1827,9 @@ const spinnerPattern: EnemySkillEffect = {
   aiEffect: () => { },
   effect: () => { },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.spinner = true;
+  },
 };
 
 // 111
@@ -1646,6 +1969,9 @@ const attackAndNoSkyfall: EnemySkillEffect = {
     // No skyfall?!
   },
   goto: (_, { bigBoard }) => bigBoard ? TO_NEXT : TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.noSkyfall = true;
+  },
 };
 
 // 128
@@ -1665,6 +1991,9 @@ const superResolve: EnemySkillEffect = {
   effect: () => { },
   goto: () => TO_NEXT,
   type: SkillType.PASSIVE,
+  addMechanic: (mechanic) => {
+    mechanic.superResolve = true;
+  },
 };
 
 // 130
@@ -1683,8 +2012,10 @@ const playerAtkDebuff: EnemySkillEffect = {
     team.state.burst.multiplier = 1 - (skillArgs[1] / 100);
   },
   goto: () => TERMINATE,
+  addMechanic: (mechanic) => {
+    mechanic.atkDebuff = true;
+  },
 };
-
 
 const ENEMY_SKILL_GENERATORS: Record<number, EnemySkillEffect> = {
   1: bindRandom,
@@ -1967,6 +2298,18 @@ export function effect(skillCtx: SkillContext, ctx: GameContext) {
     return;
   }
   ENEMY_SKILL_GENERATORS[skillCtx.effectId].effect(skillCtx, ctx);
+}
+
+export function addMechanic(mechanic: DungeonMechanics, id: number, ctx: MechanicContext) {
+  const skill = floof.getEnemySkill(id);
+  if (!ENEMY_SKILL_GENERATORS[skill.internalEffectId]) {
+    console.warn(`UNIMPLEMENTED EFFECT ID: ${id}`);
+    return;
+  }
+  const fn = ENEMY_SKILL_GENERATORS[skill.internalEffectId].addMechanic;
+  if (fn) {
+    fn(mechanic, ctx);
+  }
 }
 
 export function textify(ctx: AiContext, skillCtx: SkillContext): string {

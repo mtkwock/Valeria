@@ -1189,16 +1189,22 @@ class Team {
     const opts = {
       includeTeamBadge: true,
     };
+    const LEADER = monsters[0].makeTestContext(this.playerMode);
+    const HELPER = monsters[5].makeTestContext(this.playerMode);
+    const SUB_1 = monsters[1].makeTestContext(this.playerMode);
+    const SUB_2 = monsters[2].makeTestContext(this.playerMode);
+    const SUB_3 = monsters[3].makeTestContext(this.playerMode);
+    const SUB_4 = monsters[4].makeTestContext(this.playerMode);
+    const leadId = monsters[0].getCard().leaderSkillId;
+    const helpId = monsters[5].getCard().leaderSkillId;
+    const hasAutofua = leaders.bonusAttack(leadId) || leaders.trueBonusAttack(leadId) || leaders.bonusAttack(helpId) || leaders.trueBonusAttack(helpId);
     const result: PlayerTeamContext = {
       HP: this.getHp(),
+      EFFECTIVE_HP: this.getEffectiveHp(),
       RCV: this.getRcv(),
       TIME: this.getTime(),
-      LEADER: monsters[0].makeTestContext(this.playerMode),
-      HELPER: monsters[5].makeTestContext(this.playerMode),
-      SUB_1: monsters[1].makeTestContext(this.playerMode),
-      SUB_2: monsters[2].makeTestContext(this.playerMode),
-      SUB_3: monsters[3].makeTestContext(this.playerMode),
-      SUB_4: monsters[4].makeTestContext(this.playerMode),
+      LEADER, HELPER, SUB_1, SUB_2, SUB_3, SUB_4,
+      ATTRIBUTES: LEADER.ATTRIBUTE | LEADER.SUBATTRIBUTE | HELPER.ATTRIBUTE | HELPER.SUBATTRIBUTE | SUB_1.ATTRIBUTE | SUB_1.SUBATTRIBUTE | SUB_2.ATTRIBUTE | SUB_2.SUBATTRIBUTE | SUB_3.ATTRIBUTE | SUB_3.SUBATTRIBUTE | SUB_4.ATTRIBUTE | SUB_4.SUBATTRIBUTE,
       SB: this.countAwakening(Awakening.SKILL_BOOST, opts),
       SBR: this.countAwakening(Awakening.SBR, opts),
       FUA: this.countAwakening(Awakening.BONUS_ATTACK),
@@ -1217,7 +1223,7 @@ class Team {
       RESIST_DARK: this.countAwakening(Awakening.RESIST_DARK) * 7 + this.countLatent(Latent.RESIST_DARK) + this.countLatent(Latent.RESIST_DARK_PLUS) * 2.5,
 
       // Leader Skill capabilities.
-      AUTOFUA: CompareBoolean.FALSE,
+      AUTOFUA: hasAutofua ? CompareBoolean.TRUE : CompareBoolean.FALSE,
     }
     return result;
   }

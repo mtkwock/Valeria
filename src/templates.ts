@@ -2193,19 +2193,10 @@ class TeamPane {
     this.statsEl.appendChild(statsTable);
 
     const totalBaseStatEl = create('div') as HTMLDivElement;
-    // const totalHpLabel = create('span') as HTMLSpanElement;
-    // totalHpLabel.innerText = 'Total HP:';
-    // const totalRcvLabel = create('span') as HTMLSpanElement;
-    // totalRcvLabel.innerText = 'Total RCV:';
-    // const totalTimeLabel = create('span') as HTMLSpanElement;
-    // totalTimeLabel.innerText = 'Time:';
     totalBaseStatEl.appendChild(this.leaderSkillEl);
     totalBaseStatEl.appendChild(create('br'));
-    // totalBaseStatEl.appendChild(totalHpLabel);
     totalBaseStatEl.appendChild(this.totalHpValue);
-    // totalBaseStatEl.appendChild(totalRcvLabel);
     totalBaseStatEl.appendChild(this.totalRcvValue);
-    // totalBaseStatEl.appendChild(totalTimeLabel);
     totalBaseStatEl.appendChild(this.totalTimeValue);
     this.statsEl.appendChild(totalBaseStatEl);
 

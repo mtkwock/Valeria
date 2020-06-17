@@ -236,6 +236,52 @@ class Valeria {
     }
 
     this.fancyPhoto = new FancyPhoto();
+
+    debug.addButton('Enemy Preemptive Mechanics', () => {
+      const attributes = new Set<Attribute>();
+      const types = new Set<MonsterType>();
+      for (const m of this.team.getActiveTeam()) {
+        for (const type of m.getCard().types) {
+          types.add(type);
+        }
+        attributes.add(m.getAttribute());
+        attributes.add(m.getSubattribute());
+      }
+
+      const mechanics = this.dungeon.getEnemyMechanics(
+        this.team.getActiveTeam().map((m) => m.getId()), // teamIds
+        attributes,
+        types,
+        this.team.getBoardWidth() == 7, // bigBoard
+        -1,
+        -1,
+        true,
+      );
+
+      debug.print(JSON.stringify(mechanics, null, 2));
+    });
+
+    debug.addButton('Preemptive Mechanic List', () => {
+      const attributes = new Set<Attribute>();
+      const types = new Set<MonsterType>();
+      for (const m of this.team.getActiveTeam()) {
+        for (const type of m.getCard().types) {
+          types.add(type);
+        }
+        attributes.add(m.getAttribute());
+        attributes.add(m.getSubattribute());
+      }
+
+      const mechanics = this.dungeon.getDungeonMechanics(
+        this.team.getActiveTeam().map((m) => m.getId()), // teamIds
+        attributes,
+        types,
+        this.team.getBoardWidth() == 7, // bigBoard
+        true,
+      );
+
+      debug.print(JSON.stringify(mechanics, null, 2));
+    });
   }
 
   drawTeam(): void {

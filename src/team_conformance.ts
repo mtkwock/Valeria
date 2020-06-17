@@ -19,6 +19,7 @@ export interface PlayerMonsterContext {
 
 export interface PlayerTeamContext {
   HP: number;
+  EFFECTIVE_HP: number;
   RCV: number;
   TIME: number;
 
@@ -28,6 +29,8 @@ export interface PlayerTeamContext {
   SUB_2: PlayerMonsterContext;
   SUB_3: PlayerMonsterContext;
   SUB_4: PlayerMonsterContext;
+
+  ATTRIBUTES: number;
 
   // TODO: Team specific Awakenings
   SB: number;

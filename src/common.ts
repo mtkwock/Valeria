@@ -518,6 +518,42 @@ const TeamBadgeToAwakening: Map<TeamBadge, { awakening: Awakening, count: number
   [TeamBadge.RESIST_POISON, { awakening: Awakening.RESIST_POISON, count: 2.5 }],
 ]);
 
+interface DungeonMechanics {
+  // Occurs no matter what
+  resolve: boolean;
+  superResolve: boolean;
+
+  skillDelay: number;
+  skillBind: boolean;
+  leaderBind: boolean;
+  helperBind: boolean;
+  subBind: boolean;
+  awokenBind: boolean;
+
+  hits: (number | string)[];
+  timeDebuff: boolean;
+  rcvDebuff: boolean;
+  atkDebuff: boolean;
+
+  comboAbsorb: number;
+  damageAbsorb: boolean;
+  attributesAbsorbed: number;
+  damageVoid: boolean;
+  leaderSwap: boolean;
+  poisonChange: boolean;
+  jammerChange: boolean;
+  blind: boolean;
+  cloud: boolean;
+  tape: boolean;
+  poisonSkyfall: boolean;
+  jammerSkyfall: boolean;
+  blindSkyfall: boolean;
+  spinner: boolean;
+  lock: boolean;
+  unmatchable: boolean;
+  noSkyfall: boolean;
+}
+
 export {
   Attribute,
   AttributeToName,
@@ -545,4 +581,5 @@ export {
   addCommas, removeCommas,
   Rational,
   TeamBadge, TeamBadgeToName, TEAM_BADGE_ORDER, TeamBadgeToAwakening,
+  DungeonMechanics,
 };

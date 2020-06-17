@@ -1,11 +1,9 @@
-import { BASE_URL, waitFor, Rational, Attribute, MonsterType } from './common';
+import { BASE_URL, waitFor, Rational, Attribute, MonsterType, DungeonMechanics } from './common';
 import { ajax } from './ajax';
 import { EnemyInstance, EnemyInstanceJson } from './enemy_instance';
 import { DungeonPane, DungeonUpdate, EnemySkillArea } from './templates';
-import { determineSkillset, textifyEnemySkill, skillType } from './enemy_skills';
-// import { debug } from './debugger';
-// import { floof } from './ilmina_stripped';
-// import {DungeonEditor} from './templates';
+import { determineSkillset, textifyEnemySkill, skillType, addMechanic } from './enemy_skills';
+import { floof } from './ilmina_stripped';
 
 interface DungeonFloorJson {
   enemies: EnemyInstanceJson[];
@@ -14,8 +12,6 @@ interface DungeonFloorJson {
 class DungeonFloor {
   enemies: EnemyInstance[];
   activeEnemy: number = 0;
-  // dungeonEditor: DungeonEditor;
-  // combinations: number[][];
   constructor() {
     this.enemies = [new EnemyInstance()];
     this.activeEnemy = 0;
@@ -242,6 +238,152 @@ class DungeonInstance {
 
       this.onEnemySkill(skillIdx, otherSkills);
     }
+  }
+
+  getEnemyMechanics(
+    teamIds: number[],
+    teamAttrs: Set<Attribute>,
+    teamTypes: Set<MonsterType>,
+    bigBoard: boolean,
+    floorIdx = -1, enemyIdx = -1, preemptOnly = false,
+    mechanics: DungeonMechanics | undefined = undefined): DungeonMechanics {
+    if (floorIdx < 0) {
+      floorIdx = this.activeFloor;
+    }
+    if (enemyIdx < 0) {
+      enemyIdx = this.activeEnemy;
+    }
+
+    const enemy = this.floors[floorIdx].enemies[enemyIdx];
+    enemy.dungeonMultipliers.hp = this.hpMultiplier;
+    enemy.dungeonMultipliers.atk = this.atkMultiplier;
+    enemy.dungeonMultipliers.def = this.defMultiplier;
+    enemy.reset();
+
+    mechanics = mechanics || {
+      // Occurs no matter what
+      resolve: false,
+      superResolve: false,
+
+      skillDelay: 0,
+      skillBind: false,
+      leaderBind: false,
+      helperBind: false,
+      subBind: false,
+
+      hits: [],
+      timeDebuff: false,
+      rcvDebuff: false,
+      atkDebuff: false,
+
+      comboAbsorb: 0,
+      damageAbsorb: false,
+      attributesAbsorbed: 0,
+      damageVoid: false,
+      leaderSwap: false,
+      poisonChange: false,
+      jammerChange: false,
+      blind: false,
+      cloud: false,
+      tape: false,
+      poisonSkyfall: false,
+      jammerSkyfall: false,
+      blindSkyfall: false,
+      spinner: false,
+      awokenBind: false,
+      lock: false,
+      unmatchable: false,
+      noSkyfall: false,
+    };
+
+    mechanics.resolve = mechanics.resolve || enemy.getResolve() > 0;
+    mechanics.superResolve = mechanics.superResolve || enemy.getSuperResolve().minHp > 0;
+
+    let skills: number[] = [];
+    if (preemptOnly) {
+      skills = determineSkillset({
+        cardId: enemy.id,
+        lv: enemy.lv,
+        attribute: enemy.getAttribute(),
+        atk: enemy.getAtk(),
+        hpPercent: Math.round(enemy.currentHp / enemy.getHp() * 100),
+        charges: enemy.charges,
+        flags: enemy.flags,
+        counter: enemy.counter,
+        otherEnemyHp: enemy.otherEnemyHp,
+
+        isPreempt: true,
+        combo: 0,
+        teamIds,
+        bigBoard,
+        teamAttributes: teamAttrs,
+        teamTypes: teamTypes,
+      }).map((skill) => skill.idx);
+    } else {
+      for (let i = 0; i < enemy.getCard().enemySkills.length; i++) {
+        skills.push(i);
+      }
+    }
+    for (const idx of skills) {
+      const enemySkill = enemy.getCard().enemySkills[idx];
+      const skill = floof.getEnemySkill(enemySkill.enemySkillId);
+      addMechanic(mechanics, enemySkill.enemySkillId, {
+        aiArgs: skill.aiArgs,
+        skillArgs: skill.skillArgs,
+        atk: enemy.getAtkBase(),
+      });
+    }
+
+    return mechanics;
+  }
+
+  getDungeonMechanics(
+    teamIds: number[],
+    teamAttrs: Set<Attribute>,
+    teamTypes: Set<MonsterType>,
+    bigBoard: boolean,
+    preemptOnly = false): DungeonMechanics {
+    const mechanics = {
+      resolve: false,
+      superResolve: false,
+
+      skillDelay: 0,
+      skillBind: false,
+      leaderBind: false,
+      helperBind: false,
+      subBind: false,
+
+      hits: [],
+      timeDebuff: false,
+      rcvDebuff: false,
+      atkDebuff: false,
+
+      comboAbsorb: 0,
+      damageAbsorb: false,
+      attributesAbsorbed: 0,
+      damageVoid: false,
+      leaderSwap: false,
+      poisonChange: false,
+      jammerChange: false,
+      blind: false,
+      cloud: false,
+      tape: false,
+      poisonSkyfall: false,
+      jammerSkyfall: false,
+      blindSkyfall: false,
+      spinner: false,
+      awokenBind: false,
+      lock: false,
+      unmatchable: false,
+      noSkyfall: false,
+    };
+
+    for (let i = 0; i < this.floors.length; i++) {
+      for (let j = 0; j < this.floors[i].enemies.length; j++) {
+        this.getEnemyMechanics(teamIds, teamAttrs, teamTypes, bigBoard, i, j, preemptOnly, mechanics);
+      }
+    }
+    return mechanics;
   }
 
   private getUpdateFunction(): (ctx: DungeonUpdate) => void {
