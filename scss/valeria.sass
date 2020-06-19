@@ -574,6 +574,38 @@ table.valeria-monster-icon-info > tr:nth-child(3)
 .valeria-enemy-stat-table > tr > td:nth-child(4) > input
   max-width: 40px
 
+// Modal modified from here: https://www.w3schools.com/howto/howto_css_modals.asp
+.valeria-settings
+  display: none
+  position: fixed
+  // Highest
+  z-index: 1000
+  left: 0
+  top: 0
+  width: 100%
+  height: 100%
+  overflow: auto
+  background-color: white
+  background-color: rgba(255, 255, 255, 0.4)
+
+.valeria-settings-content
+  background-color: black
+  margin: auto
+  padding: 20px
+  border: 1px solid white
+  width: 80%
+
+.valeria-settings-close
+  color: #aaa
+  float: right
+  font-size: 28px
+  font-weight: bold
+
+.valeria-settings-close:hover, .valeria-settings-close:focus
+  color: white
+  text-decoration: none
+  cursor: pointer
+
 .valeria > table
   width: 100%
   font-size: small

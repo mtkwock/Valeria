@@ -15,8 +15,9 @@ import {
   addCommas, removeCommas,
   Shape, LetterToShape,
   TeamBadge, TEAM_BADGE_ORDER, TeamBadgeToName,
+  SettingsInterface, BoolSetting, NumberSetting,
 } from './common';
-import { CardAssets, CardUiAssets, floof, Card } from './ilmina_stripped';
+import { CardAssets, CardUiAssets, floof, Card, loadSettings } from './ilmina_stripped';
 import { fuzzySearch, fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch, prioritizedEnemySearch } from './fuzzy_search';
 import { DUNGEON_ALIASES } from './fuzzy_search_aliases';
 // import { debug } from './debugger';
@@ -128,6 +129,10 @@ enum ClassNames {
   FLOOR_ENEMY_DELETE = 'valeria-floor-delete',
   ENEMY_STAT_TABLE = 'valeria-enemy-stat-table',
   ENEMY_SKILL_AREA = 'valeria-enemy-skill-area',
+
+  SETTINGS = 'valeria-settings',
+  SETTINGS_CONTENT = 'valeria-settings-content',
+  SETTINGS_CLOSE = 'valeria-settings-close',
 
   VALERIA = 'valeria',
 }
@@ -283,6 +288,163 @@ const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
 ]);
 
 const UI_ASSET_SRC: string = `url(${BASE_URL}assets/UIPAT1.PNG)`;
+
+const INITIAL_SETTINGS = JSON.parse(window.localStorage.valeriaSettings || '{"b": {}, "n": {}}');
+
+class Settings implements SettingsInterface {
+  private readonly el = create('div', ClassNames.SETTINGS);
+  private readonly content = create('div', ClassNames.SETTINGS_CONTENT);
+  private readonly table = create('table') as HTMLTableElement;
+  public openButton = create('button') as HTMLButtonElement;
+  public closeButton = create('div', ClassNames.SETTINGS_CLOSE) as HTMLButtonElement;
+
+  private boolSettings = new Map<BoolSetting, boolean>();
+  private numberSettings = new Map<NumberSetting, number>();
+
+  private boolEls = new Map<BoolSetting, HTMLInputElement>();
+  private numberEls = new Map<NumberSetting, HTMLInputElement>();
+
+  constructor() {
+    this.el.appendChild(this.content);
+    const header = create('h2');
+    header.innerText = 'Settings';
+    this.content.appendChild(header);
+    this.el.onclick = () => {
+      this.closeButton.click();
+    };
+    this.content.onclick = (e) => {
+      e.stopPropagation();
+    };
+    this.openButton.innerText = 'Open Settings';
+    this.openButton.onclick = () => {
+      for (const key of this.boolEls.keys()) {
+        this.boolEls.get(key)!.checked = this.boolSettings.get(key)!;
+      }
+      for (const key of this.numberEls.keys()) {
+        this.numberEls.get(key)!.value = String(this.numberSettings.get(key)!);
+      }
+      this.el.style.display = 'block';
+    };
+    this.closeButton.innerText = '×';
+    this.closeButton.onclick = () => {
+      this.el.style.display = 'none';
+    };
+    this.content.appendChild(this.closeButton);
+    this.content.appendChild(this.table);
+    this.initNumberSetting(NumberSetting.MONSTER_LEVEL, 'Default Monster Level', 110);
+    this.initNumberSetting(NumberSetting.INHERIT_LEVEL, 'Default Inherit Level', 110);
+    this.initBoolSetting(BoolSetting.INHERIT_PLUSSED, 'Default Inherit to +297', true);
+    this.initBoolSetting(BoolSetting.USE_PREEMPT, 'Use Preemptive on Enemy Load', true);
+    this.initBoolSetting(BoolSetting.APRIL_FOOLS, 'April Fools Icons (Needs refresh)', false);
+
+    document.body.appendChild(this.el);
+  }
+
+  getElement(): HTMLElement {
+    return this.el;
+  }
+
+  private updateStorage(): void {
+    const b: Record<string, boolean> = {};
+    for (const key of this.boolSettings.keys()) {
+      b[key] = this.boolSettings.get(key)!;
+    }
+    const n: Record<string, number> = {};
+    for (const key of this.numberSettings.keys()) {
+      n[key] = this.numberSettings.get(key)!;
+    }
+    window.localStorage.valeriaSettings = JSON.stringify({ b, n });
+  }
+
+  private initBoolSetting(name: BoolSetting, label: string, defaultValue: boolean): void {
+    if (INITIAL_SETTINGS.b && INITIAL_SETTINGS.b[name] != undefined) {
+      this.boolSettings.set(name, INITIAL_SETTINGS.b[name]);
+    } else {
+      this.boolSettings.set(name, defaultValue);
+    }
+    const sectionRow = create('tr');
+    const labelCell = create('td');
+    labelCell.innerText = label;
+    const inputCell = create('td');
+    const inputEl = create('input') as HTMLInputElement;
+    inputEl.type = 'checkbox';
+    inputEl.checked = this.boolSettings.get(name)!;
+    inputEl.onchange = () => {
+      this.setBool(name, inputEl.checked);
+    };
+    inputCell.appendChild(inputEl);
+
+    sectionRow.appendChild(labelCell);
+    sectionRow.appendChild(inputCell);
+
+    this.boolEls.set(name, inputEl);
+
+    this.table.appendChild(sectionRow);
+  }
+
+  private initNumberSetting(name: NumberSetting, label: string, defaultValue: number): void {
+    if (INITIAL_SETTINGS.b && INITIAL_SETTINGS.n[name] != undefined) {
+      this.numberSettings.set(name, INITIAL_SETTINGS.n[name]);
+    } else {
+      this.numberSettings.set(name, defaultValue);
+    }
+    const sectionRow = create('tr');
+    const labelCell = create('td');
+    labelCell.innerText = label;
+    const inputCell = create('td');
+    const inputEl = create('input') as HTMLInputElement;
+    inputEl.type = 'number';
+    inputEl.value = String(this.numberSettings.get(name));
+    inputEl.onchange = () => {
+      this.setNumber(name, Number(inputEl.value));
+    };
+    inputCell.appendChild(inputEl);
+    sectionRow.appendChild(labelCell);
+    sectionRow.appendChild(inputCell);
+
+    this.numberEls.set(name, inputEl);
+
+    this.table.appendChild(sectionRow);
+  }
+
+  public getBool(s: BoolSetting): boolean {
+    if (!this.boolSettings.has(s)) {
+      console.error(`Setting ${s} not defined, defaulting to false.`);
+      return false;
+    }
+    return this.boolSettings.get(s)!;
+  }
+
+  public setBool(s: BoolSetting, b: boolean): void {
+    if (!this.boolSettings.has(s)) {
+      console.error(`Setting ${s} not defined, not setting.`);
+      return;
+    }
+    this.boolSettings.set(s, b);
+    this.updateStorage();
+  }
+
+  public getNumber(s: NumberSetting): number {
+    if (!this.numberSettings.has(s)) {
+      console.error(`Setting ${s} not defined, defaulting to -1`);
+      return -1;
+    }
+
+    return this.numberSettings.get(s)!;
+  }
+
+  public setNumber(s: NumberSetting, n: number): void {
+    if (!this.numberSettings.has(s)) {
+      console.error(`Setting ${s} not defined, not setting.`);
+      return;
+    }
+    this.numberSettings.set(s, n);
+    this.updateStorage();
+  }
+}
+
+const SETTINGS = new Settings();
+loadSettings(SETTINGS);
 
 class LayeredAsset {
   assets: AssetEnum[];
@@ -1650,6 +1812,7 @@ class MonsterEditor {
   latentEditor: LatentEditor;
 
   constructor(onUpdate: OnMonsterUpdate) {
+    this.el.appendChild(SETTINGS.openButton);
     const pdchuArea = create('div');
     this.pdchu = {
       io: create('textarea', ClassNames.PDCHU_IO) as HTMLTextAreaElement,
@@ -3865,5 +4028,6 @@ export {
   EnemySkillArea,
   getLatentPosition,
   getAwakeningOffsets,
-  PhotoArea, FancyPhotoOptions
+  PhotoArea, FancyPhotoOptions,
+  SETTINGS,
 }

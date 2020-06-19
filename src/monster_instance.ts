@@ -1,6 +1,6 @@
-import { Attribute, Awakening, AwakeningToPlus, Latent, MonsterType, idxsFromBits } from './common';
+import { Attribute, Awakening, AwakeningToPlus, Latent, MonsterType, idxsFromBits, NumberSetting, BoolSetting } from './common';
 import { Card, CardAssets, floof } from './ilmina_stripped';
-import { create, MonsterIcon, MonsterInherit, MonsterLatent, ClassNames, OnMonsterUpdate } from './templates';
+import { create, MonsterIcon, MonsterInherit, MonsterLatent, ClassNames, OnMonsterUpdate, SETTINGS } from './templates';
 import { fuzzyMonsterSearch, prioritizedMonsterSearch, prioritizedInheritSearch } from './fuzzy_search';
 import { PlayerMonsterContext } from './team_conformance';
 
@@ -252,7 +252,7 @@ class MonsterInstance {
     const c = this.getCard();
 
     // Change to monster's max level.
-    this.setLevel(c.isLimitBreakable ? 110 : c.maxLevel);
+    this.setLevel(SETTINGS.getNumber(NumberSetting.MONSTER_LEVEL));
 
     // Change to monster's max awakening level.
     this.awakenings = c.awakenings.length;
@@ -276,15 +276,15 @@ class MonsterInstance {
       this.superAwakeningIdx = -1;
     }
 
-    if (!CardAssets.canPlus(c)) {
+    if (CardAssets.canPlus(c)) {
+      this.setHpPlus(99);
+      this.setAtkPlus(99);
+      this.setRcvPlus(99);
+    } else {
       this.setHpPlus(0);
       this.setAtkPlus(0);
       this.setRcvPlus(0);
       this.inheritId = -1;
-    } else {
-      this.setHpPlus(99);
-      this.setAtkPlus(99);
-      this.setRcvPlus(99);
     }
   }
 
@@ -451,15 +451,15 @@ class MonsterInstance {
 
   fromPdchu(str: string): void {
     let s = str.trim().toLowerCase();
-    let assistPlussed = true;
-    let assistLevel = 110;
+    let assistPlussed = SETTINGS.getBool(BoolSetting.INHERIT_PLUSSED);
+    let assistLevel = SETTINGS.getNumber(NumberSetting.INHERIT_LEVEL);
     let latents = [];
     let hpPlus = 99;
     let atkPlus = 99;
     let rcvPlus = 99;
     let awakeningLevel = 9;
     let superAwakeningIdx = -1;
-    let level = 110;
+    let level = SETTINGS.getNumber(NumberSetting.MONSTER_LEVEL);
 
     const MONSTER_NAME_REGEX = /^\s*(("[^"]+")|[^([|]*)/;
     const ASSIST_REGEX = /\(\s*("[^"]*")?[^)]+\)/;
@@ -608,9 +608,9 @@ class MonsterInstance {
         this.inheritId = bestGuessInheritIds[0];
         const inheritCard = this.getInheritCard();
         if (inheritCard) {
-          if (!inheritCard.isLimitBreakable) {
-            this.inheritLevel = Math.min(this.inheritLevel, inheritCard.maxLevel);
-          }
+          this.inheritLevel = Math.min(
+            this.inheritLevel,
+            inheritCard.isLimitBreakable ? 110 : inheritCard.maxLevel);
           const card = this.getCard();
           if (card.attribute != inheritCard.attribute) {
             this.inheritLevel = 1;

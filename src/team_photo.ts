@@ -1,4 +1,4 @@
-import { TeamBadge } from './common';
+import { TeamBadge, Awakening } from './common';
 import { CardUiAssets, CardAssets, floof } from './ilmina_stripped';
 import { Team } from './player_team';
 import { getLatentPosition, getAwakeningOffsets, FancyPhotoOptions, PhotoArea } from './templates';
@@ -668,7 +668,9 @@ class FancyPhoto {
       }
       if (this.opts.awakenings.length) {
         const awakeningTotals = this.opts.awakenings.map((awakening) => {
-          let total = team.countAwakening(awakening, { ignoreTransform: !this.opts.useTransform, includeTeamBadge: true });
+          // Skill Boost count only matters as the base form.
+          const ignoreTransform = !this.opts.useTransform || awakening == Awakening.SKILL_BOOST;
+          let total = team.countAwakening(awakening, { ignoreTransform, includeTeamBadge: true });
           return { awakening, total };
         });
         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));

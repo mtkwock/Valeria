@@ -554,6 +554,23 @@ interface DungeonMechanics {
   noSkyfall: boolean;
 }
 
+enum BoolSetting {
+  APRIL_FOOLS = 'aprilFools',
+  INHERIT_PLUSSED = 'inheritPlussed',
+  USE_PREEMPT = 'usePreempt',
+}
+enum NumberSetting {
+  MONSTER_LEVEL = 'monsterLevel',
+  INHERIT_LEVEL = 'inheritLevel',
+}
+
+interface SettingsInterface {
+  getBool: (s: BoolSetting) => boolean;
+  setBool: (s: BoolSetting, b: boolean) => void;
+  getNumber: (s: NumberSetting) => number;
+  setNumber: (s: NumberSetting, n: number) => void;
+}
+
 export {
   Attribute,
   AttributeToName,
@@ -582,4 +599,5 @@ export {
   Rational,
   TeamBadge, TeamBadgeToName, TEAM_BADGE_ORDER, TeamBadgeToAwakening,
   DungeonMechanics,
+  SettingsInterface, BoolSetting, NumberSetting
 };

@@ -5,6 +5,7 @@
  */
 import { ajax } from './ajax';
 import { lzutf8Interface } from '../typings/lzutf8';
+import { BoolSetting, SettingsInterface } from './common';
 
 declare var LZUTF8: lzutf8Interface;
 
@@ -188,6 +189,8 @@ class DataSource {
   static Version = "";
   errorReporter: { onError: (msg: string, fullMsg: string) => any };
 
+  static settings: SettingsInterface | undefined = undefined;
+
   constructor(errorReporter: { onError: (msg: string, fullMsg: string) => any }) {
     if (!errorReporter) {
       throw "Requires reporter";
@@ -200,7 +203,10 @@ class DataSource {
     // 1 = the actual date.
     // JS is weird.
     // const isAprilFools = currentTime.getMonth() == 3 && currentTime.getDate() == 1;
-    return Boolean(window.localStorage.aprilFools);
+    if (DataSource.settings) {
+      return DataSource.settings.getBool(BoolSetting.APRIL_FOOLS);
+    }
+    return false;
     // return isAprilFools;
   }
   loadWithCache(label: string, url: string, callback: (data: any) => any) {
@@ -1463,6 +1469,10 @@ declare global {
 }
 window.floof = floof;
 
+function loadSettings(settings: SettingsInterface) {
+  DataSource.settings = settings;
+}
+
 export {
   floof,
   Card,
@@ -1471,4 +1481,5 @@ export {
   EnemySkill,
   compress,
   decompress,
+  loadSettings,
 };
