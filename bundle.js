@@ -582,6 +582,19 @@
             [TeamBadge.RESIST_POISON, { awakening: Awakening.RESIST_POISON, count: 2.5 }],
         ]);
         exports.TeamBadgeToAwakening = TeamBadgeToAwakening;
+        var BoolSetting;
+        (function (BoolSetting) {
+            BoolSetting["APRIL_FOOLS"] = "aprilFools";
+            BoolSetting["INHERIT_PLUSSED"] = "inheritPlussed";
+            BoolSetting["USE_PREEMPT"] = "usePreempt";
+        })(BoolSetting || (BoolSetting = {}));
+        exports.BoolSetting = BoolSetting;
+        var NumberSetting;
+        (function (NumberSetting) {
+            NumberSetting["MONSTER_LEVEL"] = "monsterLevel";
+            NumberSetting["INHERIT_LEVEL"] = "inheritLevel";
+        })(NumberSetting || (NumberSetting = {}));
+        exports.NumberSetting = NumberSetting;
     });
     /**
      * Simpler ajax function so that jQuery isn't necessary.  Only things required
@@ -621,7 +634,7 @@
         }
         exports.ajax = ajax;
     });
-    define("ilmina_stripped", ["require", "exports", "ajax"], function (require, exports, ajax_1) {
+    define("ilmina_stripped", ["require", "exports", "ajax", "common"], function (require, exports, ajax_1, common_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const AUGMENT_JP = Boolean(window.localStorage.augmentJp);
@@ -812,7 +825,10 @@
                 // 1 = the actual date.
                 // JS is weird.
                 // const isAprilFools = currentTime.getMonth() == 3 && currentTime.getDate() == 1;
-                return Boolean(window.localStorage.aprilFools);
+                if (DataSource.settings) {
+                    return DataSource.settings.getBool(common_1.BoolSetting.APRIL_FOOLS);
+                }
+                return false;
                 // return isAprilFools;
             }
             loadWithCache(label, url, callback) {
@@ -921,6 +937,7 @@
             }
         }
         DataSource.Version = "";
+        DataSource.settings = undefined;
         class GraphicDescription {
             constructor(url, offsetX, offsetY, width, height, baseWidth = undefined, baseHeight = undefined) {
                 this.scale = 1;
@@ -2053,6 +2070,10 @@
         const floof = new Ilmina();
         exports.floof = floof;
         window.floof = floof;
+        function loadSettings(settings) {
+            DataSource.settings = settings;
+        }
+        exports.loadSettings = loadSettings;
     });
     /**
      All aliases of monsters and dungeons. Keep these in alphabetical order by
@@ -2083,7 +2104,7 @@
         };
         exports.DUNGEON_ALIASES = DUNGEON_ALIASES;
     });
-    define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search_aliases"], function (require, exports, common_1, ilmina_stripped_1, fuzzy_search_aliases_1) {
+    define("fuzzy_search", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search_aliases"], function (require, exports, common_2, ilmina_stripped_1, fuzzy_search_aliases_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const prefixToCardIds = {};
@@ -2112,10 +2133,10 @@
                 }
                 // First throw all equips towards the end.
                 if (card1.awakenings[0] != card2.awakenings[0]) {
-                    if (card2.awakenings[0] == common_1.Awakening.AWOKEN_ASSIST) {
+                    if (card2.awakenings[0] == common_2.Awakening.AWOKEN_ASSIST) {
                         return -1;
                     }
-                    if (card1.awakenings[0] == common_1.Awakening.AWOKEN_ASSIST) {
+                    if (card1.awakenings[0] == common_2.Awakening.AWOKEN_ASSIST) {
                         return 1;
                     }
                 }
@@ -2129,10 +2150,10 @@
                 return Boolean(card);
             }).sort((card1, card2) => {
                 if (card1.awakenings[0] != card2.awakenings[0]) {
-                    if (card1.awakenings[0] == common_1.Awakening.AWOKEN_ASSIST) {
+                    if (card1.awakenings[0] == common_2.Awakening.AWOKEN_ASSIST) {
                         return -1;
                     }
-                    if (card2.awakenings[0] == common_1.Awakening.AWOKEN_ASSIST) {
+                    if (card2.awakenings[0] == common_2.Awakening.AWOKEN_ASSIST) {
                         return 1;
                     }
                 }
@@ -2321,7 +2342,7 @@
                     const treeId = ilmina_stripped_1.floof.getCard(id).evoTreeBaseId;
                     if (treeId in ilmina_stripped_1.floof.getModel().evoTrees) {
                         for (const card of ilmina_stripped_1.floof.getModel().evoTrees[treeId].cards) {
-                            if (!equips.some((id) => id == card.id) && card.awakenings[0] == common_1.Awakening.AWOKEN_ASSIST) {
+                            if (!equips.some((id) => id == card.id) && card.awakenings[0] == common_2.Awakening.AWOKEN_ASSIST) {
                                 equips.push(card.id);
                             }
                         }
@@ -2431,7 +2452,7 @@
      * TODO: Consider making some of these into proper soy templates and then
      * compiling them here so that the structure is more consistent.
      */
-    define("templates", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search", "fuzzy_search_aliases"], function (require, exports, common_2, ilmina_stripped_2, fuzzy_search_1, fuzzy_search_aliases_2) {
+    define("templates", ["require", "exports", "common", "ilmina_stripped", "fuzzy_search", "fuzzy_search_aliases"], function (require, exports, common_3, ilmina_stripped_2, fuzzy_search_1, fuzzy_search_aliases_2) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // import { debug } from './debugger';
@@ -2531,6 +2552,9 @@
             ClassNames["FLOOR_ENEMY_DELETE"] = "valeria-floor-delete";
             ClassNames["ENEMY_STAT_TABLE"] = "valeria-enemy-stat-table";
             ClassNames["ENEMY_SKILL_AREA"] = "valeria-enemy-skill-area";
+            ClassNames["SETTINGS"] = "valeria-settings";
+            ClassNames["SETTINGS_CONTENT"] = "valeria-settings-content";
+            ClassNames["SETTINGS_CLOSE"] = "valeria-settings-close";
             ClassNames["VALERIA"] = "valeria";
         })(ClassNames || (ClassNames = {}));
         exports.ClassNames = ClassNames;
@@ -2667,7 +2691,146 @@
             [AssetEnum.INVINCIBLE, { offsetY: 241, offsetX: 314, width: 28, height: 30 }],
             [AssetEnum.COMBO_ABSORB, { offsetY: 113, offsetX: 133, width: 30, height: 30 }],
         ]);
-        const UI_ASSET_SRC = `url(${common_2.BASE_URL}assets/UIPAT1.PNG)`;
+        const UI_ASSET_SRC = `url(${common_3.BASE_URL}assets/UIPAT1.PNG)`;
+        const INITIAL_SETTINGS = JSON.parse(window.localStorage.valeriaSettings || '{"b": {}, "n": {}}');
+        class Settings {
+            constructor() {
+                this.el = create('div', ClassNames.SETTINGS);
+                this.content = create('div', ClassNames.SETTINGS_CONTENT);
+                this.table = create('table');
+                this.openButton = create('button');
+                this.closeButton = create('div', ClassNames.SETTINGS_CLOSE);
+                this.boolSettings = new Map();
+                this.numberSettings = new Map();
+                this.boolEls = new Map();
+                this.numberEls = new Map();
+                this.el.appendChild(this.content);
+                const header = create('h2');
+                header.innerText = 'Settings';
+                this.content.appendChild(header);
+                this.el.onclick = () => {
+                    this.closeButton.click();
+                };
+                this.content.onclick = (e) => {
+                    e.stopPropagation();
+                };
+                this.openButton.innerText = 'Open Settings';
+                this.openButton.onclick = () => {
+                    for (const key of this.boolEls.keys()) {
+                        this.boolEls.get(key).checked = this.boolSettings.get(key);
+                    }
+                    for (const key of this.numberEls.keys()) {
+                        this.numberEls.get(key).value = String(this.numberSettings.get(key));
+                    }
+                    this.el.style.display = 'block';
+                };
+                this.closeButton.innerText = '×';
+                this.closeButton.onclick = () => {
+                    this.el.style.display = 'none';
+                };
+                this.content.appendChild(this.closeButton);
+                this.content.appendChild(this.table);
+                this.initNumberSetting(common_3.NumberSetting.MONSTER_LEVEL, 'Default Monster Level', 110);
+                this.initNumberSetting(common_3.NumberSetting.INHERIT_LEVEL, 'Default Inherit Level', 110);
+                this.initBoolSetting(common_3.BoolSetting.INHERIT_PLUSSED, 'Default Inherit to +297', true);
+                this.initBoolSetting(common_3.BoolSetting.USE_PREEMPT, 'Use Preemptive on Enemy Load', true);
+                this.initBoolSetting(common_3.BoolSetting.APRIL_FOOLS, 'April Fools Icons (Needs refresh)', false);
+                document.body.appendChild(this.el);
+            }
+            getElement() {
+                return this.el;
+            }
+            updateStorage() {
+                const b = {};
+                for (const key of this.boolSettings.keys()) {
+                    b[key] = this.boolSettings.get(key);
+                }
+                const n = {};
+                for (const key of this.numberSettings.keys()) {
+                    n[key] = this.numberSettings.get(key);
+                }
+                window.localStorage.valeriaSettings = JSON.stringify({ b, n });
+            }
+            initBoolSetting(name, label, defaultValue) {
+                if (INITIAL_SETTINGS.b && INITIAL_SETTINGS.b[name] != undefined) {
+                    this.boolSettings.set(name, INITIAL_SETTINGS.b[name]);
+                }
+                else {
+                    this.boolSettings.set(name, defaultValue);
+                }
+                const sectionRow = create('tr');
+                const labelCell = create('td');
+                labelCell.innerText = label;
+                const inputCell = create('td');
+                const inputEl = create('input');
+                inputEl.type = 'checkbox';
+                inputEl.checked = this.boolSettings.get(name);
+                inputEl.onchange = () => {
+                    this.setBool(name, inputEl.checked);
+                };
+                inputCell.appendChild(inputEl);
+                sectionRow.appendChild(labelCell);
+                sectionRow.appendChild(inputCell);
+                this.boolEls.set(name, inputEl);
+                this.table.appendChild(sectionRow);
+            }
+            initNumberSetting(name, label, defaultValue) {
+                if (INITIAL_SETTINGS.b && INITIAL_SETTINGS.n[name] != undefined) {
+                    this.numberSettings.set(name, INITIAL_SETTINGS.n[name]);
+                }
+                else {
+                    this.numberSettings.set(name, defaultValue);
+                }
+                const sectionRow = create('tr');
+                const labelCell = create('td');
+                labelCell.innerText = label;
+                const inputCell = create('td');
+                const inputEl = create('input');
+                inputEl.type = 'number';
+                inputEl.value = String(this.numberSettings.get(name));
+                inputEl.onchange = () => {
+                    this.setNumber(name, Number(inputEl.value));
+                };
+                inputCell.appendChild(inputEl);
+                sectionRow.appendChild(labelCell);
+                sectionRow.appendChild(inputCell);
+                this.numberEls.set(name, inputEl);
+                this.table.appendChild(sectionRow);
+            }
+            getBool(s) {
+                if (!this.boolSettings.has(s)) {
+                    console.error(`Setting ${s} not defined, defaulting to false.`);
+                    return false;
+                }
+                return this.boolSettings.get(s);
+            }
+            setBool(s, b) {
+                if (!this.boolSettings.has(s)) {
+                    console.error(`Setting ${s} not defined, not setting.`);
+                    return;
+                }
+                this.boolSettings.set(s, b);
+                this.updateStorage();
+            }
+            getNumber(s) {
+                if (!this.numberSettings.has(s)) {
+                    console.error(`Setting ${s} not defined, defaulting to -1`);
+                    return -1;
+                }
+                return this.numberSettings.get(s);
+            }
+            setNumber(s, n) {
+                if (!this.numberSettings.has(s)) {
+                    console.error(`Setting ${s} not defined, not setting.`);
+                    return;
+                }
+                this.numberSettings.set(s, n);
+                this.updateStorage();
+            }
+        }
+        const SETTINGS = new Settings();
+        exports.SETTINGS = SETTINGS;
+        ilmina_stripped_2.loadSettings(SETTINGS);
         class LayeredAsset {
             constructor(assets, onClick, active = true, scale = 1) {
                 this.element = create('div', ClassNames.LAYERED_ASSET);
@@ -3026,32 +3189,32 @@
         }
         exports.MonsterLatent = MonsterLatent;
         class ComboPiece {
-            constructor(attribute, shape = common_2.Shape.AMORPHOUS, count = 0, boardWidth = 6) {
+            constructor(attribute, shape = common_3.Shape.AMORPHOUS, count = 0, boardWidth = 6) {
                 this.element = create('div');
                 this.element.style.display = 'inline-block';
                 this.element.style.margin = '5px';
                 const srcName = `assets/orb${attribute}.png`;
                 let positions = [];
-                if (shape == common_2.Shape.CROSS) {
+                if (shape == common_3.Shape.CROSS) {
                     positions = [
                         [1],
                         [0, 1, 2],
                         [1],
                     ];
                 }
-                if (shape == common_2.Shape.COLUMN) {
+                if (shape == common_3.Shape.COLUMN) {
                     for (let i = 0; i < count; i++) {
                         positions[i] = [0];
                     }
                 }
-                else if (shape == common_2.Shape.L) {
+                else if (shape == common_3.Shape.L) {
                     positions = [
                         [0],
                         [0],
                         [0, 1, 2],
                     ];
                 }
-                else if (shape == common_2.Shape.BOX) {
+                else if (shape == common_3.Shape.BOX) {
                     positions = [
                         [0, 1, 2],
                         [0, 1, 2],
@@ -3059,7 +3222,7 @@
                     ];
                 }
                 else {
-                    let width = shape == common_2.Shape.ROW ? boardWidth : boardWidth - 1;
+                    let width = shape == common_3.Shape.ROW ? boardWidth : boardWidth - 1;
                     let remainder = count;
                     let vertical = 0;
                     while (remainder > 0) {
@@ -3149,22 +3312,22 @@
                         let shape;
                         let count;
                         if (shapeCount.startsWith('R')) {
-                            shape = common_2.Shape.ROW;
+                            shape = common_3.Shape.ROW;
                             count = parseInt(shapeCount.slice(1));
                         }
                         else if (shapeCount.startsWith('C')) {
-                            shape = common_2.Shape.COLUMN;
+                            shape = common_3.Shape.COLUMN;
                             count = parseInt(shapeCount.slice(1));
                         }
                         else if (shapeCount.match(/^\d+$/)) {
-                            shape = common_2.Shape.AMORPHOUS;
+                            shape = common_3.Shape.AMORPHOUS;
                             count = parseInt(shapeCount);
                         }
                         else {
-                            shape = common_2.LetterToShape[shapeCount[0]];
+                            shape = common_3.LetterToShape[shapeCount[0]];
                             count = 0;
                         }
-                        const comboPiece = new ComboPiece(common_2.COLORS.indexOf(c), shape, count, 6);
+                        const comboPiece = new ComboPiece(common_3.COLORS.indexOf(c), shape, count, 6);
                         this.pieceArea.appendChild(comboPiece.getElement());
                     }
                     if (vals.length) {
@@ -3661,7 +3824,7 @@
                         }
                     }
                 }
-                if (!inheritAwakenings.length || inheritAwakenings[0] != common_2.Awakening.AWOKEN_ASSIST) {
+                if (!inheritAwakenings.length || inheritAwakenings[0] != common_3.Awakening.AWOKEN_ASSIST) {
                     this.inheritAwakeningArea.style.display = 'none';
                 }
                 else {
@@ -3849,6 +4012,7 @@
                 this.el = create('div', ClassNames.MONSTER_EDITOR);
                 this.playerModeSelectors = [];
                 this.types = [];
+                this.el.appendChild(SETTINGS.openButton);
                 const pdchuArea = create('div');
                 this.pdchu = {
                     io: create('textarea', ClassNames.PDCHU_IO),
@@ -3888,10 +4052,10 @@
                     playerModeArea.appendChild(playerModeLabel);
                 }
                 this.badgeSelector = create('select');
-                for (const badge of common_2.TEAM_BADGE_ORDER) {
+                for (const badge of common_3.TEAM_BADGE_ORDER) {
                     const badgeOption = create('option');
                     badgeOption.value = `${badge}`;
-                    badgeOption.innerText = common_2.TeamBadgeToName[badge];
+                    badgeOption.innerText = common_3.TeamBadgeToName[badge];
                     this.badgeSelector.appendChild(badgeOption);
                 }
                 this.badgeSelector.onchange = () => {
@@ -3907,7 +4071,7 @@
                 this.el.appendChild(this.inheritSelector.getElement());
                 const monsterTypeDiv = create('div');
                 for (let i = 0; i < 3; i++) {
-                    const monsterType = new MonsterTypeEl(common_2.MonsterType.NONE, 0.7);
+                    const monsterType = new MonsterTypeEl(common_3.MonsterType.NONE, 0.7);
                     superHide(monsterType.getElement());
                     this.types.push(monsterType);
                     monsterTypeDiv.appendChild(monsterType.getElement());
@@ -4000,7 +4164,7 @@
                 };
                 this.element.appendChild(this.sliderEl);
                 this.hpInput.onchange = () => {
-                    this.onUpdate(common_2.removeCommas(this.hpInput.value));
+                    this.onUpdate(common_3.removeCommas(this.hpInput.value));
                 };
                 this.element.appendChild(this.hpInput);
                 const divisionSpan = create('span');
@@ -4015,14 +4179,14 @@
                     this.maxHp = maxHp;
                     this.sliderEl.max = String(maxHp);
                 }
-                this.hpMaxEl.innerText = common_2.addCommas(this.maxHp);
+                this.hpMaxEl.innerText = common_3.addCommas(this.maxHp);
                 if (currentHp <= this.maxHp) {
                     this.currentHp = currentHp;
                 }
                 else {
                     this.currentHp = this.maxHp;
                 }
-                this.hpInput.value = common_2.addCommas(this.currentHp);
+                this.hpInput.value = common_3.addCommas(this.currentHp);
                 this.sliderEl.value = String(this.currentHp);
                 this.percentEl.innerText = `${Math.round(100 * this.currentHp / this.maxHp)}%`;
             }
@@ -4259,44 +4423,44 @@
                 this.statsEl.appendChild(totalBaseStatEl);
                 const awakeningsToDisplay = [
                     [
-                        common_2.Awakening.SKILL_BOOST,
-                        common_2.Awakening.TIME,
-                        common_2.Awakening.SOLOBOOST,
-                        common_2.Awakening.BONUS_ATTACK,
-                        common_2.Awakening.BONUS_ATTACK_SUPER,
-                        common_2.Awakening.L_GUARD,
+                        common_3.Awakening.SKILL_BOOST,
+                        common_3.Awakening.TIME,
+                        common_3.Awakening.SOLOBOOST,
+                        common_3.Awakening.BONUS_ATTACK,
+                        common_3.Awakening.BONUS_ATTACK_SUPER,
+                        common_3.Awakening.L_GUARD,
                     ],
                     [
-                        common_2.Awakening.SBR,
-                        common_2.Awakening.RESIST_POISON,
-                        common_2.Awakening.RESIST_BLIND,
-                        common_2.Awakening.RESIST_JAMMER,
-                        common_2.Awakening.RESIST_CLOUD,
-                        common_2.Awakening.RESIST_TAPE,
+                        common_3.Awakening.SBR,
+                        common_3.Awakening.RESIST_POISON,
+                        common_3.Awakening.RESIST_BLIND,
+                        common_3.Awakening.RESIST_JAMMER,
+                        common_3.Awakening.RESIST_CLOUD,
+                        common_3.Awakening.RESIST_TAPE,
                     ],
                     [
-                        common_2.Awakening.OE_FIRE,
-                        common_2.Awakening.OE_WATER,
-                        common_2.Awakening.OE_WOOD,
-                        common_2.Awakening.OE_LIGHT,
-                        common_2.Awakening.OE_DARK,
-                        common_2.Awakening.OE_HEART,
+                        common_3.Awakening.OE_FIRE,
+                        common_3.Awakening.OE_WATER,
+                        common_3.Awakening.OE_WOOD,
+                        common_3.Awakening.OE_LIGHT,
+                        common_3.Awakening.OE_DARK,
+                        common_3.Awakening.OE_HEART,
                     ],
                     [
-                        common_2.Awakening.ROW_FIRE,
-                        common_2.Awakening.ROW_WATER,
-                        common_2.Awakening.ROW_WOOD,
-                        common_2.Awakening.ROW_LIGHT,
-                        common_2.Awakening.ROW_DARK,
-                        common_2.Awakening.RECOVER_BIND,
+                        common_3.Awakening.ROW_FIRE,
+                        common_3.Awakening.ROW_WATER,
+                        common_3.Awakening.ROW_WOOD,
+                        common_3.Awakening.ROW_LIGHT,
+                        common_3.Awakening.ROW_DARK,
+                        common_3.Awakening.RECOVER_BIND,
                     ],
                     [
-                        common_2.Awakening.RESIST_FIRE,
-                        common_2.Awakening.RESIST_WATER,
-                        common_2.Awakening.RESIST_WOOD,
-                        common_2.Awakening.RESIST_LIGHT,
-                        common_2.Awakening.RESIST_DARK,
-                        common_2.Awakening.AUTOHEAL,
+                        common_3.Awakening.RESIST_FIRE,
+                        common_3.Awakening.RESIST_WATER,
+                        common_3.Awakening.RESIST_WOOD,
+                        common_3.Awakening.RESIST_LIGHT,
+                        common_3.Awakening.RESIST_DARK,
+                        common_3.Awakening.AUTOHEAL,
                     ],
                 ];
                 const awakeningTable = create('table', ClassNames.AWAKENING_TABLE);
@@ -4343,7 +4507,7 @@
                     this.onTeamUpdate({ fixedHp: 0 });
                 }, false, 0.7);
                 this.fixedHpInput.onchange = () => {
-                    this.onTeamUpdate({ fixedHp: common_2.removeCommas(this.fixedHpInput.value) });
+                    this.onTeamUpdate({ fixedHp: common_3.removeCommas(this.fixedHpInput.value) });
                 };
                 // Choose combos or active.
                 // const actionSelect = create('select') as HTMLSelectElement;
@@ -4442,11 +4606,11 @@
                 burstScaleCell.appendChild(this.burstAwakeningScaleInput);
                 burstScaleCell.appendChild(document.createTextNode('x per '));
                 const burstAwakeningCell = create('td');
-                for (let i = 0; i < common_2.AwakeningToName.length; i++) {
+                for (let i = 0; i < common_3.AwakeningToName.length; i++) {
                     const option1 = create('option');
                     const option2 = create('option');
-                    option1.innerText = i == 0 ? 'Awakening1' : common_2.AwakeningToName[i];
-                    option2.innerText = i == 0 ? 'Awakening2' : common_2.AwakeningToName[i];
+                    option1.innerText = i == 0 ? 'Awakening1' : common_3.AwakeningToName[i];
+                    option2.innerText = i == 0 ? 'Awakening2' : common_3.AwakeningToName[i];
                     option1.value = String(i);
                     option2.value = String(i);
                     this.burstAwakeningSelect1.appendChild(option1);
@@ -4466,8 +4630,8 @@
                 for (let i = -1; i < 5; i++) {
                     const option1 = create('option');
                     const option2 = create('option');
-                    option1.innerText = i == -1 ? 'Attr' : common_2.AttributeToName.get(i) || '';
-                    option2.innerText = i == -1 ? 'Attr' : common_2.AttributeToName.get(i) || '';
+                    option1.innerText = i == -1 ? 'Attr' : common_3.AttributeToName.get(i) || '';
+                    option2.innerText = i == -1 ? 'Attr' : common_3.AttributeToName.get(i) || '';
                     option1.value = String(i);
                     option2.value = String(i);
                     this.burstAttrSelect1.appendChild(option1);
@@ -4481,8 +4645,8 @@
                 for (const i of [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 14, 15,]) {
                     const option1 = create('option');
                     const option2 = create('option');
-                    option1.innerText = i == -1 ? 'Type' : common_2.TypeToName.get(i) || '';
-                    option2.innerText = i == -1 ? 'Type' : common_2.TypeToName.get(i) || '';
+                    option1.innerText = i == -1 ? 'Type' : common_3.TypeToName.get(i) || '';
+                    option2.innerText = i == -1 ? 'Type' : common_3.TypeToName.get(i) || '';
                     option1.value = String(i);
                     option2.value = String(i);
                     this.burstTypeSelect1.appendChild(option1);
@@ -4690,11 +4854,11 @@
                     statsByIdx[StatIndex.RCV].innerText = stats.hps[i] ? String(stats.rcvs[i]) : '';
                     statsByIdx[StatIndex.CD].innerText = stats.cds[i];
                 }
-                this.totalHpValue.innerText = `Total HP: ${common_2.addCommas(stats.totalHp)}`;
+                this.totalHpValue.innerText = `Total HP: ${common_3.addCommas(stats.totalHp)}`;
                 if (stats.totalHp != stats.effectiveHp) {
-                    this.totalHpValue.innerText += ` (${common_2.addCommas(stats.effectiveHp)})`;
+                    this.totalHpValue.innerText += ` (${common_3.addCommas(stats.effectiveHp)})`;
                 }
-                this.totalRcvValue.innerText = `Total RCV: ${common_2.addCommas(stats.totalRcv)}`;
+                this.totalRcvValue.innerText = `Total RCV: ${common_3.addCommas(stats.totalRcv)}`;
                 this.totalTimeValue.innerText = `Time: ${stats.totalTime}s`;
                 const lead = stats.lead;
                 let leaderSkillString = 'Lead: ';
@@ -4711,13 +4875,13 @@
                 if (lead.bonusAttack || lead.trueBonusAttack) {
                     leaderSkillString += ' Autofua: ';
                     if (lead.bonusAttack) {
-                        leaderSkillString += `${common_2.addCommas(lead.bonusAttack)}`;
+                        leaderSkillString += `${common_3.addCommas(lead.bonusAttack)}`;
                     }
                     if (lead.bonusAttack && lead.trueBonusAttack) {
                         leaderSkillString += ' + ';
                     }
                     if (lead.trueBonusAttack) {
-                        leaderSkillString += `${common_2.addCommas(lead.trueBonusAttack)} true`;
+                        leaderSkillString += `${common_3.addCommas(lead.trueBonusAttack)} true`;
                     }
                 }
                 this.leaderSkillEl.innerText = leaderSkillString;
@@ -4786,42 +4950,42 @@
                     this.voidEls[idx].setActive(teamBattle.voids[idx]);
                 }
                 this.fixedHpEl.setActive(teamBattle.fixedHp > 0);
-                this.fixedHpInput.value = common_2.addCommas(teamBattle.fixedHp);
+                this.fixedHpInput.value = common_3.addCommas(teamBattle.fixedHp);
             }
             updateDamage(action, pings, rawPings, actualPings, enemyHp, healing) {
                 this.actionSelect.value = String(action);
                 while (pings.length < 13) {
-                    pings.push({ attribute: common_2.Attribute.NONE, damage: 0 });
-                    rawPings.push({ attribute: common_2.Attribute.NONE, damage: 0 });
-                    actualPings.push({ attribute: common_2.Attribute.NONE, damage: 0 });
+                    pings.push({ attribute: common_3.Attribute.NONE, damage: 0 });
+                    rawPings.push({ attribute: common_3.Attribute.NONE, damage: 0 });
+                    actualPings.push({ attribute: common_3.Attribute.NONE, damage: 0 });
                 }
                 for (let i = 0; i < 12; i++) {
-                    this.pingCells[i].innerText = common_2.addCommas(pings[i].damage);
-                    this.pingCells[i].style.color = pings[i].damage ? common_2.AttributeToFontColor[pings[i].attribute] : common_2.FontColor.COLORLESS;
-                    this.rawPingCells[i].innerText = common_2.addCommas(rawPings[i].damage);
-                    this.rawPingCells[i].style.color = rawPings[i].damage ? common_2.AttributeToFontColor[rawPings[i].attribute] : common_2.FontColor.COLORLESS;
-                    this.actualPingCells[i].innerText = common_2.addCommas(actualPings[i].damage);
-                    this.actualPingCells[i].style.color = actualPings[i].damage ? common_2.AttributeToFontColor[actualPings[i].attribute] : common_2.FontColor.COLORLESS;
+                    this.pingCells[i].innerText = common_3.addCommas(pings[i].damage);
+                    this.pingCells[i].style.color = pings[i].damage ? common_3.AttributeToFontColor[pings[i].attribute] : common_3.FontColor.COLORLESS;
+                    this.rawPingCells[i].innerText = common_3.addCommas(rawPings[i].damage);
+                    this.rawPingCells[i].style.color = rawPings[i].damage ? common_3.AttributeToFontColor[rawPings[i].attribute] : common_3.FontColor.COLORLESS;
+                    this.actualPingCells[i].innerText = common_3.addCommas(actualPings[i].damage);
+                    this.actualPingCells[i].style.color = actualPings[i].damage ? common_3.AttributeToFontColor[actualPings[i].attribute] : common_3.FontColor.COLORLESS;
                 }
-                this.pingTotal.innerText = common_2.addCommas(pings.reduce((t, p) => t + p.damage, 0));
-                this.rawPingTotal.innerText = common_2.addCommas(rawPings.reduce((t, p) => t + p.damage, 0));
+                this.pingTotal.innerText = common_3.addCommas(pings.reduce((t, p) => t + p.damage, 0));
+                this.rawPingTotal.innerText = common_3.addCommas(rawPings.reduce((t, p) => t + p.damage, 0));
                 const d = actualPings.reduce((t, p) => t + p.damage, 0);
-                this.actualPingTotal.innerText = common_2.addCommas(actualPings.reduce((t, p) => t + p.damage, 0));
+                this.actualPingTotal.innerText = common_3.addCommas(actualPings.reduce((t, p) => t + p.damage, 0));
                 this.actualPingPercent.innerText = String(d / enemyHp * 100).substring(0, 5) + '%';
                 if (pings.length > 12) {
-                    this.bonusPing.innerText = common_2.addCommas(pings[12].damage);
-                    this.bonusPing.style.color = pings[12].damage ? common_2.AttributeToFontColor[pings[12].attribute] : common_2.FontColor.COLORLESS;
-                    this.rawBonusPing.innerText = common_2.addCommas(rawPings[12].damage);
-                    this.rawBonusPing.style.color = rawPings[12].damage ? common_2.AttributeToFontColor[rawPings[12].attribute] : common_2.FontColor.COLORLESS;
-                    this.actualBonusPing.innerText = common_2.addCommas(actualPings[12].damage);
-                    this.actualBonusPing.style.color = actualPings[12].damage ? common_2.AttributeToFontColor[actualPings[12].attribute] : common_2.FontColor.COLORLESS;
+                    this.bonusPing.innerText = common_3.addCommas(pings[12].damage);
+                    this.bonusPing.style.color = pings[12].damage ? common_3.AttributeToFontColor[pings[12].attribute] : common_3.FontColor.COLORLESS;
+                    this.rawBonusPing.innerText = common_3.addCommas(rawPings[12].damage);
+                    this.rawBonusPing.style.color = rawPings[12].damage ? common_3.AttributeToFontColor[rawPings[12].attribute] : common_3.FontColor.COLORLESS;
+                    this.actualBonusPing.innerText = common_3.addCommas(actualPings[12].damage);
+                    this.actualBonusPing.style.color = actualPings[12].damage ? common_3.AttributeToFontColor[actualPings[12].attribute] : common_3.FontColor.COLORLESS;
                 }
                 else {
                     this.bonusPing.innerText = '';
                     this.rawBonusPing.innerText = '';
                     this.actualBonusPing.innerText = '';
                 }
-                this.hpDamage.innerText = `+${common_2.addCommas(healing)}`;
+                this.hpDamage.innerText = `+${common_3.addCommas(healing)}`;
             }
         }
         exports.TeamPane = TeamPane;
@@ -4858,7 +5022,7 @@
         class MonsterTypeEl {
             constructor(monsterType, scale = 1) {
                 this.element = create('a', ClassNames.MONSTER_TYPE);
-                this.type = common_2.MonsterType.NONE;
+                this.type = common_3.MonsterType.NONE;
                 this.scale = 1;
                 this.setType(monsterType);
                 this.setScale(scale);
@@ -5007,7 +5171,7 @@
                 });
                 this.element.appendChild(this.enemyPicture.getElement());
                 for (let i = 0; i < 3; i++) {
-                    const typeEl = new MonsterTypeEl(common_2.MonsterType.UNKNOWN_1, 0.7);
+                    const typeEl = new MonsterTypeEl(common_3.MonsterType.UNKNOWN_1, 0.7);
                     this.enemyTypes.push(typeEl);
                     hide(typeEl.getElement());
                     this.element.appendChild(typeEl.getElement());
@@ -5125,10 +5289,10 @@
                 const hpPercentCell = create('td');
                 const atkCell = create('td');
                 const defCell = create('td');
-                this.hpInput.onchange = () => this.onUpdate({ hp: common_2.removeCommas(this.hpInput.value) });
-                this.hpPercentInput.onchange = () => this.onUpdate({ hpPercent: common_2.removeCommas(this.hpPercentInput.value) });
-                this.rageInput.onchange = () => this.onUpdate({ enrage: common_2.removeCommas(this.rageInput.value) });
-                this.defBreakInput.onchange = () => this.onUpdate({ defBreak: common_2.removeCommas(this.defBreakInput.value) });
+                this.hpInput.onchange = () => this.onUpdate({ hp: common_3.removeCommas(this.hpInput.value) });
+                this.hpPercentInput.onchange = () => this.onUpdate({ hpPercent: common_3.removeCommas(this.hpPercentInput.value) });
+                this.rageInput.onchange = () => this.onUpdate({ enrage: common_3.removeCommas(this.rageInput.value) });
+                this.defBreakInput.onchange = () => this.onUpdate({ defBreak: common_3.removeCommas(this.defBreakInput.value) });
                 hpPercentCell.style.textAlign = 'right';
                 const enrageAsset = new LayeredAsset([AssetEnum.ENRAGE], () => { }, true, 0.7);
                 atkCell.appendChild(enrageAsset.getElement());
@@ -5209,7 +5373,7 @@
                         option.innerText = 'Sub';
                     }
                     else {
-                        option.innerText = common_2.AttributeToName.get(i);
+                        option.innerText = common_3.AttributeToName.get(i);
                     }
                     this.currentAttributeSelect.appendChild(option);
                 }
@@ -5394,15 +5558,15 @@
             }
             setEnemyStats(s) {
                 this.enemyLevelInput.value = String(s.lv);
-                this.hpInput.value = common_2.addCommas(s.currentHp);
+                this.hpInput.value = common_3.addCommas(s.currentHp);
                 this.hpPercentInput.value = String(s.percentHp);
-                this.maxHp.innerText = `${common_2.addCommas(s.hp)}`;
-                this.atkBase.innerText = `${common_2.addCommas(s.baseAtk)}`;
-                this.rageInput.value = common_2.addCommas(s.enrage);
-                this.atkFinal.innerText = `${common_2.addCommas(s.atk)}`;
-                this.defFinal.innerText = common_2.addCommas(s.def);
-                this.defBreakInput.value = common_2.addCommas(s.ignoreDefensePercent);
-                this.defBase.innerText = common_2.addCommas(s.baseDef);
+                this.maxHp.innerText = `${common_3.addCommas(s.hp)}`;
+                this.atkBase.innerText = `${common_3.addCommas(s.baseAtk)}`;
+                this.rageInput.value = common_3.addCommas(s.enrage);
+                this.atkFinal.innerText = `${common_3.addCommas(s.atk)}`;
+                this.defFinal.innerText = common_3.addCommas(s.def);
+                this.defBreakInput.value = common_3.addCommas(s.ignoreDefensePercent);
+                this.defBase.innerText = common_3.addCommas(s.baseDef);
                 if (s.resolve <= 0) {
                     superHide(this.resolve.parentElement);
                 }
@@ -5456,8 +5620,8 @@
                 this.statusShield.setActive(s.statusShield);
                 this.invincible.setActive(s.invincible);
                 this.currentAttributeSelect.value = String(s.attribute);
-                this.damageVoidInput.value = common_2.addCommas(s.damageVoid);
-                this.damageAbsorbInput.value = common_2.addCommas(s.damageAbsorb);
+                this.damageVoidInput.value = common_3.addCommas(s.damageVoid);
+                this.damageAbsorbInput.value = common_3.addCommas(s.damageAbsorb);
                 this.comboAbsorbInput.value = `${s.comboAbsorb}`;
                 this.damageShieldInput.value = `${s.damageShield}`;
                 for (let i = 0; i < this.attributeAbsorbs.length; i++) {
@@ -5527,28 +5691,28 @@
                 const awakeningDiv = create('div');
                 const awakeningRows = [
                     [
-                        common_2.Awakening.SKILL_BOOST, common_2.Awakening.SBR, common_2.Awakening.TIME, common_2.Awakening.GUARD_BREAK, common_2.Awakening.SOLOBOOST, common_2.Awakening.OE_HEART,
-                        common_2.Awakening.OE_FIRE, common_2.Awakening.OE_WATER, common_2.Awakening.OE_WOOD, common_2.Awakening.OE_LIGHT, common_2.Awakening.OE_DARK,
+                        common_3.Awakening.SKILL_BOOST, common_3.Awakening.SBR, common_3.Awakening.TIME, common_3.Awakening.GUARD_BREAK, common_3.Awakening.SOLOBOOST, common_3.Awakening.OE_HEART,
+                        common_3.Awakening.OE_FIRE, common_3.Awakening.OE_WATER, common_3.Awakening.OE_WOOD, common_3.Awakening.OE_LIGHT, common_3.Awakening.OE_DARK,
                     ],
                     [
-                        common_2.Awakening.RESIST_BLIND, common_2.Awakening.RESIST_JAMMER, common_2.Awakening.RESIST_POISON, common_2.Awakening.BONUS_ATTACK, common_2.Awakening.BONUS_ATTACK_SUPER, common_2.Awakening.RECOVER_BIND,
-                        common_2.Awakening.ROW_FIRE, common_2.Awakening.ROW_WATER, common_2.Awakening.ROW_WOOD, common_2.Awakening.ROW_LIGHT, common_2.Awakening.ROW_DARK,
+                        common_3.Awakening.RESIST_BLIND, common_3.Awakening.RESIST_JAMMER, common_3.Awakening.RESIST_POISON, common_3.Awakening.BONUS_ATTACK, common_3.Awakening.BONUS_ATTACK_SUPER, common_3.Awakening.RECOVER_BIND,
+                        common_3.Awakening.ROW_FIRE, common_3.Awakening.ROW_WATER, common_3.Awakening.ROW_WOOD, common_3.Awakening.ROW_LIGHT, common_3.Awakening.ROW_DARK,
                     ],
                     [
-                        common_2.Awakening.RESIST_CLOUD, common_2.Awakening.RESIST_TAPE, common_2.Awakening.AUTOHEAL, common_2.Awakening.L_UNLOCK, common_2.Awakening.L_GUARD, common_2.Awakening.COMBO_ORB,
-                        common_2.Awakening.RESIST_FIRE, common_2.Awakening.RESIST_WATER, common_2.Awakening.RESIST_WOOD, common_2.Awakening.RESIST_LIGHT, common_2.Awakening.RESIST_DARK,
+                        common_3.Awakening.RESIST_CLOUD, common_3.Awakening.RESIST_TAPE, common_3.Awakening.AUTOHEAL, common_3.Awakening.L_UNLOCK, common_3.Awakening.L_GUARD, common_3.Awakening.COMBO_ORB,
+                        common_3.Awakening.RESIST_FIRE, common_3.Awakening.RESIST_WATER, common_3.Awakening.RESIST_WOOD, common_3.Awakening.RESIST_LIGHT, common_3.Awakening.RESIST_DARK,
                     ],
                     [
-                        common_2.Awakening.DRAGON, common_2.Awakening.GOD, common_2.Awakening.DEVIL, common_2.Awakening.MACHINE, common_2.Awakening.VDP, common_2.Awakening.COMBO_7,
-                        common_2.Awakening.COMBO_10, common_2.Awakening.SKILL_CHARGE, common_2.Awakening.MULTIBOOST, common_2.Awakening.HP, common_2.Awakening.HP_MINUS,
+                        common_3.Awakening.DRAGON, common_3.Awakening.GOD, common_3.Awakening.DEVIL, common_3.Awakening.MACHINE, common_3.Awakening.VDP, common_3.Awakening.COMBO_7,
+                        common_3.Awakening.COMBO_10, common_3.Awakening.SKILL_CHARGE, common_3.Awakening.MULTIBOOST, common_3.Awakening.HP, common_3.Awakening.HP_MINUS,
                     ],
                     [
-                        common_2.Awakening.BALANCED, common_2.Awakening.ATTACKER, common_2.Awakening.PHYSICAL, common_2.Awakening.HEALER, common_2.Awakening.TPA, common_2.Awakening.HP_GREATER,
-                        common_2.Awakening.HP_LESSER, common_2.Awakening.RESIST_BIND, common_2.Awakening.TEAM_HP, common_2.Awakening.ATK, common_2.Awakening.ATK_MINUS,
+                        common_3.Awakening.BALANCED, common_3.Awakening.ATTACKER, common_3.Awakening.PHYSICAL, common_3.Awakening.HEALER, common_3.Awakening.TPA, common_3.Awakening.HP_GREATER,
+                        common_3.Awakening.HP_LESSER, common_3.Awakening.RESIST_BIND, common_3.Awakening.TEAM_HP, common_3.Awakening.ATK, common_3.Awakening.ATK_MINUS,
                     ],
                     [
-                        common_2.Awakening.EVO, common_2.Awakening.AWOKEN, common_2.Awakening.ENHANCED, common_2.Awakening.REDEEMABLE, common_2.Awakening.JAMMER_BOOST, common_2.Awakening.POISON_BOOST,
-                        common_2.Awakening.AWOKEN_ASSIST, common_2.Awakening.VOICE, common_2.Awakening.TEAM_RCV, common_2.Awakening.RCV, common_2.Awakening.RCV_MINUS,
+                        common_3.Awakening.EVO, common_3.Awakening.AWOKEN, common_3.Awakening.ENHANCED, common_3.Awakening.REDEEMABLE, common_3.Awakening.JAMMER_BOOST, common_3.Awakening.POISON_BOOST,
+                        common_3.Awakening.AWOKEN_ASSIST, common_3.Awakening.VOICE, common_3.Awakening.TEAM_RCV, common_3.Awakening.RCV, common_3.Awakening.RCV_MINUS,
                     ],
                 ];
                 for (const awakeningRow of awakeningRows) {
@@ -5988,71 +6152,71 @@
         }
         exports.runTests = runTests;
     });
-    define("monster_instance", ["require", "exports", "common", "ilmina_stripped", "templates", "fuzzy_search"], function (require, exports, common_3, ilmina_stripped_3, templates_2, fuzzy_search_2) {
+    define("monster_instance", ["require", "exports", "common", "ilmina_stripped", "templates", "fuzzy_search"], function (require, exports, common_4, ilmina_stripped_3, templates_2, fuzzy_search_2) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         const AWAKENING_BONUS = new Map([
-            [common_3.Awakening.HP, 500],
-            [common_3.Awakening.HP_MINUS, -5000],
-            [common_3.Awakening.ATK, 100],
-            [common_3.Awakening.ATK_MINUS, -1000],
-            [common_3.Awakening.RCV, 200],
-            [common_3.Awakening.RCV_MINUS, -2000],
+            [common_4.Awakening.HP, 500],
+            [common_4.Awakening.HP_MINUS, -5000],
+            [common_4.Awakening.ATK, 100],
+            [common_4.Awakening.ATK_MINUS, -1000],
+            [common_4.Awakening.RCV, 200],
+            [common_4.Awakening.RCV_MINUS, -2000],
         ]);
         const LatentHp = new Map([
-            [common_3.Latent.HP, 0.015],
-            [common_3.Latent.HP_PLUS, 0.045],
-            [common_3.Latent.ALL_STATS, 0.03],
+            [common_4.Latent.HP, 0.015],
+            [common_4.Latent.HP_PLUS, 0.045],
+            [common_4.Latent.ALL_STATS, 0.03],
         ]);
         const LatentAtk = new Map([
-            [common_3.Latent.ATK, 0.01],
-            [common_3.Latent.ATK_PLUS, 0.03],
-            [common_3.Latent.ALL_STATS, 0.02],
+            [common_4.Latent.ATK, 0.01],
+            [common_4.Latent.ATK_PLUS, 0.03],
+            [common_4.Latent.ALL_STATS, 0.02],
         ]);
         const LatentRcv = new Map([
-            [common_3.Latent.RCV, 0.1],
-            [common_3.Latent.RCV_PLUS, 0.3],
-            [common_3.Latent.ALL_STATS, 0.2],
+            [common_4.Latent.RCV, 0.1],
+            [common_4.Latent.RCV_PLUS, 0.3],
+            [common_4.Latent.ALL_STATS, 0.2],
         ]);
         const LatentToPdchu = new Map([
-            [common_3.Latent.HP, 'hp'],
-            [common_3.Latent.ATK, 'atk'],
-            [common_3.Latent.RCV, 'rcv'],
-            [common_3.Latent.HP_PLUS, 'hp+'],
-            [common_3.Latent.ATK_PLUS, 'atk+'],
-            [common_3.Latent.RCV_PLUS, 'rcv+'],
-            [common_3.Latent.TIME, 'te'],
-            [common_3.Latent.TIME_PLUS, 'te+'],
-            [common_3.Latent.AUTOHEAL, 'ah'],
-            [common_3.Latent.RESIST_FIRE, 'rres'],
-            [common_3.Latent.RESIST_WATER, 'bres'],
-            [common_3.Latent.RESIST_WOOD, 'gres'],
-            [common_3.Latent.RESIST_LIGHT, 'lres'],
-            [common_3.Latent.RESIST_DARK, 'dres'],
-            [common_3.Latent.RESIST_FIRE_PLUS, 'rres+'],
-            [common_3.Latent.RESIST_WATER_PLUS, 'bres+'],
-            [common_3.Latent.RESIST_WOOD_PLUS, 'gres+'],
-            [common_3.Latent.RESIST_LIGHT_PLUS, 'lres+'],
-            [common_3.Latent.RESIST_DARK_PLUS, 'dres+'],
-            [common_3.Latent.SDR, 'sdr'],
-            [common_3.Latent.ALL_STATS, 'all'],
-            [common_3.Latent.EVO, 'evk'],
-            [common_3.Latent.AWOKEN, 'awk'],
-            [common_3.Latent.ENHANCED, 'enk'],
-            [common_3.Latent.REDEEMABLE, 'rek'],
-            [common_3.Latent.GOD, 'gok'],
-            [common_3.Latent.DEVIL, 'dek'],
-            [common_3.Latent.DRAGON, 'drk'],
-            [common_3.Latent.MACHINE, 'mak'],
-            [common_3.Latent.BALANCED, 'bak'],
-            [common_3.Latent.ATTACKER, 'aak'],
-            [common_3.Latent.PHYSICAL, 'phk'],
-            [common_3.Latent.HEALER, 'hek'],
-            [common_3.Latent.RESIST_DAMAGE_VOID, 'rdv'],
-            [common_3.Latent.RESIST_ATTRIBUTE_ABSORB, 'raa'],
-            [common_3.Latent.RESIST_JAMMER_SKYFALL, 'rjs'],
-            [common_3.Latent.RESIST_POISON_SKYFALL, 'rps'],
-            [common_3.Latent.RESIST_LEADER_SWAP, 'rls'],
+            [common_4.Latent.HP, 'hp'],
+            [common_4.Latent.ATK, 'atk'],
+            [common_4.Latent.RCV, 'rcv'],
+            [common_4.Latent.HP_PLUS, 'hp+'],
+            [common_4.Latent.ATK_PLUS, 'atk+'],
+            [common_4.Latent.RCV_PLUS, 'rcv+'],
+            [common_4.Latent.TIME, 'te'],
+            [common_4.Latent.TIME_PLUS, 'te+'],
+            [common_4.Latent.AUTOHEAL, 'ah'],
+            [common_4.Latent.RESIST_FIRE, 'rres'],
+            [common_4.Latent.RESIST_WATER, 'bres'],
+            [common_4.Latent.RESIST_WOOD, 'gres'],
+            [common_4.Latent.RESIST_LIGHT, 'lres'],
+            [common_4.Latent.RESIST_DARK, 'dres'],
+            [common_4.Latent.RESIST_FIRE_PLUS, 'rres+'],
+            [common_4.Latent.RESIST_WATER_PLUS, 'bres+'],
+            [common_4.Latent.RESIST_WOOD_PLUS, 'gres+'],
+            [common_4.Latent.RESIST_LIGHT_PLUS, 'lres+'],
+            [common_4.Latent.RESIST_DARK_PLUS, 'dres+'],
+            [common_4.Latent.SDR, 'sdr'],
+            [common_4.Latent.ALL_STATS, 'all'],
+            [common_4.Latent.EVO, 'evk'],
+            [common_4.Latent.AWOKEN, 'awk'],
+            [common_4.Latent.ENHANCED, 'enk'],
+            [common_4.Latent.REDEEMABLE, 'rek'],
+            [common_4.Latent.GOD, 'gok'],
+            [common_4.Latent.DEVIL, 'dek'],
+            [common_4.Latent.DRAGON, 'drk'],
+            [common_4.Latent.MACHINE, 'mak'],
+            [common_4.Latent.BALANCED, 'bak'],
+            [common_4.Latent.ATTACKER, 'aak'],
+            [common_4.Latent.PHYSICAL, 'phk'],
+            [common_4.Latent.HEALER, 'hek'],
+            [common_4.Latent.RESIST_DAMAGE_VOID, 'rdv'],
+            [common_4.Latent.RESIST_ATTRIBUTE_ABSORB, 'raa'],
+            [common_4.Latent.RESIST_JAMMER_SKYFALL, 'rjs'],
+            [common_4.Latent.RESIST_POISON_SKYFALL, 'rps'],
+            [common_4.Latent.RESIST_LEADER_SWAP, 'rls'],
         ]);
         exports.LatentToPdchu = LatentToPdchu;
         const PdchuToLatent = new Map();
@@ -6128,7 +6292,7 @@
                 this.inheritPlussed = false;
                 // Attributes set in dungeon.
                 this.bound = false; // Monster being bound and unusable.
-                this.attribute = common_3.Attribute.NONE; // Attribute override.
+                this.attribute = common_4.Attribute.NONE; // Attribute override.
                 this.transformedTo = -1; // Monster transformation.
                 this.id = id;
                 this.el = templates_2.create('div');
@@ -6178,7 +6342,7 @@
                 }
                 const c = this.getCard();
                 // Change to monster's max level.
-                this.setLevel(c.isLimitBreakable ? 110 : c.maxLevel);
+                this.setLevel(templates_2.SETTINGS.getNumber(common_4.NumberSetting.MONSTER_LEVEL));
                 // Change to monster's max awakening level.
                 this.awakenings = c.awakenings.length;
                 // Attempt to copy the current latents.
@@ -6200,16 +6364,16 @@
                 else {
                     this.superAwakeningIdx = -1;
                 }
-                if (!ilmina_stripped_3.CardAssets.canPlus(c)) {
+                if (ilmina_stripped_3.CardAssets.canPlus(c)) {
+                    this.setHpPlus(99);
+                    this.setAtkPlus(99);
+                    this.setRcvPlus(99);
+                }
+                else {
                     this.setHpPlus(0);
                     this.setAtkPlus(0);
                     this.setRcvPlus(0);
                     this.inheritId = -1;
-                }
-                else {
-                    this.setHpPlus(99);
-                    this.setAtkPlus(99);
-                    this.setRcvPlus(99);
                 }
             }
             getId(ignoreTransform = false) {
@@ -6365,15 +6529,15 @@
             }
             fromPdchu(str) {
                 let s = str.trim().toLowerCase();
-                let assistPlussed = true;
-                let assistLevel = 110;
+                let assistPlussed = templates_2.SETTINGS.getBool(common_4.BoolSetting.INHERIT_PLUSSED);
+                let assistLevel = templates_2.SETTINGS.getNumber(common_4.NumberSetting.INHERIT_LEVEL);
                 let latents = [];
                 let hpPlus = 99;
                 let atkPlus = 99;
                 let rcvPlus = 99;
                 let awakeningLevel = 9;
                 let superAwakeningIdx = -1;
-                let level = 110;
+                let level = templates_2.SETTINGS.getNumber(common_4.NumberSetting.MONSTER_LEVEL);
                 const MONSTER_NAME_REGEX = /^\s*(("[^"]+")|[^([|]*)/;
                 const ASSIST_REGEX = /\(\s*("[^"]*")?[^)]+\)/;
                 const ASSIST_NAME_REGEX = /^\s*("[^"]+"|[^|]+)/;
@@ -6434,7 +6598,7 @@
                             continue;
                         }
                         const latentName = latentMatch[0];
-                        let latent = PdchuToLatent.get(String(latentName)) || common_3.Latent.SDR;
+                        let latent = PdchuToLatent.get(String(latentName)) || common_4.Latent.SDR;
                         if (latent == undefined) {
                             continue;
                         }
@@ -6514,9 +6678,7 @@
                         this.inheritId = bestGuessInheritIds[0];
                         const inheritCard = this.getInheritCard();
                         if (inheritCard) {
-                            if (!inheritCard.isLimitBreakable) {
-                                this.inheritLevel = Math.min(this.inheritLevel, inheritCard.maxLevel);
-                            }
+                            this.inheritLevel = Math.min(this.inheritLevel, inheritCard.isLimitBreakable ? 110 : inheritCard.maxLevel);
                             const card = this.getCard();
                             if (card.attribute != inheritCard.attribute) {
                                 this.inheritLevel = 1;
@@ -6548,7 +6710,7 @@
                     awakenings.push(c.superAwakenings[this.superAwakeningIdx]);
                 }
                 const inherit = this.getInheritCard();
-                if (inherit && inherit.awakenings.length && inherit.awakenings[0] == common_3.Awakening.AWOKEN_ASSIST) {
+                if (inherit && inherit.awakenings.length && inherit.awakenings[0] == common_4.Awakening.AWOKEN_ASSIST) {
                     for (const a of inherit.awakenings) {
                         awakenings.push(a);
                     }
@@ -6557,7 +6719,7 @@
             }
             countAwakening(awakening, playerMode = 1, ignoreTransform = false) {
                 let count = this.getAwakenings(playerMode, new Set([awakening]), ignoreTransform).length;
-                let plusInfo = common_3.AwakeningToPlus.get(awakening);
+                let plusInfo = common_4.AwakeningToPlus.get(awakening);
                 if (plusInfo) {
                     count += plusInfo.multiplier * this.getAwakenings(playerMode, new Set([plusInfo.awakening]), ignoreTransform).length;
                 }
@@ -6635,12 +6797,12 @@
                 let hp = this.calcScaleStat(c.maxHp, c.minHp, c.hpGrowth);
                 if (awakeningsActive) {
                     let latentMultiplier = 1;
-                    for (const latent of this.getLatents(new Set([common_3.Latent.HP, common_3.Latent.HP_PLUS, common_3.Latent.ALL_STATS]))) {
+                    for (const latent of this.getLatents(new Set([common_4.Latent.HP, common_4.Latent.HP_PLUS, common_4.Latent.ALL_STATS]))) {
                         latentMultiplier += LatentHp.get(latent) || 0;
                     }
                     hp *= latentMultiplier;
                     let awakeningAdder = 0;
-                    for (const awakening of this.getAwakenings(playerMode, new Set([common_3.Awakening.HP, common_3.Awakening.HP_MINUS]))) {
+                    for (const awakening of this.getAwakenings(playerMode, new Set([common_4.Awakening.HP, common_4.Awakening.HP_MINUS]))) {
                         awakeningAdder += AWAKENING_BONUS.get(awakening) || 0;
                     }
                     hp += awakeningAdder;
@@ -6653,7 +6815,7 @@
                     hp += Math.round(inheritBonus * 0.1);
                 }
                 if (playerMode > 1 && awakeningsActive) {
-                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, playerMode);
+                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_4.Awakening.MULTIBOOST, playerMode);
                     hp *= multiboostMultiplier;
                 }
                 return Math.max(Math.round(hp), 1);
@@ -6666,12 +6828,12 @@
                 let atk = this.calcScaleStat(c.maxAtk, c.minAtk, c.atkGrowth);
                 if (awakeningsActive) {
                     let latentMultiplier = 1;
-                    for (const latent of this.getLatents(new Set([common_3.Latent.ATK, common_3.Latent.ATK_PLUS, common_3.Latent.ALL_STATS]))) {
+                    for (const latent of this.getLatents(new Set([common_4.Latent.ATK, common_4.Latent.ATK_PLUS, common_4.Latent.ALL_STATS]))) {
                         latentMultiplier += LatentAtk.get(latent) || 0;
                     }
                     atk *= latentMultiplier;
                     let awakeningAdder = 0;
-                    for (const awakening of this.getAwakenings(playerMode, new Set([common_3.Awakening.ATK, common_3.Awakening.ATK_MINUS]))) {
+                    for (const awakening of this.getAwakenings(playerMode, new Set([common_4.Awakening.ATK, common_4.Awakening.ATK_MINUS]))) {
                         awakeningAdder += AWAKENING_BONUS.get(awakening) || 0;
                     }
                     atk += awakeningAdder;
@@ -6684,7 +6846,7 @@
                     atk += Math.round(inheritBonus * 0.05);
                 }
                 if (playerMode > 1 && awakeningsActive) {
-                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, playerMode);
+                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_4.Awakening.MULTIBOOST, playerMode);
                     atk *= multiboostMultiplier;
                 }
                 return Math.max(Math.round(atk), 1);
@@ -6694,11 +6856,11 @@
                 let rcv = this.calcScaleStat(c.maxRcv, c.minRcv, c.rcvGrowth);
                 if (awakeningsActive) {
                     let latentMultiplier = 1;
-                    for (const latent of this.getLatents(new Set([common_3.Latent.RCV, common_3.Latent.RCV_PLUS, common_3.Latent.ALL_STATS]))) {
+                    for (const latent of this.getLatents(new Set([common_4.Latent.RCV, common_4.Latent.RCV_PLUS, common_4.Latent.ALL_STATS]))) {
                         latentMultiplier += LatentRcv.get(latent) || 0;
                     }
                     rcv *= latentMultiplier;
-                    const rcvSet = new Set([common_3.Awakening.RCV, common_3.Awakening.RCV_MINUS]);
+                    const rcvSet = new Set([common_4.Awakening.RCV, common_4.Awakening.RCV_MINUS]);
                     let total = 0;
                     for (const awakening of this.getAwakenings(playerMode, rcvSet)) {
                         total += AWAKENING_BONUS.get(awakening) || 0;
@@ -6713,23 +6875,23 @@
                     rcv += Math.round(inheritBonus * 0.15);
                 }
                 if (playerMode > 1 && awakeningsActive) {
-                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_3.Awakening.MULTIBOOST, playerMode);
+                    const multiboostMultiplier = 1.5 ** this.countAwakening(common_4.Awakening.MULTIBOOST, playerMode);
                     rcv *= multiboostMultiplier;
                 }
                 return Math.round(rcv);
             }
             getAttribute() {
-                if (this.attribute != common_3.Attribute.NONE) {
+                if (this.attribute != common_4.Attribute.NONE) {
                     return this.attribute;
                 }
                 return this.getCard().attribute;
             }
             getSubattribute() {
                 const c = this.getCard();
-                if (c.subattribute == common_3.Attribute.NONE) {
-                    return common_3.Attribute.NONE;
+                if (c.subattribute == common_4.Attribute.NONE) {
+                    return common_4.Attribute.NONE;
                 }
-                if (this.attribute != common_3.Attribute.NONE) {
+                if (this.attribute != common_4.Attribute.NONE) {
                     return this.attribute;
                 }
                 return c.subattribute;
@@ -6748,7 +6910,7 @@
                 return a.some((attr) => this.isAttribute(attr));
             }
             anyAttributeTypeBits(attrBits, typeBits) {
-                return this.anyAttributes(common_3.idxsFromBits(attrBits)) || this.anyTypes(common_3.idxsFromBits(typeBits));
+                return this.anyAttributes(common_4.idxsFromBits(attrBits)) || this.anyTypes(common_4.idxsFromBits(typeBits));
             }
             fromJson(json) {
                 // const monster = new MonsterInstance(json.id || -1);
@@ -6816,13 +6978,13 @@
                     CD_MAX,
                     INHERIT_CD: this.getCooldownInherit(),
                     INHERIT_CD_MAX: CD_MAX + (inheritSkillId ? ilmina_stripped_3.floof.getPlayerSkill(inheritSkillId).initialCooldown : 0),
-                    SDR: this.latents.filter((l) => l == common_3.Latent.SDR).length,
+                    SDR: this.latents.filter((l) => l == common_4.Latent.SDR).length,
                 };
             }
         }
         exports.MonsterInstance = MonsterInstance;
     });
-    define("damage_ping", ["require", "exports", "common"], function (require, exports, common_4) {
+    define("damage_ping", ["require", "exports", "common"], function (require, exports, common_5) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DamagePing {
@@ -6841,13 +7003,13 @@
             add(amount) {
                 this.damage += amount;
             }
-            multiply(multiplier, round = common_4.Round.NEAREST) {
+            multiply(multiplier, round = common_5.Round.NEAREST) {
                 this.damage = round(this.damage * multiplier);
             }
         }
         exports.DamagePing = DamagePing;
     });
-    define("combo_container", ["require", "exports", "common", "templates"], function (require, exports, common_5, templates_3) {
+    define("combo_container", ["require", "exports", "common", "templates"], function (require, exports, common_6, templates_3) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class Combo {
@@ -6858,24 +7020,24 @@
                     enhanced = count;
                 }
                 this.enhanced = enhanced;
-                if (shape == common_5.Shape.L && count != 5 ||
-                    shape == common_5.Shape.COLUMN && (count < 4 || count > 6) ||
-                    shape == common_5.Shape.CROSS && count != 5 ||
-                    shape == common_5.Shape.BOX && count != 9 ||
-                    shape == common_5.Shape.ROW && count < 5) {
+                if (shape == common_6.Shape.L && count != 5 ||
+                    shape == common_6.Shape.COLUMN && (count < 4 || count > 6) ||
+                    shape == common_6.Shape.CROSS && count != 5 ||
+                    shape == common_6.Shape.BOX && count != 9 ||
+                    shape == common_6.Shape.ROW && count < 5) {
                     console.warn(`Invalid Shape and count combination. Changing shape to AMORPHOUS`);
-                    shape = common_5.Shape.AMORPHOUS;
+                    shape = common_6.Shape.AMORPHOUS;
                 }
                 this.shape = shape;
             }
             recount() {
-                if (this.shape == common_5.Shape.L || this.shape == common_5.Shape.CROSS) {
+                if (this.shape == common_6.Shape.L || this.shape == common_6.Shape.CROSS) {
                     this.count = 5;
                 }
-                if (this.shape == common_5.Shape.BOX) {
+                if (this.shape == common_6.Shape.BOX) {
                     this.count = 9;
                 }
-                if (this.shape == common_5.Shape.COLUMN) {
+                if (this.shape == common_6.Shape.COLUMN) {
                     console.warn('TODO: Handle auto changing to column');
                 }
                 if (this.enhanced > this.count) {
@@ -6887,7 +7049,7 @@
         class ComboContainer {
             constructor() {
                 this.combos = {};
-                for (const c of common_5.COLORS) {
+                for (const c of common_6.COLORS) {
                     this.combos[c] = [];
                 }
                 this.boardWidth = 6;
@@ -6953,7 +7115,7 @@
                                     this.delete(`${c}${idx}`);
                                 }
                                 else {
-                                    combos[idx].shape = common_5.LetterToShape[shape];
+                                    combos[idx].shape = common_6.LetterToShape[shape];
                                     combos[idx].count = count;
                                     combos[idx].recount();
                                 }
@@ -7042,9 +7204,9 @@
                         count = 9;
                         break;
                 }
-                return this.add(count, cmd, common_5.LetterToShape[shape] || common_5.Shape.AMORPHOUS);
+                return this.add(count, cmd, common_6.LetterToShape[shape] || common_6.Shape.AMORPHOUS);
             }
-            add(count, cmd, shape = common_5.Shape.AMORPHOUS) {
+            add(count, cmd, shape = common_6.Shape.AMORPHOUS) {
                 if (count < 3) {
                     count = 3;
                 }
@@ -7061,7 +7223,7 @@
                         e = Number(maybeEnhance[0]);
                         cmd = cmd.substring(maybeEnhance[0].length);
                     }
-                    this.combos[c].push(new Combo(count, common_5.COLORS.indexOf(c), e, shape));
+                    this.combos[c].push(new Combo(count, common_6.COLORS.indexOf(c), e, shape));
                     added = true;
                 }
                 if (cmd) {
@@ -7129,11 +7291,11 @@
                 const data = {};
                 for (const c in this.combos) {
                     data[c] = this.combos[c].map((combo) => {
-                        let countString = common_5.ShapeToLetter[combo.shape];
-                        if (combo.shape == common_5.Shape.AMORPHOUS) {
+                        let countString = common_6.ShapeToLetter[combo.shape];
+                        if (combo.shape == common_6.Shape.AMORPHOUS) {
                             countString = `${combo.count}`;
                         }
-                        if (combo.shape == common_5.Shape.ROW || combo.shape == common_5.Shape.COLUMN) {
+                        if (combo.shape == common_6.Shape.ROW || combo.shape == common_6.Shape.COLUMN) {
                             countString += `${combo.count}`;
                         }
                         return {
@@ -7171,7 +7333,7 @@
         }
         exports.ComboContainer = ComboContainer;
     });
-    define("leaders", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_6, ilmina_stripped_4) {
+    define("leaders", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_7, ilmina_stripped_4) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function subs(team) {
@@ -7319,8 +7481,8 @@
             coins: ([coins100]) => coins100 / 100,
         };
         function countMatchedColors(attrBits, comboContainer, team) {
-            const matchedAttr = common_6.idxsFromBits(attrBits)
-                .filter((attr) => comboContainer.combos[common_6.COLORS[attr]].length)
+            const matchedAttr = common_7.idxsFromBits(attrBits)
+                .filter((attr) => comboContainer.combos[common_7.COLORS[attr]].length)
                 .filter((attr) => attr >= 5 || team.some((monster) => !monster.bound && (monster.getAttribute() == attr || monster.getSubattribute() == attr)));
             return matchedAttr.length;
         }
@@ -7478,8 +7640,8 @@
             rcvMax: ([_, _a, rcvFlag, mult100]) => rcvFlag ? mult100 / 100 : 1,
         };
         const atkRcvFromAttrCombos = {
-            atk: ([a, attrBits, b, c, d], ctx) => ctx.ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) ? atkRcvFromCombos.atk([a, b, c, d], ctx) : 1,
-            rcvPost: ([a, attrBits, b, c, d], ctx) => ctx.monster.anyAttributes(common_6.idxsFromBits(attrBits)) ? atkRcvFromCombos.rcv([a, b, c, d], ctx) : 1,
+            atk: ([a, attrBits, b, c, d], ctx) => ctx.ping.source.anyAttributes(common_7.idxsFromBits(attrBits)) ? atkRcvFromCombos.atk([a, b, c, d], ctx) : 1,
+            rcvPost: ([a, attrBits, b, c, d], ctx) => ctx.monster.anyAttributes(common_7.idxsFromBits(attrBits)) ? atkRcvFromCombos.rcv([a, b, c, d], ctx) : 1,
             atkMax: ([_, _a, atkFlag, _b, mult100]) => atkFlag ? mult100 / 100 : 1,
             rcvMax: ([_, _a, _b, rcvFlag, mult100]) => rcvFlag ? mult100 / 100 : 1,
         };
@@ -7506,7 +7668,7 @@
             atkMax: ([_, _a, atk100]) => atk100 / 100,
         };
         const atkFromLinkedOrbs = {
-            atk: ([attrBits, minLinked, atk100], { comboContainer }) => common_6.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_6.COLORS[attr]].some((c) => c.count >= minLinked)) ? atk100 / 100 : 1,
+            atk: ([attrBits, minLinked, atk100], { comboContainer }) => common_7.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_7.COLORS[attr]].some((c) => c.count >= minLinked)) ? atk100 / 100 : 1,
             atkMax: ([_, _a, atk100]) => atk100 / 100,
         };
         const atkHpFromTwoAttrs = {
@@ -7531,8 +7693,8 @@
                 atk100scale = atk100scale || 0;
                 maxLinked = maxLinked || minLinked;
                 let linked = 0;
-                for (const attr of common_6.idxsFromBits(attrBits)) {
-                    for (const combo of comboContainer.combos[common_6.COLORS[attr]]) {
+                for (const attr of common_7.idxsFromBits(attrBits)) {
+                    for (const combo of comboContainer.combos[common_7.COLORS[attr]]) {
                         linked = combo.count > linked ? combo.count : linked;
                     }
                 }
@@ -7547,22 +7709,22 @@
             atkMax: ([_, minLinked, atk100base, atk100scale, maxLinked]) => (atk100base + ((maxLinked || minLinked) - minLinked) * (atk100scale || 0)) / 100,
         };
         const baseStatFromAttrsTypes = {
-            hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && (monster.anyAttributes(common_6.idxsFromBits(attrBits)) || monster.anyTypes(common_6.idxsFromBits(typeBits))) ? hp100 / 100 : 1,
-            atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && (ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) || ping.source.anyTypes(common_6.idxsFromBits(typeBits))) ? atk100 / 100 : 1,
-            rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && (monster.anyAttributes(common_6.idxsFromBits(attrBits)) || monster.anyTypes(common_6.idxsFromBits(typeBits))) ? rcv100 / 100 : 1,
+            hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && (monster.anyAttributes(common_7.idxsFromBits(attrBits)) || monster.anyTypes(common_7.idxsFromBits(typeBits))) ? hp100 / 100 : 1,
+            atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && (ping.source.anyAttributes(common_7.idxsFromBits(attrBits)) || ping.source.anyTypes(common_7.idxsFromBits(typeBits))) ? atk100 / 100 : 1,
+            rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && (monster.anyAttributes(common_7.idxsFromBits(attrBits)) || monster.anyTypes(common_7.idxsFromBits(typeBits))) ? rcv100 / 100 : 1,
             hpMax: ([_, _a, hp100]) => (hp100 || 100) / 100,
             atkMax: ([_, _a, _b, atk100]) => (atk100 | 100) / 100,
             rcvMax: ([_, _a, _b, _c, rcv100]) => (rcv100 || 100) / 100,
         };
         const atkRcvFromAttrTypeSubHp = {
             atk: ([thresh, attrBits, typeBits, atk100], { ping, percentHp }) => {
-                if (atk100 && percentHp <= thresh && (ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) || ping.source.anyTypes(common_6.idxsFromBits(typeBits)))) {
+                if (atk100 && percentHp <= thresh && (ping.source.anyAttributes(common_7.idxsFromBits(attrBits)) || ping.source.anyTypes(common_7.idxsFromBits(typeBits)))) {
                     return atk100 / 100;
                 }
                 return 1;
             },
             rcvPost: ([thresh, attrBits, typeBits, _, rcv100], { monster, percentHp }) => {
-                if (rcv100 && percentHp <= thresh && (monster.anyAttributes(common_6.idxsFromBits(attrBits)) || monster.anyTypes(common_6.idxsFromBits(typeBits)))) {
+                if (rcv100 && percentHp <= thresh && (monster.anyAttributes(common_7.idxsFromBits(attrBits)) || monster.anyTypes(common_7.idxsFromBits(typeBits)))) {
                     return rcv100 / 100;
                 }
                 return 1;
@@ -7572,7 +7734,7 @@
         };
         const atkFromAttrTypeAboveHp = {
             atk: ([thresh, attrBits, typeBits, atk100], { ping, percentHp }) => {
-                if (atk100 && percentHp >= thresh && (ping.source.anyAttributes(common_6.idxsFromBits(attrBits)) || ping.source.anyTypes(common_6.idxsFromBits(typeBits)))) {
+                if (atk100 && percentHp >= thresh && (ping.source.anyAttributes(common_7.idxsFromBits(attrBits)) || ping.source.anyTypes(common_7.idxsFromBits(typeBits)))) {
                     return atk100 / 100;
                 }
                 return 1;
@@ -7586,12 +7748,12 @@
                     0: 0, 1: 0, 2: 0, 3: 0, 4: 0,
                 };
                 for (const attrBit of [attr1bit, attr2bit, attr3bit, attr4bit, attr5bit].filter((a) => a > 0)) {
-                    const attr = common_6.idxsFromBits(attrBit)[0];
+                    const attr = common_7.idxsFromBits(attrBit)[0];
                     maxCounts[attr]++;
                 }
                 let total = 0;
                 for (const attr in maxCounts) {
-                    total += Math.min(comboContainer.combos[common_6.COLORS[attr]].length, maxCounts[attr]);
+                    total += Math.min(comboContainer.combos[common_7.COLORS[attr]].length, maxCounts[attr]);
                 }
                 if (total < minMatch) {
                     return 1;
@@ -7617,7 +7779,7 @@
             hp: ([attrBits, typeBits, hp100], { monster }) => hp100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? hp100 / 100 : 1,
             atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
             rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
-            damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], { attribute }) => shield && common_6.idxsFromBits(attrBits).some((attr) => attr == attribute) ? 1 - shield / 100 : 1,
+            damageMult: ([_, _a, _b, _c, _d, _e, attrBits, shield], { attribute }) => shield && common_7.idxsFromBits(attrBits).some((attr) => attr == attribute) ? 1 - shield / 100 : 1,
             hpMax: ([_, _a, hp100]) => (hp100 || 100) / 100,
             atkMax: ([_, _a, _b, atk100]) => (atk100 || 100) / 100,
             rcvMax: ([_, _a, _b, _c, rcv100]) => (rcv100 || 100) / 100,
@@ -7625,7 +7787,7 @@
         const atkRcvShieldFromSubHp = {
             atk: ([thresh, attrBits, typeBits, atk100], { percentHp, ping }) => atk100 && percentHp <= thresh && ping.source.anyAttributeTypeBits(attrBits, typeBits) ? atk100 / 100 : 1,
             rcvPost: ([thresh, attrBits, typeBits, _, rcv100], { percentHp, monster }) => rcv100 && percentHp <= thresh && monster.anyAttributeTypeBits(attrBits, typeBits) ? rcv100 / 100 : 1,
-            damageMult: ([thresh, _, _a, _b, _c, _d, _e, attrBits, shield100], { percentHp, attribute }) => shield100 && percentHp <= thresh && common_6.idxsFromBits(attrBits).some((attr) => attr == attribute) ? 1 - shield100 / 100 : 1,
+            damageMult: ([thresh, _, _a, _b, _c, _d, _e, attrBits, shield100], { percentHp, attribute }) => shield100 && percentHp <= thresh && common_7.idxsFromBits(attrBits).some((attr) => attr == attribute) ? 1 - shield100 / 100 : 1,
             atkMax: ([_, _a, _b, atk100]) => (atk100 || 100) / 100,
             rcvMax: ([_, _a, _b, _c, rcv100]) => (rcv100 || 100) / 100,
             damageMultMax: ([_, _a, _b, _c, _d, _e, _f, _g, shield100]) => (1 - (shield100 || 100) / 100),
@@ -7698,13 +7860,13 @@
             rcvMax: ([rcv100]) => rcv100 / 100,
         };
         const fiveOrbEnhance = {
-            atk: ([_unknown, atk100], { ping, comboContainer }) => comboContainer.combos[common_6.COLORS[ping.attribute]].some((combo) => combo.count == 5 && combo.enhanced > 0) ? atk100 / 100 : 1,
+            atk: ([_unknown, atk100], { ping, comboContainer }) => comboContainer.combos[common_7.COLORS[ping.attribute]].some((combo) => combo.count == 5 && combo.enhanced > 0) ? atk100 / 100 : 1,
             atkMax: ([_, atk100]) => atk100 / 100,
         };
         const atkRcvShieldFromHeartCross = {
-            atk: ([atk100], { comboContainer }) => atk100 && comboContainer.combos['h'].some((c) => c.shape == common_6.Shape.CROSS) ? atk100 / 100 : 1,
-            rcvPost: ([_, rcv100], { comboContainer }) => rcv100 && comboContainer.combos['h'].some((c) => c.shape == common_6.Shape.CROSS) ? rcv100 / 100 : 1,
-            damageMult: ([_, _a, shield], { comboContainer }) => shield && comboContainer.combos['h'].some((c) => c.shape == common_6.Shape.CROSS) ? 1 - shield / 100 : 1,
+            atk: ([atk100], { comboContainer }) => atk100 && comboContainer.combos['h'].some((c) => c.shape == common_7.Shape.CROSS) ? atk100 / 100 : 1,
+            rcvPost: ([_, rcv100], { comboContainer }) => rcv100 && comboContainer.combos['h'].some((c) => c.shape == common_7.Shape.CROSS) ? rcv100 / 100 : 1,
+            damageMult: ([_, _a, shield], { comboContainer }) => shield && comboContainer.combos['h'].some((c) => c.shape == common_7.Shape.CROSS) ? 1 - shield / 100 : 1,
             atkMax: ([atk100]) => (atk100 || 100) / 100,
             rcvMax: ([_, rcv100]) => (rcv100 || 100) / 100,
             damageMultMax: ([_, _a, shield100]) => (1 - (shield100 || 0) / 100),
@@ -7721,7 +7883,7 @@
             atk: (params, { comboContainer }) => {
                 let multiplier = 1;
                 for (let i = 0; i + 1 < params.length; i += 2) {
-                    const count = comboContainer.combos[common_6.COLORS[params[i]]].filter((c) => c.shape == common_6.Shape.CROSS).length;
+                    const count = comboContainer.combos[common_7.COLORS[params[i]]].filter((c) => c.shape == common_7.Shape.CROSS).length;
                     multiplier *= (params[i + 1] / 100) ** count;
                 }
                 return multiplier;
@@ -7758,14 +7920,14 @@
                     return 1;
                 }
                 scale100 = scale100 || 0;
-                const attrs = [a, b, c, d].filter(Boolean).map((bit) => common_6.idxsFromBits(bit)[0]);
+                const attrs = [a, b, c, d].filter(Boolean).map((bit) => common_7.idxsFromBits(bit)[0]);
                 const counts = {};
                 for (const attr of attrs) {
                     counts[attr] = (attr in counts) ? counts[attr] + 1 : 1;
                 }
                 let total = 0;
                 for (const attr in counts) {
-                    total += Math.max(comboContainer.combos[common_6.COLORS[attr]].length, counts[attr]);
+                    total += Math.max(comboContainer.combos[common_7.COLORS[attr]].length, counts[attr]);
                 }
                 if (total < minMatch) {
                     return 1;
@@ -7777,14 +7939,14 @@
                     return 1;
                 }
                 scale100 = scale100 || 0;
-                const attrs = [a, b, c, d].filter(Boolean).map((bit) => common_6.idxsFromBits(bit)[0]);
+                const attrs = [a, b, c, d].filter(Boolean).map((bit) => common_7.idxsFromBits(bit)[0]);
                 const counts = {};
                 for (const attr of attrs) {
                     counts[attr] = (attr in counts) ? counts[attr] + 1 : 1;
                 }
                 let total = 0;
                 for (const attr in counts) {
-                    total += Math.max(comboContainer.combos[common_6.COLORS[attr]].length, counts[attr]);
+                    total += Math.max(comboContainer.combos[common_7.COLORS[attr]].length, counts[attr]);
                 }
                 if (total < minMatch) {
                     return 1;
@@ -7847,8 +8009,8 @@
                 atk100scale = atk100scale || 0;
                 maxLinked = maxLinked || minLinked;
                 let highest = 0;
-                for (const attr of common_6.idxsFromBits(attrBits)) {
-                    for (const c of comboContainer.combos[common_6.COLORS[attr]]) {
+                for (const attr of common_7.idxsFromBits(attrBits)) {
+                    for (const c of comboContainer.combos[common_7.COLORS[attr]]) {
                         if (c.count > highest) {
                             highest = c.count;
                         }
@@ -7869,8 +8031,8 @@
                 rcv100scale = rcv100scale || 0;
                 maxLinked = maxLinked || minLinked;
                 let highest = 0;
-                for (const attr of common_6.idxsFromBits(attrBits)) {
-                    for (const c of comboContainer.combos[common_6.COLORS[attr]]) {
+                for (const attr of common_7.idxsFromBits(attrBits)) {
+                    for (const c of comboContainer.combos[common_7.COLORS[attr]]) {
                         if (c.count > highest) {
                             highest = c.count;
                         }
@@ -7901,12 +8063,12 @@
         };
         function countColorMatches(cbits, comboContainer) {
             const counts = {};
-            for (const attr of cbits.filter(Boolean).map((v) => common_6.idxsFromBits(v)[0])) {
+            for (const attr of cbits.filter(Boolean).map((v) => common_7.idxsFromBits(v)[0])) {
                 counts[attr] = counts[attr] ? counts[attr] + 1 : 1;
             }
             let total = 0;
             for (const attr in counts) {
-                total += Math.min(counts[attr], comboContainer.combos[common_6.COLORS[attr]].length);
+                total += Math.min(counts[attr], comboContainer.combos[common_7.COLORS[attr]].length);
             }
             return total;
         }
@@ -7966,8 +8128,8 @@
                     return 1;
                 }
                 let highest = 0;
-                for (const attr of common_6.idxsFromBits(attrBits)) {
-                    for (const c of comboContainer.combos[common_6.COLORS[attr]]) {
+                for (const attr of common_7.idxsFromBits(attrBits)) {
+                    for (const c of comboContainer.combos[common_7.COLORS[attr]]) {
                         highest = c.count > highest ? c.count : highest;
                     }
                 }
@@ -7978,8 +8140,8 @@
                     return 1;
                 }
                 let highest = 0;
-                for (const attr of common_6.idxsFromBits(attrBits)) {
-                    for (const c of comboContainer.combos[common_6.COLORS[attr]]) {
+                for (const attr of common_7.idxsFromBits(attrBits)) {
+                    for (const c of comboContainer.combos[common_7.COLORS[attr]]) {
                         highest = c.count > highest ? c.count : highest;
                     }
                 }
@@ -8041,25 +8203,25 @@
                 if (!atk100) {
                     return 1;
                 }
-                return common_6.idxsFromBits(attrBits)
-                    .every((attr) => comboContainer.combos[common_6.COLORS[attr]]
+                return common_7.idxsFromBits(attrBits)
+                    .every((attr) => comboContainer.combos[common_7.COLORS[attr]]
                     .some((c) => c.count >= minLinked)) ? atk100 / 100 : 1;
             },
             plusCombo: ([attrBits, minLinked, _, comboBonus], { comboContainer }) => {
                 if (!comboBonus) {
                     return 0;
                 }
-                return common_6.idxsFromBits(attrBits)
-                    .every((attr) => comboContainer.combos[common_6.COLORS[attr]]
+                return common_7.idxsFromBits(attrBits)
+                    .every((attr) => comboContainer.combos[common_7.COLORS[attr]]
                     .some((c) => c.count >= minLinked)) ? comboBonus : 0;
             },
             atkMax: (p) => (p[2] || 100) / 100,
             plusComboMax: (p) => p[3] || 0,
         };
         const atkRcvShieldFromLMatch = {
-            atk: ([attrBits, atk100], { comboContainer }) => atk100 && common_6.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_6.COLORS[attr]].some((c) => c.shape == common_6.Shape.L)) ? atk100 / 100 : 1,
-            rcvPost: ([attrBits, _, rcv100], { comboContainer }) => rcv100 && common_6.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_6.COLORS[attr]].some((c) => c.shape == common_6.Shape.L)) ? rcv100 / 100 : 1,
-            damageMult: ([attrBits, _, _a, shield], { comboContainer }) => shield && common_6.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_6.COLORS[attr]].some((c) => c.shape == common_6.Shape.L)) ? 1 - shield / 100 : 1,
+            atk: ([attrBits, atk100], { comboContainer }) => atk100 && common_7.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_7.COLORS[attr]].some((c) => c.shape == common_7.Shape.L)) ? atk100 / 100 : 1,
+            rcvPost: ([attrBits, _, rcv100], { comboContainer }) => rcv100 && common_7.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_7.COLORS[attr]].some((c) => c.shape == common_7.Shape.L)) ? rcv100 / 100 : 1,
+            damageMult: ([attrBits, _, _a, shield], { comboContainer }) => shield && common_7.idxsFromBits(attrBits).some((attr) => comboContainer.combos[common_7.COLORS[attr]].some((c) => c.shape == common_7.Shape.L)) ? 1 - shield / 100 : 1,
             atkMax: (p) => (p[1] || 100) / 100,
             rcvMax: (p) => (p[2] || 100) / 100,
             damageMultMax: (p) => 1 - (p[3] || 0) / 100,
@@ -8087,8 +8249,8 @@
         };
         const trueBonusFromLinkedOrbs = {
             trueBonusAttack: ([attrBits, minLinked, trueDamage], { comboContainer }) => {
-                return common_6.idxsFromBits(attrBits)
-                    .some((attr) => comboContainer.combos[common_6.COLORS[attr]]
+                return common_7.idxsFromBits(attrBits)
+                    .some((attr) => comboContainer.combos[common_7.COLORS[attr]]
                     .some((c) => c.count >= minLinked)) ? trueDamage : 0;
             },
             trueBonusAttackMax: (p) => p[2],
@@ -8463,7 +8625,7 @@
         }
         exports.awokenBindClear = awokenBindClear;
     });
-    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_conformance"], function (require, exports, common_7, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_5, leaders, debugger_2, team_conformance_1) {
+    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_conformance"], function (require, exports, common_8, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_5, leaders, debugger_2, team_conformance_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         leaders = __importStar(leaders);
@@ -8574,17 +8736,17 @@
             }
         }
         const SHARED_AWAKENINGS = new Set([
-            common_7.Awakening.SKILL_BOOST,
-            common_7.Awakening.SKILL_BOOST_PLUS,
-            common_7.Awakening.RESIST_POISON,
-            common_7.Awakening.RESIST_POISON_PLUS,
-            common_7.Awakening.RESIST_BLIND,
-            common_7.Awakening.RESIST_BLIND_PLUS,
-            common_7.Awakening.RESIST_JAMMER,
-            common_7.Awakening.RESIST_JAMMER_PLUS,
-            common_7.Awakening.SBR,
-            common_7.Awakening.RESIST_CLOUD,
-            common_7.Awakening.RESIST_TAPE,
+            common_8.Awakening.SKILL_BOOST,
+            common_8.Awakening.SKILL_BOOST_PLUS,
+            common_8.Awakening.RESIST_POISON,
+            common_8.Awakening.RESIST_POISON_PLUS,
+            common_8.Awakening.RESIST_BLIND,
+            common_8.Awakening.RESIST_BLIND_PLUS,
+            common_8.Awakening.RESIST_JAMMER,
+            common_8.Awakening.RESIST_JAMMER_PLUS,
+            common_8.Awakening.SBR,
+            common_8.Awakening.RESIST_CLOUD,
+            common_8.Awakening.RESIST_TAPE,
         ]);
         class Team {
             constructor() {
@@ -8598,7 +8760,7 @@
                 this.lastMaxHp = 0;
                 this.action = -1;
                 this.state = Object.assign({}, DEFAULT_STATE);
-                this.badges = [common_7.TeamBadge.NONE, common_7.TeamBadge.NONE, common_7.TeamBadge.NONE];
+                this.badges = [common_8.TeamBadge.NONE, common_8.TeamBadge.NONE, common_8.TeamBadge.NONE];
                 this.onSelectMonster = () => { };
                 /**
                  * 1P: 0-5
@@ -8716,7 +8878,7 @@
                 this.action = idx;
             }
             skillBind() {
-                const count = this.countAwakening(common_7.Awakening.SBR);
+                const count = this.countAwakening(common_8.Awakening.SBR);
                 if (count >= 5) {
                     return;
                 }
@@ -8884,7 +9046,7 @@
                     this.badges = json.badges;
                 }
                 else {
-                    this.badges = [common_7.TeamBadge.NONE, common_7.TeamBadge.NONE, common_7.TeamBadge.NONE];
+                    this.badges = [common_8.TeamBadge.NONE, common_8.TeamBadge.NONE, common_8.TeamBadge.NONE];
                 }
                 for (let i = 0; i < this.monsters.length; i++) {
                     if (i < json.monsters.length) {
@@ -8996,15 +9158,15 @@
                         isMultiplayer: this.isMultiplayer(),
                     });
                 };
-                let p1TeamHp = monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_HP), 0);
+                let p1TeamHp = monsters.reduce((total, monster) => total + monster.countAwakening(common_8.Awakening.TEAM_HP), 0);
                 let p2TeamHp = 0;
                 if (includeP2) {
                     const p2Monsters = this.getTeamAt(this.activeTeamIdx ^ 1);
                     for (let i = 1; i < 5; i++) {
                         monsters.push(p2Monsters[i]);
                     }
-                    p1TeamHp -= monsters[5].countAwakening(common_7.Awakening.TEAM_HP);
-                    p2TeamHp = monsters.slice(5).reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_HP), 0);
+                    p1TeamHp -= monsters[5].countAwakening(common_8.Awakening.TEAM_HP);
+                    p2TeamHp = monsters.slice(5).reduce((total, monster) => total + monster.countAwakening(common_8.Awakening.TEAM_HP), 0);
                 }
                 if (!includeLeaderSkill) {
                     return monsters.map((monster) => monster.getHp(this.playerMode, this.state.awakenings));
@@ -9033,10 +9195,10 @@
                 const individualHps = this.getIndividualHp(true, this.playerMode == 2);
                 let total = individualHps.reduce((total, next) => total + next, 0);
                 if (this.playerMode != 2) {
-                    if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.HP) {
+                    if (this.badges[this.activeTeamIdx] == common_8.TeamBadge.HP) {
                         total = Math.ceil(total * 1.05);
                     }
-                    else if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.HP_PLUS) {
+                    else if (this.badges[this.activeTeamIdx] == common_8.TeamBadge.HP_PLUS) {
                         total = Math.ceil(total * 1.15);
                     }
                 }
@@ -9070,7 +9232,7 @@
                         isMultiplayer: this.isMultiplayer(),
                     });
                 };
-                const p1TeamRcv = 1 + monsters.reduce((total, monster) => total + monster.countAwakening(common_7.Awakening.TEAM_RCV), 0) * 0.10;
+                const p1TeamRcv = 1 + monsters.reduce((total, monster) => total + monster.countAwakening(common_8.Awakening.TEAM_RCV), 0) * 0.10;
                 for (let i = 0; i < monsters.length; i++) {
                     const monster = monsters[i];
                     if (!monster.id || monster.id <= 0) {
@@ -9093,10 +9255,10 @@
                 const totalRcv = rcvs.reduce((total, next) => total + next, 0);
                 let total = totalRcv > 0 ? totalRcv : 0;
                 if (this.playerMode != 2) {
-                    if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.RCV) {
+                    if (this.badges[this.activeTeamIdx] == common_8.TeamBadge.RCV) {
                         total = Math.ceil(total * 1.25);
                     }
-                    else if (this.badges[this.activeTeamIdx] == common_7.TeamBadge.RCV_PLUS) {
+                    else if (this.badges[this.activeTeamIdx] == common_8.TeamBadge.RCV_PLUS) {
                         total = Math.ceil(total * 1.35);
                     }
                 }
@@ -9113,10 +9275,10 @@
                 }
                 let time = 5;
                 time += leaders.timeExtend(leadId) + leaders.timeExtend(helperId);
-                time += this.countAwakening(common_7.Awakening.TIME, { includeTeamBadge: true }) * 0.5;
+                time += this.countAwakening(common_8.Awakening.TIME, { includeTeamBadge: true }) * 0.5;
                 for (const monster of monsters) {
-                    time += monster.latents.filter((l) => l == common_7.Latent.TIME).length * 0.05;
-                    time += monster.latents.filter((l) => l == common_7.Latent.TIME_PLUS).length * 0.12;
+                    time += monster.latents.filter((l) => l == common_8.Latent.TIME).length * 0.05;
+                    time += monster.latents.filter((l) => l == common_8.Latent.TIME_PLUS).length * 0.12;
                 }
                 if (this.state.timeIsMult) {
                     time *= this.state.timeBonus;
@@ -9155,7 +9317,7 @@
             }
             getBadge(idx = -1) {
                 if (this.playerMode == 2) {
-                    return common_7.TeamBadge.NONE;
+                    return common_8.TeamBadge.NONE;
                 }
                 if (idx < 0) {
                     idx = this.activeTeamIdx;
@@ -9181,12 +9343,12 @@
                     healing,
                 });
                 const enhancedCounts = {
-                    r: this.countAwakening(common_7.Awakening.OE_FIRE),
-                    b: this.countAwakening(common_7.Awakening.OE_WATER),
-                    g: this.countAwakening(common_7.Awakening.OE_WOOD),
-                    l: this.countAwakening(common_7.Awakening.OE_LIGHT),
-                    d: this.countAwakening(common_7.Awakening.OE_DARK),
-                    h: this.countAwakening(common_7.Awakening.OE_HEART),
+                    r: this.countAwakening(common_8.Awakening.OE_FIRE),
+                    b: this.countAwakening(common_8.Awakening.OE_WATER),
+                    g: this.countAwakening(common_8.Awakening.OE_WOOD),
+                    l: this.countAwakening(common_8.Awakening.OE_LIGHT),
+                    d: this.countAwakening(common_8.Awakening.OE_DARK),
+                    h: this.countAwakening(common_8.Awakening.OE_HEART),
                 };
                 const rowTotals = {
                     0: 0,
@@ -9209,12 +9371,12 @@
                     7: 0,
                     8: 0,
                     9: 0,
-                    0: this.countAwakening(common_7.Awakening.ROW_FIRE),
-                    1: this.countAwakening(common_7.Awakening.ROW_WATER),
-                    2: this.countAwakening(common_7.Awakening.ROW_WOOD),
-                    3: this.countAwakening(common_7.Awakening.ROW_LIGHT),
-                    4: this.countAwakening(common_7.Awakening.ROW_DARK),
-                    5: this.countAwakening(common_7.Awakening.RECOVER_BIND),
+                    0: this.countAwakening(common_8.Awakening.ROW_FIRE),
+                    1: this.countAwakening(common_8.Awakening.ROW_WATER),
+                    2: this.countAwakening(common_8.Awakening.ROW_WOOD),
+                    3: this.countAwakening(common_8.Awakening.ROW_LIGHT),
+                    4: this.countAwakening(common_8.Awakening.ROW_DARK),
+                    5: this.countAwakening(common_8.Awakening.RECOVER_BIND),
                 };
                 // monsters = monsters.filter((monster) => monster.getId() > 0);
                 const pings = Array(2 * monsters.length);
@@ -9233,8 +9395,8 @@
                 const NO_ONE = new monster_instance_1.MonsterInstance(-1, () => null);
                 for (let i = 0; i < monsters.length; i++) {
                     if (monsters[i].getId() <= 0 || monsters[i].bound) {
-                        pings[i] = new damage_ping_1.DamagePing(NO_ONE, common_7.Attribute.NONE);
-                        pings[i + 6] = new damage_ping_1.DamagePing(NO_ONE, common_7.Attribute.NONE);
+                        pings[i] = new damage_ping_1.DamagePing(NO_ONE, common_8.Attribute.NONE);
+                        pings[i + 6] = new damage_ping_1.DamagePing(NO_ONE, common_8.Attribute.NONE);
                         continue;
                     }
                     const m = monsters[i];
@@ -9243,7 +9405,7 @@
                     pings[i + monsters.length].isSub = true;
                 }
                 for (const c of 'rbgld') {
-                    const attr = common_7.COLORS.indexOf(c);
+                    const attr = common_8.COLORS.indexOf(c);
                     for (const combo of comboContainer.combos[c]) {
                         let baseMultiplier = (combo.count + 1) * 0.25;
                         if (combo.enhanced) {
@@ -9252,7 +9414,7 @@
                                 baseMultiplier *= (1 + enhancedCounts[c] * 0.07);
                             }
                         }
-                        if (combo.shape == common_7.Shape.ROW) {
+                        if (combo.shape == common_8.Shape.ROW) {
                             rowTotals[attr] += rowAwakenings[attr];
                         }
                         for (const ping of pings) {
@@ -9260,21 +9422,21 @@
                                 continue;
                             }
                             let curAtk = ping.source.getAtk(pm, awoke);
-                            curAtk = common_7.Round.UP(curAtk * baseMultiplier);
+                            curAtk = common_8.Round.UP(curAtk * baseMultiplier);
                             if (ping.isSub) {
                                 const divisor = ping.attribute == ping.source.getAttribute() ? 10 : 3;
-                                curAtk = common_7.Round.UP(curAtk / divisor);
+                                curAtk = common_8.Round.UP(curAtk / divisor);
                             }
                             let multiplier = 1;
                             if (awoke) {
                                 if (combo.count == 4) {
-                                    multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.TPA, pm));
+                                    multiplier *= (1.5 ** ping.source.countAwakening(common_8.Awakening.TPA, pm));
                                 }
-                                else if (combo.shape == common_7.Shape.L) {
-                                    multiplier *= (1.5 ** ping.source.countAwakening(common_7.Awakening.L_UNLOCK, pm));
+                                else if (combo.shape == common_8.Shape.L) {
+                                    multiplier *= (1.5 ** ping.source.countAwakening(common_8.Awakening.L_UNLOCK, pm));
                                 }
-                                else if (combo.shape == common_7.Shape.BOX) {
-                                    multiplier *= (2.5 ** ping.source.countAwakening(common_7.Awakening.VDP, pm));
+                                else if (combo.shape == common_8.Shape.BOX) {
+                                    multiplier *= (2.5 ** ping.source.countAwakening(common_8.Awakening.VDP, pm));
                                     ping.ignoreVoid = true;
                                 }
                             }
@@ -9294,7 +9456,7 @@
                                     multiplier *= burstMultiplier;
                                 }
                             }
-                            ping.add(common_7.Round.UP(curAtk * multiplier));
+                            ping.add(common_8.Round.UP(curAtk * multiplier));
                         }
                     }
                 }
@@ -9302,7 +9464,7 @@
                     mults[i].base = pings[i].damage;
                 }
                 let healing = 0;
-                const teamRcvAwakenings = this.countAwakening(common_7.Awakening.TEAM_RCV);
+                const teamRcvAwakenings = this.countAwakening(common_8.Awakening.TEAM_RCV);
                 let trueBonusAttack = 0;
                 const partialRcv = (id, monster) => leaders.rcv(id, {
                     monster,
@@ -9310,37 +9472,37 @@
                     isMultiplayer: this.isMultiplayer(),
                 });
                 let rcvBadgeMult = 1;
-                if (badge == common_7.TeamBadge.RCV) {
+                if (badge == common_8.TeamBadge.RCV) {
                     rcvBadgeMult = 1.25;
                 }
-                else if (badge == common_7.TeamBadge.RCV_PLUS) {
+                else if (badge == common_8.TeamBadge.RCV_PLUS) {
                     rcvBadgeMult = 1.35;
                 }
                 for (const combo of comboContainer.combos['h']) {
                     let multiplier = (combo.count + 1) * 0.25;
                     if (combo.enhanced) {
                         multiplier *= (1 + 0.06 * combo.enhanced);
-                        if (awoke && enhancedCounts[common_7.Attribute.HEART]) {
-                            multiplier *= (1 + enhancedCounts[common_7.Attribute.HEART] * 0.07);
+                        if (awoke && enhancedCounts[common_8.Attribute.HEART]) {
+                            multiplier *= (1 + enhancedCounts[common_8.Attribute.HEART] * 0.07);
                         }
                     }
                     multiplier *= this.state.rcvMult;
                     if (awoke) {
-                        if (combo.shape == common_7.Shape.COLUMN) {
-                            trueBonusAttack += this.countAwakening(common_7.Awakening.BONUS_ATTACK);
+                        if (combo.shape == common_8.Shape.COLUMN) {
+                            trueBonusAttack += this.countAwakening(common_8.Awakening.BONUS_ATTACK);
                         }
-                        if (combo.shape == common_7.Shape.BOX) {
-                            trueBonusAttack += (99 * this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER));
+                        if (combo.shape == common_8.Shape.BOX) {
+                            trueBonusAttack += (99 * this.countAwakening(common_8.Awakening.BONUS_ATTACK_SUPER));
                         }
                         multiplier *= (1 + 0.1 * teamRcvAwakenings);
                     }
                     for (const monster of monsters) {
                         let rcv = monster.getRcv(pm, awoke);
                         if (awoke && combo.count == 4) {
-                            rcv *= (1.5 ** monster.countAwakening(common_7.Awakening.OE_HEART, pm));
+                            rcv *= (1.5 ** monster.countAwakening(common_8.Awakening.OE_HEART, pm));
                         }
                         const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
-                        healing += common_7.Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
+                        healing += common_8.Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
                     }
                 }
                 comboContainer.setBonusComboLeader(leaders.plusCombo(leadId, { team: monsters, comboContainer }) +
@@ -9350,10 +9512,10 @@
                 for (let i = 0; i < pings.length; i++) {
                     mults[i].combo = comboMultiplier;
                     if (pings[i]) {
-                        pings[i].multiply(comboMultiplier, common_7.Round.UP);
+                        pings[i].multiply(comboMultiplier, common_8.Round.UP);
                     }
                 }
-                healing = common_7.Round.UP(healing * comboMultiplier);
+                healing = common_8.Round.UP(healing * comboMultiplier);
                 // Apply awakenings.
                 // Known order according to PDC:
                 // (7c/10c), (80%/50%), Rows, Sfua, L-Guard
@@ -9371,45 +9533,45 @@
                         const apply = (awakening, multiplier) => {
                             const count = ping.source.countAwakening(awakening, pm);
                             if (count) {
-                                ping.multiply(multiplier ** ping.source.countAwakening(awakening, pm), common_7.Round.NEAREST);
+                                ping.multiply(multiplier ** ping.source.countAwakening(awakening, pm), common_8.Round.NEAREST);
                             }
                         };
                         if (comboCount >= 7) {
-                            apply(common_7.Awakening.COMBO_7, 2);
+                            apply(common_8.Awakening.COMBO_7, 2);
                         }
                         if (comboCount >= 10) {
-                            apply(common_7.Awakening.COMBO_10, 5);
+                            apply(common_8.Awakening.COMBO_10, 5);
                         }
                         if (percentHp <= 50) {
-                            apply(common_7.Awakening.HP_LESSER, 2);
+                            apply(common_8.Awakening.HP_LESSER, 2);
                         }
                         if (percentHp >= 80) {
-                            apply(common_7.Awakening.HP_GREATER, 1.5);
+                            apply(common_8.Awakening.HP_GREATER, 1.5);
                         }
                         if (rowTotals[ping.attribute]) {
-                            ping.multiply(1 + 0.15 * rowTotals[ping.attribute], common_7.Round.NEAREST);
+                            ping.multiply(1 + 0.15 * rowTotals[ping.attribute], common_8.Round.NEAREST);
                         }
-                        if (comboContainer.combos['h'].some((combo) => combo.shape == common_7.Shape.BOX)) {
-                            apply(common_7.Awakening.BONUS_ATTACK_SUPER, 2);
+                        if (comboContainer.combos['h'].some((combo) => combo.shape == common_8.Shape.BOX)) {
+                            apply(common_8.Awakening.BONUS_ATTACK_SUPER, 2);
                         }
-                        if (comboContainer.combos['h'].some((combo) => combo.shape == common_7.Shape.L)) {
-                            apply(common_7.Awakening.L_GUARD, 1.5);
+                        if (comboContainer.combos['h'].some((combo) => combo.shape == common_8.Shape.L)) {
+                            apply(common_8.Awakening.L_GUARD, 1.5);
                         }
                         if (comboContainer.combos['j'].length) {
                             // TODO: Change when Jammer Boost is buffed.
-                            apply(common_7.Awakening.JAMMER_BOOST, 1.5);
+                            apply(common_8.Awakening.JAMMER_BOOST, 1.5);
                         }
                         if (comboContainer.combos['p'].length || comboContainer.combos['m'].length) {
-                            apply(common_7.Awakening.POISON_BOOST, 2);
+                            apply(common_8.Awakening.POISON_BOOST, 2);
                         }
                         mults[i].awakenings = pings[i].damage / baseDamage;
                     }
                 }
                 let atkBadgeMult = 1;
-                if (badge == common_7.TeamBadge.ATK) {
+                if (badge == common_8.TeamBadge.ATK) {
                     atkBadgeMult = 1.05;
                 }
-                else if (badge == common_7.TeamBadge.ATK_PLUS) {
+                else if (badge == common_8.TeamBadge.ATK_PLUS) {
                     atkBadgeMult = 1.15;
                 }
                 for (let i = 0; i < pings.length; i++) {
@@ -9426,7 +9588,7 @@
                     ping.damage = Math.round(val * atkBadgeMult);
                     mults[i].final = ping.damage;
                 }
-                healing += this.countAwakening(common_7.Awakening.AUTOHEAL) * 1000;
+                healing += this.countAwakening(common_8.Awakening.AUTOHEAL) * 1000;
                 trueBonusAttack += leaders.trueBonusAttack(leadId, {
                     team: monsters, comboContainer
                 }) + leaders.trueBonusAttack(helpId, {
@@ -9492,21 +9654,21 @@
                     TIME: this.getTime(),
                     LEADER, HELPER, SUB_1, SUB_2, SUB_3, SUB_4,
                     ATTRIBUTES: LEADER.ATTRIBUTE | LEADER.SUBATTRIBUTE | HELPER.ATTRIBUTE | HELPER.SUBATTRIBUTE | SUB_1.ATTRIBUTE | SUB_1.SUBATTRIBUTE | SUB_2.ATTRIBUTE | SUB_2.SUBATTRIBUTE | SUB_3.ATTRIBUTE | SUB_3.SUBATTRIBUTE | SUB_4.ATTRIBUTE | SUB_4.SUBATTRIBUTE,
-                    SB: this.countAwakening(common_7.Awakening.SKILL_BOOST, opts),
-                    SBR: this.countAwakening(common_7.Awakening.SBR, opts),
-                    FUA: this.countAwakening(common_7.Awakening.BONUS_ATTACK),
-                    SFUA: this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER),
-                    RESIST_BLIND: this.countAwakening(common_7.Awakening.RESIST_BLIND, opts),
-                    RESIST_POISON: this.countAwakening(common_7.Awakening.RESIST_POISON, opts),
-                    RESIST_JAMMER: this.countAwakening(common_7.Awakening.RESIST_JAMMER, opts),
-                    RESIST_CLOUD: this.countAwakening(common_7.Awakening.RESIST_CLOUD),
-                    RESIST_TAPE: this.countAwakening(common_7.Awakening.RESIST_TAPE),
-                    GUARD_BREAK: this.countAwakening(common_7.Awakening.GUARD_BREAK),
-                    RESIST_FIRE: this.countAwakening(common_7.Awakening.RESIST_FIRE) * 7 + this.countLatent(common_7.Latent.RESIST_FIRE) + this.countLatent(common_7.Latent.RESIST_FIRE_PLUS) * 2.5,
-                    RESIST_WATER: this.countAwakening(common_7.Awakening.RESIST_WATER) * 7 + this.countLatent(common_7.Latent.RESIST_WATER) + this.countLatent(common_7.Latent.RESIST_WATER_PLUS) * 2.5,
-                    RESIST_WOOD: this.countAwakening(common_7.Awakening.RESIST_WOOD) * 7 + this.countLatent(common_7.Latent.RESIST_WOOD) + this.countLatent(common_7.Latent.RESIST_WOOD_PLUS) * 2.5,
-                    RESIST_LIGHT: this.countAwakening(common_7.Awakening.RESIST_LIGHT) * 7 + this.countLatent(common_7.Latent.RESIST_LIGHT) + this.countLatent(common_7.Latent.RESIST_LIGHT_PLUS) * 2.5,
-                    RESIST_DARK: this.countAwakening(common_7.Awakening.RESIST_DARK) * 7 + this.countLatent(common_7.Latent.RESIST_DARK) + this.countLatent(common_7.Latent.RESIST_DARK_PLUS) * 2.5,
+                    SB: this.countAwakening(common_8.Awakening.SKILL_BOOST, opts),
+                    SBR: this.countAwakening(common_8.Awakening.SBR, opts),
+                    FUA: this.countAwakening(common_8.Awakening.BONUS_ATTACK),
+                    SFUA: this.countAwakening(common_8.Awakening.BONUS_ATTACK_SUPER),
+                    RESIST_BLIND: this.countAwakening(common_8.Awakening.RESIST_BLIND, opts),
+                    RESIST_POISON: this.countAwakening(common_8.Awakening.RESIST_POISON, opts),
+                    RESIST_JAMMER: this.countAwakening(common_8.Awakening.RESIST_JAMMER, opts),
+                    RESIST_CLOUD: this.countAwakening(common_8.Awakening.RESIST_CLOUD),
+                    RESIST_TAPE: this.countAwakening(common_8.Awakening.RESIST_TAPE),
+                    GUARD_BREAK: this.countAwakening(common_8.Awakening.GUARD_BREAK),
+                    RESIST_FIRE: this.countAwakening(common_8.Awakening.RESIST_FIRE) * 7 + this.countLatent(common_8.Latent.RESIST_FIRE) + this.countLatent(common_8.Latent.RESIST_FIRE_PLUS) * 2.5,
+                    RESIST_WATER: this.countAwakening(common_8.Awakening.RESIST_WATER) * 7 + this.countLatent(common_8.Latent.RESIST_WATER) + this.countLatent(common_8.Latent.RESIST_WATER_PLUS) * 2.5,
+                    RESIST_WOOD: this.countAwakening(common_8.Awakening.RESIST_WOOD) * 7 + this.countLatent(common_8.Latent.RESIST_WOOD) + this.countLatent(common_8.Latent.RESIST_WOOD_PLUS) * 2.5,
+                    RESIST_LIGHT: this.countAwakening(common_8.Awakening.RESIST_LIGHT) * 7 + this.countLatent(common_8.Latent.RESIST_LIGHT) + this.countLatent(common_8.Latent.RESIST_LIGHT_PLUS) * 2.5,
+                    RESIST_DARK: this.countAwakening(common_8.Awakening.RESIST_DARK) * 7 + this.countLatent(common_8.Latent.RESIST_DARK) + this.countLatent(common_8.Latent.RESIST_DARK_PLUS) * 2.5,
                     // Leader Skill capabilities.
                     AUTOFUA: hasAutofua ? team_conformance_1.CompareBoolean.TRUE : team_conformance_1.CompareBoolean.FALSE,
                 };
@@ -9547,7 +9709,7 @@
                 }
                 let initialCount = monsters.reduce((total, monster) => total + monster.countAwakening(awakening, this.playerMode, opts.ignoreTransform || false), 0);
                 if (this.playerMode != 2 && opts.includeTeamBadge) {
-                    const maybeAwakeningCount = common_7.TeamBadgeToAwakening.get(this.badges[this.activeTeamIdx]);
+                    const maybeAwakeningCount = common_8.TeamBadgeToAwakening.get(this.badges[this.activeTeamIdx]);
                     if (maybeAwakeningCount && maybeAwakeningCount.awakening == awakening) {
                         initialCount += maybeAwakeningCount.count;
                     }
@@ -9562,11 +9724,11 @@
                 return monsters.reduce((total, monster) => total + monster.latents.filter((l) => l == latent).length, 0);
             }
             damage(amount, attribute, comboContainer) {
-                debugger_2.debug.print(`Team being hit for ${amount} of ${common_7.AttributeToName.get(attribute)}`);
+                debugger_2.debug.print(`Team being hit for ${amount} of ${common_8.AttributeToName.get(attribute)}`);
                 let multiplier = 1;
                 if (this.state.attributesShielded.includes(attribute)) {
                     multiplier = 0;
-                    debugger_2.debug.print('Team is avoiding all damage from ' + common_7.AttributeToName.get(attribute));
+                    debugger_2.debug.print('Team is avoiding all damage from ' + common_8.AttributeToName.get(attribute));
                 }
                 const team = this.getActiveTeam();
                 const leader = team[0].getCard().leaderSkillId;
@@ -9590,8 +9752,8 @@
                     debugger_2.debug.print(`Damage reduced to ${shieldMultiplier.toFixed(2)}x due to shields.`);
                 }
                 // Assuming stacking L-Guards.
-                if (comboContainer.combos['h'].some((c) => c.shape == common_7.Shape.L)) {
-                    let lGuardMultiplier = 1 - this.countAwakening(common_7.Awakening.L_GUARD) * 0.05;
+                if (comboContainer.combos['h'].some((c) => c.shape == common_8.Shape.L)) {
+                    let lGuardMultiplier = 1 - this.countAwakening(common_8.Awakening.L_GUARD) * 0.05;
                     if (lGuardMultiplier < 0) {
                         lGuardMultiplier = 0;
                     }
@@ -9602,30 +9764,30 @@
                 }
                 let attrMultiplier = 1;
                 switch (attribute) {
-                    case common_7.Attribute.FIRE:
-                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_FIRE) * 0.07;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_FIRE) * 0.01;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_FIRE_PLUS) * 0.025;
+                    case common_8.Attribute.FIRE:
+                        attrMultiplier -= this.countAwakening(common_8.Awakening.RESIST_FIRE) * 0.07;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_FIRE) * 0.01;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_FIRE_PLUS) * 0.025;
                         break;
-                    case common_7.Attribute.WATER:
-                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_WATER) * 0.07;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_WATER) * 0.01;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_WATER_PLUS) * 0.025;
+                    case common_8.Attribute.WATER:
+                        attrMultiplier -= this.countAwakening(common_8.Awakening.RESIST_WATER) * 0.07;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_WATER) * 0.01;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_WATER_PLUS) * 0.025;
                         break;
-                    case common_7.Attribute.WOOD:
-                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_WOOD) * 0.07;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_WOOD) * 0.01;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_WOOD_PLUS) * 0.025;
+                    case common_8.Attribute.WOOD:
+                        attrMultiplier -= this.countAwakening(common_8.Awakening.RESIST_WOOD) * 0.07;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_WOOD) * 0.01;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_WOOD_PLUS) * 0.025;
                         break;
-                    case common_7.Attribute.LIGHT:
-                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_LIGHT) * 0.07;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_LIGHT) * 0.01;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_LIGHT_PLUS) * 0.025;
+                    case common_8.Attribute.LIGHT:
+                        attrMultiplier -= this.countAwakening(common_8.Awakening.RESIST_LIGHT) * 0.07;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_LIGHT) * 0.01;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_LIGHT_PLUS) * 0.025;
                         break;
-                    case common_7.Attribute.DARK:
-                        attrMultiplier -= this.countAwakening(common_7.Awakening.RESIST_DARK) * 0.07;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_DARK) * 0.01;
-                        attrMultiplier -= this.countLatent(common_7.Latent.RESIST_DARK_PLUS) * 0.025;
+                    case common_8.Attribute.DARK:
+                        attrMultiplier -= this.countAwakening(common_8.Awakening.RESIST_DARK) * 0.07;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_DARK) * 0.01;
+                        attrMultiplier -= this.countLatent(common_8.Latent.RESIST_DARK_PLUS) * 0.025;
                         break;
                     default:
                         console.warn('Unhandled damage: ' + attribute);
@@ -9683,40 +9845,40 @@
                     includeTeamBadge: true,
                 };
                 // General
-                counts.set(common_7.Awakening.SKILL_BOOST, this.countAwakening(common_7.Awakening.SKILL_BOOST, opts));
-                counts.set(common_7.Awakening.TIME, this.countAwakening(common_7.Awakening.TIME, opts));
-                counts.set(common_7.Awakening.SOLOBOOST, this.countAwakening(common_7.Awakening.SOLOBOOST));
-                counts.set(common_7.Awakening.BONUS_ATTACK, this.countAwakening(common_7.Awakening.BONUS_ATTACK));
-                counts.set(common_7.Awakening.BONUS_ATTACK_SUPER, this.countAwakening(common_7.Awakening.BONUS_ATTACK_SUPER));
-                counts.set(common_7.Awakening.L_GUARD, this.countAwakening(common_7.Awakening.L_GUARD));
+                counts.set(common_8.Awakening.SKILL_BOOST, this.countAwakening(common_8.Awakening.SKILL_BOOST, opts));
+                counts.set(common_8.Awakening.TIME, this.countAwakening(common_8.Awakening.TIME, opts));
+                counts.set(common_8.Awakening.SOLOBOOST, this.countAwakening(common_8.Awakening.SOLOBOOST));
+                counts.set(common_8.Awakening.BONUS_ATTACK, this.countAwakening(common_8.Awakening.BONUS_ATTACK));
+                counts.set(common_8.Awakening.BONUS_ATTACK_SUPER, this.countAwakening(common_8.Awakening.BONUS_ATTACK_SUPER));
+                counts.set(common_8.Awakening.L_GUARD, this.countAwakening(common_8.Awakening.L_GUARD));
                 // Resists
-                counts.set(common_7.Awakening.SBR, this.countAwakening(common_7.Awakening.SBR, opts));
-                counts.set(common_7.Awakening.RESIST_POISON, this.countAwakening(common_7.Awakening.RESIST_POISON, opts));
-                counts.set(common_7.Awakening.RESIST_BLIND, this.countAwakening(common_7.Awakening.RESIST_BLIND, opts));
-                counts.set(common_7.Awakening.RESIST_JAMMER, this.countAwakening(common_7.Awakening.RESIST_JAMMER, opts));
-                counts.set(common_7.Awakening.RESIST_CLOUD, this.countAwakening(common_7.Awakening.RESIST_CLOUD));
-                counts.set(common_7.Awakening.RESIST_TAPE, this.countAwakening(common_7.Awakening.RESIST_TAPE));
+                counts.set(common_8.Awakening.SBR, this.countAwakening(common_8.Awakening.SBR, opts));
+                counts.set(common_8.Awakening.RESIST_POISON, this.countAwakening(common_8.Awakening.RESIST_POISON, opts));
+                counts.set(common_8.Awakening.RESIST_BLIND, this.countAwakening(common_8.Awakening.RESIST_BLIND, opts));
+                counts.set(common_8.Awakening.RESIST_JAMMER, this.countAwakening(common_8.Awakening.RESIST_JAMMER, opts));
+                counts.set(common_8.Awakening.RESIST_CLOUD, this.countAwakening(common_8.Awakening.RESIST_CLOUD));
+                counts.set(common_8.Awakening.RESIST_TAPE, this.countAwakening(common_8.Awakening.RESIST_TAPE));
                 // OE
-                counts.set(common_7.Awakening.OE_FIRE, this.countAwakening(common_7.Awakening.OE_FIRE));
-                counts.set(common_7.Awakening.OE_WATER, this.countAwakening(common_7.Awakening.OE_WATER));
-                counts.set(common_7.Awakening.OE_WOOD, this.countAwakening(common_7.Awakening.OE_WOOD));
-                counts.set(common_7.Awakening.OE_LIGHT, this.countAwakening(common_7.Awakening.OE_LIGHT));
-                counts.set(common_7.Awakening.OE_DARK, this.countAwakening(common_7.Awakening.OE_DARK));
-                counts.set(common_7.Awakening.OE_HEART, this.countAwakening(common_7.Awakening.OE_HEART));
+                counts.set(common_8.Awakening.OE_FIRE, this.countAwakening(common_8.Awakening.OE_FIRE));
+                counts.set(common_8.Awakening.OE_WATER, this.countAwakening(common_8.Awakening.OE_WATER));
+                counts.set(common_8.Awakening.OE_WOOD, this.countAwakening(common_8.Awakening.OE_WOOD));
+                counts.set(common_8.Awakening.OE_LIGHT, this.countAwakening(common_8.Awakening.OE_LIGHT));
+                counts.set(common_8.Awakening.OE_DARK, this.countAwakening(common_8.Awakening.OE_DARK));
+                counts.set(common_8.Awakening.OE_HEART, this.countAwakening(common_8.Awakening.OE_HEART));
                 // Rows
-                counts.set(common_7.Awakening.ROW_FIRE, this.countAwakening(common_7.Awakening.ROW_FIRE));
-                counts.set(common_7.Awakening.ROW_WATER, this.countAwakening(common_7.Awakening.ROW_WATER));
-                counts.set(common_7.Awakening.ROW_WOOD, this.countAwakening(common_7.Awakening.ROW_WOOD));
-                counts.set(common_7.Awakening.ROW_LIGHT, this.countAwakening(common_7.Awakening.ROW_LIGHT));
-                counts.set(common_7.Awakening.ROW_DARK, this.countAwakening(common_7.Awakening.ROW_DARK));
-                counts.set(common_7.Awakening.RECOVER_BIND, this.countAwakening(common_7.Awakening.RECOVER_BIND));
+                counts.set(common_8.Awakening.ROW_FIRE, this.countAwakening(common_8.Awakening.ROW_FIRE));
+                counts.set(common_8.Awakening.ROW_WATER, this.countAwakening(common_8.Awakening.ROW_WATER));
+                counts.set(common_8.Awakening.ROW_WOOD, this.countAwakening(common_8.Awakening.ROW_WOOD));
+                counts.set(common_8.Awakening.ROW_LIGHT, this.countAwakening(common_8.Awakening.ROW_LIGHT));
+                counts.set(common_8.Awakening.ROW_DARK, this.countAwakening(common_8.Awakening.ROW_DARK));
+                counts.set(common_8.Awakening.RECOVER_BIND, this.countAwakening(common_8.Awakening.RECOVER_BIND));
                 // Resists
-                counts.set(common_7.Awakening.RESIST_FIRE, this.countAwakening(common_7.Awakening.RESIST_FIRE));
-                counts.set(common_7.Awakening.RESIST_WATER, this.countAwakening(common_7.Awakening.RESIST_WATER));
-                counts.set(common_7.Awakening.RESIST_WOOD, this.countAwakening(common_7.Awakening.RESIST_WOOD));
-                counts.set(common_7.Awakening.RESIST_LIGHT, this.countAwakening(common_7.Awakening.RESIST_LIGHT));
-                counts.set(common_7.Awakening.RESIST_DARK, this.countAwakening(common_7.Awakening.RESIST_DARK));
-                counts.set(common_7.Awakening.AUTOHEAL, this.countAwakening(common_7.Awakening.AUTOHEAL));
+                counts.set(common_8.Awakening.RESIST_FIRE, this.countAwakening(common_8.Awakening.RESIST_FIRE));
+                counts.set(common_8.Awakening.RESIST_WATER, this.countAwakening(common_8.Awakening.RESIST_WATER));
+                counts.set(common_8.Awakening.RESIST_WOOD, this.countAwakening(common_8.Awakening.RESIST_WOOD));
+                counts.set(common_8.Awakening.RESIST_LIGHT, this.countAwakening(common_8.Awakening.RESIST_LIGHT));
+                counts.set(common_8.Awakening.RESIST_DARK, this.countAwakening(common_8.Awakening.RESIST_DARK));
+                counts.set(common_8.Awakening.AUTOHEAL, this.countAwakening(common_8.Awakening.AUTOHEAL));
                 const testResult = team_conformance_1.runTests(this.tests, this.makeTestContext());
                 const monsters = this.getActiveTeam();
                 const leadId = monsters[0].getCard().leaderSkillId;
@@ -9750,7 +9912,7 @@
         }
         exports.Team = Team;
     });
-    define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_8, ilmina_stripped_6) {
+    define("enemy_instance", ["require", "exports", "common", "ilmina_stripped"], function (require, exports, common_9, ilmina_stripped_6) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function calcScaleStat(max, min, level, growth) {
@@ -9800,9 +9962,9 @@
                 this.poison = 0;
                 this.delayed = false; // Not to be used yet.
                 this.dungeonMultipliers = {
-                    hp: new common_8.Rational(),
-                    atk: new common_8.Rational(),
-                    def: new common_8.Rational(),
+                    hp: new common_9.Rational(),
+                    atk: new common_9.Rational(),
+                    def: new common_9.Rational(),
                 };
             }
             setLevel(lv) {
@@ -9885,7 +10047,7 @@
                 }
                 const [typeBits, percent] = resistTypeSkills[0].skillArgs;
                 return {
-                    types: common_8.idxsFromBits(typeBits),
+                    types: common_9.idxsFromBits(typeBits),
                     percent: percent,
                 };
             }
@@ -9899,7 +10061,7 @@
                 }
                 const [attrBits, percent] = resistAttrSkills[0].skillArgs;
                 return {
-                    attrs: common_8.idxsFromBits(attrBits),
+                    attrs: common_9.idxsFromBits(attrBits),
                     percent: percent,
                 };
             }
@@ -9933,14 +10095,14 @@
                     let killerCount = 0;
                     let latentCount = 0;
                     for (const type of types) {
-                        killerCount += ping.source.countAwakening(common_8.TypeToKiller[type], playerMode);
-                        latentCount += ping.source.latents.filter((latent) => latent == common_8.TypeToLatentKiller[type]).length;
+                        killerCount += ping.source.countAwakening(common_9.TypeToKiller[type], playerMode);
+                        latentCount += ping.source.latents.filter((latent) => latent == common_9.TypeToLatentKiller[type]).length;
                     }
                     currentDamage *= (3 ** killerCount);
                     currentDamage *= (1.5 ** latentCount);
-                    currentDamage = Math.min(currentDamage, common_8.INT_CAP);
+                    currentDamage = Math.min(currentDamage, common_9.INT_CAP);
                 }
-                if (ping.attribute != common_8.Attribute.FIXED) {
+                if (ping.attribute != common_9.Attribute.FIXED) {
                     // Handle resisted Attributes and Types
                     const attrResists = this.getAttrResists();
                     if (attrResists.attrs.includes(ping.attribute)) {
@@ -9952,7 +10114,7 @@
                     }
                     currentDamage = Math.ceil(currentDamage);
                     // Handle Defense
-                    if (!ping.source.countAwakening(common_8.Awakening.GUARD_BREAK) ||
+                    if (!ping.source.countAwakening(common_9.Awakening.GUARD_BREAK) ||
                         new Set(pings.filter((p) => p.damage && p.attribute >= 0 && p.attribute <= 4).map((p) => p.attribute)).size < 5) {
                         currentDamage -= this.getDef();
                         currentDamage = Math.max(currentDamage, 1);
@@ -9966,14 +10128,14 @@
                 // Handle void
                 if (this.damageVoid && currentDamage >= this.damageVoid &&
                     !ping.ignoreVoid && !voids.damageVoid &&
-                    !(ping.source.latents.some((l) => l == common_8.Latent.RESIST_DAMAGE_VOID)
+                    !(ping.source.latents.some((l) => l == common_9.Latent.RESIST_DAMAGE_VOID)
                         && new Set(pings.filter((p) => p.damage).map((p) => p.attribute)).size == 5
                         && comboContainer.combos['h'].length)) {
                     currentDamage = 0;
                 }
                 // Handle Absorbs
                 if (this.attributeAbsorb.includes(ping.attribute) && !voids.attributeAbsorb &&
-                    !(ping.source.latents.some((l) => l == common_8.Latent.RESIST_ATTRIBUTE_ABSORB)
+                    !(ping.source.latents.some((l) => l == common_9.Latent.RESIST_ATTRIBUTE_ABSORB)
                         && new Set(pings.filter((p) => p.damage && p.attribute >= 0 && p.attribute <= 4).map(p => p.attribute)).size == 5
                         && comboContainer.combos['h'].length)) {
                     currentDamage *= -1;
@@ -10040,7 +10202,7 @@
         }
         exports.EnemyInstance = EnemyInstance;
     });
-    define("actives", ["require", "exports", "common", "damage_ping", "ilmina_stripped", "debugger"], function (require, exports, common_9, damage_ping_2, ilmina_stripped_7, debugger_3) {
+    define("actives", ["require", "exports", "common", "damage_ping", "ilmina_stripped", "debugger"], function (require, exports, common_10, damage_ping_2, ilmina_stripped_7, debugger_3) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // 0
@@ -10049,7 +10211,7 @@
                 const ping = new damage_ping_2.DamagePing(source, attr);
                 ping.isActive = true;
                 ping.damage = source.getAtk(playerMode, awakeningsActive);
-                ping.multiply(atk100 / 100, common_9.Round.UP);
+                ping.multiply(atk100 / 100, common_10.Round.UP);
                 return [ping];
             },
         };
@@ -10070,7 +10232,7 @@
                 ping.isActive = true;
                 ping.damage = source.getAtk(playerMode, awakeningsActive);
                 const multiplier100 = atk100base + Math.floor(Math.random() * (atk100max - atk100base));
-                ping.multiply(multiplier100 / 100, common_9.Round.UP);
+                ping.multiply(multiplier100 / 100, common_10.Round.UP);
                 if (atk100base != atk100max) {
                     debugger_3.debug.print('Random scaling active used. Damage is inconsistent');
                 }
@@ -10099,7 +10261,7 @@
         // 6
         const gravity = {
             damage: ([percentGravity], { source, enemy }) => {
-                const ping = new damage_ping_2.DamagePing(source, common_9.Attribute.FIXED);
+                const ping = new damage_ping_2.DamagePing(source, common_10.Attribute.FIXED);
                 ping.isActive = true;
                 ping.damage = Math.round(enemy.currentHp * percentGravity / 100);
                 return [ping];
@@ -10209,7 +10371,7 @@
         // 55
         const fixedDamageToOneEnemy = {
             damage: ([amount], { source }) => {
-                const ping = new damage_ping_2.DamagePing(source, common_9.Attribute.FIXED);
+                const ping = new damage_ping_2.DamagePing(source, common_10.Attribute.FIXED);
                 ping.isActive = true;
                 ping.damage = amount;
                 return [ping];
@@ -10309,7 +10471,7 @@
                 ping.isActive = true;
                 ping.damage = source.getAtk(playerMode, awakeningsActive);
                 const multiplierScale100 = (maxMult100 - baseMult100) * ((1 - (currentHp - 1) / maxHp) ** (scaling / 100));
-                ping.multiply((baseMult100 + multiplierScale100) / 100, common_9.Round.NEAREST);
+                ping.multiply((baseMult100 + multiplierScale100) / 100, common_10.Round.NEAREST);
                 return [ping];
             },
         };
@@ -10420,7 +10582,7 @@
         const scalingAttackFromTeam = {
             damage: ([attrBits, atk100, _, attr], { source, playerMode, awakeningsActive, team, badge }) => {
                 const ping = new damage_ping_2.DamagePing(source, attr);
-                const attrs = new Set(common_9.idxsFromBits(attrBits));
+                const attrs = new Set(common_10.idxsFromBits(attrBits));
                 for (const m of team) {
                     const atk = m.getAtk(playerMode, awakeningsActive);
                     if (attrs.has(m.getAttribute())) {
@@ -10435,12 +10597,12 @@
                         }
                     }
                 }
-                ping.multiply(atk100 / 100, common_9.Round.UP);
-                if (badge == common_9.TeamBadge.ATK) {
-                    ping.multiply(1.05, common_9.Round.UP);
+                ping.multiply(atk100 / 100, common_10.Round.UP);
+                if (badge == common_10.TeamBadge.ATK) {
+                    ping.multiply(1.05, common_10.Round.UP);
                 }
-                else if (badge == common_9.TeamBadge.ATK_PLUS) {
-                    ping.multiply(1.15, common_9.Round.UP);
+                else if (badge == common_10.TeamBadge.ATK_PLUS) {
+                    ping.multiply(1.15, common_10.Round.UP);
                 }
                 return [ping];
             },
@@ -10488,7 +10650,7 @@
         // 161
         const trueGravity = {
             damage: ([percentGravity], { source, enemy }) => {
-                const ping = new damage_ping_2.DamagePing(source, common_9.Attribute.FIXED);
+                const ping = new damage_ping_2.DamagePing(source, common_10.Attribute.FIXED);
                 ping.isActive = true;
                 ping.damage = Math.ceil(enemy.getHp() * percentGravity / 100);
                 return [ping];
@@ -10855,7 +11017,7 @@
         }
         exports.ValeriaDecodeToPdchu = ValeriaDecodeToPdchu;
     });
-    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common", "debugger"], function (require, exports, ilmina_stripped_8, common_10, debugger_4) {
+    define("enemy_skills", ["require", "exports", "ilmina_stripped", "common", "debugger"], function (require, exports, ilmina_stripped_8, common_11, debugger_4) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         var SkillType;
@@ -10870,15 +11032,15 @@
             begin = begin || 0;
             const suffix = ' ' + (end == 1 ? singular : plural);
             if (begin == end) {
-                return common_10.addCommas(end) + suffix;
+                return common_11.addCommas(end) + suffix;
             }
-            return `${common_10.addCommas(begin)}-${common_10.addCommas(end)}${suffix}`;
+            return `${common_11.addCommas(begin)}-${common_11.addCommas(end)}${suffix}`;
         }
         // 1
         const bindRandom = {
             textify: ({ skillArgs, aiArgs }, { atk }) => {
                 const [count, min, max] = skillArgs;
-                return `Binds ${count} of all monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}.`;
+                return `Binds ${count} of all monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${common_11.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -10904,7 +11066,7 @@
         const bindAttr = {
             textify: ({ skillArgs, aiArgs }, { atk }) => {
                 const [color, min, max] = skillArgs;
-                return `Binds ${common_10.AttributeToName.get(color || 0)} monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}. If none exist and part of skillset, hits for ${common_10.addCommas(atk)}. Else continue.`;
+                return `Binds ${common_11.AttributeToName.get(color || 0)} monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${common_11.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}. If none exist and part of skillset, hits for ${common_11.addCommas(atk)}. Else continue.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -10934,7 +11096,7 @@
         const bindType = {
             textify: ({ skillArgs, aiArgs }, { atk }) => {
                 const [type, min, max] = skillArgs;
-                return `Binds ${common_10.TypeToName.get(type)} monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}. If none exist, hits for ${common_10.addCommas(atk)}.`;
+                return `Binds ${common_11.TypeToName.get(type)} monsters for ${range(min, max)}${aiArgs[4] ? ` and hits for ${aiArgs[4]}% (${common_11.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}. If none exist, hits for ${common_11.addCommas(atk)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -10962,7 +11124,7 @@
         };
         // 4
         const orbChange = {
-            textify: ({ skillArgs }) => `Convert ${common_10.AttributeToName.get(skillArgs[0] || 0)} to ${common_10.AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
+            textify: ({ skillArgs }) => `Convert ${common_11.AttributeToName.get(skillArgs[0] || 0)} to ${common_11.AttributeToName.get(skillArgs[1])}. If none exists, Continue.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -10992,7 +11154,7 @@
         };
         // 7
         const healOrAttack = {
-            textify: ({ skillArgs }, { atk }) => `If player health less than ${common_10.addCommas(atk)}, deal ${common_10.addCommas(atk)}, otherwise heal for ${range(skillArgs[0], skillArgs[1], '', '')}%`,
+            textify: ({ skillArgs }, { atk }) => `If player health less than ${common_11.addCommas(atk)}, deal ${common_11.addCommas(atk)}, otherwise heal for ${range(skillArgs[0], skillArgs[1], '', '')}%`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
@@ -11026,7 +11188,7 @@
         };
         // 12
         const singleOrbToJammer = {
-            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_10.AttributeToName.get(skillArgs[0])} color into Jammer.`,
+            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_11.AttributeToName.get(skillArgs[0])} color into Jammer.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -11064,9 +11226,9 @@
             textify: ({ skillArgs }, { atk }) => {
                 const [min, max, percent] = skillArgs;
                 if (min == max) {
-                    return `Hit ${max}x${percent}% for ${common_10.addCommas(max * Math.ceil(percent / 100 * atk))}`;
+                    return `Hit ${max}x${percent}% for ${common_11.addCommas(max * Math.ceil(percent / 100 * atk))}`;
                 }
-                return `Hit ${min}-${max}x${percent}% for ${common_10.addCommas(min * Math.ceil(percent / 100 * atk))}-${common_10.addCommas(max * Math.ceil(percent / 100 * atk))}`;
+                return `Hit ${min}-${max}x${percent}% for ${common_11.addCommas(min * Math.ceil(percent / 100 * atk))}-${common_11.addCommas(max * Math.ceil(percent / 100 * atk))}`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -11130,7 +11292,7 @@
         };
         // 20
         const statusShield = {
-            textify: ({ skillArgs, aiArgs }, { atk }) => `Void status ailments for ${skillArgs[0]} turns` + (aiArgs[4] ? ` and hit for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''),
+            textify: ({ skillArgs, aiArgs }, { atk }) => `Void status ailments for ${skillArgs[0]} turns` + (aiArgs[4] ? ` and hit for ${aiArgs[4]}% (${common_11.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''),
             condition: () => true,
             aiEffect: () => { },
             effect: ({ aiArgs }, { enemy, team, comboContainer }) => {
@@ -11152,7 +11314,7 @@
         // 22
         const setFlagAndContinue = {
             textify: (skillCtx) => {
-                const flagPositions = common_10.idxsFromBits(skillCtx.ai);
+                const flagPositions = common_11.idxsFromBits(skillCtx.ai);
                 return `Set Flag(s) ${flagPositions} and Continue.`;
             },
             condition: () => true,
@@ -11166,7 +11328,7 @@
         // 23
         const goto0IndexIfFlag = {
             textify: ({ ai, rnd }) => {
-                return `If Flag ${common_10.idxsFromBits(ai)}, go to skill at index ${rnd - 1}`;
+                return `If Flag ${common_11.idxsFromBits(ai)}, go to skill at index ${rnd - 1}`;
             },
             condition: ({ ai }, { flags }) => {
                 return Boolean(flags & ai);
@@ -11181,7 +11343,7 @@
         // 24
         const unsetFlagAndContinue = {
             textify: (skillCtx) => {
-                const flagPositions = common_10.idxsFromBits(skillCtx.ai);
+                const flagPositions = common_11.idxsFromBits(skillCtx.ai);
                 return `Unset Flag(s) ${flagPositions} and Continue.`;
             },
             condition: () => true,
@@ -11300,7 +11462,7 @@
         // 36
         const fallbackAttack = {
             textify: (_, { atk }) => {
-                return `Attack of ${common_10.addCommas(atk)} used if none of the above are available.`;
+                return `Attack of ${common_11.addCommas(atk)} used if none of the above are available.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -11383,7 +11545,7 @@
         // 43
         const gotoIfFlag = {
             textify: ({ ai, rnd }) => {
-                return `If Flag ${common_10.idxsFromBits(ai)}, go to skill at index ${rnd}`;
+                return `If Flag ${common_11.idxsFromBits(ai)}, go to skill at index ${rnd}`;
             },
             condition: ({ ai }, { flags }) => {
                 return Boolean(flags & ai);
@@ -11398,7 +11560,7 @@
         // 44
         const orFlagsAndContinue = {
             textify: ({ ai }) => {
-                return `OR flags ${common_10.idxsFromBits(ai)}, and Continue.`;
+                return `OR flags ${common_11.idxsFromBits(ai)}, and Continue.`;
             },
             condition: () => true,
             aiEffect: ({ ai }, ctx) => {
@@ -11411,7 +11573,7 @@
         // 45
         const toggleFlagsAndContinue = {
             textify: ({ ai }) => {
-                return `Toggle flags ${common_10.idxsFromBits(ai)}, and Continue.`;
+                return `Toggle flags ${common_11.idxsFromBits(ai)}, and Continue.`;
             },
             condition: ({ ai }, { flags }) => {
                 return Boolean(flags & ai);
@@ -11433,7 +11595,7 @@
                     skillArgs = skillArgs.filter(Boolean);
                     skillArgs.push(0);
                 }
-                const attrs = [...(new Set(skillArgs))].map(i => common_10.AttributeToName.get(i)).join(',');
+                const attrs = [...(new Set(skillArgs))].map(i => common_11.AttributeToName.get(i)).join(',');
                 return `Change attribute to one of [${attrs}]`;
             },
             condition: (skillCtx, ctx) => {
@@ -11456,7 +11618,7 @@
         // 47
         const oldPreemptiveAttack = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Preemptive: Do ${skillArgs[1]}% (${common_10.addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
+                return `Preemptive: Do ${skillArgs[1]}% (${common_11.addCommas(Math.ceil(skillArgs[1] / 100 * atk))})`;
             },
             condition: () => true,
             effect: ({ skillArgs }, { team, enemy, comboContainer }) => {
@@ -11472,9 +11634,9 @@
         const attackAndSingleOrbChange = {
             textify: ({ skillArgs }, { atk }) => {
                 const [percent, from, to] = skillArgs;
-                const damage = common_10.addCommas(Math.ceil(percent / 100 * atk));
-                const fromString = from == -1 ? 'Random Color' : common_10.AttributeToName.get(from);
-                const toString = to == -1 ? 'Random Color' : common_10.AttributeToName.get(to);
+                const damage = common_11.addCommas(Math.ceil(percent / 100 * atk));
+                const fromString = from == -1 ? 'Random Color' : common_11.AttributeToName.get(from);
+                const toString = to == -1 ? 'Random Color' : common_11.AttributeToName.get(to);
                 return `Hit for ${skillArgs[0]}% (${damage}) and convert ${fromString} to ${toString}`;
             },
             condition: () => true,
@@ -11535,13 +11697,13 @@
         const attributeAbsorb = {
             textify: ({ skillArgs }) => {
                 const [minTurns, maxTurns, attrIdxs] = skillArgs;
-                const attrs = common_10.idxsFromBits(attrIdxs).map((c) => common_10.AttributeToName.get(c)).join(', ');
+                const attrs = common_11.idxsFromBits(attrIdxs).map((c) => common_11.AttributeToName.get(c)).join(', ');
                 return `For ${range(minTurns, maxTurns)}, absorb ${attrs}.`;
             },
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { enemy }) => {
-                enemy.attributeAbsorb = common_10.idxsFromBits(skillArgs[2]);
+                enemy.attributeAbsorb = common_11.idxsFromBits(skillArgs[2]);
             },
             goto: () => TERMINATE,
             addMechanic: (mechanic, { skillArgs }) => {
@@ -11592,7 +11754,7 @@
         const healPlayerIfHpBelow = {
             textify: ({ skillArgs }, { atk }) => {
                 const [percentHeal, hpThreshold] = skillArgs;
-                return `Heal player for ${percentHeal}% HP if player HP <=${hpThreshold}%, else attack for 100% (${common_10.addCommas(atk)})`;
+                return `Heal player for ${percentHeal}% HP if player HP <=${hpThreshold}%, else attack for 100% (${common_11.addCommas(atk)})`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -11614,7 +11776,7 @@
         };
         // 56
         const singleOrbToPoison = {
-            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_10.AttributeToName.get(skillArgs[0])} color into Poison`,
+            textify: ({ skillArgs }) => `Convert ${skillArgs[0] == -1 ? 'Random' : common_11.AttributeToName.get(skillArgs[0])} color into Poison`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -11648,7 +11810,7 @@
         // 62
         const attackAndBlind = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Hits once for ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[0] / 100 * atk))}) and blinds the board.`;
+                return `Hits once for ${skillArgs[0]}% (${common_11.addCommas(Math.ceil(skillArgs[0] / 100 * atk))}) and blinds the board.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -11679,7 +11841,7 @@
                         text.push('Subs');
                     }
                 }
-                return `Hits once for ${percent}% (${common_10.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${range(min, max)}.`;
+                return `Hits once for ${percent}% (${common_11.addCommas(Math.ceil(percent / 100 * atk))}) and binds ${count} of ${text.join(' and ')} for ${range(min, max)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -11708,7 +11870,7 @@
         const attackAndPoisonSpawn = {
             textify: ({ skillArgs }, { atk }) => {
                 const [percent, count, excludeHearts] = skillArgs;
-                const damage = common_10.addCommas(Math.ceil(percent / 100 * atk));
+                const damage = common_11.addCommas(Math.ceil(percent / 100 * atk));
                 return `Hit for ${skillArgs[0]}% (${damage}) and spawn ${count} Poison Orbs${excludeHearts ? ' ignoring hearts' : ''}`;
             },
             condition: () => true,
@@ -11762,7 +11924,7 @@
         // 68
         const skyfall = {
             textify: ({ skillArgs }) => {
-                const orbs = common_10.idxsFromBits(skillArgs[0]).map((c) => common_10.AttributeToName.get(c));
+                const orbs = common_11.idxsFromBits(skillArgs[0]).map((c) => common_11.AttributeToName.get(c));
                 return `For ${skillArgs[1]} to ${skillArgs[2]} turns, set ${orbs} skyfall bonus to ${skillArgs[3]}% `;
             },
             condition: () => true,
@@ -11770,11 +11932,11 @@
             effect: () => { },
             goto: () => TERMINATE,
             addMechanic: (mechanic, { skillArgs }) => {
-                const colors = common_10.idxsFromBits(skillArgs[0]);
-                if (colors.includes(common_10.Attribute.POISON) || colors.includes(common_10.Attribute.MORTAL_POSION)) {
+                const colors = common_11.idxsFromBits(skillArgs[0]);
+                if (colors.includes(common_11.Attribute.POISON) || colors.includes(common_11.Attribute.MORTAL_POSION)) {
                     mechanic.poisonSkyfall = true;
                 }
-                if (colors.includes(common_10.Attribute.JAMMER)) {
+                if (colors.includes(common_11.Attribute.JAMMER)) {
                     mechanic.jammerSkyfall = true;
                 }
             },
@@ -11790,7 +11952,7 @@
         };
         // 71
         const voidDamage = {
-            textify: ({ skillArgs }) => `Void Damage of >= ${common_10.addCommas(skillArgs[2])} for ${skillArgs[0]}} turns.`,
+            textify: ({ skillArgs }) => `Void Damage of >= ${common_11.addCommas(skillArgs[2])} for ${skillArgs[0]}} turns.`,
             // Add conditional that this can't happen again.
             condition: () => true,
             aiEffect: () => { },
@@ -11808,7 +11970,7 @@
         };
         // 72
         const attributeResist = {
-            textify: ({ skillArgs }) => `[Passive] ${skillArgs[1]}% ${common_10.idxsFromBits(skillArgs[0]).map(c => common_10.AttributeToName.get(c))} Resist.`,
+            textify: ({ skillArgs }) => `[Passive] ${skillArgs[1]}% ${common_11.idxsFromBits(skillArgs[0]).map(c => common_11.AttributeToName.get(c))} Resist.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -11851,7 +12013,7 @@
                     team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                     return;
                 }
-                if (team.getActiveTeam()[0].latents.some((l) => l == common_10.Latent.RESIST_LEADER_SWAP)) {
+                if (team.getActiveTeam()[0].latents.some((l) => l == common_11.Latent.RESIST_LEADER_SWAP)) {
                     debugger_4.debug.print('Leader Swap Resisted');
                     return;
                 }
@@ -11875,7 +12037,7 @@
                     if (c == undefined) {
                         continue;
                     }
-                    columns.push(`column(s) ${common_10.idxsFromBits(c)} into ${common_10.idxsFromBits(o).map(i => common_10.AttributeToName.get(i))}`);
+                    columns.push(`column(s) ${common_11.idxsFromBits(c)} into ${common_11.idxsFromBits(o).map(i => common_11.AttributeToName.get(i))}`);
                 }
                 text += columns.join(' and ');
                 return text + '.';
@@ -11886,14 +12048,14 @@
             addMechanic: (mechanic, { skillArgs }) => {
                 const spawnSets = new Set();
                 for (const o of [skillArgs[1], skillArgs[3], skillArgs[5], skillArgs[7], skillArgs[9]]) {
-                    for (const a of common_10.idxsFromBits(o || 0)) {
+                    for (const a of common_11.idxsFromBits(o || 0)) {
                         spawnSets.add(a);
                     }
                 }
-                if (spawnSets.has(common_10.Attribute.POISON) || spawnSets.has(common_10.Attribute.MORTAL_POSION)) {
+                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POSION)) {
                     mechanic.poisonChange = true;
                 }
-                if (spawnSets.has(common_10.Attribute.JAMMER) || spawnSets.has(common_10.Attribute.BOMB)) {
+                if (spawnSets.has(common_11.Attribute.JAMMER) || spawnSets.has(common_11.Attribute.BOMB)) {
                     mechanic.jammerChange = true;
                 }
             },
@@ -11902,13 +12064,13 @@
         const attackAndColumnChange = {
             textify: ({ skillArgs }, { atk }) => {
                 const [c1, o1, c2, o2, c3, o3, percent] = skillArgs;
-                let text = `Deal ${percent}% (${common_10.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
+                let text = `Deal ${percent}% (${common_11.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
                 let columns = [];
                 for (const [c, o] of [[c1, o1], [c2, o2], [c3, o3]]) {
                     if (c == undefined) {
                         continue;
                     }
-                    columns.push(`column(s) ${common_10.idxsFromBits(c)} into ${common_10.idxsFromBits(o).map(i => common_10.AttributeToName.get(i))}`);
+                    columns.push(`column(s) ${common_11.idxsFromBits(c)} into ${common_11.idxsFromBits(o).map(i => common_11.AttributeToName.get(i))}`);
                 }
                 text += columns.join(' and ');
                 return text + '.';
@@ -11923,14 +12085,14 @@
             addMechanic: (mechanic, { skillArgs, atk }) => {
                 const spawnSets = new Set();
                 for (const o of [skillArgs[1], skillArgs[3], skillArgs[5]]) {
-                    for (const a of common_10.idxsFromBits(o || 0)) {
+                    for (const a of common_11.idxsFromBits(o || 0)) {
                         spawnSets.add(a);
                     }
                 }
-                if (spawnSets.has(common_10.Attribute.POISON) || spawnSets.has(common_10.Attribute.MORTAL_POSION)) {
+                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POSION)) {
                     mechanic.poisonChange = true;
                 }
-                if (spawnSets.has(common_10.Attribute.JAMMER) || spawnSets.has(common_10.Attribute.BOMB)) {
+                if (spawnSets.has(common_11.Attribute.JAMMER) || spawnSets.has(common_11.Attribute.BOMB)) {
                     mechanic.jammerChange = true;
                 }
                 mechanic.hits.push(Math.ceil(skillArgs[6] * atk / 100));
@@ -11946,7 +12108,7 @@
                     if (r == undefined) {
                         continue;
                     }
-                    columns.push(`row(s) ${common_10.idxsFromBits(r)} into ${common_10.idxsFromBits(o).map(i => common_10.AttributeToName.get(i))}`);
+                    columns.push(`row(s) ${common_11.idxsFromBits(r)} into ${common_11.idxsFromBits(o).map(i => common_11.AttributeToName.get(i))}`);
                 }
                 text += columns.join(' and ');
                 return text + '.';
@@ -11958,14 +12120,14 @@
             addMechanic: (mechanic, { skillArgs }) => {
                 const spawnSets = new Set();
                 for (const o of [skillArgs[1], skillArgs[3], skillArgs[5], skillArgs[7], skillArgs[9]]) {
-                    for (const a of common_10.idxsFromBits(o || 0)) {
+                    for (const a of common_11.idxsFromBits(o || 0)) {
                         spawnSets.add(a);
                     }
                 }
-                if (spawnSets.has(common_10.Attribute.POISON) || spawnSets.has(common_10.Attribute.MORTAL_POSION)) {
+                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POSION)) {
                     mechanic.poisonChange = true;
                 }
-                if (spawnSets.has(common_10.Attribute.JAMMER) || spawnSets.has(common_10.Attribute.BOMB)) {
+                if (spawnSets.has(common_11.Attribute.JAMMER) || spawnSets.has(common_11.Attribute.BOMB)) {
                     mechanic.jammerChange = true;
                 }
             },
@@ -11974,13 +12136,13 @@
         const attackAndRowChange = {
             textify: ({ skillArgs }, { atk }) => {
                 const [r1, o1, r2, o2, r3, o3, percent] = skillArgs;
-                let text = `Deal ${percent}% (${common_10.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
+                let text = `Deal ${percent}% (${common_11.addCommas(Math.ceil(percent * atk / 100))}), Convert `;
                 let columns = [];
                 for (const [r, o] of [[r1, o1], [r2, o2], [r3, o3]]) {
                     if (!r == undefined) {
                         continue;
                     }
-                    columns.push(`row(s) ${common_10.idxsFromBits(r)} into ${common_10.idxsFromBits(o).map(i => common_10.AttributeToName.get(i))}`);
+                    columns.push(`row(s) ${common_11.idxsFromBits(r)} into ${common_11.idxsFromBits(o).map(i => common_11.AttributeToName.get(i))}`);
                 }
                 text += columns.join(' and ');
                 return text + '.';
@@ -11995,14 +12157,14 @@
             addMechanic: (mechanic, { skillArgs, atk }) => {
                 const spawnSets = new Set();
                 for (const o of [skillArgs[1], skillArgs[3], skillArgs[5]]) {
-                    for (const a of common_10.idxsFromBits(o || 0)) {
+                    for (const a of common_11.idxsFromBits(o || 0)) {
                         spawnSets.add(a);
                     }
                 }
-                if (spawnSets.has(common_10.Attribute.POISON) || spawnSets.has(common_10.Attribute.MORTAL_POSION)) {
+                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POSION)) {
                     mechanic.poisonChange = true;
                 }
-                if (spawnSets.has(common_10.Attribute.JAMMER) || spawnSets.has(common_10.Attribute.BOMB)) {
+                if (spawnSets.has(common_11.Attribute.JAMMER) || spawnSets.has(common_11.Attribute.BOMB)) {
                     mechanic.jammerChange = true;
                 }
                 mechanic.hits.push(Math.ceil(skillArgs[6] * atk / 100));
@@ -12016,9 +12178,9 @@
                     if (skillArgs[i] == -1) {
                         break;
                     }
-                    colors.push(common_10.AttributeToName.get(skillArgs[i]));
+                    colors.push(common_11.AttributeToName.get(skillArgs[i]));
                 }
-                return `Attack of ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${colors.join(', ')}`;
+                return `Attack of ${skillArgs[0]}% (${common_11.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${colors.join(', ')}`;
             },
             // TODO: Add conditional depending on board.
             condition: () => true,
@@ -12031,10 +12193,10 @@
             addMechanic: (mechanic, { skillArgs, atk }) => {
                 mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
                 for (let i = 1; i < skillArgs.length && skillArgs[i] >= 0; i++) {
-                    if (skillArgs[i] == common_10.Attribute.POISON || skillArgs[i] == common_10.Attribute.MORTAL_POSION) {
+                    if (skillArgs[i] == common_11.Attribute.POISON || skillArgs[i] == common_11.Attribute.MORTAL_POSION) {
                         mechanic.poisonChange = true;
                     }
-                    if (skillArgs[i] == common_10.Attribute.JAMMER || skillArgs[i] == common_10.Attribute.BOMB) {
+                    if (skillArgs[i] == common_11.Attribute.JAMMER || skillArgs[i] == common_11.Attribute.BOMB) {
                         mechanic.jammerChange = true;
                     }
                 }
@@ -12043,7 +12205,7 @@
         // 82
         const attackWithoutName = {
             textify: (_, { atk }) => {
-                return `Attack of ${common_10.addCommas(atk)}.`;
+                return `Attack of ${common_11.addCommas(atk)}.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -12108,7 +12270,7 @@
         // 84
         const boardChange = {
             textify: ({ skillArgs }) => {
-                return `Change board to ${common_10.idxsFromBits(skillArgs[0]).map(c => common_10.AttributeToName.get(c))} `;
+                return `Change board to ${common_11.idxsFromBits(skillArgs[0]).map(c => common_11.AttributeToName.get(c))} `;
             },
             // TODO: Add conditional depending on board.
             condition: () => true,
@@ -12116,11 +12278,11 @@
             effect: () => { },
             goto: () => TERMINATE,
             addMechanic: (mechanic, { skillArgs }) => {
-                for (const o of common_10.idxsFromBits(skillArgs[0])) {
-                    if (o == common_10.Attribute.POISON || o == common_10.Attribute.MORTAL_POSION) {
+                for (const o of common_11.idxsFromBits(skillArgs[0])) {
+                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POSION) {
                         mechanic.poisonChange = true;
                     }
-                    if (o == common_10.Attribute.JAMMER || o == common_10.Attribute.BOMB) {
+                    if (o == common_11.Attribute.JAMMER || o == common_11.Attribute.BOMB) {
                         mechanic.jammerChange = true;
                     }
                 }
@@ -12129,7 +12291,7 @@
         // 85
         const attackAndChangeBoard = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Attack of ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${common_10.idxsFromBits(skillArgs[1]).map(c => common_10.AttributeToName.get(c))} `;
+                return `Attack of ${skillArgs[0]}% (${common_11.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and change board to ${common_11.idxsFromBits(skillArgs[1]).map(c => common_11.AttributeToName.get(c))} `;
             },
             // TODO: Add conditional depending on board.
             condition: () => true,
@@ -12141,11 +12303,11 @@
             goto: () => TERMINATE,
             addMechanic: (mechanic, { skillArgs, atk }) => {
                 mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
-                for (const o of common_10.idxsFromBits(skillArgs[1])) {
-                    if (o == common_10.Attribute.POISON || o == common_10.Attribute.MORTAL_POSION) {
+                for (const o of common_11.idxsFromBits(skillArgs[1])) {
+                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POSION) {
                         mechanic.poisonChange = true;
                     }
-                    if (o == common_10.Attribute.JAMMER || o == common_10.Attribute.BOMB) {
+                    if (o == common_11.Attribute.JAMMER || o == common_11.Attribute.BOMB) {
                         mechanic.jammerChange = true;
                     }
                 }
@@ -12171,7 +12333,7 @@
         };
         // 87
         const damageAbsorb = {
-            textify: ({ skillArgs }) => `Absorb damage of ${common_10.addCommas(skillArgs[1])} or more for ${skillArgs[0]} turns`,
+            textify: ({ skillArgs }) => `Absorb damage of ${common_11.addCommas(skillArgs[1])} or more for ${skillArgs[0]} turns`,
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { enemy }) => {
@@ -12185,7 +12347,7 @@
         // 88
         const awokenBind = {
             textify: ({ skillArgs }, { atk }) => {
-                return `Awoken Bind for ${skillArgs[0]} turn(s). If awoken bound and part of a skillset, attack for ${common_10.addCommas(atk)}, else Continue.`;
+                return `Awoken Bind for ${skillArgs[0]} turn(s). If awoken bound and part of a skillset, attack for ${common_11.addCommas(atk)}, else Continue.`;
             },
             condition: () => true,
             aiEffect: () => { },
@@ -12230,17 +12392,17 @@
         };
         // 92
         const randomOrbSpawn = {
-            textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x ${common_10.idxsFromBits(skillArgs[1]).map(c => common_10.AttributeToName.get(c))} orbs from non-[${common_10.idxsFromBits(skillArgs[2]).map((c) => common_10.AttributeToName.get(c))}], If Unable, Continue`,
+            textify: ({ skillArgs }) => `Randomly spawn ${skillArgs[0]}x ${common_11.idxsFromBits(skillArgs[1]).map(c => common_11.AttributeToName.get(c))} orbs from non-[${common_11.idxsFromBits(skillArgs[2]).map((c) => common_11.AttributeToName.get(c))}], If Unable, Continue`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
             goto: () => TERMINATE,
             addMechanic: (mechanic, { skillArgs }) => {
-                for (const o of common_10.idxsFromBits(skillArgs[1])) {
-                    if (o == common_10.Attribute.POISON || o == common_10.Attribute.MORTAL_POSION) {
+                for (const o of common_11.idxsFromBits(skillArgs[1])) {
+                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POSION) {
                         mechanic.poisonChange = true;
                     }
-                    if (o == common_10.Attribute.JAMMER || o == common_10.Attribute.BOMB) {
+                    if (o == common_11.Attribute.JAMMER || o == common_11.Attribute.BOMB) {
                         mechanic.jammerChange = true;
                     }
                 }
@@ -12258,7 +12420,7 @@
         const lockOrbs = {
             textify: ({ skillArgs }) => {
                 const [attrBits, maxLocked] = skillArgs;
-                const lockedOrbs = common_10.idxsFromBits(attrBits).map((c) => common_10.AttributeToName.get(c)).join(', ');
+                const lockedOrbs = common_11.idxsFromBits(attrBits).map((c) => common_11.AttributeToName.get(c)).join(', ');
                 return `Lock up to ${maxLocked} of the following orbs: ${lockedOrbs}. If unable to lock any, Continue.`;
             },
             condition: () => {
@@ -12288,7 +12450,7 @@
                 if (!attrBits || attrBits == -1) {
                     return `Lock ${percent}% skyfall for ${range(minTurns, maxTurns)}.`;
                 }
-                const lockedOrbs = common_10.idxsFromBits(attrBits).map((c) => common_10.AttributeToName.get(c)).join(', ');
+                const lockedOrbs = common_11.idxsFromBits(attrBits).map((c) => common_11.AttributeToName.get(c)).join(', ');
                 return `Lock ${percent}% of ${lockedOrbs} skyfall for ${range(minTurns, maxTurns)}`;
             },
             condition: () => true,
@@ -12304,7 +12466,7 @@
             textify: ({ skillArgs, aiArgs }, { atk }) => {
                 let text = `Randomly sticky blind ${range(skillArgs[1], skillArgs[2], ' orb', ' orbs')} for ${skillArgs[0]} turns.`;
                 if (aiArgs[4]) {
-                    text = text.replace('.', ` and attack for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})`);
+                    text = text.replace('.', ` and attack for ${aiArgs[4]}% (${common_11.addCommas(Math.ceil(atk * aiArgs[4] / 100))})`);
                 }
                 return text;
             },
@@ -12335,9 +12497,9 @@
         // 99
         const tapeColumns = {
             textify: ({ skillArgs, aiArgs }, { atk }) => {
-                let text = `Tape columns ${common_10.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns.`;
+                let text = `Tape columns ${common_11.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns.`;
                 if (aiArgs[4]) {
-                    text = text.replace('.', ` and attack for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})`);
+                    text = text.replace('.', ` and attack for ${aiArgs[4]}% (${common_11.addCommas(Math.ceil(atk * aiArgs[4] / 100))})`);
                 }
                 return text;
             },
@@ -12357,9 +12519,9 @@
         // 100
         const tapeRows = {
             textify: ({ skillArgs, aiArgs }, { atk }) => {
-                let text = `Tape rows ${common_10.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns.`;
+                let text = `Tape rows ${common_11.idxsFromBits(skillArgs[0])} for ${skillArgs[1]} turns.`;
                 if (aiArgs[4]) {
-                    text = text.replace('.', ` and attack for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))})`);
+                    text = text.replace('.', ` and attack for ${aiArgs[4]}% (${common_11.addCommas(Math.ceil(atk * aiArgs[4] / 100))})`);
                 }
                 return text;
             },
@@ -12414,7 +12576,7 @@
             textify: ({ skillArgs, aiArgs }, { atk }) => {
                 let text = `Randomly Cloud ${skillArgs[1]}x${skillArgs[2]} Rectangle for ${skillArgs[0]} turns.`;
                 if (aiArgs[4]) {
-                    text = text.replace('.', ` and attack for ${aiArgs[4]}% (${common_10.addCommas(Math.ceil(atk * aiArgs[4] / 100))}).`);
+                    text = text.replace('.', ` and attack for ${aiArgs[4]}% (${common_11.addCommas(Math.ceil(atk * aiArgs[4] / 100))}).`);
                 }
                 return text;
             },
@@ -12463,7 +12625,7 @@
         };
         // 107
         const unmatchable = {
-            textify: ({ skillArgs }) => `${common_10.idxsFromBits(skillArgs[1]).map(c => common_10.AttributeToName.get(c))} are unmatchable for ${skillArgs[0]} turn(s)`,
+            textify: ({ skillArgs }) => `${common_11.idxsFromBits(skillArgs[1]).map(c => common_11.AttributeToName.get(c))} are unmatchable for ${skillArgs[0]} turn(s)`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -12476,9 +12638,9 @@
         const attackAndMultiOrbChange = {
             textify: ({ skillArgs }, { atk }) => {
                 const [percent, fromBits, toBits] = skillArgs;
-                const damage = common_10.addCommas(Math.ceil(percent / 100 * atk));
-                const fromString = common_10.idxsFromBits(fromBits).map(from => common_10.AttributeToName.get(from) || 'Fire');
-                const toString = common_10.idxsFromBits(toBits).map(to => common_10.AttributeToName.get(to));
+                const damage = common_11.addCommas(Math.ceil(percent / 100 * atk));
+                const fromString = common_11.idxsFromBits(fromBits).map(from => common_11.AttributeToName.get(from) || 'Fire');
+                const toString = common_11.idxsFromBits(toBits).map(to => common_11.AttributeToName.get(to));
                 return `Hit for ${skillArgs[0]}% (${damage}) and convert ${fromString} to ${toString}`;
             },
             condition: () => true,
@@ -12490,11 +12652,11 @@
             goto: () => TERMINATE,
             addMechanic: (mechanic, { skillArgs, atk }) => {
                 mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
-                for (const o of common_10.idxsFromBits(skillArgs[2])) {
-                    if (o == common_10.Attribute.POISON || o == common_10.Attribute.MORTAL_POSION) {
+                for (const o of common_11.idxsFromBits(skillArgs[2])) {
+                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POSION) {
                         mechanic.poisonChange = true;
                     }
-                    if (o == common_10.Attribute.JAMMER || o == common_10.Attribute.BOMB) {
+                    if (o == common_11.Attribute.JAMMER || o == common_11.Attribute.BOMB) {
                         mechanic.jammerChange = true;
                     }
                 }
@@ -12563,7 +12725,7 @@
         };
         // 118
         const resistTypes = {
-            textify: ({ skillArgs }) => `[Passive] Resist ${skillArgs[1]}% of ${common_10.idxsFromBits(skillArgs[0]).map((v) => common_10.TypeToName.get(v)).join(' and ')} damage.`,
+            textify: ({ skillArgs }) => `[Passive] Resist ${skillArgs[1]}% of ${common_11.idxsFromBits(skillArgs[0]).map((v) => common_11.TypeToName.get(v)).join(' and ')} damage.`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -12615,7 +12777,7 @@
         };
         // 124
         const gachadra = {
-            textify: ({ skillArgs }) => `[Pasive] GACHADRA FEVER - Requires ${skillArgs[1]}x ${common_10.AttributeToName.get(skillArgs[0])} orbs to kill`,
+            textify: ({ skillArgs }) => `[Pasive] GACHADRA FEVER - Requires ${skillArgs[1]}x ${common_11.AttributeToName.get(skillArgs[0])} orbs to kill`,
             condition: () => true,
             aiEffect: () => { },
             effect: () => { },
@@ -12643,7 +12805,7 @@
         };
         // 127
         const attackAndNoSkyfall = {
-            textify: ({ skillArgs }, { atk }) => skillArgs[0] ? `Attack of ${skillArgs[0]}% (${common_10.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and n` : 'N' + `o-skyfall for ${skillArgs[1]} turn(s).`,
+            textify: ({ skillArgs }, { atk }) => skillArgs[0] ? `Attack of ${skillArgs[0]}% (${common_11.addCommas(Math.ceil(skillArgs[0] * atk / 100))}) and n` : 'N' + `o-skyfall for ${skillArgs[1]} turn(s).`,
             condition: () => true,
             aiEffect: () => { },
             // This will occur in the damage step.
@@ -13052,7 +13214,7 @@
         }
         exports.textifyEnemySkills = textifyEnemySkills;
     });
-    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills", "ilmina_stripped"], function (require, exports, common_11, ajax_2, enemy_instance_1, templates_5, enemy_skills_1, ilmina_stripped_9) {
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills", "ilmina_stripped"], function (require, exports, common_12, ajax_2, enemy_instance_1, templates_5, enemy_skills_1, ilmina_stripped_9) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DungeonFloor {
@@ -13088,7 +13250,7 @@
                 return floor;
             }
         }
-        const requestUrl = common_11.BASE_URL + 'assets/DungeonsAndEncounters.json';
+        const requestUrl = common_12.BASE_URL + 'assets/DungeonsAndEncounters.json';
         const DUNGEON_DATA = new Map();
         const dungeonSearchArray = [];
         const request = ajax_2.ajax(requestUrl);
@@ -13146,9 +13308,9 @@
                 this.isNormal = false;
                 this.allAttributesRequired = false;
                 this.noDupes = false;
-                this.hpMultiplier = new common_11.Rational(1);
-                this.atkMultiplier = new common_11.Rational(1);
-                this.defMultiplier = new common_11.Rational(1);
+                this.hpMultiplier = new common_12.Rational(1);
+                this.atkMultiplier = new common_12.Rational(1);
+                this.defMultiplier = new common_12.Rational(1);
                 this.activeFloor = 0;
                 this.activeEnemy = 0;
                 this.onEnemySkill = () => null;
@@ -13162,7 +13324,7 @@
                 });
             }
             async loadDungeon(subDungeonId) {
-                await common_11.waitFor(() => dungeonsLoaded);
+                await common_12.waitFor(() => dungeonsLoaded);
                 const data = DUNGEON_DATA.get(subDungeonId);
                 if (!data) {
                     console.warn('invalid sub dungeon');
@@ -13387,15 +13549,15 @@
                     }
                     const enemy = this.getActiveEnemy();
                     if (ctx.dungeonHpMultiplier != undefined) {
-                        this.hpMultiplier = common_11.Rational.from(ctx.dungeonHpMultiplier);
+                        this.hpMultiplier = common_12.Rational.from(ctx.dungeonHpMultiplier);
                         enemy.dungeonMultipliers.hp = this.hpMultiplier;
                     }
                     if (ctx.dungeonAtkMultiplier != undefined) {
-                        this.atkMultiplier = common_11.Rational.from(ctx.dungeonAtkMultiplier);
+                        this.atkMultiplier = common_12.Rational.from(ctx.dungeonAtkMultiplier);
                         enemy.dungeonMultipliers.atk = this.atkMultiplier;
                     }
                     if (ctx.dungeonDefMultiplier != undefined) {
-                        this.defMultiplier = common_11.Rational.from(ctx.dungeonDefMultiplier);
+                        this.defMultiplier = common_12.Rational.from(ctx.dungeonDefMultiplier);
                         enemy.dungeonMultipliers.def = this.defMultiplier;
                     }
                     if (ctx.activeEnemy != undefined || ctx.activeFloor != undefined) {
@@ -13575,15 +13737,15 @@
                 this.isNormal = json.isNormal;
                 this.activeFloor = 0;
                 this.setActiveEnemy(0);
-                this.hpMultiplier = common_11.Rational.from(json.hp || '1');
-                this.atkMultiplier = common_11.Rational.from(json.atk || '1');
-                this.defMultiplier = common_11.Rational.from(json.def || '1');
+                this.hpMultiplier = common_12.Rational.from(json.hp || '1');
+                this.atkMultiplier = common_12.Rational.from(json.atk || '1');
+                this.defMultiplier = common_12.Rational.from(json.def || '1');
                 this.update(true);
             }
         }
         exports.DungeonInstance = DungeonInstance;
     });
-    define("team_photo", ["require", "exports", "ilmina_stripped", "templates"], function (require, exports, ilmina_stripped_10, templates_6) {
+    define("team_photo", ["require", "exports", "common", "ilmina_stripped", "templates"], function (require, exports, common_13, ilmina_stripped_10, templates_6) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function borderedText(ctx, text, x, y, borderThickness = -1, borderColor = 'black', color = 'yellow') {
@@ -14061,7 +14223,9 @@
                     }
                     if (this.opts.awakenings.length) {
                         const awakeningTotals = this.opts.awakenings.map((awakening) => {
-                            let total = team.countAwakening(awakening, { ignoreTransform: !this.opts.useTransform, includeTeamBadge: true });
+                            // Skill Boost count only matters as the base form.
+                            const ignoreTransform = !this.opts.useTransform || awakening == common_13.Awakening.SKILL_BOOST;
+                            let total = team.countAwakening(awakening, { ignoreTransform, includeTeamBadge: true });
                             return { awakening, total };
                         });
                         this.rowDraws.push(new AggregateAwakeningRow(awakeningTotals));
@@ -14130,7 +14294,7 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_12, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_14, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // import { testTestTestTest } from './team_test';
@@ -14449,7 +14613,7 @@
                     }
                     ping.actualDamage = oldHp - currentHp;
                 }
-                const specialPing = new damage_ping_3.DamagePing(this.team.getActiveTeam()[0], common_12.Attribute.FIXED, false);
+                const specialPing = new damage_ping_3.DamagePing(this.team.getActiveTeam()[0], common_14.Attribute.FIXED, false);
                 specialPing.damage = trueBonusAttack;
                 specialPing.isActive = true;
                 specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.playerMode, {
@@ -14472,7 +14636,7 @@
                 if (specialPing.actualDamage) {
                     pings = [...pings, specialPing];
                 }
-                this.team.teamPane.updateDamage(this.team.action, pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_12.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
+                this.team.teamPane.updateDamage(this.team.action, pings.map((ping) => ({ attribute: ping ? ping.attribute : common_14.Attribute.NONE, damage: ping ? ping.damage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_14.Attribute.NONE, damage: ping ? ping.rawDamage : 0 })), pings.map((ping) => ({ attribute: ping ? ping.attribute : common_14.Attribute.NONE, damage: ping ? ping.actualDamage : 0 })), maxHp, healing);
                 return { endEnemyHp: currentHp, healing };
             }
             getElement() {
@@ -14480,7 +14644,7 @@
             }
         }
         async function init() {
-            await common_12.waitFor(() => ilmina_stripped_11.floof.ready);
+            await common_14.waitFor(() => ilmina_stripped_11.floof.ready);
             console.log('Valeria taking over.');
             fuzzy_search_3.SearchInit();
             const valeria = new Valeria();
