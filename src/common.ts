@@ -558,6 +558,9 @@ enum BoolSetting {
   APRIL_FOOLS = 'aprilFools',
   INHERIT_PLUSSED = 'inheritPlussed',
   USE_PREEMPT = 'usePreempt',
+  WARN_CLOSE = 'warnOnClose',
+  WARN_CHANGE = 'warnOnChange',
+  DEBUG_AREA = 'debugArea',
 }
 enum NumberSetting {
   MONSTER_LEVEL = 'monsterLevel',

@@ -5,6 +5,7 @@ import {
   Latent,
   Round, Shape,
   TeamBadge, TeamBadgeToAwakening,
+  BoolSetting,
 } from './common';
 import { MonsterInstance, MonsterJson, monsterJsonEqual } from './monster_instance';
 import { DamagePing } from './damage_ping';
@@ -14,6 +15,7 @@ import { compress, decompress } from './ilmina_stripped';
 import * as leaders from './leaders';
 import { debug } from './debugger';
 import { runTests, TestContext, CompareBoolean, PlayerTeamContext } from './team_conformance';
+import { SETTINGS } from './templates';
 
 interface Burst {
   attrRestrictions: Attribute[];
@@ -160,7 +162,9 @@ class StoredTeams {
       // On Load Click
       (name: string) => {
         if (team.hasChange() &&
-          window.confirm('Changes made to current team, load anyways?')) {
+          (!SETTINGS.getBool(BoolSetting.WARN_CHANGE)
+            || window.confirm('Changes made to current team, load anyways?'))
+        ) {
           team.fromJson(this.getTeam(name));
           team.openTeamTab();
         }

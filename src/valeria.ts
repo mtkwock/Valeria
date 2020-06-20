@@ -449,14 +449,14 @@ async function init(): Promise<void> {
     valeria.drawTeam();
   }
 
-  if (localStorage.debug) {
+  if (SETTINGS.getBool(BoolSetting.DEBUG_AREA)) {
     document.body.appendChild(debug.getElement());
   }
   window.valeria = valeria;
   const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`) as HTMLInputElement;
   el.checked = true;
   window.onbeforeunload = () => {
-    if (valeria.team.hasChange()) {
+    if (valeria.team.hasChange() && SETTINGS.getBool(BoolSetting.WARN_CLOSE)) {
       return true;
     }
   };

@@ -308,7 +308,6 @@ class Settings implements SettingsInterface {
     this.el.appendChild(this.content);
     const header = create('h2');
     header.innerText = 'Settings';
-    this.content.appendChild(header);
     this.el.onclick = () => {
       this.closeButton.click();
     };
@@ -330,12 +329,16 @@ class Settings implements SettingsInterface {
       this.el.style.display = 'none';
     };
     this.content.appendChild(this.closeButton);
+    this.content.appendChild(header);
     this.content.appendChild(this.table);
     this.initNumberSetting(NumberSetting.MONSTER_LEVEL, 'Default Monster Level', 110);
     this.initNumberSetting(NumberSetting.INHERIT_LEVEL, 'Default Inherit Level', 110);
     this.initBoolSetting(BoolSetting.INHERIT_PLUSSED, 'Default Inherit to +297', true);
     this.initBoolSetting(BoolSetting.USE_PREEMPT, 'Use Preemptive on Enemy Load', true);
+    this.initBoolSetting(BoolSetting.WARN_CHANGE, 'Warn when changing teams', true);
+    this.initBoolSetting(BoolSetting.WARN_CLOSE, 'Warn when closing page', true);
     this.initBoolSetting(BoolSetting.APRIL_FOOLS, 'April Fools Icons (Needs refresh)', false);
+    this.initBoolSetting(BoolSetting.DEBUG_AREA, 'Show Debug Area', false);
 
     document.body.appendChild(this.el);
   }
