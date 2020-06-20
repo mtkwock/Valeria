@@ -2,13 +2,13 @@
  * Main File for Valeria.
  */
 
-import { Latent, Attribute, MonsterType, waitFor } from './common';
+import { Latent, Attribute, MonsterType, waitFor, BoolSetting } from './common';
 import { ComboContainer } from './combo_container';
 import { DamagePing } from './damage_ping';
 import { DungeonInstance } from './dungeon';
 import { SearchInit } from './fuzzy_search';
 import { Team } from './player_team';
-import { MonsterEditor, ValeriaDisplay, MonsterUpdate, ClassNames } from './templates';
+import { MonsterEditor, ValeriaDisplay, MonsterUpdate, ClassNames, SETTINGS } from './templates';
 import { debug } from './debugger';
 import { floof } from './ilmina_stripped';
 import { ValeriaEncode, ValeriaDecodeToPdchu } from './custom_base64';
@@ -226,7 +226,7 @@ class Valeria {
       this.team.updateState({});
     }
     this.dungeon.onEnemyChange = () => {
-      if (!this.dungeon.isNormal) {
+      if (!this.dungeon.isNormal && SETTINGS.getBool(BoolSetting.USE_PREEMPT)) {
         this.usePreempt();
       }
       this.updateDamage();
