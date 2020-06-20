@@ -587,6 +587,9 @@
             BoolSetting["APRIL_FOOLS"] = "aprilFools";
             BoolSetting["INHERIT_PLUSSED"] = "inheritPlussed";
             BoolSetting["USE_PREEMPT"] = "usePreempt";
+            BoolSetting["WARN_CLOSE"] = "warnOnClose";
+            BoolSetting["WARN_CHANGE"] = "warnOnChange";
+            BoolSetting["DEBUG_AREA"] = "debugArea";
         })(BoolSetting || (BoolSetting = {}));
         exports.BoolSetting = BoolSetting;
         var NumberSetting;
@@ -2707,7 +2710,6 @@
                 this.el.appendChild(this.content);
                 const header = create('h2');
                 header.innerText = 'Settings';
-                this.content.appendChild(header);
                 this.el.onclick = () => {
                     this.closeButton.click();
                 };
@@ -2729,12 +2731,16 @@
                     this.el.style.display = 'none';
                 };
                 this.content.appendChild(this.closeButton);
+                this.content.appendChild(header);
                 this.content.appendChild(this.table);
                 this.initNumberSetting(common_3.NumberSetting.MONSTER_LEVEL, 'Default Monster Level', 110);
                 this.initNumberSetting(common_3.NumberSetting.INHERIT_LEVEL, 'Default Inherit Level', 110);
                 this.initBoolSetting(common_3.BoolSetting.INHERIT_PLUSSED, 'Default Inherit to +297', true);
                 this.initBoolSetting(common_3.BoolSetting.USE_PREEMPT, 'Use Preemptive on Enemy Load', true);
+                this.initBoolSetting(common_3.BoolSetting.WARN_CHANGE, 'Warn when changing teams', true);
+                this.initBoolSetting(common_3.BoolSetting.WARN_CLOSE, 'Warn when closing page', true);
                 this.initBoolSetting(common_3.BoolSetting.APRIL_FOOLS, 'April Fools Icons (Needs refresh)', false);
+                this.initBoolSetting(common_3.BoolSetting.DEBUG_AREA, 'Show Debug Area', false);
                 document.body.appendChild(this.el);
             }
             getElement() {
@@ -8625,7 +8631,7 @@
         }
         exports.awokenBindClear = awokenBindClear;
     });
-    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_conformance"], function (require, exports, common_8, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_5, leaders, debugger_2, team_conformance_1) {
+    define("player_team", ["require", "exports", "common", "monster_instance", "damage_ping", "templates", "ilmina_stripped", "leaders", "debugger", "team_conformance", "templates"], function (require, exports, common_8, monster_instance_1, damage_ping_1, templates_4, ilmina_stripped_5, leaders, debugger_2, team_conformance_1, templates_5) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         leaders = __importStar(leaders);
@@ -8700,7 +8706,8 @@
                 // On Load Click
                 (name) => {
                     if (team.hasChange() &&
-                        window.confirm('Changes made to current team, load anyways?')) {
+                        (!templates_5.SETTINGS.getBool(common_8.BoolSetting.WARN_CHANGE)
+                            || window.confirm('Changes made to current team, load anyways?'))) {
                         team.fromJson(this.getTeam(name));
                         team.openTeamTab();
                     }
@@ -13214,7 +13221,7 @@
         }
         exports.textifyEnemySkills = textifyEnemySkills;
     });
-    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills", "ilmina_stripped"], function (require, exports, common_12, ajax_2, enemy_instance_1, templates_5, enemy_skills_1, ilmina_stripped_9) {
+    define("dungeon", ["require", "exports", "common", "ajax", "enemy_instance", "templates", "enemy_skills", "ilmina_stripped"], function (require, exports, common_12, ajax_2, enemy_instance_1, templates_6, enemy_skills_1, ilmina_stripped_9) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         class DungeonFloor {
@@ -13318,8 +13325,8 @@
                 this.onEnemyUpdate = () => { };
                 // Sets all of your monsters to level 1 temporarily.
                 this.floors = [new DungeonFloor()];
-                this.pane = new templates_5.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
-                this.skillArea = new templates_5.EnemySkillArea((idx) => {
+                this.pane = new templates_6.DungeonPane(dungeonSearchArray, this.getUpdateFunction());
+                this.skillArea = new templates_6.EnemySkillArea((idx) => {
                     this.onEnemySkill(idx, []);
                 });
             }
@@ -13745,7 +13752,7 @@
         }
         exports.DungeonInstance = DungeonInstance;
     });
-    define("team_photo", ["require", "exports", "common", "ilmina_stripped", "templates"], function (require, exports, common_13, ilmina_stripped_10, templates_6) {
+    define("team_photo", ["require", "exports", "common", "ilmina_stripped", "templates"], function (require, exports, common_13, ilmina_stripped_10, templates_7) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         function borderedText(ctx, text, x, y, borderThickness = -1, borderColor = 'black', color = 'yellow') {
@@ -13822,7 +13829,7 @@
             }
         }
         function drawAwakening(ctx, awakening, sideLength, offsetX, offsetY, image, opacity = 1.0) {
-            const [x, y] = templates_6.getAwakeningOffsets(awakening);
+            const [x, y] = templates_7.getAwakeningOffsets(awakening);
             if (opacity != 1.0) {
                 ctx.save();
                 ctx.globalAlpha = opacity;
@@ -14004,7 +14011,7 @@
                             localOffsetX = 0;
                             localOffsetY = height;
                         }
-                        const { x, y } = templates_6.getLatentPosition(latent);
+                        const { x, y } = templates_7.getLatentPosition(latent);
                         ctx.drawImage(images[LatentRow.LATENT_URL], x, y, imageWidth, 32, localOffsetX + i * ctx.canvas.width / 6, localOffsetY + drawnOffsetY, width, height);
                         localOffsetX += width;
                     }
@@ -14168,7 +14175,7 @@
                     showDescription: true,
                     transparentBackground: true,
                 };
-                this.photoArea = new templates_6.PhotoArea(this.opts, () => {
+                this.photoArea = new templates_7.PhotoArea(this.opts, () => {
                     this.reloadTeam();
                     this.redraw();
                 });
@@ -14294,20 +14301,20 @@
     /**
      * Main File for Valeria.
      */
-    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_14, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_7, debugger_5, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
+    define("valeria", ["require", "exports", "common", "combo_container", "damage_ping", "dungeon", "fuzzy_search", "player_team", "templates", "debugger", "ilmina_stripped", "custom_base64", "enemy_skills", "url_handler", "actives", "team_photo"], function (require, exports, common_14, combo_container_1, damage_ping_3, dungeon_1, fuzzy_search_3, player_team_1, templates_8, debugger_5, ilmina_stripped_11, custom_base64_1, enemy_skills_2, url_handler_1, actives_1, team_photo_1) {
         "use strict";
         Object.defineProperty(exports, "__esModule", { value: true });
         // import { testTestTestTest } from './team_test';
         class Valeria {
             constructor() {
-                this.display = new templates_7.ValeriaDisplay();
+                this.display = new templates_8.ValeriaDisplay();
                 this.comboContainer = new combo_container_1.ComboContainer();
                 this.display.leftTabs.getTab('Combo Editor').appendChild(this.comboContainer.getElement());
                 this.comboContainer.onUpdate.push(() => {
                     this.team.action = -1;
                     this.updateDamage();
                 });
-                this.monsterEditor = new templates_7.MonsterEditor((ctx) => {
+                this.monsterEditor = new templates_8.MonsterEditor((ctx) => {
                     if (ctx.playerMode) {
                         this.team.setPlayerMode(ctx.playerMode);
                         this.team.update();
@@ -14363,7 +14370,7 @@
                 };
                 this.monsterEditor.pdchu.exportButton.onclick = () => {
                     this.monsterEditor.pdchu.io.value = this.team.toPdchu();
-                    const els = document.getElementsByClassName(templates_7.ClassNames.PDCHU_IO);
+                    const els = document.getElementsByClassName(templates_8.ClassNames.PDCHU_IO);
                     if (els.length) {
                         const el = els[0];
                         el.focus();
@@ -14373,7 +14380,7 @@
                 this.monsterEditor.pdchu.exportUrlButton.onclick = () => {
                     const searchlessUrl = location.href.replace(location.search, '');
                     this.monsterEditor.pdchu.io.value = `${searchlessUrl}?team=${custom_base64_1.ValeriaEncode(this.team)}&dungeon=${this.dungeon.id}`;
-                    const els = document.getElementsByClassName(templates_7.ClassNames.PDCHU_IO);
+                    const els = document.getElementsByClassName(templates_8.ClassNames.PDCHU_IO);
                     if (els.length) {
                         const el = els[0];
                         el.focus();
@@ -14484,7 +14491,7 @@
                     this.team.updateState({});
                 };
                 this.dungeon.onEnemyChange = () => {
-                    if (!this.dungeon.isNormal && templates_7.SETTINGS.getBool(common_14.BoolSetting.USE_PREEMPT)) {
+                    if (!this.dungeon.isNormal && templates_8.SETTINGS.getBool(common_14.BoolSetting.USE_PREEMPT)) {
                         this.usePreempt();
                     }
                     this.updateDamage();
@@ -14660,14 +14667,14 @@
                 valeria.team.teamPane.metaTabs.setActiveTab('Photo');
                 valeria.drawTeam();
             };
-            if (localStorage.debug) {
+            if (templates_8.SETTINGS.getBool(common_14.BoolSetting.DEBUG_AREA)) {
                 document.body.appendChild(debugger_5.debug.getElement());
             }
             window.valeria = valeria;
             const el = document.getElementById(`valeria-player-mode-${valeria.team.playerMode}`);
             el.checked = true;
             window.onbeforeunload = () => {
-                if (valeria.team.hasChange()) {
+                if (valeria.team.hasChange() && templates_8.SETTINGS.getBool(common_14.BoolSetting.WARN_CLOSE)) {
                     return true;
                 }
             };
