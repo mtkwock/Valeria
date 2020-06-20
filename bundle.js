@@ -14484,7 +14484,7 @@
                     this.team.updateState({});
                 };
                 this.dungeon.onEnemyChange = () => {
-                    if (!this.dungeon.isNormal) {
+                    if (!this.dungeon.isNormal && templates_7.SETTINGS.getBool(common_14.BoolSetting.USE_PREEMPT)) {
                         this.usePreempt();
                     }
                     this.updateDamage();
