@@ -3272,10 +3272,10 @@
             constructor() {
                 this.commandInput = create('input', ClassNames.COMBO_COMMAND);
                 this.element = create('div', ClassNames.COMBO_EDITOR);
-                // private colorTables: Record<string, HTMLTableElement> = {};
                 this.totalCombo = create('div');
                 this.plusComboLeaderInput = create('input');
                 this.plusComboActiveInput = create('input');
+                this.boardWidthInput = create('select');
                 this.pieceArea = create('div');
                 this.remainingOrbInput = create('input');
                 this.commandInput.placeholder = 'Combo Commands';
@@ -3283,29 +3283,63 @@
                 guideAnchor.href = 'https://github.com/mtkwock/Valeria#command-editor-syntax';
                 guideAnchor.innerText = 'Combo Command Usage Guide';
                 guideAnchor.target = '_blank';
-                this.element.appendChild(guideAnchor);
-                this.element.appendChild(this.commandInput);
                 this.totalCombo.innerText = 'Total Combos: 0';
-                const plusComboLeaderArea = create('div');
-                plusComboLeaderArea.appendChild(document.createTextNode('+Combo (Leader) '));
+                const tbl = create('table');
+                const plusComboLeaderRow = create('tr');
+                const plusComboLeaderLabel = create('td');
+                plusComboLeaderLabel.innerText = '+Combo (Leader)';
+                const plusComboLeaderCell = create('td');
                 this.plusComboLeaderInput.type = 'number';
                 this.plusComboLeaderInput.value = '0';
                 this.plusComboLeaderInput.disabled = true;
-                plusComboLeaderArea.appendChild(this.plusComboLeaderInput);
-                const plusComboActiveArea = create('div');
-                plusComboActiveArea.appendChild(document.createTextNode('+Combo (Active) '));
+                plusComboLeaderCell.appendChild(this.plusComboLeaderInput);
+                plusComboLeaderRow.appendChild(plusComboLeaderLabel);
+                plusComboLeaderRow.appendChild(plusComboLeaderCell);
+                const plusComboActiveRow = create('tr');
+                const plusComboActiveLabel = create('td');
+                plusComboActiveLabel.innerText = '+Combo (Active)';
                 this.plusComboActiveInput.type = 'number';
                 this.plusComboActiveInput.value = '0';
-                plusComboActiveArea.appendChild(this.plusComboActiveInput);
-                const remainingOrbArea = create('div');
-                remainingOrbArea.appendChild(document.createTextNode('Orbs Remaining '));
+                const plusComboActiveCell = create('td');
+                plusComboActiveCell.appendChild(this.plusComboActiveInput);
+                plusComboActiveRow.appendChild(plusComboActiveLabel);
+                plusComboActiveRow.appendChild(plusComboActiveCell);
+                const remainingOrbRow = create('tr');
+                const remainingOrbLabel = create('td');
+                remainingOrbLabel.innerText = 'Orbs Remaining';
                 this.remainingOrbInput.type = 'number';
+                this.remainingOrbInput.value = '-1';
                 this.remainingOrbInput.disabled = true;
-                this.remainingOrbInput.value = '30';
-                remainingOrbArea.appendChild(this.remainingOrbInput);
-                this.element.appendChild(plusComboLeaderArea);
-                this.element.appendChild(plusComboActiveArea);
-                this.element.appendChild(remainingOrbArea);
+                const remainingOrbCell = create('td');
+                remainingOrbCell.appendChild(this.remainingOrbInput);
+                remainingOrbRow.appendChild(remainingOrbLabel);
+                remainingOrbRow.appendChild(remainingOrbCell);
+                const boardWidthRow = create('tr');
+                const boardWidthLabel = create('td');
+                boardWidthLabel.innerText = 'Board Width';
+                this.boardWidthInput.value = '';
+                for (let i = 0; i < 4; i++) {
+                    let width = i + 4;
+                    const option = create('option');
+                    option.value = width.toString(10);
+                    option.innerText = `${width}x${width - 1}`;
+                    if (i == 0) {
+                        option.value = '0';
+                        option.innerText = 'Auto';
+                    }
+                    this.boardWidthInput.appendChild(option);
+                }
+                const boardWidthCell = create('td');
+                boardWidthCell.appendChild(this.boardWidthInput);
+                boardWidthRow.appendChild(boardWidthLabel);
+                boardWidthRow.appendChild(boardWidthCell);
+                tbl.appendChild(plusComboLeaderRow);
+                tbl.appendChild(plusComboActiveRow);
+                tbl.appendChild(remainingOrbRow);
+                tbl.appendChild(boardWidthRow);
+                this.element.appendChild(guideAnchor);
+                this.element.appendChild(this.commandInput);
+                this.element.appendChild(tbl);
                 this.element.appendChild(this.totalCombo);
                 this.element.appendChild(this.pieceArea);
             }
@@ -7064,7 +7098,8 @@
         class ComboContainer {
             constructor() {
                 // boardWidth: number;
-                this.boardWidth = () => 6;
+                this.boardWidthTeam = () => 5;
+                this.boardWidthDungeon = () => 6;
                 // private readonly maxVisibleCombos = 14;
                 this.bonusCombosLeader = 0;
                 this.bonusCombosActive = 0;
@@ -7083,6 +7118,10 @@
                         const remainingCommands = this.doCommands(this.comboEditor.commandInput.value);
                         this.comboEditor.commandInput.value = remainingCommands.join(' ');
                     }
+                };
+                this.boardWidthStatus = () => parseInt(this.comboEditor.boardWidthInput.value);
+                this.comboEditor.boardWidthInput.onchange = () => {
+                    this.update();
                 };
                 const colorToInputs = this.comboEditor.getInputElements();
                 for (const c in colorToInputs) {
@@ -7339,12 +7378,15 @@
                 }
                 return total + this.bonusCombosLeader + this.bonusCombosActive;
             }
-            setBoardWidth(width) {
-                this.boardWidth = width;
-                // TODO: Update combo counts as well.
-            }
             getBoardSize() {
                 return this.boardWidth() * (this.boardWidth() - 1);
+            }
+            boardWidth() {
+                const status = this.boardWidthStatus();
+                if (status) {
+                    return status;
+                }
+                return Math.max(this.boardWidthTeam(), this.boardWidthDungeon());
             }
             getRemainingOrbs() {
                 let remaining = this.getBoardSize();
@@ -9324,7 +9366,7 @@
                         continue;
                     }
                     // If neither of the leads have bigBoard, return 6.
-                    return 6;
+                    return 5;
                 }
                 // All teams have bigBoard.
                 return 7;
@@ -12809,11 +12851,16 @@
         };
         // 126
         const bigBoardOrContinue = {
-            textify: ({ skillArgs }) => `Change board to 7x6 for ${skillArgs[0]} turns. If already 7x6, Continue.`,
+            textify: ({ skillArgs }, { atk }) => `Change board to 7x6 for ${skillArgs[0]} turns. If already 7x6: If part of skillset, hit for ${common_11.addCommas(atk)}, else Continue.`,
             condition: () => true,
             aiEffect: () => { },
-            effect: (_, { team }) => {
-                team.state.bigBoard = true;
+            effect: (_, { team, comboContainer, enemy }) => {
+                if (comboContainer.getBoardSize() == 7) {
+                    team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
+                    return;
+                }
+                comboContainer.comboEditor.boardWidthInput.value = '7';
+                comboContainer.update();
             },
             goto: (_, { bigBoard }) => bigBoard ? TO_NEXT : TERMINATE,
         };
@@ -14396,7 +14443,6 @@
                 };
                 this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
                 this.team = new player_team_1.Team();
-                this.comboContainer.setBoardWidth(() => this.team.getBoardWidth());
                 this.team.updateCb = () => {
                     this.updateMonsterEditor();
                     this.updateDamage();
@@ -14455,6 +14501,16 @@
                     this.dungeon.loadDungeon(Number(dungeonId));
                 }
                 this.display.panes[2].appendChild(this.dungeon.getPane());
+                this.comboContainer.boardWidthTeam = () => this.team.getBoardWidth();
+                this.comboContainer.boardWidthDungeon = () => {
+                    if (this.dungeon.title.includes('7x6')) {
+                        return 7;
+                    }
+                    if (this.dungeon.title.includes('5x4')) {
+                        return 5;
+                    }
+                    return 6;
+                };
                 debugger_5.debug.addButton('Print Skills', () => {
                     const enemy = this.dungeon.getActiveEnemy();
                     const id = enemy.id;
@@ -14478,7 +14534,7 @@
                     }
                     this.dungeon.useEnemySkill(this.team.getActiveTeam().map((m) => m.getId()), // teamIds
                     attributes, types, this.comboContainer.comboCount(), // combo
-                    this.team.getBoardWidth() == 7);
+                    this.comboContainer.boardWidth() == 7);
                 });
                 this.dungeon.onEnemySkill = (idx, otherIdxs) => {
                     if (idx < 0) {
