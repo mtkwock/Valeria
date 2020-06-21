@@ -3277,6 +3277,7 @@
                 this.plusComboLeaderInput = create('input');
                 this.plusComboActiveInput = create('input');
                 this.pieceArea = create('div');
+                this.remainingOrbInput = create('input');
                 this.commandInput.placeholder = 'Combo Commands';
                 const guideAnchor = create('a');
                 guideAnchor.href = 'https://github.com/mtkwock/Valeria#command-editor-syntax';
@@ -3291,13 +3292,20 @@
                 this.plusComboLeaderInput.value = '0';
                 this.plusComboLeaderInput.disabled = true;
                 plusComboLeaderArea.appendChild(this.plusComboLeaderInput);
-                this.element.appendChild(plusComboLeaderArea);
                 const plusComboActiveArea = create('div');
                 plusComboActiveArea.appendChild(document.createTextNode('+Combo (Active) '));
                 this.plusComboActiveInput.type = 'number';
                 this.plusComboActiveInput.value = '0';
                 plusComboActiveArea.appendChild(this.plusComboActiveInput);
+                const remainingOrbArea = create('div');
+                remainingOrbArea.appendChild(document.createTextNode('Orbs Remaining '));
+                this.remainingOrbInput.type = 'number';
+                this.remainingOrbInput.disabled = true;
+                this.remainingOrbInput.value = '30';
+                remainingOrbArea.appendChild(this.remainingOrbInput);
+                this.element.appendChild(plusComboLeaderArea);
                 this.element.appendChild(plusComboActiveArea);
+                this.element.appendChild(remainingOrbArea);
                 this.element.appendChild(this.totalCombo);
                 this.element.appendChild(this.pieceArea);
             }
@@ -3308,7 +3316,8 @@
                 const out = {};
                 return out;
             }
-            update(data) {
+            update(data, boardWidth, remainingOrbs) {
+                this.remainingOrbInput.value = remainingOrbs.toString(10);
                 while (this.pieceArea.firstChild) {
                     this.pieceArea.removeChild(this.pieceArea.firstChild);
                 }
@@ -3333,7 +3342,7 @@
                             shape = common_3.LetterToShape[shapeCount[0]];
                             count = 0;
                         }
-                        const comboPiece = new ComboPiece(common_3.COLORS.indexOf(c), shape, count, 6);
+                        const comboPiece = new ComboPiece(common_3.COLORS.indexOf(c), shape, count, boardWidth);
                         this.pieceArea.appendChild(comboPiece.getElement());
                     }
                     if (vals.length) {
@@ -7054,14 +7063,15 @@
         exports.Combo = Combo;
         class ComboContainer {
             constructor() {
+                // boardWidth: number;
+                this.boardWidth = () => 6;
+                // private readonly maxVisibleCombos = 14;
+                this.bonusCombosLeader = 0;
+                this.bonusCombosActive = 0;
                 this.combos = {};
                 for (const c of common_6.COLORS) {
                     this.combos[c] = [];
                 }
-                this.boardWidth = 6;
-                this.maxVisibleCombos = 14;
-                this.bonusCombosLeader = 0;
-                this.bonusCombosActive = 0;
                 this.onUpdate = [];
                 this.comboEditor = new templates_3.ComboEditor();
                 this.comboEditor.plusComboActiveInput.onchange = () => {
@@ -7087,7 +7097,7 @@
                             let count = 0;
                             let shape = 'A';
                             if (letter == 'R') {
-                                count = this.boardWidth;
+                                count = this.boardWidth();
                                 shape = 'R';
                                 if (v.length > 1 && Number(v.substring(1)) > count) {
                                     count = Number(v.substring(1));
@@ -7095,7 +7105,7 @@
                                 shape = 'R';
                             }
                             else if (letter == 'C') {
-                                count = this.boardWidth - 1;
+                                count = this.boardWidth() - 1;
                                 shape = 'C';
                             }
                             else if ('LXB'.indexOf(letter) >= 0) {
@@ -7197,10 +7207,10 @@
                 }
                 switch (shape) {
                     case 'R':
-                        count = Math.max(count, this.boardWidth);
+                        count = Math.max(count, this.boardWidth());
                         break;
                     case 'C':
-                        count = this.boardWidth - 1;
+                        count = this.boardWidth() - 1;
                         break;
                     case 'L':
                     case 'X':
@@ -7310,7 +7320,7 @@
                         };
                     });
                 }
-                this.comboEditor.update(data);
+                this.comboEditor.update(data, this.boardWidth(), this.getRemainingOrbs());
                 for (const fn of this.onUpdate) {
                     fn(this);
                 }
@@ -7334,7 +7344,16 @@
                 // TODO: Update combo counts as well.
             }
             getBoardSize() {
-                return this.boardWidth * (this.boardWidth - 1);
+                return this.boardWidth() * (this.boardWidth() - 1);
+            }
+            getRemainingOrbs() {
+                let remaining = this.getBoardSize();
+                for (const colorCombos of Object.values(this.combos)) {
+                    for (const combo of colorCombos) {
+                        remaining -= combo.count;
+                    }
+                }
+                return remaining > 0 ? remaining : 0;
             }
         }
         exports.ComboContainer = ComboContainer;
@@ -7719,7 +7738,7 @@
             atk: ([attrBits, typeBits, _, atk100], { ping }) => atk100 && (ping.source.anyAttributes(common_7.idxsFromBits(attrBits)) || ping.source.anyTypes(common_7.idxsFromBits(typeBits))) ? atk100 / 100 : 1,
             rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && (monster.anyAttributes(common_7.idxsFromBits(attrBits)) || monster.anyTypes(common_7.idxsFromBits(typeBits))) ? rcv100 / 100 : 1,
             hpMax: ([_, _a, hp100]) => (hp100 || 100) / 100,
-            atkMax: ([_, _a, _b, atk100]) => (atk100 | 100) / 100,
+            atkMax: ([_, _a, _b, atk100]) => (atk100 || 100) / 100,
             rcvMax: ([_, _a, _b, _c, rcv100]) => (rcv100 || 100) / 100,
         };
         const atkRcvFromAttrTypeSubHp = {
@@ -7903,7 +7922,7 @@
             atk: ([_, ...params], context) => baseStatFromAttrsTypes.atk(params, context),
             rcv: ([_, ...params], context) => baseStatFromAttrsTypes.rcv(params, context),
             hpMax: ([_, _a, _b, hp100]) => (hp100 || 100) / 100,
-            atkMax: ([_, _a, _b, _c, atk100]) => (atk100 | 100) / 100,
+            atkMax: ([_, _a, _b, _c, atk100]) => (atk100 || 100) / 100,
             rcvMax: ([_, _a, _b, _c, _d, rcv100]) => (rcv100 || 100) / 100,
         };
         const bigBoardLeader = {
@@ -8099,23 +8118,11 @@
                 if (unknowns.length) {
                     console.warn(`Unhandled parameters from atkScalingFromOrbsRemaining: ${[a, b, c, d, e]}`);
                 }
-                let remaining = comboContainer.getBoardSize();
-                for (const c in comboContainer.combos) {
-                    // Do not count uncolored combos, since these can be from actives/combo orbs.
-                    if (c == 'u') {
-                        continue;
-                    }
-                    for (const combo of comboContainer.combos[c]) {
-                        remaining -= combo.count;
-                    }
-                }
+                const remaining = comboContainer.getRemainingOrbs();
                 if (remaining > maxRemaining) {
                     return 1;
                 }
-                if (remaining < 0) {
-                    remaining = 0;
-                }
-                return ((maxRemaining - remaining) * atk100scale + atk100base) / 100;
+                return ((maxRemaining - remaining) * (atk100scale || 0) + atk100base) / 100;
             },
             atkMax: (p) => (p[5] * (p[7] || 0) + p[6]) / 100,
         };
@@ -14389,6 +14396,7 @@
                 };
                 this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
                 this.team = new player_team_1.Team();
+                this.comboContainer.setBoardWidth(() => this.team.getBoardWidth());
                 this.team.updateCb = () => {
                     this.updateMonsterEditor();
                     this.updateDamage();
