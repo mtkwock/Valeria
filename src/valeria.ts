@@ -111,6 +111,7 @@ class Valeria {
     this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
 
     this.team = new Team();
+    this.comboContainer.setBoardWidth(() => this.team.getBoardWidth());
     this.team.updateCb = (): void => {
       this.updateMonsterEditor();
       this.updateDamage();

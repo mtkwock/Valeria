@@ -42,10 +42,11 @@ class Combo {
 
 class ComboContainer {
   combos: Record<string, Combo[]>;
-  boardWidth: number;
-  maxVisibleCombos: number;
-  bonusCombosLeader: number;
-  bonusCombosActive: number;
+  // boardWidth: number;
+  private boardWidth = (): number => 6;
+  // private readonly maxVisibleCombos = 14;
+  public bonusCombosLeader = 0;
+  public bonusCombosActive = 0;
   comboEditor: ComboEditor;
   onUpdate: ((c: ComboContainer) => any)[];
 
@@ -54,10 +55,6 @@ class ComboContainer {
     for (const c of COLORS) {
       this.combos[c] = [];
     }
-    this.boardWidth = 6;
-    this.maxVisibleCombos = 14;
-    this.bonusCombosLeader = 0;
-    this.bonusCombosActive = 0;
     this.onUpdate = [];
     this.comboEditor = new ComboEditor();
     this.comboEditor.plusComboActiveInput.onchange = () => {
@@ -86,14 +83,14 @@ class ComboContainer {
           let shape = 'A';
 
           if (letter == 'R') {
-            count = this.boardWidth;
+            count = this.boardWidth();
             shape = 'R';
             if (v.length > 1 && Number(v.substring(1)) > count) {
               count = Number(v.substring(1));
             }
             shape = 'R';
           } else if (letter == 'C') {
-            count = this.boardWidth - 1;
+            count = this.boardWidth() - 1;
             shape = 'C';
           } else if ('LXB'.indexOf(letter) >= 0) {
             shape = letter;
@@ -197,10 +194,10 @@ class ComboContainer {
     }
     switch (shape) {
       case 'R':
-        count = Math.max(count, this.boardWidth);
+        count = Math.max(count, this.boardWidth());
         break;
       case 'C':
-        count = this.boardWidth - 1;
+        count = this.boardWidth() - 1;
         break;
       case 'L':
       case 'X':
@@ -313,7 +310,7 @@ class ComboContainer {
         };
       });
     }
-    this.comboEditor.update(data);
+    this.comboEditor.update(data, this.boardWidth(), this.getRemainingOrbs());
     for (const fn of this.onUpdate) {
       fn(this);
     }
@@ -335,13 +332,23 @@ class ComboContainer {
     return total + this.bonusCombosLeader + this.bonusCombosActive;
   }
 
-  setBoardWidth(width: number): void {
+  setBoardWidth(width: () => number): void {
     this.boardWidth = width;
     // TODO: Update combo counts as well.
   }
 
   getBoardSize(): number {
-    return this.boardWidth * (this.boardWidth - 1);
+    return this.boardWidth() * (this.boardWidth() - 1);
+  }
+
+  getRemainingOrbs(): number {
+    let remaining = this.getBoardSize();
+    for (const colorCombos of Object.values(this.combos)) {
+      for (const combo of colorCombos) {
+        remaining -= combo.count;
+      }
+    }
+    return remaining > 0 ? remaining : 0;
   }
 }
 

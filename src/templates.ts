@@ -940,6 +940,7 @@ class ComboEditor {
   public plusComboLeaderInput = create('input') as HTMLInputElement;
   public plusComboActiveInput = create('input') as HTMLInputElement;
   private pieceArea = create('div');
+  public remainingOrbInput = create('input') as HTMLInputElement;
 
   constructor() {
     this.commandInput.placeholder = 'Combo Commands';
@@ -956,14 +957,21 @@ class ComboEditor {
     this.plusComboLeaderInput.value = '0';
     this.plusComboLeaderInput.disabled = true;
     plusComboLeaderArea.appendChild(this.plusComboLeaderInput);
-    this.element.appendChild(plusComboLeaderArea);
 
     const plusComboActiveArea = create('div');
     plusComboActiveArea.appendChild(document.createTextNode('+Combo (Active) '));
     this.plusComboActiveInput.type = 'number';
     this.plusComboActiveInput.value = '0';
     plusComboActiveArea.appendChild(this.plusComboActiveInput);
+    const remainingOrbArea = create('div');
+    remainingOrbArea.appendChild(document.createTextNode('Orbs Remaining '));
+    this.remainingOrbInput.type = 'number';
+    this.remainingOrbInput.disabled = true;
+    this.remainingOrbInput.value = '30';
+    remainingOrbArea.appendChild(this.remainingOrbInput);
+    this.element.appendChild(plusComboLeaderArea);
     this.element.appendChild(plusComboActiveArea);
+    this.element.appendChild(remainingOrbArea);
     this.element.appendChild(this.totalCombo);
     this.element.appendChild(this.pieceArea);
   }
@@ -977,7 +985,8 @@ class ComboEditor {
     return out;
   }
 
-  update(data: Record<string, { shapeCount: string, enhance: number }[]>) {
+  update(data: Record<string, { shapeCount: string, enhance: number }[]>, boardWidth: number, remainingOrbs: number): void {
+    this.remainingOrbInput.value = remainingOrbs.toString(10);
     while (this.pieceArea.firstChild) {
       this.pieceArea.removeChild(this.pieceArea.firstChild);
     }
@@ -999,7 +1008,7 @@ class ComboEditor {
           shape = LetterToShape[shapeCount[0]];
           count = 0;
         }
-        const comboPiece = new ComboPiece(COLORS.indexOf(c) as Attribute, shape, count, 6);
+        const comboPiece = new ComboPiece(COLORS.indexOf(c) as Attribute, shape, count, boardWidth);
         this.pieceArea.appendChild(comboPiece.getElement());
       }
       if (vals.length) {

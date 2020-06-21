@@ -573,7 +573,7 @@ const baseStatFromAttrsTypes: LeaderSkill = { // 121
   rcv: ([attrBits, typeBits, _, _a, rcv100], { monster }) => rcv100 && (monster.anyAttributes(idxsFromBits(attrBits)) || monster.anyTypes(idxsFromBits(typeBits))) ? rcv100 / 100 : 1,
 
   hpMax: ([_, _a, hp100]) => (hp100 || 100) / 100,
-  atkMax: ([_, _a, _b, atk100]) => (atk100 | 100) / 100,
+  atkMax: ([_, _a, _b, atk100]) => (atk100 || 100) / 100,
   rcvMax: ([_, _a, _b, _c, rcv100]) => (rcv100 || 100) / 100,
 };
 
@@ -798,7 +798,7 @@ const baseStatFromAttrsTypesMinMatch: LeaderSkill = { // 158
   rcv: ([_, ...params], context) => baseStatFromAttrsTypes.rcv!(params, context),
 
   hpMax: ([_, _a, _b, hp100]) => (hp100 || 100) / 100,
-  atkMax: ([_, _a, _b, _c, atk100]) => (atk100 | 100) / 100,
+  atkMax: ([_, _a, _b, _c, atk100]) => (atk100 || 100) / 100,
   rcvMax: ([_, _a, _b, _c, _d, rcv100]) => (rcv100 || 100) / 100,
 };
 
@@ -1017,23 +1017,11 @@ const atkScalingFromOrbsRemaining: LeaderSkill = { // 177
     if (unknowns.length) {
       console.warn(`Unhandled parameters from atkScalingFromOrbsRemaining: ${[a, b, c, d, e]}`);
     }
-    let remaining = comboContainer.getBoardSize();
-    for (const c in comboContainer.combos) {
-      // Do not count uncolored combos, since these can be from actives/combo orbs.
-      if (c == 'u') {
-        continue;
-      }
-      for (const combo of comboContainer.combos[c]) {
-        remaining -= combo.count;
-      }
-    }
+    const remaining = comboContainer.getRemainingOrbs();
     if (remaining > maxRemaining) {
       return 1;
     }
-    if (remaining < 0) {
-      remaining = 0;
-    }
-    return ((maxRemaining - remaining) * atk100scale + atk100base) / 100;
+    return ((maxRemaining - remaining) * (atk100scale || 0) + atk100base) / 100;
   },
 
   atkMax: (p) => (p[5] * (p[7] || 0) + p[6]) / 100,
