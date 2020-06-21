@@ -111,7 +111,6 @@ class Valeria {
     this.display.leftTabs.getTab('Monster Editor').appendChild(this.monsterEditor.getElement());
 
     this.team = new Team();
-    this.comboContainer.setBoardWidth(() => this.team.getBoardWidth());
     this.team.updateCb = (): void => {
       this.updateMonsterEditor();
       this.updateDamage();
@@ -177,6 +176,17 @@ class Valeria {
     }
     this.display.panes[2].appendChild(this.dungeon.getPane());
 
+    this.comboContainer.boardWidthTeam = () => this.team.getBoardWidth();
+    this.comboContainer.boardWidthDungeon = (): number => {
+      if (this.dungeon.title.includes('7x6')) {
+        return 7;
+      }
+      if (this.dungeon.title.includes('5x4')) {
+        return 5;
+      }
+      return 6;
+    }
+
     debug.addButton('Print Skills', () => {
       const enemy = this.dungeon.getActiveEnemy();
       const id = enemy.id;
@@ -204,7 +214,7 @@ class Valeria {
         attributes,
         types,
         this.comboContainer.comboCount(), // combo
-        this.team.getBoardWidth() == 7, // bigBoard
+        this.comboContainer.boardWidth() == 7, // bigBoard
       );
     });
 

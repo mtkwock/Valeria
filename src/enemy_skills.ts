@@ -1947,11 +1947,16 @@ const transformLead: EnemySkillEffect = {
 
 // 126
 const bigBoardOrContinue: EnemySkillEffect = {
-  textify: ({ skillArgs }) => `Change board to 7x6 for ${skillArgs[0]} turns. If already 7x6, Continue.`,
+  textify: ({ skillArgs }, { atk }) => `Change board to 7x6 for ${skillArgs[0]} turns. If already 7x6: If part of skillset, hit for ${addCommas(atk)}, else Continue.`,
   condition: () => true,
   aiEffect: () => { },
-  effect: (_, { team }) => {
-    team.state.bigBoard = true;
+  effect: (_, { team, comboContainer, enemy }) => {
+    if (comboContainer.getBoardSize() == 7) {
+      team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
+      return;
+    }
+    comboContainer.comboEditor.boardWidthInput.value = '7';
+    comboContainer.update();
   },
   goto: (_, { bigBoard }) => bigBoard ? TO_NEXT : TERMINATE,
 };

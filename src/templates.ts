@@ -935,10 +935,10 @@ class ComboEditor {
   public commandInput: HTMLInputElement = create('input', ClassNames.COMBO_COMMAND) as HTMLInputElement;
 
   private element: HTMLElement = create('div', ClassNames.COMBO_EDITOR);
-  // private colorTables: Record<string, HTMLTableElement> = {};
   public totalCombo = create('div');
   public plusComboLeaderInput = create('input') as HTMLInputElement;
   public plusComboActiveInput = create('input') as HTMLInputElement;
+  public boardWidthInput = create('select') as HTMLSelectElement;
   private pieceArea = create('div');
   public remainingOrbInput = create('input') as HTMLInputElement;
 
@@ -948,30 +948,69 @@ class ComboEditor {
     guideAnchor.href = 'https://github.com/mtkwock/Valeria#command-editor-syntax';
     guideAnchor.innerText = 'Combo Command Usage Guide';
     guideAnchor.target = '_blank';
-    this.element.appendChild(guideAnchor);
-    this.element.appendChild(this.commandInput);
     this.totalCombo.innerText = 'Total Combos: 0';
-    const plusComboLeaderArea = create('div');
-    plusComboLeaderArea.appendChild(document.createTextNode('+Combo (Leader) '));
+
+    const tbl = create('table') as HTMLTableElement;
+    const plusComboLeaderRow = create('tr');
+    const plusComboLeaderLabel = create('td');
+    plusComboLeaderLabel.innerText = '+Combo (Leader)';
+    const plusComboLeaderCell = create('td');
     this.plusComboLeaderInput.type = 'number';
     this.plusComboLeaderInput.value = '0';
     this.plusComboLeaderInput.disabled = true;
-    plusComboLeaderArea.appendChild(this.plusComboLeaderInput);
+    plusComboLeaderCell.appendChild(this.plusComboLeaderInput);
+    plusComboLeaderRow.appendChild(plusComboLeaderLabel);
+    plusComboLeaderRow.appendChild(plusComboLeaderCell);
 
-    const plusComboActiveArea = create('div');
-    plusComboActiveArea.appendChild(document.createTextNode('+Combo (Active) '));
+    const plusComboActiveRow = create('tr');
+    const plusComboActiveLabel = create('td');
+    plusComboActiveLabel.innerText = '+Combo (Active)';
     this.plusComboActiveInput.type = 'number';
     this.plusComboActiveInput.value = '0';
-    plusComboActiveArea.appendChild(this.plusComboActiveInput);
-    const remainingOrbArea = create('div');
-    remainingOrbArea.appendChild(document.createTextNode('Orbs Remaining '));
+    const plusComboActiveCell = create('td');
+    plusComboActiveCell.appendChild(this.plusComboActiveInput);
+    plusComboActiveRow.appendChild(plusComboActiveLabel);
+    plusComboActiveRow.appendChild(plusComboActiveCell);
+
+    const remainingOrbRow = create('tr');
+    const remainingOrbLabel = create('td');
+    remainingOrbLabel.innerText = 'Orbs Remaining';
     this.remainingOrbInput.type = 'number';
+    this.remainingOrbInput.value = '-1';
     this.remainingOrbInput.disabled = true;
-    this.remainingOrbInput.value = '30';
-    remainingOrbArea.appendChild(this.remainingOrbInput);
-    this.element.appendChild(plusComboLeaderArea);
-    this.element.appendChild(plusComboActiveArea);
-    this.element.appendChild(remainingOrbArea);
+    const remainingOrbCell = create('td');
+    remainingOrbCell.appendChild(this.remainingOrbInput);
+    remainingOrbRow.appendChild(remainingOrbLabel);
+    remainingOrbRow.appendChild(remainingOrbCell);
+
+    const boardWidthRow = create('tr');
+    const boardWidthLabel = create('td');
+    boardWidthLabel.innerText = 'Board Width';
+    this.boardWidthInput.value = '';
+    for (let i = 0; i < 4; i++) {
+      let width = i + 4;
+      const option = create('option') as HTMLOptionElement;
+      option.value = width.toString(10);
+      option.innerText = `${width}x${width - 1}`;
+      if (i == 0) {
+        option.value = '0';
+        option.innerText = 'Auto';
+      }
+      this.boardWidthInput.appendChild(option);
+    }
+    const boardWidthCell = create('td');
+    boardWidthCell.appendChild(this.boardWidthInput);
+    boardWidthRow.appendChild(boardWidthLabel);
+    boardWidthRow.appendChild(boardWidthCell);
+
+    tbl.appendChild(plusComboLeaderRow);
+    tbl.appendChild(plusComboActiveRow);
+    tbl.appendChild(remainingOrbRow);
+    tbl.appendChild(boardWidthRow);
+
+    this.element.appendChild(guideAnchor);
+    this.element.appendChild(this.commandInput);
+    this.element.appendChild(tbl);
     this.element.appendChild(this.totalCombo);
     this.element.appendChild(this.pieceArea);
   }

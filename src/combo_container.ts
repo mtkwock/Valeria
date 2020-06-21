@@ -43,7 +43,9 @@ class Combo {
 class ComboContainer {
   combos: Record<string, Combo[]>;
   // boardWidth: number;
-  private boardWidth = (): number => 6;
+  public boardWidthTeam = (): number => 5;
+  public boardWidthDungeon = (): number => 6;
+  public boardWidthStatus: () => number;
   // private readonly maxVisibleCombos = 14;
   public bonusCombosLeader = 0;
   public bonusCombosActive = 0;
@@ -68,6 +70,11 @@ class ComboContainer {
         this.comboEditor.commandInput.value = remainingCommands.join(' ');
       }
     };
+
+    this.boardWidthStatus = () => parseInt(this.comboEditor.boardWidthInput.value);
+    this.comboEditor.boardWidthInput.onchange = () => {
+      this.update();
+    }
 
     const colorToInputs = this.comboEditor.getInputElements();
     for (const c in colorToInputs) {
@@ -332,13 +339,19 @@ class ComboContainer {
     return total + this.bonusCombosLeader + this.bonusCombosActive;
   }
 
-  setBoardWidth(width: () => number): void {
-    this.boardWidth = width;
-    // TODO: Update combo counts as well.
-  }
-
   getBoardSize(): number {
     return this.boardWidth() * (this.boardWidth() - 1);
+  }
+
+  boardWidth(): number {
+    const status = this.boardWidthStatus();
+    if (status) {
+      return status;
+    }
+    return Math.max(
+      this.boardWidthTeam(),
+      this.boardWidthDungeon(),
+    );
   }
 
   getRemainingOrbs(): number {

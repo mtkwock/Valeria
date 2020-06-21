@@ -824,7 +824,7 @@ class Team {
         continue;
       }
       // If neither of the leads have bigBoard, return 6.
-      return 6;
+      return 5;
     }
     // All teams have bigBoard.
     return 7;
