@@ -967,8 +967,11 @@ class Team {
             } else if (combo.shape == Shape.L) {
               multiplier *= (1.5 ** ping.source.countAwakening(Awakening.L_UNLOCK, pm));
             } else if (combo.shape == Shape.BOX) {
-              multiplier *= (2.5 ** ping.source.countAwakening(Awakening.VDP, pm));
-              ping.ignoreVoid = true;
+              const vdpCount = ping.source.countAwakening(Awakening.VDP, pm);
+              if (vdpCount) {
+                multiplier *= (2.5 ** vdpCount);
+                ping.ignoreVoid = true;
+              }
             }
           }
 
