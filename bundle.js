@@ -9492,8 +9492,11 @@
                                     multiplier *= (1.5 ** ping.source.countAwakening(common_8.Awakening.L_UNLOCK, pm));
                                 }
                                 else if (combo.shape == common_8.Shape.BOX) {
-                                    multiplier *= (2.5 ** ping.source.countAwakening(common_8.Awakening.VDP, pm));
-                                    ping.ignoreVoid = true;
+                                    const vdpCount = ping.source.countAwakening(common_8.Awakening.VDP, pm);
+                                    if (vdpCount) {
+                                        multiplier *= (2.5 ** vdpCount);
+                                        ping.ignoreVoid = true;
+                                    }
                                 }
                             }
                             // Handle burst.
