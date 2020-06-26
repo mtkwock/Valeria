@@ -71,11 +71,18 @@ class ComboContainer {
       }
     };
 
+    this.comboEditor.onComboClick = (c, idx) => {
+      this.delete(`${c}${idx}`);
+      this.update();
+    }
+
     this.boardWidthStatus = () => parseInt(this.comboEditor.boardWidthInput.value);
     this.comboEditor.boardWidthInput.onchange = () => {
       this.update();
     }
 
+    // what does this do? It looks like comboEditor.getInputElements always
+    // returns an empty dictionary...
     const colorToInputs = this.comboEditor.getInputElements();
     for (const c in colorToInputs) {
       for (const i in colorToInputs[c]) {

@@ -941,6 +941,7 @@ class ComboEditor {
   public boardWidthInput = create('select') as HTMLSelectElement;
   private pieceArea = create('div');
   public remainingOrbInput = create('input') as HTMLInputElement;
+  public onComboClick: (color: string, idx: number) => void = () => {};
 
   constructor() {
     this.commandInput.placeholder = 'Combo Commands';
@@ -1031,24 +1032,27 @@ class ComboEditor {
     }
     for (const c in data) {
       const vals = data[c];
-      for (const { shapeCount } of vals) {
+
+      for (let ii = 0; ii < vals.length; ii++) {
         let shape: Shape;
         let count: number;
-        if (shapeCount.startsWith('R')) {
+        if (vals[ii].shapeCount.startsWith('R')) {
           shape = Shape.ROW;
-          count = parseInt(shapeCount.slice(1));
-        } else if (shapeCount.startsWith('C')) {
+          count = parseInt(vals[ii].shapeCount.slice(1));
+        } else if (vals[ii].shapeCount.startsWith('C')) {
           shape = Shape.COLUMN;
-          count = parseInt(shapeCount.slice(1));
-        } else if (shapeCount.match(/^\d+$/)) {
+          count = parseInt(vals[ii].shapeCount.slice(1));
+        } else if (vals[ii].shapeCount.match(/^\d+$/)) {
           shape = Shape.AMORPHOUS;
-          count = parseInt(shapeCount);
+          count = parseInt(vals[ii].shapeCount);
         } else {
-          shape = LetterToShape[shapeCount[0]];
+          shape = LetterToShape[vals[ii].shapeCount[0]];
           count = 0;
         }
         const comboPiece = new ComboPiece(COLORS.indexOf(c) as Attribute, shape, count, boardWidth);
         this.pieceArea.appendChild(comboPiece.getElement());
+
+        comboPiece.getElement().onclick = () => this.onComboClick(c, ii);
       }
       if (vals.length) {
         this.pieceArea.appendChild(create('br'));
