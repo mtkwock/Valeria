@@ -3053,7 +3053,12 @@ class TeamPane {
       this.rawBonusPing.innerText = '';
       this.actualBonusPing.innerText = '';
     }
-    this.hpDamage.innerText = `+${addCommas(healing)}`;
+    if (healing > 0) {
+      this.hpDamage.innerText = `+${addCommas(healing)}`;
+    } else {
+      this.hpDamage.innerText = `${addCommas(healing)}`;
+    }
+
   }
 }
 
