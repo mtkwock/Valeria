@@ -1034,19 +1034,20 @@ class ComboEditor {
       const vals = data[c];
 
       for (let ii = 0; ii < vals.length; ii++) {
+        const {shapeCount} = vals[ii];
         let shape: Shape;
         let count: number;
-        if (vals[ii].shapeCount.startsWith('R')) {
+        if (shapeCount.startsWith('R')) {
           shape = Shape.ROW;
-          count = parseInt(vals[ii].shapeCount.slice(1));
-        } else if (vals[ii].shapeCount.startsWith('C')) {
+          count = parseInt(shapeCount.slice(1));
+        } else if (shapeCount.startsWith('C')) {
           shape = Shape.COLUMN;
-          count = parseInt(vals[ii].shapeCount.slice(1));
-        } else if (vals[ii].shapeCount.match(/^\d+$/)) {
+          count = parseInt(shapeCount.slice(1));
+        } else if (shapeCount.match(/^\d+$/)) {
           shape = Shape.AMORPHOUS;
-          count = parseInt(vals[ii].shapeCount);
+          count = parseInt(shapeCount);
         } else {
-          shape = LetterToShape[vals[ii].shapeCount[0]];
+          shape = LetterToShape[shapeCount[0]];
           count = 0;
         }
         const comboPiece = new ComboPiece(COLORS.indexOf(c) as Attribute, shape, count, boardWidth);

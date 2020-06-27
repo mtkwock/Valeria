@@ -1000,12 +1000,11 @@ class Team {
     // Apply poison damage.
     let poison = 0;
     for (const c of 'pm') {
-      const attr = COLORS.indexOf(c) as Attribute;
       for (const combo of comboContainer.combos[c]) {
         let multiplier = 0;
-        if (c == 'p') {
+        if (combo.attribute == Attribute.POISON) {
           multiplier = 0.2 + (combo.count - 3) * 0.05;
-        } else if (c == 'm') {
+        } else if (combo.attribute == Attribute.MORTAL_POSION) {
           multiplier = 0.5 + (combo.count - 3) * 0.125;
         }
         poison += this.getHp() * multiplier;
@@ -1149,8 +1148,7 @@ class Team {
       mults[i].final = ping.damage;
     }
 
-    let healing = -poison + healingFromCombos;
-    healing += this.countAwakening(Awakening.AUTOHEAL) * 1000;
+    const healing = healingFromCombos - poison + this.countAwakening(Awakening.AUTOHEAL) * 1000;
 
     trueBonusAttack += leaders.trueBonusAttack(leadId, {
       team: monsters, comboContainer
