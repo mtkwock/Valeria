@@ -1033,8 +1033,8 @@ class ComboEditor {
     for (const c in data) {
       const vals = data[c];
 
-      for (let ii = 0; ii < vals.length; ii++) {
-        const {shapeCount} = vals[ii];
+      for (let i = 0; i < vals.length; i++) {
+        const {shapeCount} = vals[i];
         let shape: Shape;
         let count: number;
         if (shapeCount.startsWith('R')) {
@@ -1053,7 +1053,7 @@ class ComboEditor {
         const comboPiece = new ComboPiece(COLORS.indexOf(c) as Attribute, shape, count, boardWidth);
         this.pieceArea.appendChild(comboPiece.getElement());
 
-        comboPiece.getElement().onclick = () => this.onComboClick(c, ii);
+        comboPiece.getElement().onclick = () => this.onComboClick(c, i);
       }
       if (vals.length) {
         this.pieceArea.appendChild(create('br'));
