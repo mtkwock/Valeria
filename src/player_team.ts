@@ -1010,6 +1010,7 @@ class Team {
         poison += this.getHp() * multiplier;
       }
     }
+    poison = Math.round(poison);
 
     let healingFromCombos = 0;
     const teamRcvAwakenings = this.countAwakening(Awakening.TEAM_RCV);
