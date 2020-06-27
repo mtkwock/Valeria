@@ -1004,7 +1004,7 @@ class Team {
         let multiplier = 0;
         if (combo.attribute == Attribute.POISON) {
           multiplier = 0.2 + (combo.count - 3) * 0.05;
-        } else if (combo.attribute == Attribute.MORTAL_POSION) {
+        } else if (combo.attribute == Attribute.MORTAL_POISON) {
           multiplier = 0.5 + (combo.count - 3) * 0.125;
         }
         poison += this.getHp() * multiplier;
