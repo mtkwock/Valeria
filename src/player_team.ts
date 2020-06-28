@@ -823,7 +823,7 @@ class Team {
       if (leaders.bigBoard(m2.getCard(true).leaderSkillId)) {
         continue;
       }
-      // If neither of the leads have bigBoard, return 6.
+      // If neither of the leads have bigBoard, return 5 to default to the dungeon's.
       return 5;
     }
     // All teams have bigBoard.
@@ -982,11 +982,6 @@ class Team {
               let burstMultiplier = burst.multiplier;
               for (const awakening of burst.awakenings) {
                 burstMultiplier += this.countAwakening(awakening) * burst.awakeningScale;
-                // if (AwakeningToPlusAwakening.has(awakening)) {
-                //   const plusAwakening = AwakeningToPlusAwakening.get(awakening) as Awakening;
-                //   const perAwakening = Number(PlusAwakeningMultiplier.get(plusAwakening));
-                //   burstMultiplier += perAwakening * this.countAwakening(plusAwakening) * burst.awakeningScale;
-                // }
               }
               multiplier *= burstMultiplier;
             }
