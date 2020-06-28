@@ -9509,13 +9509,17 @@
                         }
                         multiplier *= (1 + 0.1 * teamRcvAwakenings);
                     }
+                    let healingFromCombo = 0;
                     for (const monster of monsters) {
                         let rcv = monster.getRcv(pm, awoke);
                         if (awoke && combo.count == 4) {
                             rcv *= (1.5 ** monster.countAwakening(common_8.Awakening.OE_HEART, pm));
                         }
                         const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
-                        healingFromCombos += common_8.Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
+                        healingFromCombo += common_8.Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
+                    }
+                    if (healingFromCombo > 0) {
+                        healingFromCombos += healingFromCombo;
                     }
                 }
                 comboContainer.setBonusComboLeader(leaders.plusCombo(leadId, { team: monsters, comboContainer }) +
