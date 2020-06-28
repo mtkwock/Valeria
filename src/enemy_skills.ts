@@ -1035,7 +1035,7 @@ const skyfall: EnemySkillEffect = {
 
   addMechanic: (mechanic, { skillArgs }) => {
     const colors = idxsFromBits(skillArgs[0]);
-    if (colors.includes(Attribute.POISON) || colors.includes(Attribute.MORTAL_POSION)) {
+    if (colors.includes(Attribute.POISON) || colors.includes(Attribute.MORTAL_POISON)) {
       mechanic.poisonSkyfall = true;
     }
     if (colors.includes(Attribute.JAMMER)) {
@@ -1161,7 +1161,7 @@ const columnChange: EnemySkillEffect = {
         spawnSets.add(a);
       }
     }
-    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POSION)) {
+    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POISON)) {
       mechanic.poisonChange = true;
     }
     if (spawnSets.has(Attribute.JAMMER) || spawnSets.has(Attribute.BOMB)) {
@@ -1199,7 +1199,7 @@ const attackAndColumnChange: EnemySkillEffect = {
         spawnSets.add(a);
       }
     }
-    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POSION)) {
+    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POISON)) {
       mechanic.poisonChange = true;
     }
     if (spawnSets.has(Attribute.JAMMER) || spawnSets.has(Attribute.BOMB)) {
@@ -1235,7 +1235,7 @@ const rowChange: EnemySkillEffect = {
         spawnSets.add(a);
       }
     }
-    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POSION)) {
+    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POISON)) {
       mechanic.poisonChange = true;
     }
     if (spawnSets.has(Attribute.JAMMER) || spawnSets.has(Attribute.BOMB)) {
@@ -1273,7 +1273,7 @@ const attackAndRowChange: EnemySkillEffect = {
         spawnSets.add(a);
       }
     }
-    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POSION)) {
+    if (spawnSets.has(Attribute.POISON) || spawnSets.has(Attribute.MORTAL_POISON)) {
       mechanic.poisonChange = true;
     }
     if (spawnSets.has(Attribute.JAMMER) || spawnSets.has(Attribute.BOMB)) {
@@ -1306,7 +1306,7 @@ const attackAndChangeBoardOld: EnemySkillEffect = {
   addMechanic: (mechanic, { skillArgs, atk }) => {
     mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
     for (let i = 1; i < skillArgs.length && skillArgs[i] >= 0; i++) {
-      if (skillArgs[i] == Attribute.POISON || skillArgs[i] == Attribute.MORTAL_POSION) {
+      if (skillArgs[i] == Attribute.POISON || skillArgs[i] == Attribute.MORTAL_POISON) {
         mechanic.poisonChange = true;
       }
       if (skillArgs[i] == Attribute.JAMMER || skillArgs[i] == Attribute.BOMB) {
@@ -1397,7 +1397,7 @@ const boardChange: EnemySkillEffect = {
   goto: () => TERMINATE,
   addMechanic: (mechanic, { skillArgs }) => {
     for (const o of idxsFromBits(skillArgs[0])) {
-      if (o == Attribute.POISON || o == Attribute.MORTAL_POSION) {
+      if (o == Attribute.POISON || o == Attribute.MORTAL_POISON) {
         mechanic.poisonChange = true;
       }
       if (o == Attribute.JAMMER || o == Attribute.BOMB) {
@@ -1423,7 +1423,7 @@ const attackAndChangeBoard: EnemySkillEffect = {
   addMechanic: (mechanic, { skillArgs, atk }) => {
     mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100))
     for (const o of idxsFromBits(skillArgs[1])) {
-      if (o == Attribute.POISON || o == Attribute.MORTAL_POSION) {
+      if (o == Attribute.POISON || o == Attribute.MORTAL_POISON) {
         mechanic.poisonChange = true;
       }
       if (o == Attribute.JAMMER || o == Attribute.BOMB) {
@@ -1522,7 +1522,7 @@ const randomOrbSpawn: EnemySkillEffect = {
   goto: () => TERMINATE,
   addMechanic: (mechanic, { skillArgs }) => {
     for (const o of idxsFromBits(skillArgs[1])) {
-      if (o == Attribute.POISON || o == Attribute.MORTAL_POSION) {
+      if (o == Attribute.POISON || o == Attribute.MORTAL_POISON) {
         mechanic.poisonChange = true;
       }
       if (o == Attribute.JAMMER || o == Attribute.BOMB) {
@@ -1792,7 +1792,7 @@ const attackAndMultiOrbChange: EnemySkillEffect = {
   addMechanic: (mechanic, { skillArgs, atk }) => {
     mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
     for (const o of idxsFromBits(skillArgs[2])) {
-      if (o == Attribute.POISON || o == Attribute.MORTAL_POSION) {
+      if (o == Attribute.POISON || o == Attribute.MORTAL_POISON) {
         mechanic.poisonChange = true;
       }
       if (o == Attribute.JAMMER || o == Attribute.BOMB) {

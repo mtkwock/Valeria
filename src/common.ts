@@ -41,7 +41,7 @@ enum Attribute {
   HEART = 5,
   JAMMER = 6,
   POISON = 7,
-  MORTAL_POSION = 8,
+  MORTAL_POISON = 8,
   BOMB = 9,
   FIXED = -2,
   NONE = -1,
@@ -57,7 +57,7 @@ AttributeToName.set(Attribute.NONE, 'None');
 AttributeToName.set(Attribute.HEART, 'Heart');
 AttributeToName.set(Attribute.JAMMER, 'Jammer');
 AttributeToName.set(Attribute.POISON, 'Poison');
-AttributeToName.set(Attribute.MORTAL_POSION, 'Mortal Poison');
+AttributeToName.set(Attribute.MORTAL_POISON, 'Mortal Poison');
 
 
 enum MonsterType {
@@ -318,7 +318,7 @@ enum FontColor {
   HEART = 'pink',
   JAMMER = 'lightgray',
   POISON = 'purple',
-  MORTAL_POSION = 'darkpurple',
+  MORTAL_POISON = 'darkpurple',
   BOMB = 'brown',
   COLORLESS = 'gray',
   FIXED = 'white',
@@ -334,7 +334,7 @@ const AttributeToFontColor: Record<Attribute, FontColor> = {
   5: FontColor.HEART,
   6: FontColor.JAMMER,
   7: FontColor.POISON,
-  8: FontColor.MORTAL_POSION,
+  8: FontColor.MORTAL_POISON,
   9: FontColor.BOMB,
   '-2': FontColor.FIXED,
   '-1': FontColor.NONE,

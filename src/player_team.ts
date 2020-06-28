@@ -1000,7 +1000,22 @@ class Team {
       mults[i].base = pings[i].damage;
     }
 
-    let healing = 0;
+    // Apply poison damage.
+    let poison = 0;
+    for (const c of 'pm') {
+      for (const combo of comboContainer.combos[c]) {
+        let multiplier = 0;
+        if (combo.attribute == Attribute.POISON) {
+          multiplier = (combo.count + 1) * 0.05;
+        } else if (combo.attribute == Attribute.MORTAL_POISON) {
+          multiplier = (combo.count + 1) * 0.125;
+        }
+        poison += this.getHp() * multiplier;
+      }
+    }
+    poison = Math.round(poison);
+
+    let healingFromCombos = 0;
     const teamRcvAwakenings = this.countAwakening(Awakening.TEAM_RCV);
     let trueBonusAttack = 0;
 
@@ -1043,7 +1058,7 @@ class Team {
           rcv *= (1.5 ** monster.countAwakening(Awakening.OE_HEART, pm));
         }
         const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
-        healing += Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
+        healingFromCombos += Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
       }
     }
 
@@ -1060,7 +1075,7 @@ class Team {
         pings[i].multiply(comboMultiplier, Round.UP);
       }
     }
-    healing = Round.UP(healing * comboMultiplier);
+    healingFromCombos = Round.UP(healingFromCombos * comboMultiplier);
 
     // Apply awakenings.
     // Known order according to PDC:
@@ -1128,16 +1143,16 @@ class Team {
       }
 
       let val = ping.damage;
-      val = Math.fround(val) * Math.fround(partialAtk(leadId, ping, healing) * 100) / Math.fround(100);
-      val = Math.fround(val) * Math.fround(partialAtk(helpId, ping, healing) * 100) / Math.fround(100);
+      val = Math.fround(val) * Math.fround(partialAtk(leadId, ping, healingFromCombos) * 100) / Math.fround(100);
+      val = Math.fround(val) * Math.fround(partialAtk(helpId, ping, healingFromCombos) * 100) / Math.fround(100);
       mults[i].badge = atkBadgeMult;
-      mults[i].lead = partialAtk(leadId, ping, healing);
-      mults[i].help = partialAtk(helpId, ping, healing);
+      mults[i].lead = partialAtk(leadId, ping, healingFromCombos);
+      mults[i].help = partialAtk(helpId, ping, healingFromCombos);
       ping.damage = Math.round(val * atkBadgeMult);
       mults[i].final = ping.damage;
     }
 
-    healing += this.countAwakening(Awakening.AUTOHEAL) * 1000;
+    const healing = healingFromCombos - poison + this.countAwakening(Awakening.AUTOHEAL) * 1000;
 
     trueBonusAttack += leaders.trueBonusAttack(leadId, {
       team: monsters, comboContainer

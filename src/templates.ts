@@ -941,6 +941,7 @@ class ComboEditor {
   public boardWidthInput = create('select') as HTMLSelectElement;
   private pieceArea = create('div');
   public remainingOrbInput = create('input') as HTMLInputElement;
+  public onComboClick: (color: string, idx: number) => void = () => {};
 
   constructor() {
     this.commandInput.placeholder = 'Combo Commands';
@@ -1031,7 +1032,9 @@ class ComboEditor {
     }
     for (const c in data) {
       const vals = data[c];
-      for (const { shapeCount } of vals) {
+
+      for (let i = 0; i < vals.length; i++) {
+        const {shapeCount} = vals[i];
         let shape: Shape;
         let count: number;
         if (shapeCount.startsWith('R')) {
@@ -1049,6 +1052,8 @@ class ComboEditor {
         }
         const comboPiece = new ComboPiece(COLORS.indexOf(c) as Attribute, shape, count, boardWidth);
         this.pieceArea.appendChild(comboPiece.getElement());
+
+        comboPiece.getElement().onclick = () => this.onComboClick(c, i);
       }
       if (vals.length) {
         this.pieceArea.appendChild(create('br'));
@@ -3049,7 +3054,11 @@ class TeamPane {
       this.rawBonusPing.innerText = '';
       this.actualBonusPing.innerText = '';
     }
-    this.hpDamage.innerText = `+${addCommas(healing)}`;
+    if (healing >= 0) {
+      this.hpDamage.innerText = `+${addCommas(healing)}`;
+    } else {
+      this.hpDamage.innerText = `${addCommas(healing)}`;
+    }
   }
 }
 
