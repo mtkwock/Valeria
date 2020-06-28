@@ -1047,13 +1047,17 @@ class Team {
         multiplier *= (1 + 0.1 * teamRcvAwakenings);
       }
 
+      let healingFromCombo = 0;
       for (const monster of monsters) {
         let rcv = monster.getRcv(pm, awoke);
         if (awoke && combo.count == 4) {
           rcv *= (1.5 ** monster.countAwakening(Awakening.OE_HEART, pm));
         }
         const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
-        healingFromCombos += Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
+        healingFromCombo += Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
+      }
+      if (healingFromCombo > 0) {
+        healingFromCombos += healingFromCombo;
       }
     }
 
