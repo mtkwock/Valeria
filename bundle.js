@@ -63,7 +63,7 @@
             Attribute[Attribute["HEART"] = 5] = "HEART";
             Attribute[Attribute["JAMMER"] = 6] = "JAMMER";
             Attribute[Attribute["POISON"] = 7] = "POISON";
-            Attribute[Attribute["MORTAL_POSION"] = 8] = "MORTAL_POSION";
+            Attribute[Attribute["MORTAL_POISON"] = 8] = "MORTAL_POISON";
             Attribute[Attribute["BOMB"] = 9] = "BOMB";
             Attribute[Attribute["FIXED"] = -2] = "FIXED";
             Attribute[Attribute["NONE"] = -1] = "NONE";
@@ -80,7 +80,7 @@
         AttributeToName.set(Attribute.HEART, 'Heart');
         AttributeToName.set(Attribute.JAMMER, 'Jammer');
         AttributeToName.set(Attribute.POISON, 'Poison');
-        AttributeToName.set(Attribute.MORTAL_POSION, 'Mortal Poison');
+        AttributeToName.set(Attribute.MORTAL_POISON, 'Mortal Poison');
         var MonsterType;
         (function (MonsterType) {
             MonsterType[MonsterType["NONE"] = -1] = "NONE";
@@ -392,7 +392,7 @@
             FontColor["HEART"] = "pink";
             FontColor["JAMMER"] = "lightgray";
             FontColor["POISON"] = "purple";
-            FontColor["MORTAL_POSION"] = "darkpurple";
+            FontColor["MORTAL_POISON"] = "darkpurple";
             FontColor["BOMB"] = "brown";
             FontColor["COLORLESS"] = "gray";
             FontColor["FIXED"] = "white";
@@ -408,7 +408,7 @@
             5: FontColor.HEART,
             6: FontColor.JAMMER,
             7: FontColor.POISON,
-            8: FontColor.MORTAL_POSION,
+            8: FontColor.MORTAL_POISON,
             9: FontColor.BOMB,
             '-2': FontColor.FIXED,
             '-1': FontColor.NONE,
@@ -3278,6 +3278,7 @@
                 this.boardWidthInput = create('select');
                 this.pieceArea = create('div');
                 this.remainingOrbInput = create('input');
+                this.onComboClick = () => { };
                 this.commandInput.placeholder = 'Combo Commands';
                 const guideAnchor = create('a');
                 guideAnchor.href = 'https://github.com/mtkwock/Valeria#command-editor-syntax';
@@ -3357,7 +3358,8 @@
                 }
                 for (const c in data) {
                     const vals = data[c];
-                    for (const { shapeCount } of vals) {
+                    for (let i = 0; i < vals.length; i++) {
+                        const { shapeCount } = vals[i];
                         let shape;
                         let count;
                         if (shapeCount.startsWith('R')) {
@@ -3378,6 +3380,7 @@
                         }
                         const comboPiece = new ComboPiece(common_3.COLORS.indexOf(c), shape, count, boardWidth);
                         this.pieceArea.appendChild(comboPiece.getElement());
+                        comboPiece.getElement().onclick = () => this.onComboClick(c, i);
                     }
                     if (vals.length) {
                         this.pieceArea.appendChild(create('br'));
@@ -5034,7 +5037,12 @@
                     this.rawBonusPing.innerText = '';
                     this.actualBonusPing.innerText = '';
                 }
-                this.hpDamage.innerText = `+${common_3.addCommas(healing)}`;
+                if (healing >= 0) {
+                    this.hpDamage.innerText = `+${common_3.addCommas(healing)}`;
+                }
+                else {
+                    this.hpDamage.innerText = `${common_3.addCommas(healing)}`;
+                }
             }
         }
         exports.TeamPane = TeamPane;
@@ -7119,78 +7127,14 @@
                         this.comboEditor.commandInput.value = remainingCommands.join(' ');
                     }
                 };
+                this.comboEditor.onComboClick = (c, idx) => {
+                    this.delete(`${c}${idx}`);
+                    this.update();
+                };
                 this.boardWidthStatus = () => parseInt(this.comboEditor.boardWidthInput.value);
                 this.comboEditor.boardWidthInput.onchange = () => {
                     this.update();
                 };
-                const colorToInputs = this.comboEditor.getInputElements();
-                for (const c in colorToInputs) {
-                    for (const i in colorToInputs[c]) {
-                        const idx = Number(i);
-                        const { shapeCountEl, enhanceEl } = colorToInputs[c][i];
-                        // TODO: Add onclick modifiers to these.
-                        shapeCountEl.onblur = () => {
-                            const v = shapeCountEl.value.replace(/\s/g, '');
-                            // Delete this combo.
-                            let letter = v[0] || 'NaN';
-                            let count = 0;
-                            let shape = 'A';
-                            if (letter == 'R') {
-                                count = this.boardWidth();
-                                shape = 'R';
-                                if (v.length > 1 && Number(v.substring(1)) > count) {
-                                    count = Number(v.substring(1));
-                                }
-                                shape = 'R';
-                            }
-                            else if (letter == 'C') {
-                                count = this.boardWidth() - 1;
-                                shape = 'C';
-                            }
-                            else if ('LXB'.indexOf(letter) >= 0) {
-                                shape = letter;
-                                count = letter == 'B' ? 9 : 5;
-                            }
-                            else if (!isNaN(Number(v))) {
-                                count = Number(v);
-                            }
-                            const combos = this.combos[c];
-                            // Only possibly adding a combo.
-                            if (idx >= combos.length) {
-                                if (count == 0) {
-                                    // Nothing to add, return early.
-                                    shapeCountEl.value = '';
-                                    return;
-                                }
-                                this.addShape(shape, `${count}${c}`);
-                                // Modify or delete a combo.
-                            }
-                            else {
-                                if (count == 0) {
-                                    this.delete(`${c}${idx}`);
-                                }
-                                else {
-                                    combos[idx].shape = common_6.LetterToShape[shape];
-                                    combos[idx].count = count;
-                                    combos[idx].recount();
-                                }
-                            }
-                            this.update();
-                        };
-                        enhanceEl.onblur = () => {
-                            const combos = this.combos[c];
-                            const v = Number(enhanceEl.value);
-                            if (!isNaN(v) && idx < combos.length) {
-                                combos[i].enhanced = v;
-                                combos[i].recount();
-                                this.update();
-                            }
-                            else {
-                                enhanceEl.value = '';
-                            }
-                        };
-                    }
-                }
             }
             getElement() {
                 return this.comboEditor.getElement();
@@ -9522,7 +9466,22 @@
                 for (let i = 0; i < pings.length; i++) {
                     mults[i].base = pings[i].damage;
                 }
-                let healing = 0;
+                // Apply poison damage.
+                let poison = 0;
+                for (const c of 'pm') {
+                    for (const combo of comboContainer.combos[c]) {
+                        let multiplier = 0;
+                        if (combo.attribute == common_8.Attribute.POISON) {
+                            multiplier = (combo.count + 1) * 0.05;
+                        }
+                        else if (combo.attribute == common_8.Attribute.MORTAL_POISON) {
+                            multiplier = (combo.count + 1) * 0.125;
+                        }
+                        poison += this.getHp() * multiplier;
+                    }
+                }
+                poison = Math.round(poison);
+                let healingFromCombos = 0;
                 const teamRcvAwakenings = this.countAwakening(common_8.Awakening.TEAM_RCV);
                 let trueBonusAttack = 0;
                 const partialRcv = (id, monster) => leaders.rcv(id, {
@@ -9561,7 +9520,7 @@
                             rcv *= (1.5 ** monster.countAwakening(common_8.Awakening.OE_HEART, pm));
                         }
                         const rcvMult = partialRcv(leadId, monster) * partialRcv(helpId, monster);
-                        healing += common_8.Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
+                        healingFromCombos += common_8.Round.UP(rcv * multiplier * rcvMult * rcvBadgeMult);
                     }
                 }
                 comboContainer.setBonusComboLeader(leaders.plusCombo(leadId, { team: monsters, comboContainer }) +
@@ -9574,7 +9533,7 @@
                         pings[i].multiply(comboMultiplier, common_8.Round.UP);
                     }
                 }
-                healing = common_8.Round.UP(healing * comboMultiplier);
+                healingFromCombos = common_8.Round.UP(healingFromCombos * comboMultiplier);
                 // Apply awakenings.
                 // Known order according to PDC:
                 // (7c/10c), (80%/50%), Rows, Sfua, L-Guard
@@ -9639,15 +9598,15 @@
                         continue;
                     }
                     let val = ping.damage;
-                    val = Math.fround(val) * Math.fround(partialAtk(leadId, ping, healing) * 100) / Math.fround(100);
-                    val = Math.fround(val) * Math.fround(partialAtk(helpId, ping, healing) * 100) / Math.fround(100);
+                    val = Math.fround(val) * Math.fround(partialAtk(leadId, ping, healingFromCombos) * 100) / Math.fround(100);
+                    val = Math.fround(val) * Math.fround(partialAtk(helpId, ping, healingFromCombos) * 100) / Math.fround(100);
                     mults[i].badge = atkBadgeMult;
-                    mults[i].lead = partialAtk(leadId, ping, healing);
-                    mults[i].help = partialAtk(helpId, ping, healing);
+                    mults[i].lead = partialAtk(leadId, ping, healingFromCombos);
+                    mults[i].help = partialAtk(helpId, ping, healingFromCombos);
                     ping.damage = Math.round(val * atkBadgeMult);
                     mults[i].final = ping.damage;
                 }
-                healing += this.countAwakening(common_8.Awakening.AUTOHEAL) * 1000;
+                const healing = healingFromCombos - poison + this.countAwakening(common_8.Awakening.AUTOHEAL) * 1000;
                 trueBonusAttack += leaders.trueBonusAttack(leadId, {
                     team: monsters, comboContainer
                 }) + leaders.trueBonusAttack(helpId, {
@@ -11992,7 +11951,7 @@
             goto: () => TERMINATE,
             addMechanic: (mechanic, { skillArgs }) => {
                 const colors = common_11.idxsFromBits(skillArgs[0]);
-                if (colors.includes(common_11.Attribute.POISON) || colors.includes(common_11.Attribute.MORTAL_POSION)) {
+                if (colors.includes(common_11.Attribute.POISON) || colors.includes(common_11.Attribute.MORTAL_POISON)) {
                     mechanic.poisonSkyfall = true;
                 }
                 if (colors.includes(common_11.Attribute.JAMMER)) {
@@ -12111,7 +12070,7 @@
                         spawnSets.add(a);
                     }
                 }
-                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POSION)) {
+                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POISON)) {
                     mechanic.poisonChange = true;
                 }
                 if (spawnSets.has(common_11.Attribute.JAMMER) || spawnSets.has(common_11.Attribute.BOMB)) {
@@ -12148,7 +12107,7 @@
                         spawnSets.add(a);
                     }
                 }
-                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POSION)) {
+                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POISON)) {
                     mechanic.poisonChange = true;
                 }
                 if (spawnSets.has(common_11.Attribute.JAMMER) || spawnSets.has(common_11.Attribute.BOMB)) {
@@ -12183,7 +12142,7 @@
                         spawnSets.add(a);
                     }
                 }
-                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POSION)) {
+                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POISON)) {
                     mechanic.poisonChange = true;
                 }
                 if (spawnSets.has(common_11.Attribute.JAMMER) || spawnSets.has(common_11.Attribute.BOMB)) {
@@ -12220,7 +12179,7 @@
                         spawnSets.add(a);
                     }
                 }
-                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POSION)) {
+                if (spawnSets.has(common_11.Attribute.POISON) || spawnSets.has(common_11.Attribute.MORTAL_POISON)) {
                     mechanic.poisonChange = true;
                 }
                 if (spawnSets.has(common_11.Attribute.JAMMER) || spawnSets.has(common_11.Attribute.BOMB)) {
@@ -12252,7 +12211,7 @@
             addMechanic: (mechanic, { skillArgs, atk }) => {
                 mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
                 for (let i = 1; i < skillArgs.length && skillArgs[i] >= 0; i++) {
-                    if (skillArgs[i] == common_11.Attribute.POISON || skillArgs[i] == common_11.Attribute.MORTAL_POSION) {
+                    if (skillArgs[i] == common_11.Attribute.POISON || skillArgs[i] == common_11.Attribute.MORTAL_POISON) {
                         mechanic.poisonChange = true;
                     }
                     if (skillArgs[i] == common_11.Attribute.JAMMER || skillArgs[i] == common_11.Attribute.BOMB) {
@@ -12338,7 +12297,7 @@
             goto: () => TERMINATE,
             addMechanic: (mechanic, { skillArgs }) => {
                 for (const o of common_11.idxsFromBits(skillArgs[0])) {
-                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POSION) {
+                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POISON) {
                         mechanic.poisonChange = true;
                     }
                     if (o == common_11.Attribute.JAMMER || o == common_11.Attribute.BOMB) {
@@ -12363,7 +12322,7 @@
             addMechanic: (mechanic, { skillArgs, atk }) => {
                 mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
                 for (const o of common_11.idxsFromBits(skillArgs[1])) {
-                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POSION) {
+                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POISON) {
                         mechanic.poisonChange = true;
                     }
                     if (o == common_11.Attribute.JAMMER || o == common_11.Attribute.BOMB) {
@@ -12458,7 +12417,7 @@
             goto: () => TERMINATE,
             addMechanic: (mechanic, { skillArgs }) => {
                 for (const o of common_11.idxsFromBits(skillArgs[1])) {
-                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POSION) {
+                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POISON) {
                         mechanic.poisonChange = true;
                     }
                     if (o == common_11.Attribute.JAMMER || o == common_11.Attribute.BOMB) {
@@ -12712,7 +12671,7 @@
             addMechanic: (mechanic, { skillArgs, atk }) => {
                 mechanic.hits.push(Math.ceil(skillArgs[0] * atk / 100));
                 for (const o of common_11.idxsFromBits(skillArgs[2])) {
-                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POSION) {
+                    if (o == common_11.Attribute.POISON || o == common_11.Attribute.MORTAL_POISON) {
                         mechanic.poisonChange = true;
                     }
                     if (o == common_11.Attribute.JAMMER || o == common_11.Attribute.BOMB) {
