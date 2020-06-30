@@ -186,7 +186,10 @@ function updateAwakening(el: HTMLElement, awakening: number, scale: number, unav
   el.title = unavailableReason;
 }
 
-type AssetInfoRecord = { offsetX: number, offsetY: number, width: number, height: number };
+const UI_ASSET_SRC: string = `url(${BASE_URL}assets/UIPAT1.PNG)`;
+const ORB_ASSET_SRC: string = `url(${BASE_URL}assets/BLOCK2.PNG)`;
+
+type AssetInfoRecord = { offsetX: number, offsetY: number, width: number, height: number, src: string};
 enum AssetEnum {
   NUMBER_0 = 0,
   NUMBER_1,
@@ -246,48 +249,60 @@ enum AssetEnum {
   // Overlays absorbs and voids as player buffs..
   VOID,
   COLOR_WHEEL,
+
+  FIRE_ORB,
+  WATER_ORB,
+  WOOD_ORB,
+  LIGHT_ORB,
+  DARK_ORB,
+  HEART_ORB,
+  PLUS,
 }
 
 const ASSET_INFO: Map<AssetEnum, AssetInfoRecord> = new Map([
-  [AssetEnum.NUMBER_0, { offsetX: 186, offsetY: 180, width: 19, height: 25 }],
-  [AssetEnum.NUMBER_1, { offsetX: 217, offsetY: 180, width: 14, height: 25 }],
-  [AssetEnum.NUMBER_2, { offsetX: 247, offsetY: 180, width: 19, height: 25 }],
-  [AssetEnum.NUMBER_3, { offsetX: 279, offsetY: 180, width: 18, height: 26 }],
-  [AssetEnum.NUMBER_4, { offsetX: 310, offsetY: 180, width: 20, height: 25 }],
-  [AssetEnum.NUMBER_5, { offsetX: 343, offsetY: 180, width: 18, height: 25 }],
-  [AssetEnum.NUMBER_6, { offsetX: 374, offsetY: 180, width: 19, height: 25 }],
-  [AssetEnum.NUMBER_7, { offsetX: 407, offsetY: 180, width: 18, height: 25 }],
-  [AssetEnum.NUMBER_8, { offsetX: 438, offsetY: 180, width: 19, height: 25 }],
-  [AssetEnum.NUMBER_9, { offsetX: 470, offsetY: 180, width: 20, height: 25 }],
-  [AssetEnum.GUARD_BREAK, { offsetY: 1, offsetX: 3, width: 34, height: 30 }],
-  [AssetEnum.TIME, { offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36 }],
-  [AssetEnum.POISON, { offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36 }],
-  [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 116, width: 32, height: 32 }],
-  [AssetEnum.STATUS_SHIELD, { offsetY: 1, offsetX: 156, width: 32, height: 29 }],
-  [AssetEnum.SKILL_BIND, { offsetY: 40, offsetX: 141, width: 32, height: 32 }],
-  [AssetEnum.AWOKEN_BIND, { offsetY: 73, offsetX: 140, width: 32, height: 32 }],
-  [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32 }],
-  [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32 }],
-  [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 327, width: 34, height: 34 }],
-  [AssetEnum.FIRE_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 0, width: 32, height: 32 }],
-  [AssetEnum.WATER_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 1, width: 32, height: 32 }],
-  [AssetEnum.WOOD_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 2, width: 32, height: 32 }],
-  [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 3, width: 32, height: 32 }],
-  [AssetEnum.DARK_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 4, width: 32, height: 32 }],
-  [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36 }],
-  [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32 }],
-  [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32 }],
-  [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32 }],
-  [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25 }],
-  [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25 }],
-  [AssetEnum.VOID, { offsetY: 90, offsetX: 416, width: 19, height: 18 }],
-  [AssetEnum.COLOR_WHEEL, { offsetY: 208, offsetX: 131, width: 32, height: 32 }],
-  [AssetEnum.INVINCIBLE, { offsetY: 241, offsetX: 314, width: 28, height: 30 }],
-  [AssetEnum.COMBO_ABSORB, { offsetY: 113, offsetX: 133, width: 30, height: 30 }],
+  [AssetEnum.NUMBER_0, { offsetX: 186, offsetY: 180, width: 19, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.NUMBER_1, { offsetX: 217, offsetY: 180, width: 14, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.NUMBER_2, { offsetX: 247, offsetY: 180, width: 19, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.NUMBER_3, { offsetX: 279, offsetY: 180, width: 18, height: 26, src: UI_ASSET_SRC }],
+  [AssetEnum.NUMBER_4, { offsetX: 310, offsetY: 180, width: 20, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.NUMBER_5, { offsetX: 343, offsetY: 180, width: 18, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.NUMBER_6, { offsetX: 374, offsetY: 180, width: 19, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.NUMBER_7, { offsetX: 407, offsetY: 180, width: 18, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.NUMBER_8, { offsetX: 438, offsetY: 180, width: 19, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.NUMBER_9, { offsetX: 470, offsetY: 180, width: 20, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.GUARD_BREAK, { offsetY: 1, offsetX: 3, width: 34, height: 30, src: UI_ASSET_SRC }],
+  [AssetEnum.TIME, { offsetY: 0, offsetX: 2 + 36 * 1, width: 36, height: 36, src: UI_ASSET_SRC }],
+  [AssetEnum.POISON, { offsetY: 0, offsetX: 2 + 36 * 2, width: 36, height: 36, src: UI_ASSET_SRC }],
+  [AssetEnum.ENRAGE, { offsetY: 0, offsetX: 116, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.STATUS_SHIELD, { offsetY: 1, offsetX: 156, width: 32, height: 29, src: UI_ASSET_SRC }],
+  [AssetEnum.SKILL_BIND, { offsetY: 40, offsetX: 141, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.AWOKEN_BIND, { offsetY: 73, offsetX: 140, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.RESOLVE, { offsetY: 144, offsetX: 132, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.BURST, { offsetY: 208, offsetX: 132, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.SHIELD_BASE, { offsetY: 55, offsetX: 327, width: 34, height: 34, src: UI_ASSET_SRC }],
+  [AssetEnum.FIRE_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 0, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.WATER_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 1, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.WOOD_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 2, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.LIGHT_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 3, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.DARK_TRANSPARENT, { offsetY: 289, offsetX: 0 + 32 * 4, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.TWINKLE, { offsetY: 248, offsetX: 85, width: 36, height: 36, src: UI_ASSET_SRC }],
+  [AssetEnum.VOID_OVERLAY, { offsetY: 49, offsetX: 372, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.ABSORB_OVERLAY, { offsetY: 49, offsetX: 452, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.FIXED_HP, { offsetY: 256, offsetX: 131, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.SWAP, { offsetY: 84, offsetX: 376, width: 23, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.TRANSFROM, { offsetY: 84, offsetX: 485, width: 23, height: 25, src: UI_ASSET_SRC }],
+  [AssetEnum.VOID, { offsetY: 90, offsetX: 416, width: 19, height: 18, src: UI_ASSET_SRC }],
+  [AssetEnum.COLOR_WHEEL, { offsetY: 208, offsetX: 131, width: 32, height: 32, src: UI_ASSET_SRC }],
+  [AssetEnum.INVINCIBLE, { offsetY: 241, offsetX: 314, width: 28, height: 30, src: UI_ASSET_SRC }],
+  [AssetEnum.FIRE_ORB, { offsetY: 0, offsetX: 0, width: 103, height: 102, src: ORB_ASSET_SRC }],
+  [AssetEnum.WATER_ORB, { offsetY: 0, offsetX: 107, width: 103, height: 102, src: ORB_ASSET_SRC }],
+  [AssetEnum.WOOD_ORB, { offsetY: 0, offsetX: 214, width: 103, height: 102, src: ORB_ASSET_SRC }],
+  [AssetEnum.LIGHT_ORB, { offsetY: 0, offsetX: 320, width: 103, height: 102, src: ORB_ASSET_SRC }],
+  [AssetEnum.DARK_ORB, { offsetY: 102, offsetX: 0, width: 103, height: 102, src: ORB_ASSET_SRC }],
+  [AssetEnum.HEART_ORB, { offsetY: 102, offsetX: 107, width: 90, height: 90, src: ORB_ASSET_SRC }],
+  [AssetEnum.PLUS, { offsetY: 102, offsetX: 426, width: 50, height: 50, src: ORB_ASSET_SRC }],
   // [AssetEnum., {offsetY: , offsetX: , width: , height: }],
 ]);
-
-const UI_ASSET_SRC: string = `url(${BASE_URL}assets/UIPAT1.PNG)`;
 
 const INITIAL_SETTINGS = JSON.parse(window.localStorage.valeriaSettings || '{"b": {}, "n": {}}');
 
@@ -479,7 +494,7 @@ class LayeredAsset {
           if (assetInfo.height * scale > maxSizes.height) {
             maxSizes.height = assetInfo.height * scale;
           }
-          el.style.backgroundImage = UI_ASSET_SRC;
+          el.style.backgroundImage = assetInfo.src;
           el.style.backgroundPosition = `${-1 * assetInfo.offsetX * scale} ${-1 * assetInfo.offsetY * scale}`;
         }
         return el;
@@ -856,16 +871,38 @@ class ComboPiece {
   private element = create('div');
   static width = 20;
 
-  static makeOrb(src: string): HTMLImageElement {
-    const img = create('img', ClassNames.COMBO_ORB) as HTMLImageElement;
-    img.src = src;
-    return img;
+  static makeOrb(attribute: Attribute, plus: boolean): HTMLDivElement {
+    if (plus) {
+      // map plus-able Attributes to their respective AssetEnums
+      const attributeMap: Map<Attribute, AssetEnum> = new Map([
+        [Attribute.FIRE, AssetEnum.FIRE_ORB],
+        [Attribute.WATER, AssetEnum.WATER_ORB],
+        [Attribute.WOOD, AssetEnum.WOOD_ORB],
+        [Attribute.LIGHT, AssetEnum.LIGHT_ORB],
+        [Attribute.DARK, AssetEnum.DARK_ORB],
+        [Attribute.HEART, AssetEnum.HEART_ORB],
+      ]);
+
+      // if the attribute isn't in the map (e.g. poison), it can't have a plus
+      let attributeAssetEnum = attributeMap.get(attribute);
+      if (attributeAssetEnum == undefined) {
+        return ComboPiece.makeOrb(attribute, false);
+      } else {
+        const asset = new LayeredAsset([attributeAssetEnum, AssetEnum.PLUS], () => {}, true, 1);
+        return asset.getElement();
+      }
+    } else {
+      const div = create('div', ClassNames.LAYERED_ASSET) as HTMLDivElement;
+      const img = create('img', ClassNames.COMBO_ORB) as HTMLImageElement;
+      img.src = `assets/orb${attribute}.png`;
+      div.appendChild(img);
+      return div;
+    }
   }
 
   constructor(attribute: Attribute, shape = Shape.AMORPHOUS, count = 0, boardWidth = 6) {
     this.element.style.display = 'inline-block';
     this.element.style.margin = '5px';
-    const srcName = `assets/orb${attribute}.png`;
     let positions: number[][] = [];
     if (shape == Shape.CROSS) {
       positions = [
@@ -916,7 +953,7 @@ class ComboPiece {
     this.element.style.height = `${height * (ComboPiece.width + 2)}px`;
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const orb = ComboPiece.makeOrb(srcName);
+        const orb = ComboPiece.makeOrb(attribute, true);
         if (!positions[y].includes(x)) {
           orb.style.opacity = '0';
         }
