@@ -91,6 +91,9 @@ function calcScaleStat(card: Card, max: number, min: number, level: number, grow
     const multiplier = 1 + card.limitBreakStatGain / 100 * (level - 99) / 11;
     return Math.round(max * multiplier);
   }
+  if (level == 1) {
+    return min;
+  }
   const diff = max - min;
   const frac = (level - 1) / (card.maxLevel - 1);
   const added = Math.round(Math.pow(frac, growth) * diff);
