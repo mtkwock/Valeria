@@ -795,6 +795,8 @@ class MonsterInstance {
       atk += Math.round(inheritBonus * 0.05);
     }
 
+    atk = Math.round(atk);
+
     if (playerMode > 1 && awakeningsActive) {
       const multiboostMultiplier = 1.5 ** this.countAwakening(Awakening.MULTIBOOST, playerMode);
       atk *= multiboostMultiplier;

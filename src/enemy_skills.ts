@@ -2003,18 +2003,22 @@ const superResolve: EnemySkillEffect = {
 
 // 130
 const playerAtkDebuff: EnemySkillEffect = {
-  textify: ({ skillArgs }) => {
+  textify: ({ skillArgs, aiArgs }, { atk }) => {
     const [turns, debuffPercent] = skillArgs;
-    return `Player team attack reduced by ${debuffPercent} for ${turns} turns`;
+    return `Player team attack reduced by ${debuffPercent} for ${turns} turns${aiArgs[4] ? ` and attack for ${aiArgs[4]}% (${addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}`;
   },
   condition: () => true,
   aiEffect: () => { },
-  effect: ({ skillArgs }, { team }) => {
+  effect: ({ skillArgs, aiArgs }, { team, enemy, comboContainer }) => {
     team.state.burst.attrRestrictions.length = 0;
     team.state.burst.typeRestrictions.length = 0;
     team.state.burst.awakenings.length = 0;
     team.state.burst.awakeningScale = 0;
     team.state.burst.multiplier = 1 - (skillArgs[1] / 100);
+    if (aiArgs[4]) {
+      const damage = Math.ceil(enemy.getAtk() * skillArgs[4] / 100);
+      team.damage(damage, enemy.getAttribute(), comboContainer)
+    }
   },
   goto: () => TERMINATE,
   addMechanic: (mechanic) => {
