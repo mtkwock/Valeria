@@ -6905,6 +6905,7 @@
                     const inheritBonus = calcScaleStat(inherit, inherit.maxAtk, inherit.minAtk, this.inheritLevel, inherit.atkGrowth) + (this.inheritPlussed ? 495 : 0);
                     atk += Math.round(inheritBonus * 0.05);
                 }
+                atk = Math.round(atk);
                 if (playerMode > 1 && awakeningsActive) {
                     const multiboostMultiplier = 1.5 ** this.countAwakening(common_4.Awakening.MULTIBOOST, playerMode);
                     atk *= multiboostMultiplier;
@@ -12867,18 +12868,22 @@
         };
         // 130
         const playerAtkDebuff = {
-            textify: ({ skillArgs }) => {
+            textify: ({ skillArgs, aiArgs }, { atk }) => {
                 const [turns, debuffPercent] = skillArgs;
-                return `Player team attack reduced by ${debuffPercent} for ${turns} turns`;
+                return `Player team attack reduced by ${debuffPercent} for ${turns} turns${aiArgs[4] ? ` and attack for ${aiArgs[4]}% (${common_11.addCommas(Math.ceil(atk * aiArgs[4] / 100))})` : ''}`;
             },
             condition: () => true,
             aiEffect: () => { },
-            effect: ({ skillArgs }, { team }) => {
+            effect: ({ skillArgs, aiArgs }, { team, enemy, comboContainer }) => {
                 team.state.burst.attrRestrictions.length = 0;
                 team.state.burst.typeRestrictions.length = 0;
                 team.state.burst.awakenings.length = 0;
                 team.state.burst.awakeningScale = 0;
                 team.state.burst.multiplier = 1 - (skillArgs[1] / 100);
+                if (aiArgs[4]) {
+                    const damage = Math.ceil(enemy.getAtk() * skillArgs[4] / 100);
+                    team.damage(damage, enemy.getAttribute(), comboContainer);
+                }
             },
             goto: () => TERMINATE,
             addMechanic: (mechanic) => {
