@@ -463,6 +463,7 @@ const selfAttributeChange: MonsterActive = {
 const scalingAttackFromTeam: MonsterActive = {
   damage: ([attrBits, atk100, _, attr], { source, playerMode, awakeningsActive, team, badge }) => {
     const ping = new DamagePing(source, attr);
+    ping.isActive = true;
     const attrs = new Set(idxsFromBits(attrBits));
     for (const m of team) {
       const atk = m.getAtk(playerMode, awakeningsActive);
