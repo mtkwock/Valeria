@@ -10603,6 +10603,7 @@
         const scalingAttackFromTeam = {
             damage: ([attrBits, atk100, _, attr], { source, playerMode, awakeningsActive, team, badge }) => {
                 const ping = new damage_ping_2.DamagePing(source, attr);
+                ping.isActive = true;
                 const attrs = new Set(common_10.idxsFromBits(attrBits));
                 for (const m of team) {
                     const atk = m.getAtk(playerMode, awakeningsActive);
