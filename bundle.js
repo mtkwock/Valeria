@@ -2376,10 +2376,10 @@
                     result.push(id);
                 }
             }
-            if (!result.length) {
+            if (!result.length || result.every((id) => id == -1)) {
                 return [-1];
             }
-            return result;
+            return result.filter((id) => id != -1);
         }
         exports.fuzzyMonsterSearch = fuzzyMonsterSearch;
         function fuzzySearch(text, maxResults = 15, searchArray = [], aliases = {}) {
