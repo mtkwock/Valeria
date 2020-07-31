@@ -586,10 +586,12 @@
         (function (BoolSetting) {
             BoolSetting["APRIL_FOOLS"] = "aprilFools";
             BoolSetting["INHERIT_PLUSSED"] = "inheritPlussed";
+            BoolSetting["RESET_STATE"] = "resetStateOnEnemyLoad";
             BoolSetting["USE_PREEMPT"] = "usePreempt";
             BoolSetting["WARN_CLOSE"] = "warnOnClose";
             BoolSetting["WARN_CHANGE"] = "warnOnChange";
             BoolSetting["DEBUG_AREA"] = "debugArea";
+            BoolSetting["SHOW_COOP_PARTNER"] = "showCoopPartner";
         })(BoolSetting || (BoolSetting = {}));
         exports.BoolSetting = BoolSetting;
         var NumberSetting;
@@ -2736,11 +2738,13 @@
                 this.initNumberSetting(common_3.NumberSetting.MONSTER_LEVEL, 'Default Monster Level', 110);
                 this.initNumberSetting(common_3.NumberSetting.INHERIT_LEVEL, 'Default Inherit Level', 110);
                 this.initBoolSetting(common_3.BoolSetting.INHERIT_PLUSSED, 'Default Inherit to +297', true);
+                this.initBoolSetting(common_3.BoolSetting.RESET_STATE, 'Reset Team State on Enemy Load', false);
                 this.initBoolSetting(common_3.BoolSetting.USE_PREEMPT, 'Use Preemptive on Enemy Load', true);
                 this.initBoolSetting(common_3.BoolSetting.WARN_CHANGE, 'Warn when changing teams', true);
                 this.initBoolSetting(common_3.BoolSetting.WARN_CLOSE, 'Warn when closing page', true);
                 this.initBoolSetting(common_3.BoolSetting.APRIL_FOOLS, 'April Fools Icons (Needs refresh)', false);
                 this.initBoolSetting(common_3.BoolSetting.DEBUG_AREA, 'Show Debug Area', false);
+                this.initBoolSetting(common_3.BoolSetting.SHOW_COOP_PARTNER, 'Show Coop Partner in Coop', true);
                 document.body.appendChild(this.el);
             }
             getElement() {
@@ -3275,6 +3279,7 @@
                 this.totalCombo = create('div');
                 this.plusComboLeaderInput = create('input');
                 this.plusComboActiveInput = create('input');
+                this.plusComboOrbInput = create('input');
                 this.boardWidthInput = create('select');
                 this.pieceArea = create('div');
                 this.remainingOrbInput = create('input');
@@ -3305,6 +3310,16 @@
                 plusComboActiveCell.appendChild(this.plusComboActiveInput);
                 plusComboActiveRow.appendChild(plusComboActiveLabel);
                 plusComboActiveRow.appendChild(plusComboActiveCell);
+                const plusComboOrbRow = create('tr');
+                const plusComboOrbLabel = create('td');
+                plusComboOrbLabel.innerText = '+Combo (Awakening)';
+                const plusComboOrbCell = create('td');
+                this.plusComboOrbInput.type = 'number';
+                this.plusComboOrbInput.value = '0';
+                this.plusComboOrbInput.disabled = true;
+                plusComboOrbCell.appendChild(this.plusComboOrbInput);
+                plusComboOrbRow.appendChild(plusComboOrbLabel);
+                plusComboOrbRow.appendChild(plusComboOrbCell);
                 const remainingOrbRow = create('tr');
                 const remainingOrbLabel = create('td');
                 remainingOrbLabel.innerText = 'Orbs Remaining';
@@ -3336,6 +3351,7 @@
                 boardWidthRow.appendChild(boardWidthCell);
                 tbl.appendChild(plusComboLeaderRow);
                 tbl.appendChild(plusComboActiveRow);
+                tbl.appendChild(plusComboOrbRow);
                 tbl.appendChild(remainingOrbRow);
                 tbl.appendChild(boardWidthRow);
                 this.element.appendChild(guideAnchor);
@@ -7115,6 +7131,7 @@
                 // private readonly maxVisibleCombos = 14;
                 this.bonusCombosLeader = 0;
                 this.bonusCombosActive = 0;
+                this.bonusCombosOrb = 0;
                 this.combos = {};
                 for (const c of common_6.COLORS) {
                     this.combos[c] = [];
@@ -7311,20 +7328,31 @@
                 for (const fn of this.onUpdate) {
                     fn(this);
                 }
-                this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+                this.updateEditor();
                 this.comboEditor.plusComboActiveInput.value = String(this.bonusCombosActive);
             }
             setBonusComboLeader(bonus) {
                 this.bonusCombosLeader = bonus;
-                this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+                this.updateEditor();
                 this.comboEditor.plusComboLeaderInput.value = String(this.bonusCombosLeader);
+            }
+            setBonusComboOrb(bonus) {
+                if (bonus > 2) {
+                    bonus = 2;
+                }
+                this.updateEditor();
+                this.bonusCombosOrb = bonus;
+                this.comboEditor.plusComboOrbInput.value = String(bonus);
             }
             comboCount() {
                 let total = 0;
                 for (const c in this.combos) {
                     total += this.combos[c].length;
                 }
-                return total + this.bonusCombosLeader + this.bonusCombosActive;
+                return total + this.bonusCombosLeader + this.bonusCombosActive + this.bonusCombosOrb;
+            }
+            updateEditor() {
+                this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
             }
             getBoardSize() {
                 return this.boardWidth() * (this.boardWidth() - 1);
@@ -8946,9 +8974,9 @@
                     return;
                 }
                 Object.assign(this.state, DEFAULT_STATE);
-                for (let i = 0; i < 3; i++) {
-                    this.state.leadSwaps[i] = 0;
-                }
+                // for (let i = 0; i < 3; i++) {
+                //   this.state.leadSwaps[i] = 0;
+                // }
                 state.currentHp = this.getHp();
             }
             isMultiplayer() {
@@ -9268,6 +9296,21 @@
                 }
                 return total;
             }
+            getAutohealAwakening() {
+                if (!this.state.awakenings) {
+                    return 0;
+                }
+                const awakeningAutoheal = this.countAwakening(common_8.Awakening.AUTOHEAL) * 1000;
+                let latentAutoheal = 0;
+                for (const monster of this.getActiveTeam()) {
+                    const rcv = monster.getRcv(this.playerMode, true);
+                    if (rcv < 0)
+                        continue;
+                    const latentCount = monster.latents.filter((latent) => latent == common_8.Latent.AUTOHEAL).length;
+                    latentAutoheal = Math.round(0.15 * latentCount * rcv);
+                }
+                return awakeningAutoheal + latentAutoheal;
+            }
             getTime() {
                 const monsters = this.getActiveTeam();
                 const leadId = monsters[0].getCard().leaderSkillId;
@@ -9408,6 +9451,7 @@
                     pings[i + monsters.length] = new damage_ping_1.DamagePing(m, m.getSubattribute());
                     pings[i + monsters.length].isSub = true;
                 }
+                let potentialComboOrbPlus = 0;
                 for (const c of 'rbgld') {
                     const attr = common_8.COLORS.indexOf(c);
                     for (const combo of comboContainer.combos[c]) {
@@ -9445,6 +9489,10 @@
                                         multiplier *= (2.5 ** vdpCount);
                                         ping.ignoreVoid = true;
                                     }
+                                }
+                                let comboOrbs = ping.source.countAwakening(common_8.Awakening.COMBO_ORB);
+                                if (combo.count >= 10 && combo.count <= 12) {
+                                    potentialComboOrbPlus += comboOrbs;
                                 }
                             }
                             // Handle burst.
@@ -9528,6 +9576,8 @@
                 }
                 comboContainer.setBonusComboLeader(leaders.plusCombo(leadId, { team: monsters, comboContainer }) +
                     leaders.plusCombo(helpId, { team: monsters, comboContainer }));
+                // Currently max of 2 combo orbs can be added at any time.
+                comboContainer.setBonusComboOrb(Math.min(potentialComboOrbPlus, 2));
                 const comboCount = comboContainer.comboCount();
                 const comboMultiplier = comboCount * 0.25 + 0.75;
                 for (let i = 0; i < pings.length; i++) {
@@ -9609,16 +9659,17 @@
                     ping.damage = Math.round(val * atkBadgeMult);
                     mults[i].final = ping.damage;
                 }
-                const healing = healingFromCombos - poison + this.countAwakening(common_8.Awakening.AUTOHEAL) * 1000;
+                const healingAwakening = this.getAutohealAwakening();
+                const healingLeader = leaders.autoHeal(leadId) * Math.max(0, monsters[0].getRcv(pm, awoke))
+                    + leaders.autoHeal(helpId) * Math.max(0, monsters[5].getRcv(pm, awoke));
+                const healing = healingFromCombos - poison + healingAwakening + healingLeader;
                 trueBonusAttack += leaders.trueBonusAttack(leadId, {
                     team: monsters, comboContainer
                 }) + leaders.trueBonusAttack(helpId, {
                     team: monsters, comboContainer
                 });
                 for (const ping of pings) {
-                    if (ping && ping.damage > 2 ** 31) {
-                        ping.damage = 2 ** 31 - 1;
-                    }
+                    ping.damage = Math.min(ping.damage, common_8.INT_CAP);
                 }
                 console.log(mults);
                 return {
@@ -9635,7 +9686,26 @@
                         const actualIndex = this.getMonsterIdx(teamIdx, monsterIdx);
                         // We should only show the lead swap icon on the lead who is now the sub.
                         const showSwap = Boolean(displayIndex != actualIndex && monsterIdx && monsterIdx < 5);
-                        this.monsters[displayIndex].update(this.playerMode, this.monsters[actualIndex].getRenderData(this.playerMode, showSwap));
+                        let renderData = this.monsters[actualIndex].getRenderData(this.playerMode, showSwap);
+                        if (!templates_5.SETTINGS.getBool(common_8.BoolSetting.SHOW_COOP_PARTNER)
+                            && this.playerMode == 2 && monsterIdx == 5) {
+                            renderData = {
+                                plusses: 0,
+                                unavailableReason: '',
+                                id: -1,
+                                awakenings: 0,
+                                superAwakeningIdx: -1,
+                                level: 1,
+                                inheritId: -1,
+                                inheritLevel: 1,
+                                inheritPlussed: false,
+                                latents: [],
+                                showSwap: false,
+                                showTransform: false,
+                                activeTransform: false,
+                            };
+                        }
+                        this.monsters[displayIndex].update(this.playerMode, renderData);
                     }
                 }
                 this.teamPane.updateStats(this.getStats());
@@ -14525,6 +14595,9 @@
                     this.team.updateState({});
                 };
                 this.dungeon.onEnemyChange = () => {
+                    if (templates_8.SETTINGS.getBool(common_14.BoolSetting.RESET_STATE)) {
+                        this.team.resetState();
+                    }
                     if (!this.dungeon.isNormal && templates_8.SETTINGS.getBool(common_14.BoolSetting.USE_PREEMPT)) {
                         this.usePreempt();
                     }
