@@ -237,6 +237,9 @@ class Valeria {
       this.team.updateState({});
     }
     this.dungeon.onEnemyChange = () => {
+      if (SETTINGS.getBool(BoolSetting.RESET_STATE)) {
+        this.team.resetState();
+      }
       if (!this.dungeon.isNormal && SETTINGS.getBool(BoolSetting.USE_PREEMPT)) {
         this.usePreempt();
       }

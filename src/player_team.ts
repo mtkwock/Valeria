@@ -1,5 +1,6 @@
 import {
   Attribute, AttributeToName, COLORS,
+  INT_CAP,
   MonsterType,
   Awakening,
   Latent,
@@ -432,9 +433,9 @@ class Team {
       return;
     }
     Object.assign(this.state, DEFAULT_STATE);
-    for (let i = 0; i < 3; i++) {
-      this.state.leadSwaps[i] = 0;
-    }
+    // for (let i = 0; i < 3; i++) {
+    //   this.state.leadSwaps[i] = 0;
+    // }
     state.currentHp = this.getHp();
   }
 
@@ -772,6 +773,25 @@ class Team {
     return total;
   }
 
+  getAutohealAwakening(): number {
+    if (!this.state.awakenings) {
+      return 0;
+    }
+
+    const awakeningAutoheal = this.countAwakening(Awakening.AUTOHEAL) * 1000;
+
+    let latentAutoheal = 0;
+    for (const monster of this.getActiveTeam()) {
+      const rcv = monster.getRcv(this.playerMode, true);
+      if (rcv < 0) continue;
+
+      const latentCount = monster.latents.filter((latent) => latent == Latent.AUTOHEAL).length;
+      latentAutoheal = Math.round(0.15 * latentCount * rcv);
+    }
+
+    return awakeningAutoheal + latentAutoheal;
+  }
+
   getTime(): number {
     const monsters = this.getActiveTeam();
     const leadId = monsters[0].getCard().leaderSkillId;
@@ -859,7 +879,6 @@ class Team {
       healing,
     });
 
-
     const enhancedCounts: Record<string, number> = {
       r: this.countAwakening(Awakening.OE_FIRE),
       b: this.countAwakening(Awakening.OE_WATER),
@@ -936,6 +955,8 @@ class Team {
       pings[i + monsters.length].isSub = true;
     }
 
+    let potentialComboOrbPlus = 0;
+
     for (const c of 'rbgld') {
       const attr = COLORS.indexOf(c) as Attribute;
       for (const combo of comboContainer.combos[c]) {
@@ -973,6 +994,11 @@ class Team {
                 ping.ignoreVoid = true;
               }
             }
+
+            let comboOrbs = ping.source.countAwakening(Awakening.COMBO_ORB);
+            if (combo.count >= 10 && combo.count <= 12) {
+              potentialComboOrbPlus += comboOrbs;
+            }
           }
 
           // Handle burst.
@@ -991,6 +1017,7 @@ class Team {
         }
       }
     }
+
     for (let i = 0; i < pings.length; i++) {
       mults[i].base = pings[i].damage;
     }
@@ -1061,9 +1088,12 @@ class Team {
       }
     }
 
-    comboContainer.setBonusComboLeader(leaders.plusCombo(
-      leadId, { team: monsters, comboContainer }) +
+    comboContainer.setBonusComboLeader(
+      leaders.plusCombo(leadId, { team: monsters, comboContainer }) +
       leaders.plusCombo(helpId, { team: monsters, comboContainer }));
+
+    // Currently max of 2 combo orbs can be added at any time.
+    comboContainer.setBonusComboOrb(Math.min(potentialComboOrbPlus, 2));
 
     const comboCount = comboContainer.comboCount();
     const comboMultiplier = comboCount * 0.25 + 0.75;
@@ -1151,7 +1181,10 @@ class Team {
       mults[i].final = ping.damage;
     }
 
-    const healing = healingFromCombos - poison + this.countAwakening(Awakening.AUTOHEAL) * 1000;
+    const healingAwakening = this.getAutohealAwakening();
+    const healingLeader = leaders.autoHeal(leadId) * Math.max(0, monsters[0].getRcv(pm, awoke))
+      + leaders.autoHeal(helpId) * Math.max(0, monsters[5].getRcv(pm, awoke));
+    const healing = healingFromCombos - poison + healingAwakening + healingLeader;
 
     trueBonusAttack += leaders.trueBonusAttack(leadId, {
       team: monsters, comboContainer
@@ -1160,9 +1193,7 @@ class Team {
     });
 
     for (const ping of pings) {
-      if (ping && ping.damage > 2 ** 31) {
-        ping.damage = 2 ** 31 - 1;
-      }
+      ping.damage = Math.min(ping.damage, INT_CAP);
     }
 
     console.log(mults);
@@ -1182,10 +1213,26 @@ class Team {
         const actualIndex = this.getMonsterIdx(teamIdx, monsterIdx);
         // We should only show the lead swap icon on the lead who is now the sub.
         const showSwap = Boolean(displayIndex != actualIndex && monsterIdx && monsterIdx < 5);
-        this.monsters[displayIndex].update(
-          this.playerMode,
-          this.monsters[actualIndex].getRenderData(this.playerMode, showSwap),
-        );
+        let renderData = this.monsters[actualIndex].getRenderData(this.playerMode, showSwap);
+        if (!SETTINGS.getBool(BoolSetting.SHOW_COOP_PARTNER)
+          && this.playerMode == 2 && monsterIdx == 5) {
+          renderData = {
+            plusses: 0,
+            unavailableReason: '',
+            id: -1,
+            awakenings: 0,
+            superAwakeningIdx: -1,
+            level: 1,
+            inheritId: -1,
+            inheritLevel: 1,
+            inheritPlussed: false,
+            latents: [],
+            showSwap: false,
+            showTransform: false,
+            activeTransform: false,
+          };
+        }
+        this.monsters[displayIndex].update(this.playerMode, renderData);
       }
     }
     this.teamPane.updateStats(this.getStats());

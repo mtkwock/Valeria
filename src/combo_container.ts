@@ -49,6 +49,7 @@ class ComboContainer {
   // private readonly maxVisibleCombos = 14;
   public bonusCombosLeader = 0;
   public bonusCombosActive = 0;
+  public bonusCombosOrb = 0;
   comboEditor: ComboEditor;
   onUpdate: ((c: ComboContainer) => any)[];
 
@@ -260,14 +261,23 @@ class ComboContainer {
     for (const fn of this.onUpdate) {
       fn(this);
     }
-    this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+    this.updateEditor();
     this.comboEditor.plusComboActiveInput.value = String(this.bonusCombosActive);
   }
 
   setBonusComboLeader(bonus: number) {
     this.bonusCombosLeader = bonus;
-    this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
+    this.updateEditor();
     this.comboEditor.plusComboLeaderInput.value = String(this.bonusCombosLeader);
+  }
+
+  setBonusComboOrb(bonus: number) {
+    if (bonus > 2) {
+      bonus = 2;
+    }
+    this.updateEditor();
+    this.bonusCombosOrb = bonus;
+    this.comboEditor.plusComboOrbInput.value = String(bonus);
   }
 
   comboCount(): number {
@@ -275,7 +285,12 @@ class ComboContainer {
     for (const c in this.combos) {
       total += this.combos[c].length;
     }
-    return total + this.bonusCombosLeader + this.bonusCombosActive;
+
+    return total + this.bonusCombosLeader + this.bonusCombosActive + this.bonusCombosOrb;
+  }
+
+  updateEditor() {
+    this.comboEditor.totalCombo.innerText = `Total Combos: ${this.comboCount()}`;
   }
 
   getBoardSize(): number {

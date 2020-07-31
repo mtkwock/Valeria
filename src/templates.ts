@@ -334,11 +334,13 @@ class Settings implements SettingsInterface {
     this.initNumberSetting(NumberSetting.MONSTER_LEVEL, 'Default Monster Level', 110);
     this.initNumberSetting(NumberSetting.INHERIT_LEVEL, 'Default Inherit Level', 110);
     this.initBoolSetting(BoolSetting.INHERIT_PLUSSED, 'Default Inherit to +297', true);
+    this.initBoolSetting(BoolSetting.RESET_STATE, 'Reset Team State on Enemy Load', false);
     this.initBoolSetting(BoolSetting.USE_PREEMPT, 'Use Preemptive on Enemy Load', true);
     this.initBoolSetting(BoolSetting.WARN_CHANGE, 'Warn when changing teams', true);
     this.initBoolSetting(BoolSetting.WARN_CLOSE, 'Warn when closing page', true);
     this.initBoolSetting(BoolSetting.APRIL_FOOLS, 'April Fools Icons (Needs refresh)', false);
     this.initBoolSetting(BoolSetting.DEBUG_AREA, 'Show Debug Area', false);
+    this.initBoolSetting(BoolSetting.SHOW_COOP_PARTNER, 'Show Coop Partner in Coop', true);
 
     document.body.appendChild(this.el);
   }
@@ -938,10 +940,11 @@ class ComboEditor {
   public totalCombo = create('div');
   public plusComboLeaderInput = create('input') as HTMLInputElement;
   public plusComboActiveInput = create('input') as HTMLInputElement;
+  public plusComboOrbInput = create('input') as HTMLInputElement;
   public boardWidthInput = create('select') as HTMLSelectElement;
   private pieceArea = create('div');
   public remainingOrbInput = create('input') as HTMLInputElement;
-  public onComboClick: (color: string, idx: number) => void = () => {};
+  public onComboClick: (color: string, idx: number) => void = () => { };
 
   constructor() {
     this.commandInput.placeholder = 'Combo Commands';
@@ -972,6 +975,17 @@ class ComboEditor {
     plusComboActiveCell.appendChild(this.plusComboActiveInput);
     plusComboActiveRow.appendChild(plusComboActiveLabel);
     plusComboActiveRow.appendChild(plusComboActiveCell);
+
+    const plusComboOrbRow = create('tr');
+    const plusComboOrbLabel = create('td');
+    plusComboOrbLabel.innerText = '+Combo (Awakening)';
+    const plusComboOrbCell = create('td');
+    this.plusComboOrbInput.type = 'number';
+    this.plusComboOrbInput.value = '0';
+    this.plusComboOrbInput.disabled = true;
+    plusComboOrbCell.appendChild(this.plusComboOrbInput);
+    plusComboOrbRow.appendChild(plusComboOrbLabel);
+    plusComboOrbRow.appendChild(plusComboOrbCell);
 
     const remainingOrbRow = create('tr');
     const remainingOrbLabel = create('td');
@@ -1006,6 +1020,7 @@ class ComboEditor {
 
     tbl.appendChild(plusComboLeaderRow);
     tbl.appendChild(plusComboActiveRow);
+    tbl.appendChild(plusComboOrbRow);
     tbl.appendChild(remainingOrbRow);
     tbl.appendChild(boardWidthRow);
 
@@ -1034,7 +1049,7 @@ class ComboEditor {
       const vals = data[c];
 
       for (let i = 0; i < vals.length; i++) {
-        const {shapeCount} = vals[i];
+        const { shapeCount } = vals[i];
         let shape: Shape;
         let count: number;
         if (shapeCount.startsWith('R')) {

@@ -557,11 +557,14 @@ interface DungeonMechanics {
 enum BoolSetting {
   APRIL_FOOLS = 'aprilFools',
   INHERIT_PLUSSED = 'inheritPlussed',
+  RESET_STATE = 'resetStateOnEnemyLoad',
   USE_PREEMPT = 'usePreempt',
   WARN_CLOSE = 'warnOnClose',
   WARN_CHANGE = 'warnOnChange',
   DEBUG_AREA = 'debugArea',
+  SHOW_COOP_PARTNER = 'showCoopPartner',
 }
+
 enum NumberSetting {
   MONSTER_LEVEL = 'monsterLevel',
   INHERIT_LEVEL = 'inheritLevel',
