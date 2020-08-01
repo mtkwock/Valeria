@@ -782,7 +782,11 @@ class Team {
 
     let latentAutoheal = 0;
     for (const monster of this.getActiveTeam()) {
-      const rcv = monster.getRcv(this.playerMode, true);
+      let rcv = monster.getRcv(this.playerMode, false);
+      rcv -= monster.rcvPlus * 3;
+      if (this.playerMode > 1) {
+        rcv *= monster.countAwakening(Awakening.MULTIBOOST) ** 1.5;
+      }
       if (rcv < 0) continue;
 
       const latentCount = monster.latents.filter((latent) => latent == Latent.AUTOHEAL).length;
