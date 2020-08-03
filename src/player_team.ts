@@ -787,7 +787,7 @@ class Team {
       if (rcv <= 0) continue;
 
       const latentCount = monster.latents.filter((latent) => latent == Latent.AUTOHEAL).length;
-      latentAutoheal = Math.round(0.15 * latentCount * rcv);
+      latentAutoheal += Math.round(0.15 * latentCount * rcv);
     }
 
     return awakeningAutoheal + latentAutoheal;
@@ -997,7 +997,10 @@ class Team {
             }
 
             let comboOrbs = ping.source.countAwakening(Awakening.COMBO_ORB);
-            if (combo.count >= 10 && combo.count <= 12) {
+            if (combo.count >= 10 && combo.count <= 12 &&
+              // Monsters with the same attribute and subattribute should not be
+              // counted twice.
+              (!ping.isSub || ping.source.getAttribute() != ping.attribute)) {
               potentialComboOrbPlus += comboOrbs;
             }
           }
