@@ -9303,11 +9303,12 @@
                 const awakeningAutoheal = this.countAwakening(common_8.Awakening.AUTOHEAL) * 1000;
                 let latentAutoheal = 0;
                 for (const monster of this.getActiveTeam()) {
-                    const rcv = monster.getRcv(this.playerMode, true);
-                    if (rcv < 0)
+                    const c = monster.getCard();
+                    const rcv = monster.calcScaleStat(c.maxRcv, c.minRcv, c.rcvGrowth);
+                    if (rcv <= 0)
                         continue;
                     const latentCount = monster.latents.filter((latent) => latent == common_8.Latent.AUTOHEAL).length;
-                    latentAutoheal = Math.round(0.15 * latentCount * rcv);
+                    latentAutoheal += Math.round(0.15 * latentCount * rcv);
                 }
                 return awakeningAutoheal + latentAutoheal;
             }
@@ -9491,7 +9492,10 @@
                                     }
                                 }
                                 let comboOrbs = ping.source.countAwakening(common_8.Awakening.COMBO_ORB);
-                                if (combo.count >= 10 && combo.count <= 12) {
+                                if (combo.count >= 10 && combo.count <= 12 &&
+                                    // Monsters with the same attribute and subattribute should not be
+                                    // counted twice.
+                                    (!ping.isSub || ping.source.getAttribute() != ping.attribute)) {
                                     potentialComboOrbPlus += comboOrbs;
                                 }
                             }
