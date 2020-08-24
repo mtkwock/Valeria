@@ -295,7 +295,12 @@ const atkScalingFromUniqueColorMatches: LeaderSkill = { // 61
     return (atk100base + (count - minColors) * atk100scale) / 100;
   },
 
-  atkMax: ([_, _a, atk100base, atk100scale, moreColors]) => (atk100base + (atk100scale || 0) * (moreColors || 0)) / 100,
+  atkMax: ([attrBits, minColors, atk100base, atk100scale, moreColors]) => {
+    // Because Stupid things like Aten has ridiculous scaling that doesn't make sense.
+    // ie. moreColors is set to 100 for Aten, which should actually cap at 2.
+    moreColors = Math.min(idxsFromBits(attrBits).length - minColors, moreColors || 0);
+    return (atk100base + (atk100scale || 0) * moreColors) / 100;
+  },
 };
 
 const atkHpFromType: LeaderSkill = { // 62
