@@ -9221,6 +9221,9 @@
                     if (monsters.length > 6 && i >= 5) {
                         totalTeamHp = p2TeamHp;
                     }
+                    if (!this.state.awakenings) {
+                        totalTeamHp = 0;
+                    }
                     hps.push(Math.round(hpBase * hpMult * (1 + 0.05 * totalTeamHp)));
                 }
                 return hps;
