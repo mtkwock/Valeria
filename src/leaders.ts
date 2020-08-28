@@ -883,8 +883,8 @@ const atkRcvScalingFromUniqueColorMatches: LeaderSkill = { // 165
     }
     return ((count - minColors) * scale100 + rcv100base) / 100;
   },
-  atkMax: ([a, b, c, _, d, e]) => atkScalingFromUniqueColorMatches.atkMax!([a, b, c, d, e]),
-  rcvMax: ([_, minColors, _a, rcv100base, scale100, maxColors]) => (((maxColors || minColors) - minColors) * (scale100 || 0) + rcv100base) / 100,
+  atkMax: ([attrBits, minColors, atk100base, _, scale100, moreColors]) => atkScalingFromUniqueColorMatches.atkMax!([attrBits, minColors, atk100base, scale100, moreColors]),
+  rcvMax: ([attrBits, minColors, _, rcv100base, scale100, moreColors]) => atkScalingFromUniqueColorMatches.atkMax!([attrBits, minColors, rcv100base, scale100, moreColors]),
 };
 
 const atkRcvScalingFromCombos: LeaderSkill = { // 166
