@@ -10180,7 +10180,7 @@
                 }
                 return this.currentAttribute;
             }
-            calcDamage(ping, pings, comboContainer, playerMode, voids) {
+            calcDamage(ping, pings, comboContainer, playerMode, awakeningsEnabled, voids) {
                 let currentDamage = ping.damage;
                 if (!currentDamage || this.invincible) {
                     return 0;
@@ -10194,7 +10194,7 @@
                 }
                 // Handle killers.
                 const types = ilmina_stripped_6.floof.getCard(this.id).types;
-                if (!ping.isActive) {
+                if (!ping.isActive && awakeningsEnabled) {
                     let killerCount = 0;
                     let latentCount = 0;
                     for (const type of types) {
@@ -10403,7 +10403,7 @@
         // 20
         const orbChangeDouble = {};
         function simulateDamage(ping, ctx) {
-            return ctx.enemy.calcDamage(ping, [ping], ctx.comboContainer, ctx.team.playerMode, {
+            return ctx.enemy.calcDamage(ping, [ping], ctx.comboContainer, ctx.team.playerMode, ctx.team.state.awakenings, {
                 attributeAbsorb: ctx.team.state.voidAttributeAbsorb,
                 damageAbsorb: ctx.team.state.voidDamageAbsorb,
                 damageVoid: ctx.team.state.voidDamageVoid,
@@ -14725,7 +14725,7 @@
                 }
                 for (const ping of pings) {
                     let oldHp = currentHp;
-                    ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.playerMode, {
+                    ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.playerMode, this.team.state.awakenings, {
                         attributeAbsorb: this.team.state.voidAttributeAbsorb,
                         damageVoid: this.team.state.voidDamageVoid,
                         damageAbsorb: this.team.state.voidDamageAbsorb,
@@ -14742,7 +14742,7 @@
                 const specialPing = new damage_ping_3.DamagePing(this.team.getActiveTeam()[0], common_14.Attribute.FIXED, false);
                 specialPing.damage = trueBonusAttack;
                 specialPing.isActive = true;
-                specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.playerMode, {
+                specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.playerMode, false, {
                     attributeAbsorb: this.team.state.voidAttributeAbsorb,
                     damageVoid: this.team.state.voidDamageVoid,
                     damageAbsorb: this.team.state.voidDamageAbsorb,
