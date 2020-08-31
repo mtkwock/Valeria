@@ -379,7 +379,7 @@ class Valeria {
     }
     for (const ping of pings) {
       let oldHp = currentHp;
-      ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.playerMode, {
+      ping.rawDamage = enemy.calcDamage(ping, pings, this.comboContainer, this.team.playerMode, this.team.state.awakenings, {
         attributeAbsorb: this.team.state.voidAttributeAbsorb,
         damageVoid: this.team.state.voidDamageVoid,
         damageAbsorb: this.team.state.voidDamageAbsorb,
@@ -399,7 +399,7 @@ class Valeria {
     const specialPing = new DamagePing(this.team.getActiveTeam()[0], Attribute.FIXED, false);
     specialPing.damage = trueBonusAttack;
     specialPing.isActive = true;
-    specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.playerMode, {
+    specialPing.rawDamage = enemy.calcDamage(specialPing, [], this.comboContainer, this.team.playerMode, false, {
       attributeAbsorb: this.team.state.voidAttributeAbsorb,
       damageVoid: this.team.state.voidDamageVoid,
       damageAbsorb: this.team.state.voidDamageAbsorb,

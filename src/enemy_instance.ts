@@ -214,6 +214,7 @@ class EnemyInstance {
     pings: DamagePing[],
     comboContainer: ComboContainer,
     playerMode: number,
+    awakeningsEnabled: boolean,
     voids: { attributeAbsorb: boolean; damageAbsorb: boolean; damageVoid: boolean }): number {
 
     let currentDamage = ping.damage;
@@ -230,7 +231,7 @@ class EnemyInstance {
 
     // Handle killers.
     const types: MonsterType[] = floof.getCard(this.id).types;
-    if (!ping.isActive) {
+    if (!ping.isActive && awakeningsEnabled) {
       let killerCount = 0;
       let latentCount = 0;
       for (const type of types) {

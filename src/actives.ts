@@ -151,11 +151,17 @@ const orbChangeDouble: MonsterActive = {
 }
 
 function simulateDamage(ping: DamagePing, ctx: TeamEffectContext): number {
-  return ctx.enemy.calcDamage(ping, [ping], ctx.comboContainer, ctx.team.playerMode, {
-    attributeAbsorb: ctx.team.state.voidAttributeAbsorb,
-    damageAbsorb: ctx.team.state.voidDamageAbsorb,
-    damageVoid: ctx.team.state.voidDamageVoid,
-  });
+  return ctx.enemy.calcDamage(
+    ping,
+    [ping],
+    ctx.comboContainer,
+    ctx.team.playerMode,
+    ctx.team.state.awakenings,
+    {
+      attributeAbsorb: ctx.team.state.voidAttributeAbsorb,
+      damageAbsorb: ctx.team.state.voidDamageAbsorb,
+      damageVoid: ctx.team.state.voidDamageVoid,
+    });
 }
 
 // 35
