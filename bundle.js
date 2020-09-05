@@ -2094,6 +2094,8 @@
         };
         exports.MONSTER_ALIASES = MONSTER_ALIASES;
         const DUNGEON_ALIASES = {
+            'a shura': 4401001,
+            'a. shura': 4401001,
             'a1': 1022001,
             'a2': 1022002,
             'a3': 1022003,
@@ -2104,6 +2106,9 @@
             'aa2': 2660002,
             'aa3': 2660003,
             'aa4': 2660004,
+            'ashura': 4401001,
+            'alt shura': 4401001,
+            'shura': 4400001,
             'ta1': 3638001,
             'ta2': 4182001,
         };
@@ -8689,6 +8694,13 @@
             leadSwaps: [0, 0, 0],
             bigBoard: false,
         };
+        const DEFAULT_BURST = {
+            attrRestrictions: [],
+            typeRestrictions: [],
+            awakenings: [],
+            multiplier: 1,
+            awakeningScale: 0,
+        };
         function teamJsonEqual(a, b) {
             if (a.title != b.title) {
                 return false;
@@ -8979,9 +8991,10 @@
                     return;
                 }
                 Object.assign(this.state, DEFAULT_STATE);
-                // for (let i = 0; i < 3; i++) {
-                //   this.state.leadSwaps[i] = 0;
-                // }
+                // Burst being a nested object means that editing state at all will cause
+                // it to be propagated and continued.
+                // Curse you, mutability!
+                Object.assign(this.state.burst, DEFAULT_BURST);
                 state.currentHp = this.getHp();
             }
             isMultiplayer() {
