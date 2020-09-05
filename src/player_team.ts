@@ -98,6 +98,14 @@ const DEFAULT_STATE: TeamState = {
   bigBoard: false,
 };
 
+const DEFAULT_BURST: Burst = {
+  attrRestrictions: [],
+  typeRestrictions: [],
+  awakenings: [],
+  multiplier: 1,
+  awakeningScale: 0,
+};
+
 interface TeamJson {
   title: string;
   playerMode: number;
@@ -433,9 +441,10 @@ class Team {
       return;
     }
     Object.assign(this.state, DEFAULT_STATE);
-    // for (let i = 0; i < 3; i++) {
-    //   this.state.leadSwaps[i] = 0;
-    // }
+    // Burst being a nested object means that editing state at all will cause
+    // it to be propagated and continued.
+    // Curse you, mutability!
+    Object.assign(this.state.burst, DEFAULT_BURST);
     state.currentHp = this.getHp();
   }
 

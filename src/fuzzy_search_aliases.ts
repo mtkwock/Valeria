@@ -10,6 +10,8 @@ const MONSTER_ALIASES: Record<string, number> = {
 };
 
 const DUNGEON_ALIASES: Record<string, number> = {
+  'a shura': 4401001,
+  'a. shura': 4401001,
   'a1': 1022001,
   'a2': 1022002,
   'a3': 1022003,
@@ -20,6 +22,9 @@ const DUNGEON_ALIASES: Record<string, number> = {
   'aa2': 2660002,
   'aa3': 2660003,
   'aa4': 2660004,
+  'ashura': 4401001,
+  'alt shura': 4401001,
+  'shura': 4400001,
   'ta1': 3638001,
   'ta2': 4182001,
 };
