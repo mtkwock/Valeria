@@ -1946,19 +1946,32 @@ const transformLead: EnemySkillEffect = {
 };
 
 // 126
-const bigBoardOrContinue: EnemySkillEffect = {
-  textify: ({ skillArgs }, { atk }) => `Change board to 7x6 for ${skillArgs[0]} turns. If already 7x6: If part of skillset, hit for ${addCommas(atk)}, else Continue.`,
+const boardChangeOrContinue: EnemySkillEffect = {
+  textify: ({ skillArgs }, { atk }) => {
+    const [turns, sizeEnum] = skillArgs;
+    let size = '';
+    if (sizeEnum == 1) {
+      size = '7x6';
+    } else if (sizeEnum == 3) {
+      size = '6x5';
+    } else {
+      console.error('Unhandled Size Flagz: ' + String(sizeEnum));
+    }
+    return `Change board to ${size} for ${turns} turns. If already ${size}: If part of skillset, hit for ${addCommas(atk)}, else Continue.`;
+  },
   condition: () => true,
   aiEffect: () => { },
-  effect: (_, { team, comboContainer, enemy }) => {
-    if (comboContainer.getBoardSize() == 7) {
+  effect: ({ skillArgs }, { team, comboContainer, enemy }) => {
+    if ((comboContainer.getBoardSize() == 7) == (skillArgs[1] == 1)) {
       team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
       return;
     }
-    comboContainer.comboEditor.boardWidthInput.value = '7';
+    comboContainer.comboEditor.boardWidthInput.value = (skillArgs[1] == 1) ? '7' : '6';
     comboContainer.update();
   },
-  goto: (_, { bigBoard }) => bigBoard ? TO_NEXT : TERMINATE,
+  goto: ({ skillArgs }, { bigBoard }) => {
+    return bigBoard == (skillArgs[1] == 1) ? TO_NEXT : TERMINATE
+  },
 };
 
 // 127
@@ -2152,7 +2165,7 @@ const ENEMY_SKILL_GENERATORS: Record<number, EnemySkillEffect> = {
   123: addInvincibility, // Hexa only
   124: gachadra,
   125: transformLead,
-  126: bigBoardOrContinue,
+  126: boardChangeOrContinue,
   127: attackAndNoSkyfall,
   128: stickyBlindSkyfall,
   129: superResolve,
