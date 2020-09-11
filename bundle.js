@@ -12929,7 +12929,7 @@
             condition: () => true,
             aiEffect: () => { },
             effect: ({ skillArgs }, { team, comboContainer, enemy }) => {
-                if ((comboContainer.getBoardSize() == 7) == (skillArgs[1] == 1)) {
+                if ((comboContainer.getBoardSize() == 42) == (skillArgs[1] == 1)) {
                     team.damage(enemy.getAtk(), enemy.getAttribute(), comboContainer);
                     return;
                 }
