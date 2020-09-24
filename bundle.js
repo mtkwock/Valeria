@@ -7864,6 +7864,7 @@
                 atk100scale = atk100scale || 0;
                 const maxCounts = {
                     0: 0, 1: 0, 2: 0, 3: 0, 4: 0,
+                    5: 0, 6: 0, 7: 0, 8: 0, 9: 9,
                 };
                 for (const attrBit of [attr1bit, attr2bit, attr3bit, attr4bit, attr5bit].filter((a) => a > 0)) {
                     const attr = common_7.idxsFromBits(attrBit)[0];
@@ -8009,6 +8010,8 @@
             // Assume triple cross
             atkMax: ([_a, mult1, _b, mult2, _c, mult3, _d, mult4, _e, mult5]) => (Math.max(mult1 || 0, mult2 || 0, mult3 || 0, mult4 || 0, mult5 || 0) / 100),
         };
+        // Same as baseStatFromAttrType, but HP and ATK are swapped with minMatch at
+        // the beginning.
         const baseStatFromAttrsTypesMinMatch = {
             minOrbMatch: ([minMatch]) => minMatch,
             hp: ([_, ...p], context) => baseStatFromAttrsTypes.hp([p[0], p[1], p[3], p[2], p[4]], context),
