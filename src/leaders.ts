@@ -572,8 +572,10 @@ const atkFromDecreasedHp: LeaderSkill = { // 106
 
 const hpDecrease: LeaderSkill = { // 107
   hp: ([hp100]) => hp100 / 100,
+  atk: ([_, atk100]) => atk100 / 100,
 
   hpMax: ([hp100]) => hp100 / 100,
+  atkMax: ([_, atk100]) => atk100 / 100,
 };
 
 const atkFromTypeDecreasedHp: LeaderSkill = { // 108
