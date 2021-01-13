@@ -989,7 +989,7 @@ class Team {
           }
           let curAtk = ping.source.getAtk(pm, awoke);
           curAtk = Round.UP(curAtk * baseMultiplier);
-          if (ping.isSub) {
+          if (ping.isSub && ping.source.getAttribute() != Attribute.JAMMER) {
             const divisor = ping.attribute == ping.source.getAttribute() ? 10 : 3;
             curAtk = Round.UP(curAtk / divisor);
           }
