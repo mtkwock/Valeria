@@ -989,7 +989,7 @@ class Team {
           }
           let curAtk = ping.source.getAtk(pm, awoke);
           curAtk = Round.UP(curAtk * baseMultiplier);
-          if (ping.isSub) {
+          if (ping.isSub && ping.source.getAttribute() != Attribute.JAMMER) {
             const divisor = ping.attribute == ping.source.getAttribute() ? 10 : 3;
             curAtk = Round.UP(curAtk / divisor);
           }
@@ -1155,7 +1155,7 @@ class Team {
           apply(Awakening.HP_GREATER, 1.5);
         }
         if (rowTotals[ping.attribute]) {
-          ping.multiply(1 + 0.15 * rowTotals[ping.attribute], Round.NEAREST);
+          ping.multiply(1 + 0.2 * rowTotals[ping.attribute], Round.NEAREST);
         }
         if (comboContainer.combos['h'].some((combo) => combo.shape == Shape.BOX)) {
           apply(Awakening.BONUS_ATTACK_SUPER, 2);

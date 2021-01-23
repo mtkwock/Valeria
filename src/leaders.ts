@@ -572,8 +572,12 @@ const atkFromDecreasedHp: LeaderSkill = { // 106
 
 const hpDecrease: LeaderSkill = { // 107
   hp: ([hp100]) => hp100 / 100,
+  atk: ([_, attrBits, atk100]: number[], { ping }: AttackContext): number => {
+    return ping.source.anyAttributes(idxsFromBits(attrBits)) ? atk100 / 100 : 1;
+  },
 
   hpMax: ([hp100]) => hp100 / 100,
+  atkMax: ([_, _a, atk100]) => atk100 ? atk100 / 100 : 1,
 };
 
 const atkFromTypeDecreasedHp: LeaderSkill = { // 108
